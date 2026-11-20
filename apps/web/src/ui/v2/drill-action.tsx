@@ -1,3 +1,4 @@
+/* eslint-disable i18next/no-literal-string -- icon names only; the visible word is the drill label */
 import { useContext } from 'react';
 import { DrillOpenContext, type Drill } from './drill.js';
 import { Icon } from './icons.js';

@@ -161,9 +161,7 @@ export function registersModel(reply: FiguresReply, t: Translate): RegistersMode
     return tab ? t(tab.labelKey) : id;
   };
   return {
-    pages: found.map((page) =>
-      pageModel(page, label(page.id), { c, t, source }),
-    ),
+    pages: found.map((page) => pageModel(page, label(page.id), { c, t, source })),
     ...drillOf(reply, t),
     source,
     words: { tabs: t('analytics.registers.tabs'), why: c.why },

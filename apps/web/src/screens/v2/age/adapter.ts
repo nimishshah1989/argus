@@ -70,9 +70,7 @@ export function ageModel(reply: FiguresReply, t: Translate): AgeModel | null {
       t('analytics.guide.age.body2'),
       [t('analytics.guide.age.body1'), formula],
     ),
-    kpis: bands.map(({ average }, i) =>
-      kpiCard(`band-${i}`, 'clock', average, formula),
-    ),
+    kpis: bands.map(({ average }, i) => kpiCard(`band-${i}`, 'clock', average, formula)),
     ...(drill ? { drill } : {}),
     bands: bandTable(bands, t),
     source,
