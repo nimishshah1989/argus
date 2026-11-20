@@ -50,6 +50,21 @@ describe('Problem Analysis draws its sections and columns in order', () => {
     );
   });
 
+  it('draws the eight figures in the engine order, and the group editor’s columns last', () => {
+    const markup = draw(createElement(ProblemAnalysisView, { model, nav, title: 'Title' }));
+    const at = [...model.studied, ...model.whatIf].map((figure) =>
+      markup.indexOf(`aria-label="${figure.label}"`),
+    );
+    expect(at.every((place) => place > 0)).toBe(true);
+    expect([...at].sort((a, b) => a - b)).toEqual(at);
+    const editor = lines.slice(lines.lastIndexOf('h2: Problem groups') + 1);
+    expect(editor.filter((line) => line.startsWith('th: '))).toEqual([
+      'th: Order',
+      'th: Keywords',
+      'th: Remove',
+    ]);
+  });
+
   it('keeps each table’s columns in the engine order', () => {
     const columns = (after: string, before: string) =>
       lines.slice(lines.indexOf(after) + 1, lines.indexOf(before)).map((line) => line.slice(4));

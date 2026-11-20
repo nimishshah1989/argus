@@ -19,16 +19,26 @@ const ROLE_THAT_CORRECTS = new Set(['head', 'admin']);
 const cellChip = (id: string, t: Translate) =>
   ({ kind: 'cell', id, label: fill(t('v2m.reg.cell'), { n: id }) }) as const;
 
-/** "4 → 2" with each cell a chip when both are known; the printed arrow in words when one is not. */
+/** "4 → 2" with each cell a chip when both are known; when one is not, the known one in words and a dash for the other ("— → Cell 2"). */
 function changeCell(from: string | null, to: string | null, t: Translate): Cell {
   const none = t('analytics.value.none');
-  const text = `${from ?? none} → ${to ?? none}`;
-  return from !== null && to !== null
-    ? { text, sort: text, chips: [cellChip(from, t), cellChip(to, t)], join: ' → ' }
-    : { text, sort: text };
+  if (from !== null && to !== null) {
+    const text = `${from} → ${to}`;
+    return { text, sort: text, chips: [cellChip(from, t), cellChip(to, t)], join: ' → ' };
+  }
+  const named = (id: string | null) => (id === null ? none : cellChip(id, t).label);
+  const text = `${named(from)} → ${named(to)}`;
+  return { text, sort: text };
 }
 
-function rowOf(move: CellMove, code: string, canCorrect: boolean, t: Translate): Cell[] {
+/** The machine: a chip by its code, or a dash when the plant no longer lists it. A database id is never shown. */
+function machineCell(code: string | null, t: Translate): Cell {
+  return code === null
+    ? { text: t('analytics.value.none'), sort: '' }
+    : { text: code, sort: code, chip: machineChip(code) };
+}
+
+function rowOf(move: CellMove, code: string | null, canCorrect: boolean, t: Translate): Cell[] {
   const day = dayKey(move.date);
   const place =
     move.fromLocation !== null && move.fromLocation === move.toLocation
@@ -36,7 +46,7 @@ function rowOf(move: CellMove, code: string, canCorrect: boolean, t: Translate):
       : `${move.fromLocation ?? t('analytics.value.none')} → ${move.toLocation ?? t('analytics.value.none')}`;
   return [
     { text: dayText(day), sort: day },
-    { text: code, sort: code, chip: machineChip(code) },
+    machineCell(code, t),
     changeCell(move.fromCell, move.toCell, t),
     { text: place, sort: place },
     ...(canCorrect ? [{ text: t('analytics.cellLog.correct'), sort: '', action: move.id }] : []),
@@ -47,7 +57,7 @@ type Ctx = { c: CommonWords; t: Translate; source: string };
 
 function tableOf(
   moves: CellMove[],
-  code: (move: CellMove) => string,
+  code: (move: CellMove) => string | null,
   canCorrect: boolean,
   ctx: Ctx,
 ) {
@@ -91,7 +101,8 @@ function csvOf(moves: CellMove[], reader: CellLogReader, t: Translate) {
   };
 }
 
-function wordsOf(c: CommonWords, t: Translate): CellLogWords {
+function wordsOf(c: CommonWords, t: Translate, asOf: string): CellLogWords {
+  const on = { date: dayText(asOf) };
   return {
     why: c.why,
     exportTitle: t('v2m.log.exportTitle'),
@@ -102,6 +113,8 @@ function wordsOf(c: CommonWords, t: Translate): CellLogWords {
     exportError: t('analytics.cellLog.exportError'),
     empty: t('analytics.cellLog.empty'),
     saved: t('analytics.cellLog.saved'),
+    savedCopy: fill(t('v2m.savedCopy'), on),
+    savedAfterCorrection: fill(t('v2m.savedAfterCorrection'), on),
     refused: t('analytics.cellLog.refused'),
     correct: {
       title: t('analytics.cellLog.correctTitle'),
@@ -112,12 +125,12 @@ function wordsOf(c: CommonWords, t: Translate): CellLogWords {
   };
 }
 
-function verdictFor(moves: CellMove[], code: (move: CellMove) => string, t: Translate) {
+function verdictFor(moves: CellMove[], code: (move: CellMove) => string | null, t: Translate) {
   const latest = moves[0];
   const headline = latest
     ? sentence(t('v2m.log.headline'), {
         moves: String(moves.length),
-        machine: code(latest),
+        machine: code(latest) ?? t('analytics.value.none'),
         day: dayText(dayKey(latest.date)),
       })
     : sentence(t('v2m.log.headlineNone'), {});
@@ -154,7 +167,7 @@ export function cellLogModel(
   const c = commonWords(t);
   const ctx = { c, t, source: sourceLine(c.source, reply.asOf) };
   const moves = cellMoves(figure.value);
-  const code = (move: CellMove) => reader.codeOf(move.machineId) ?? move.machineId;
+  const code = (move: CellMove) => reader.codeOf(move.machineId);
   const canCorrect = ROLE_THAT_CORRECTS.has(reader.role ?? '');
   return {
     verdict: verdictFor(moves, code, t),
@@ -163,13 +176,13 @@ export function cellLogModel(
     moves: moves.map((move) => ({
       id: move.id,
       machineId: move.machineId,
-      code: code(move),
+      code: code(move) ?? t('analytics.value.none'),
       day: dayKey(move.date),
       change: `${move.fromCell ?? ''} → ${move.toCell ?? ''}`,
     })),
     canCorrect,
     csv: csvOf(moves, reader, t),
     source: ctx.source,
-    words: wordsOf(c, t),
+    words: wordsOf(c, t, reply.asOf),
   };
 }

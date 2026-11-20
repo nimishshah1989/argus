@@ -73,9 +73,35 @@ const FIGURES: FiguresReply = {
             fromLocation: '434',
             toLocation: '841-B',
           },
+          // v1's printed-data check kept: a machine that came from nowhere prints dashes; a location that stayed says so.
+          {
+            id: '10000000-0000-4000-8000-00000000a002',
+            machineId: PARTIAL.id,
+            date: '2026-07-05',
+            fromCell: null,
+            toCell: '2',
+            fromLocation: null,
+            toLocation: 'Bay B',
+          },
+          {
+            id: '10000000-0000-4000-8000-00000000a003',
+            machineId: FULL.id,
+            date: '2026-06-10',
+            fromCell: '2',
+            toCell: '6',
+            fromLocation: '434',
+            toLocation: '434',
+          },
         ],
       },
-      drill: { type: 'move', ids: ['10000000-0000-4000-8000-00000000a001'] },
+      drill: {
+        type: 'move',
+        ids: [
+          '10000000-0000-4000-8000-00000000a001',
+          '10000000-0000-4000-8000-00000000a002',
+          '10000000-0000-4000-8000-00000000a003',
+        ],
+      },
     },
     {
       key: 'machine-page',
@@ -218,6 +244,17 @@ async function drillRegister(page: Page, code: string): Promise<void> {
   await expect(page).not.toHaveURL(/drawer=/);
 }
 
+/** What v1 printed for the log, kept: the heading, each machine by its code (the id mapped through the plant's list), a
+ * missing cell or location as a dash, a location that stayed as "No change", and the correction on every row for a head. */
+async function expectWhatV1Printed(page: Page, second: string): Promise<void> {
+  await expect(page.getByRole('heading', { level: 1, name: 'Cell change log' })).toBeVisible();
+  await expect(page.getByRole('button', { name: second, exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: '— → Cell 2', exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: '— → Bay B', exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'No change', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Correct date', exact: true })).toHaveCount(3);
+}
+
 test('a head opens a register page, the cell change log and a machine page that is honest about gaps', async ({
   page,
 }) => {
@@ -248,6 +285,7 @@ test('a head opens a register page, the cell change log and a machine page that 
   await expect(page).toHaveURL(/screen=cell-change-log/);
   await expect(page.getByRole('cell', { name: '03-Aug-2026', exact: true })).toBeVisible();
   await expect(page.getByRole('cell', { name: 'Cell 4 → Cell 2', exact: true })).toBeVisible();
+  await expectWhatV1Printed(page, PARTIAL.code);
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export to CSV', exact: true }).click();
   const file = await download;
@@ -405,4 +443,21 @@ test('a figure the engine has not computed says "Not computed yet", not "nothing
   await page.goto('/analytics/machines');
   await expect(page.getByText('Not computed yet', { exact: true })).toBeVisible();
   await expect(page.getByText('Nothing to show here yet')).toHaveCount(0);
+});
+
+test('“Open full page” from a machine drawer opens that machine’s record, not an empty page', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await stubFigures(page);
+  await signIn(page, 'head');
+  await page.goto('/analytics/machines?screen=cell-change-log');
+  await page.getByRole('button', { name: FULL.code, exact: true }).first().click();
+  const drawer = page.locator('aside.v2-drawer');
+  await expect(drawer.getByRole('heading', { level: 2, name: 'Cosmos CVM-800' })).toBeVisible();
+  await drawer.getByRole('link', { name: 'Open full page', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/analytics/machines/${FULL.code}$`));
+  await expect(page.getByRole('heading', { name: FULL.code, exact: true })).toBeVisible();
+  await expect(page.getByRole('main').getByText('Cosmos', { exact: true })).toBeVisible();
+  await expect(page.getByText('10 of 10 fields', { exact: true })).toBeVisible();
 });
