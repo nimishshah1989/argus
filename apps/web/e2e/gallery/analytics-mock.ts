@@ -109,28 +109,6 @@ const FIGURES = [
       },
     ],
   }),
-  figure('a4-manpower', 'a4-manpower', {
-    page: 'a4',
-    title: 'Manpower',
-    kpis: [
-      ['People', '2'],
-      ['Hours handled', '30.5', ''],
-    ],
-    tables: [
-      {
-        title: 'Manpower Table',
-        header: ['Person', 'Hours'],
-        rows: [
-          ['Asha', '12.0'],
-          ['Ravi', '18.5'],
-        ],
-      },
-      { title: 'Specialization', header: ['Person', 'Spindle'], rows: [['Asha', '3']] },
-    ],
-    charts: [
-      { id: 'ch-a4-count', labels: ['Asha', 'Ravi'], datasets: [{ label: 'Jobs', data: [3, 5] }] },
-    ],
-  }),
   figure('compare', 'compare', {
     page: 'cmp',
     title: 'Compare machines',

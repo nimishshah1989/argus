@@ -135,7 +135,9 @@ export type ModelKey =
   | 'energy'
   | 'bottleneck'
   | 'forecast-lab'
-  | 'shift-kpis';
+  | 'shift-kpis'
+  | 'manpower'
+  | 'why-why';
 
 export type PageConfig<K extends ModelKey> = {
   entry: LiveEntry;

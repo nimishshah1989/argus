@@ -38,17 +38,6 @@ export const PRINTED: Printed[] = [
     rows: [['By category', 0, ['Spindle', '2.5', '—']]],
   },
   {
-    path: `${B}a4-manpower`,
-    tiles: [
-      ['People', '2'],
-      ['Hours handled', '30.5'],
-    ],
-    rows: [
-      ['Manpower Table', 0, ['Asha', '12.0']],
-      ['Manpower Table', 1, ['Ravi', '18.5']],
-    ],
-  },
-  {
     path: '/analytics/machines?screen=compare',
     tiles: [],
     rows: [

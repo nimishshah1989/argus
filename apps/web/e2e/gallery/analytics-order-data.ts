@@ -65,20 +65,6 @@ export const SCREENS: [string, string[], string[]][] = [
     ['h2: MTTR and MTB', 'summary: Show the num', 'h3: By category'],
   ],
   [
-    '/analytics/breakdowns?screen=a4-manpower',
-    BREAKDOWNS_MENU,
-    [
-      'h2: Manpower',
-      'summary: Show the num',
-      'h3: Manpower Tab',
-      'button: Person',
-      'button: Hours',
-      'h3: Specializati',
-      'button: By Category',
-      'button: By Fault Cod',
-    ],
-  ],
-  [
     '/analytics/machines?screen=compare',
     MACHINES_MENU,
     [

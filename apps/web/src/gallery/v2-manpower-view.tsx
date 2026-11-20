@@ -4,14 +4,18 @@ import { useSearchParams } from 'react-router-dom';
 import { EntityShell } from '../screens/v2/entity/EntityShell.js';
 import { useScreenModel } from '../screens/v2/data.js';
 import { ManpowerView } from '../screens/v2/manpower/View.js';
+import { manpowerModelFromKey } from '../screens/v2/manpower/source.js';
 import { useNav } from '../screens/v2/nav.js';
 import { ScreenStates } from '../ui/v2/screen-states.js';
 import { previewProvider } from './v2-preview.js';
 
-/** The v2 manpower screen as it will run: the model through the shared seam, the load states from the kit in the same shell. */
+/** The v2 manpower screen on the engine's frozen answer: the model through the shared seam, the load states from the kit in the same shell. */
 export default function V2ManpowerView() {
   const [params] = useSearchParams();
-  const provider = useMemo(() => previewProvider<'manpower'>(params.get('state')), [params]);
+  const provider = useMemo(
+    () => previewProvider<'manpower'>(params.get('state')) ?? (() => manpowerModelFromKey()),
+    [params],
+  );
   const loaded = useScreenModel('manpower', {}, provider);
   const nav = useNav('reliability');
   const { t } = useTranslation();
