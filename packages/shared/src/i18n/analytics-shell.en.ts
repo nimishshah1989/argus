@@ -27,4 +27,5 @@ export const analyticsShellEn = {
   'ashell.entity.fullPage': 'Open full page',
   'ashell.entity.notFound': 'We could not find this one. It may have been removed.',
   'ashell.v2.compare': 'Compare machines',
+  'ashell.machine.notFound': 'We could not find this machine. It may have been removed or renamed.',
 };
