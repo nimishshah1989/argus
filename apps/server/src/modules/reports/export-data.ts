@@ -7,7 +7,6 @@ import {
   type ExportPmPlan,
   type ExportPmReport,
   type ExportSettings,
-  UNLISTED,
 } from '@uptimo/domain';
 import type { PmExportReportRow } from '../tickets/index.js';
 
@@ -112,6 +111,9 @@ function pmPlanRowsOf(data: EngineData): ExportPmPlan[] {
   }
   return rows;
 }
+
+/** What a sheet prints for a machine or person the plant does not list: a dash, as the domain's own sheets do. */
+const UNLISTED = '-';
 
 /** What a sheet prints for a machine or a person: the code and the coded name, never the id the rows carry. */
 interface PrintedNames {
