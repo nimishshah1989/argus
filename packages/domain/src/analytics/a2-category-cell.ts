@@ -185,7 +185,7 @@ function machineTable(ctx: A2Context, category: string, totalHours: number) {
     .map((machine) => {
       const own = ctx.entries.filter((entry) => entry.machine.id === machine.id);
       return {
-        id: machine.id,
+        code: machine.code,
         cell: cellKey(machine.cell),
         count: own.length,
         hours: own.reduce((sum, entry) => sum + entry.hours, 0),
@@ -193,7 +193,7 @@ function machineTable(ctx: A2Context, category: string, totalHours: number) {
     })
     .sort((left, right) => right.hours - left.hours)
     .map((machine) => [
-      machine.id,
+      machine.code,
       machine.cell,
       String(machine.count),
       formatInr(machine.hours, 2),

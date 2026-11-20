@@ -8,6 +8,7 @@ import {
   type FigureResult,
 } from '../src/index.js';
 import { ENGINE_DATA, read } from './answer-key/fixture.js';
+import { withoutCodeFields } from './answer-key/rekey.js';
 
 /**
  * The Team Focus figure (ticket 43, packet 43b): the whole frozen 11 November key — three KPI tiles and the month's
@@ -66,7 +67,7 @@ describe('the Team Focus figure', () => {
     const computed = compute();
     // Red first: 43b had not landed, so the engine answered not_computed for this key.
     expect(computed.status).toBe('ready');
-    expect(computed.value).toEqual(TEAM_FOCUS);
+    expect(withoutCodeFields(computed.value)).toEqual(TEAM_FOCUS);
   });
 
   it('drills the machines its actions name, and every id is a real machine', () => {

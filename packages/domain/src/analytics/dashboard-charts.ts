@@ -46,6 +46,7 @@ export const bubbleChart: Computer = ({ data, asOf }) => {
       y: row.count,
       r: 4 + 18 * Math.sqrt(mttr / maxMttr),
       id: row.machine.id,
+      code: row.machine.code,
       model: row.machine.model ?? '—',
       age: age === null ? '—' : `${age} yrs`,
       mttr,

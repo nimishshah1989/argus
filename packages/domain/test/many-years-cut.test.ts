@@ -89,7 +89,7 @@ describe('the cut fixes the six span figures', () => {
     // three old machines, VC-2 72 h over 37 (the largest MTTR, so r = 22); the three read 4 + 18 x sqrt(94/60 / (72/37)).
     type Bubble = { x: number; y: number; r: number; age: number };
     const point = (id: string, { x, y, r, age }: Bubble) => ({
-      ...{ x, y, r, id, model: '—', age: `${age} yrs` },
+      ...{ x, y, r, id, code: id, model: '—', age: `${age} yrs` },
       mttr: x / y,
     });
     const chart = (points: unknown[]) => ({
