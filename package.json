@@ -20,6 +20,7 @@
     "deps": "tsx tools/check-deps.ts",
     "shortcuts": "tsx tools/check-shortcuts.ts",
     "pr:size": "tsx tools/check-pr-size.ts",
+    "pr:body": "tsx tools/pr-body.ts",
     "migrations:check": "tsx tools/check-migrations.ts",
     "migrations:immutable": "tsx tools/check-migration-immutability.ts",
     "docs:check": "tsx tools/check-docs.ts",
