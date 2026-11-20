@@ -68,9 +68,7 @@ export function MachineView({
     (candidate) => candidate.screen === 'machine-page',
   );
   // The second figure on this screen (67 R11): the reliability block is found by key, so it never becomes a tile.
-  const reliability: Figure | undefined = figures.figures.find(
-    (candidate) => candidate.key === 'reliability',
-  );
+  const reliability: Figure | undefined = figures.figures.find((f) => f.key === 'reliability');
   const ready = figure?.status === 'ready';
   const id = ready ? machineIdOf(figure?.value, asked) : asked;
   const record = ready && figure ? machineRecord(figure.value, id) : null;

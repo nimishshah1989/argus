@@ -241,9 +241,9 @@ async function drillRegister(page: Page, code: string): Promise<void> {
 
 /** What v1 printed for the log, kept: the heading, each machine by its code (the id mapped through the plant's list), a
  * missing cell or location as a dash, a location that stayed as "No change", and the correction on every row for a head. */
-async function expectWhatV1Printed(page: Page): Promise<void> {
+async function expectWhatV1Printed(page: Page, second: string): Promise<void> {
   await expect(page.getByRole('heading', { level: 1, name: 'Cell change log' })).toBeVisible();
-  await expect(page.getByRole('button', { name: PARTIAL.code, exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: second, exact: true })).toBeVisible();
   await expect(page.getByRole('cell', { name: '— → Cell 2', exact: true })).toBeVisible();
   await expect(page.getByRole('cell', { name: '— → Bay B', exact: true })).toBeVisible();
   await expect(page.getByRole('cell', { name: 'No change', exact: true })).toBeVisible();
@@ -280,7 +280,7 @@ test('a head opens a register page, the cell change log and a machine page that 
   await expect(page).toHaveURL(/screen=cell-change-log/);
   await expect(page.getByRole('cell', { name: '03-Aug-2026', exact: true })).toBeVisible();
   await expect(page.getByRole('cell', { name: 'Cell 4 → Cell 2', exact: true })).toBeVisible();
-  await expectWhatV1Printed(page);
+  await expectWhatV1Printed(page, PARTIAL.code);
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export to CSV', exact: true }).click();
   const file = await download;
@@ -406,7 +406,7 @@ for (const [screen, heading] of [
     await expect(page).not.toHaveURL(/drawer=/);
   });
 }
-=======
+
 test('“Open full page” from a machine drawer opens that machine’s record, not an empty page', async ({
   page,
 }) => {
