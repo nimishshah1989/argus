@@ -1,0 +1,70 @@
+/* The v2 search (palette.tsx): a dialog over the page, one box and a list of the pages it can open. */
+
+.v2-pal-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 12vh 16px 16px;
+  background: var(--color-v2-scrim);
+}
+.v2-pal {
+  display: flex;
+  flex-direction: column;
+  width: min(560px, 100%);
+  max-height: min(70vh, 520px);
+  overflow: hidden;
+  border: 1px solid var(--color-v2-line);
+  border-radius: 14px;
+  background: var(--color-v2-panel);
+  box-shadow: var(--shadow-v2-overlay);
+}
+.v2-pal-input {
+  min-height: 52px;
+  padding: 0 16px;
+  border: 0;
+  border-bottom: 1px solid var(--color-v2-line);
+  outline: 0;
+  background: transparent;
+  color: var(--color-v2-ink);
+  font: inherit;
+  font-size: var(--text-v2-body);
+}
+.v2-pal-input:focus-visible {
+  outline: 2px solid var(--color-v2-focus);
+  outline-offset: -2px;
+}
+.v2-pal-list {
+  margin: 0;
+  padding: 6px;
+  overflow: hidden auto;
+  list-style: none;
+}
+.v2-pal-list > li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 8px;
+  color: var(--color-v2-ink);
+  font-size: var(--text-v2-body);
+  cursor: pointer;
+}
+.v2-pal-list > li[data-active='true'] {
+  background: var(--color-v2-selected);
+}
+.v2-pal-hint {
+  color: var(--color-v2-ink-3);
+  font-size: var(--text-v2-label);
+  white-space: nowrap;
+}
+.v2-pal-none {
+  margin: 0;
+  padding: 16px;
+  color: var(--color-v2-ink-3);
+  font-size: var(--text-v2-secondary);
+}

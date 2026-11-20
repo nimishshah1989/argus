@@ -4,7 +4,7 @@ import { Fragment, useEffect, useRef, useState, type ReactElement, type ReactNod
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { correctMove, getMe } from '../../api.js';
+import { correctMove, getBrand, getMe } from '../../api.js';
 import { ApiError, isOffline } from '../../data/index.js';
 import { Segmented } from '../../ui/v2/segmented.js';
 import { ScreenStates, type Loaded } from '../../ui/v2/screen-states.js';
@@ -23,7 +23,7 @@ import { ShiftKpisView } from './shift-kpis/View.js';
 import type { CellLogModel } from './cell-change-log/model.js';
 import { useScreenModel, type ScreenModel, type ScreenParams } from './data.js';
 import { savedFigures } from './figures/live.js';
-import { ChromeContext, EntityShell } from './entity/EntityShell.js';
+import { ChromeContext, EntityShell, WhoContext } from './entity/EntityShell.js';
 import { liveReply } from './figures/live.js';
 import {
   NO_SUCH_FIGURE,
@@ -106,12 +106,16 @@ function LiveFrame({
   children: (nav: ReturnType<typeof useNav>) => ReactNode;
 }) {
   const role = useQuery({ queryKey: ['me'], queryFn: getMe }).data?.user.role;
+  const { t } = useTranslation();
+  const brand = useQuery({ queryKey: ['brand'], queryFn: getBrand }).data?.company;
   const nav = useNav(entry.section, role);
   useLegacyDrill(entry.screen);
   return (
-    <ChromeContext.Provider value={<ScreenTabs group={entry.group} current={entry.screen} />}>
-      {children(nav)}
-    </ChromeContext.Provider>
+    <WhoContext.Provider value={{ role, company: brand || t('analytics.title') }}>
+      <ChromeContext.Provider value={<ScreenTabs group={entry.group} current={entry.screen} />}>
+        {children(nav)}
+      </ChromeContext.Provider>
+    </WhoContext.Provider>
   );
 }
 
