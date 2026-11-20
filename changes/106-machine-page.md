@@ -1,0 +1,1 @@
+A machine now has its own page in the new look: its state and why, this month's hours, a 12-week trend, its planned maintenance and spares, the next action, and its year of breakdowns as a searchable table whose rows open their story (sample data only, in the gallery at /gallery?view=v2-machine&id=VC-67).

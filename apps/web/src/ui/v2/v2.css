@@ -145,7 +145,8 @@
   background: var(--color-v2-decide-tint);
   color: var(--color-v2-decide);
 }
-.v2-pill-neutral {
+.v2-pill-neutral,
+.v2-delta-neutral {
   background: var(--color-v2-track);
   color: var(--color-v2-ink-2);
 }

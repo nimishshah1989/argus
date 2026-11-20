@@ -74,6 +74,14 @@ const V2DashboardView = () => (
   </Suspense>
 );
 
+// The v2 Machine page on its fixture: `&id=VC-67` picks the machine; its own chunk too.
+const V2Machine = lazy(() => import('./v2-machine-view.js'));
+const V2MachineView = () => (
+  <Suspense fallback={null}>
+    <V2Machine />
+  </Suspense>
+);
+
 // The v2 Action Center and Data Checklist on their fixtures: one chunk each.
 const V2ActionCenter = lazy(() => import('./v2-action-center-view.js'));
 const V2ActionCenterView = () => (
@@ -97,6 +105,7 @@ const VIEWS: Record<string, () => React.JSX.Element> = {
   charts: ChartDoorView,
   templates: TemplatesView,
   'v2-dashboard': V2DashboardView,
+  'v2-machine': V2MachineView,
   'v2-action-center': V2ActionCenterView,
   'v2-data-checklist': V2DataChecklistView,
 };
