@@ -2,6 +2,9 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
+// A trace of a failing run goes into the CI artifact (test-results/gallery).
+test.use({ trace: 'retain-on-failure' });
+
 const drawer = (page: Page) => page.locator('aside.v2-drawer');
 
 async function open(page: Page, theme = 'light') {
@@ -15,17 +18,34 @@ async function open(page: Page, theme = 'light') {
 test('Team Focus: the headline is up, a person chip opens the drawer, Back closes it', async ({
   page,
 }) => {
-  await open(page);
-  await expect(page.getByText('4 have no owner')).toBeVisible();
-  await page
-    .getByRole('region', { name: 'Who is carrying what' })
-    .getByRole('button', { name: 'Arjun V', exact: true })
-    .click();
-  await expect(drawer(page)).toHaveAttribute('aria-label', 'Arjun V');
-  await expect(page).toHaveURL(/[?&]drawer=person:arjun-v$/);
-  await page.goBack();
-  await expect(drawer(page)).toHaveAttribute('inert', '');
-  await expect(page.getByRole('heading', { level: 1, name: 'Team Focus' })).toBeVisible();
+  const trouble: string[] = [];
+  page.on('pageerror', (e) => trouble.push(`pageerror: ${e.message}`));
+  page.on('requestfailed', (r) => trouble.push(`requestfailed: ${r.url()}`));
+  page.on('console', (m) => m.type() === 'error' && trouble.push(`console: ${m.text()}`));
+  try {
+    await test.step('open', async () => {
+      await open(page);
+      await expect(page.getByText('4 have no owner')).toBeVisible();
+    });
+    const chip = page
+      .getByRole('region', { name: 'Who is carrying what' })
+      .getByRole('button', { name: 'Arjun V', exact: true });
+    await test.step('click chip', async () => {
+      await chip.scrollIntoViewIfNeeded({ timeout: 10_000 });
+      await chip.click({ timeout: 10_000 });
+      await expect(drawer(page)).toHaveAttribute('aria-label', 'Arjun V');
+    });
+    await test.step('url', async () => {
+      await expect(page).toHaveURL(/[?&]drawer=person:arjun-v$/);
+    });
+    await test.step('back', async () => {
+      await page.goBack({ timeout: 10_000 });
+      await expect(drawer(page)).toHaveAttribute('inert', '');
+      await expect(page.getByRole('heading', { level: 1, name: 'Team Focus' })).toBeVisible();
+    });
+  } finally {
+    if (trouble.length) console.log(trouble.join('\n'));
+  }
 });
 
 test('Team Focus: an action is assigned in one press, and the list counts it', async ({ page }) => {
