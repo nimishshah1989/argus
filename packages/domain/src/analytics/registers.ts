@@ -163,7 +163,7 @@ function dgKpis(list: readonly MachineRow[], asOf: string): RegisterKpi[] {
     {
       label: 'Largest Set',
       value: largest.id ? `${formatNumber(largest.capacityKva ?? 0, 0)} KVA` : '—',
-      sub: largest.id ? `${largest.id}${model}` : '',
+      sub: largest.id ? `${largest.code}${model}` : '',
     },
     {
       label: 'Avg Age',
@@ -178,7 +178,7 @@ const printed = (value: unknown): string =>
 
 /** The ID cell the lists print; an excluded machine carries the platform's own badge text. */
 const printedId = (machine: MachineRow): string =>
-  machine.excludedFromProduction ? `${machine.id} NOT IN PRODUCTION DATA` : machine.id;
+  machine.excludedFromProduction ? `${machine.code} NOT IN PRODUCTION DATA` : machine.code;
 
 /** The machine's age as the list prints it, from the same completed-years rule as the age analysis. */
 const printedAge = (machine: MachineRow, asOf: string): string => {

@@ -114,6 +114,8 @@ function editDistance(left: string, right: string, limit: number): number {
 interface FixCase {
   readonly ticketId: string;
   readonly machineId: string;
+  /** The code the log prints for the machine; its id is the database's and is never printed. */
+  readonly machineCode: string;
   readonly date: string;
   readonly problem: string;
   readonly action: string;
@@ -163,11 +165,13 @@ function caseOf(
   groups: readonly ProblemGroup[],
   fixes: Readonly<Record<string, string>>,
   names: ReadonlyMap<string, string>,
+  codes: ReadonlyMap<string, string>,
 ): FixCase {
   const { report, ticket } = row;
   return {
     ticketId: ticket.id,
     machineId: report.machineId,
+    machineCode: codes.get(report.machineId) ?? '',
     date: report.date,
     problem: report.problem,
     action: report.correctiveAction ?? '',
@@ -185,11 +189,12 @@ function buildIndex(data: EngineData): FixIndex {
   const fixes = data.settings?.problemFixes ?? {};
   const production = new Set(data.machines.filter(isProduction).map((machine) => machine.id));
   const names = new Map(data.people.map((person) => [person.code, person.displayName]));
+  const codes = new Map(data.machines.map((machine) => [machine.id, machine.code]));
   const cases: FixCase[] = [];
   const frequency = new Map<string, number>();
   for (const row of sourcedReports(data)) {
     if (!production.has(row.report.machineId) || isPm(row)) continue;
-    const entry = caseOf(row, groups, fixes, names);
+    const entry = caseOf(row, groups, fixes, names, codes);
     cases.push(entry);
     for (const stem of new Set([...entry.problemTokens, ...entry.actionTokens])) {
       frequency.set(stem, (frequency.get(stem) ?? 0) + 1);
@@ -352,7 +357,7 @@ function rowOf(hit: FixHit): string[] {
   return [
     `${Math.round(hit.score * 100)}%`,
     dmy(hit.entry.date),
-    hit.entry.machineId,
+    hit.entry.machineCode,
     hit.entry.problem,
     hit.entry.action,
     hoursText(hit.entry.hours, 2),
