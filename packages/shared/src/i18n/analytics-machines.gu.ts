@@ -13,7 +13,6 @@ export const analyticsMachinesGu = gujarati(analyticsMachinesEn, {
     'દરેક રજિસ્ટરનું પ્લેટફોર્મનું પોતાનું વિભાજન: કેટલા મશીન, તેમનો કનેક્ટેડ લોડ અને ઉંમર, અને ગાઇડમાં વર્ણવેલ કંટ્રોલર કે મેકનું વિભાજન. દરેક પાના પાછળની હરોળો તે રજિસ્ટરના મશીનો છે.',
   'analytics.registers.seeMachines': 'મશીનો જુઓ',
   'analytics.registers.notReady': 'આ રજિસ્ટરની ગણતરી હજી થઈ નથી.',
-  'analytics.registers.missingPage': 'આ રજિસ્ટરનું પાનું જવાબમાં નથી.',
   'analytics.machines.nav': 'મશીન સ્ક્રીનો',
   'analytics.cellLog.title': 'સેલ / સ્થાન બદલાવ લૉગ',
   'analytics.cellLog.intro':
