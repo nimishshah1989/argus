@@ -1,7 +1,7 @@
 import { machineChip, type MachineData } from '../../../ui/v2/domain/plant.js';
 import type { EntityChipProps } from '../../../ui/v2/entity-chip.js';
 import { dashboardFixture } from '../dashboard/fixture.js';
-import { PEOPLE, type PersonId } from '../action-center/fixture-decisions.js';
+import { PEOPLE, type PersonId } from './fixture-people.js';
 import type { RecordRow } from './model.js';
 
 /** The invented checks of the gallery's data. Everything the screen prints is worked out from these rows. */
