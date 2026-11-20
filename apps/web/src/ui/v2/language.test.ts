@@ -17,6 +17,7 @@ const SHEETS = [
   'domain.css',
   'compare-box.css',
   'entity-chip.css',
+  'rows-behind.css',
   'motion.css',
 ];
 const css = (name: string) =>

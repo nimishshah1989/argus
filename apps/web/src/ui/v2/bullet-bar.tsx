@@ -1,4 +1,6 @@
 /* eslint-disable i18next/no-literal-string -- icon names and typed unions only; every visible word comes in as a prop or t() */
+import { useContext } from 'react';
+import { DrillOpenContext, type Drill } from './drill.js';
 import { Icon } from './icons.js';
 import { MOTION, useTick } from './motion.js';
 import type { Point } from './points.js';
@@ -21,6 +23,8 @@ export type BulletData = {
   /** What the bar says aloud. */
   aria: string;
   why: Point[];
+  /** The rows behind the figure: when given, a button beside the bar opens them. */
+  drill?: Drill;
 };
 
 /**
@@ -37,6 +41,7 @@ export function place([lo, hi]: [number, number]) {
 /** Actual against target and last month, with the good zone; the whole row opens its Why. */
 export function BulletBar({ b }: { b: BulletData }) {
   const why = useWhy();
+  const open = useContext(DrillOpenContext);
   const shown = useTick(b.shown);
   const at = place(b.scale);
   const zone = b.higherIsBetter
@@ -45,7 +50,7 @@ export function BulletBar({ b }: { b: BulletData }) {
   const clamp =
     b.value > Math.max(...b.scale) ? 'over' : b.value < Math.min(...b.scale) ? 'under' : undefined;
   return (
-    <div className="v2-bullet">
+    <div className="v2-bullet" data-drill={b.drill ? '' : undefined}>
       <button
         type="button"
         className="v2-rowbtn"
@@ -79,6 +84,16 @@ export function BulletBar({ b }: { b: BulletData }) {
           <Icon name="chevronDown" size={14} />
         </span>
       </button>
+      {b.drill ? (
+        <button
+          type="button"
+          className="v2-icon-btn v2-drill-btn"
+          aria-label={b.drill.label}
+          onClick={() => b.drill && open(b.drill)}
+        >
+          <Icon name="list" size={16} />
+        </button>
+      ) : null}
       <WhyPanel why={why} points={b.why} well />
     </div>
   );

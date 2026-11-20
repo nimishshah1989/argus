@@ -8,6 +8,7 @@
 @import './ui/v2/domain.css';
 @import './ui/v2/compare-box.css';
 @import './ui/v2/entity-chip.css';
+@import './ui/v2/rows-behind.css';
 @import './ui/v2/motion.css';
 
 @layer base {
