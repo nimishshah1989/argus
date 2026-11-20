@@ -49,34 +49,6 @@ export const PRINTED: Printed[] = [
     ],
   },
   {
-    path: `${B}a10-problems`,
-    tiles: [['Groups', '3']],
-    rows: [
-      ['', 0, ['1', 'Coolant', 'coolant, leak', ''], 'Order'],
-      [
-        'Entries the system could not place',
-        0,
-        ['01-03-2026', 'CNC-01', 'Odd noise', '1.5', 'Coolant', ''],
-      ],
-    ],
-  },
-  {
-    path: `${B}fix-finder`,
-    tiles: [
-      ['Similar breakdowns', '15'],
-      ['Best fix', 'Re-seat the probe'],
-    ],
-    rows: [['Similar breakdowns', 0, ['T-001', 'CNC-01', 'Probe re-seated']]],
-  },
-  {
-    path: `${B}shift-kpis`,
-    tiles: [['Day shift', '55.0%']],
-    rows: [
-      ['By shift', 0, ['Day', '20.0']],
-      ['By shift', 1, ['Evening', '']],
-    ],
-  },
-  {
     path: '/analytics/machines?screen=compare',
     tiles: [],
     rows: [

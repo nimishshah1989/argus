@@ -225,11 +225,16 @@ async function correctFirstMove(page: Page): Promise<void> {
   await expect(page.getByRole('cell', { name: '03-Aug-2026', exact: true })).toHaveCount(0);
 }
 
-/** A register page drills to the machines behind it (v1's "See the machines"), and each row opens its machine. */
+/**
+ * A register page drills to the machines behind it from the page's own "See the machines" (v1's page action; no count
+ * on the page equals the whole register, so none carries the drill), and each row opens its machine.
+ */
 async function drillRegister(page: Page, code: string): Promise<void> {
-  await page.getByRole('button', { name: /Show the rows behind Registers and splits/ }).click();
+  await expect(page.getByRole('button', { name: /Show the rows behind/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'See the machines', exact: true }).click();
   await expect(page).toHaveURL(/[?&]drawer=figure:registers$/);
   const rows = page.locator('aside.v2-drawer');
+  await expect(rows.locator('tbody tr')).toHaveCount(2);
   await expect(rows.getByRole('button', { name: code, exact: true })).toBeVisible();
   await rows.getByRole('button', { name: code, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`[?&]drawer=machine:${code}$`));
@@ -381,9 +386,9 @@ function keyFigure(name: string, drill: FiguresReply['figures'][number]['drill']
   return { key: name, screen: name, owner: 39, status: 'ready' as const, value, drill };
 }
 
-for (const [screen, heading] of [
-  ['a8-age', 'Age'],
-  ['a7-footprint', 'Footprint'],
+for (const [screen, heading, control] of [
+  ['a8-age', 'Age', /^See the machines$/],
+  ['a7-footprint', 'Footprint', /Show the rows behind/],
 ] as const) {
   test(`${heading} is live at its v1 address: a figure opens the machines behind it, and Back closes them`, async ({
     page,
@@ -394,10 +399,7 @@ for (const [screen, heading] of [
     await signIn(page, 'head');
     await page.goto(`/analytics/machines?screen=${screen}`);
     await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
-    await page
-      .getByRole('button', { name: /Show the rows behind/ })
-      .first()
-      .click();
+    await page.getByRole('button', { name: control }).first().click();
     await expect(page).toHaveURL(new RegExp(`[?&]drawer=figure:${screen}$`));
     await expect(
       page.locator('aside.v2-drawer').getByRole('button', { name: FULL.code, exact: true }),
@@ -406,6 +408,42 @@ for (const [screen, heading] of [
     await expect(page).not.toHaveURL(/drawer=/);
   });
 }
+
+test('an old v1 link keeps its rows: ?drill= opens them in the panel, an unknown screen opens the register', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await stubFigures(page, FIGURES);
+  await signIn(page, 'head');
+  const ids = encodeURIComponent(`machine:${FULL.id},${PARTIAL.id}`);
+  await page.goto(`/analytics/machines?drill=${ids}`);
+  await expect(page).toHaveURL(/[?&]drawer=figure:registers$/);
+  await expect(page).not.toHaveURL(/drill=/);
+  const rows = page.locator('aside.v2-drawer');
+  await expect(rows.locator('tbody tr')).toHaveCount(2);
+  await expect(rows.getByRole('button', { name: FULL.code, exact: true })).toBeVisible();
+
+  await page.goto('/analytics/machines?screen=bogus');
+  await expect(page).toHaveURL(/screen=registers/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Machines register' })).toBeVisible();
+});
+
+test('a figure the engine has not computed says "Not computed yet", not "nothing to show"', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const figures = structuredClone(FIGURES);
+  figures.figures = figures.figures.map((figure) =>
+    figure.key === 'registers'
+      ? { ...figure, status: 'not_computed' as const, value: null }
+      : figure,
+  );
+  await stubFigures(page, figures);
+  await signIn(page, 'head');
+  await page.goto('/analytics/machines');
+  await expect(page.getByText('Not computed yet', { exact: true })).toBeVisible();
+  await expect(page.getByText('Nothing to show here yet')).toHaveCount(0);
+});
 
 test('“Open full page” from a machine drawer opens that machine’s record, not an empty page', async ({
   page,

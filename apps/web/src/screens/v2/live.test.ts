@@ -1,3 +1,4 @@
+import { Navigate } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { liveScreen } from './live.js';
 
@@ -30,5 +31,15 @@ describe('which v2 screens are live at their v1 address', () => {
     expect(liveScreen('breakdowns', null)).toBeNull();
     expect(liveScreen('breakdowns', 'cell-change-log')).toBeNull();
     expect(liveScreen('today', 'cell-change-log')).toBeNull();
+  });
+
+  it('sends an unknown Machines screen to the register, never to a v1 copy of it', () => {
+    for (const bogus of ['bogus', 'machine-page', '']) {
+      const sent = liveScreen('machines', bogus);
+      expect(sent?.type, bogus).toBe(Navigate);
+      expect((sent?.props as { to: string }).to, bogus).toBe(
+        '/analytics/machines?screen=registers',
+      );
+    }
   });
 });

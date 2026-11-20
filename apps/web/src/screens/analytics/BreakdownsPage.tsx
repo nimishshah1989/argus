@@ -22,9 +22,14 @@ const A4 = 'a4-manpower';
 const A6 = 'a6-why-why';
 const A10 = 'a10-problems';
 const FIX = 'fix-finder';
+const SHIFT = 'shift-kpis';
 
-/** The screens the group shows: the log, then A1, A2, A3, A4, A6, A10 and Fix Finder's key-shaped pages (the shift-calendar KPIs are v2). */
-const SCREENS = [LOG, A1, A2, A3, A4, A6, A10, FIX] as const;
+/**
+ * The screens this page draws: the log, then A1, A2, A3, A4 and A6. Problem Analysis, Fix Finder and the
+ * shift-calendar KPIs are v2 and live in `screens/v2/live.tsx`; the menu still lists them, in their place.
+ */
+const SCREENS = [LOG, A1, A2, A3, A4, A6] as const;
+const MENU = [LOG, A1, A2, A3, A4, A6, A10, FIX, SHIFT] as const;
 
 type Screen = (typeof SCREENS)[number];
 
@@ -43,7 +48,7 @@ function ScreenNav({ current }: { current: Screen }) {
     <ScreenMenu
       label={t('analytics.breakdowns.nav')}
       current={current}
-      items={SCREENS.map((screen) => ({
+      items={MENU.map((screen) => ({
         id: screen,
         to: `/analytics/breakdowns?screen=${screen}`,
         label: t(SCREEN_LABELS[screen] ?? 'analytics.screen.unknown'),

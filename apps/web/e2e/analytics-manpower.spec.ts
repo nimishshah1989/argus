@@ -310,7 +310,7 @@ async function drillEveryCell(page: Page): Promise<void> {
   const drawer = page.locator('aside.v2-drawer');
   for (const cell of A5_CELLS) {
     await page.locator(`[data-tile="cell:${cell.key}"]`).click();
-    await expect(page).toHaveURL(/[?&]drawer=figure:a5-energy:cell:/);
+    await expect(page).toHaveURL(/[?&]drawer=figure:a5-energy%3Acell%3A/);
     await expect(
       drawer.getByText(`Machine-wise Load — Cell ${cell.key}`, { exact: true }).first(),
     ).toBeVisible();

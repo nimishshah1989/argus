@@ -2,7 +2,7 @@ import type { Page, Route } from '@playwright/test';
 import { mockPlant } from './plant-mock.js';
 
 /**
- * The analytics figures answered from the browser (ticket 87, rest): an invented plant's A1 to A4, A10, Fix Finder,
+ * The analytics figures answered from the browser (ticket 87, rest): an invented plant's A1 to A4,
  * Shift KPIs and Compare, in the engine's own page shape. Invented names and numbers only. The
  * blank cell, the dash and the "pts" below are on purpose: the restyle must print them as they are.
  */
@@ -130,60 +130,6 @@ const FIGURES = [
     charts: [
       { id: 'ch-a4-count', labels: ['Asha', 'Ravi'], datasets: [{ label: 'Jobs', data: [3, 5] }] },
     ],
-  }),
-  figure('a10-problems', 'a10-problems', {
-    page: 'a10',
-    title: 'Problem Analysis',
-    kpis: [['Groups', '3']],
-    tables: [
-      { title: 'Problem groups', header: ['Problem group', 'Count'], rows: [['Coolant', '4']] },
-      {
-        title: 'Entries the system could not place',
-        header: ['Date', 'Machine', 'Problem', 'Hours', 'Group', ''],
-        rows: [['01-03-2026', 'CNC-01', 'Odd noise', '1.5', 'Coolant', '']],
-      },
-      {
-        title: 'Group editor',
-        header: ['Order', 'Group name', 'Keywords', 'Remove'],
-        rows: [['1', 'Coolant', 'coolant, leak', '']],
-      },
-    ],
-    charts: [{ id: 'ch-prob-pareto', labels: ['Coolant'], datasets: [{ label: '', data: [6] }] }],
-  }),
-  figure('fix-finder', 'fix-finder', {
-    page: 'ff',
-    title: 'Fix Finder',
-    kpis: [
-      ['Similar breakdowns', '15'],
-      ['Best fix', 'Re-seat the probe'],
-    ],
-    tables: [
-      {
-        title: 'Similar breakdowns',
-        header: ['Ticket', 'Machine', 'Fix'],
-        rows: [['T-001', 'CNC-01', 'Probe re-seated']],
-      },
-    ],
-  }),
-  figure('shift-kpis.compare', 'shift-kpis', {
-    page: 'sk',
-    title: 'Shift-calendar KPIs',
-    kpis: [['Day shift', '55.0%']],
-    tables: [
-      {
-        title: 'By shift',
-        header: ['Shift', 'Hours'],
-        rows: [
-          ['Day', '20.0'],
-          ['Evening', ''],
-        ],
-      },
-    ],
-  }),
-  figure('shift-kpis.backlog', 'shift-kpis', {
-    page: 'sk',
-    title: 'Backlog',
-    tables: [{ title: 'Open at shift end', header: ['Shift', 'Open'], rows: [['Day', '2']] }],
   }),
   figure('compare', 'compare', {
     page: 'cmp',

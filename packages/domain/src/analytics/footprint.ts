@@ -189,7 +189,7 @@ function largestTable(items: readonly FootprintItem[]) {
     .sort((a, b) => b.area - a.area)
     .slice(0, 10)
     .map((item) => [
-      item.machine.id,
+      item.machine.code,
       item.machine.model ?? '—',
       `${formatNumber(item.length, 2)} × ${formatNumber(item.width, 2)}`,
       formatNumber(item.area, 1),

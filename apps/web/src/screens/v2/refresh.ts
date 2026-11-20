@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { QueryObserver, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { analyticsFiguresQuery } from '../../analytics-figures.js';
+import type { LoadState } from '../../ui/v2/screen-states.js';
 
 /**
  * Calls `onNewFigures` each time the engine's figures are refetched with a newer copy. A v1 screen read the figures with
@@ -24,4 +25,18 @@ export function useRefreshOnFigures(reload: () => void): void {
   const latest = useRef(reload);
   latest.current = reload;
   useEffect(() => watchFigures(client, () => latest.current()), [client]);
+}
+
+/**
+ * The model a screen draws. While a refresh loads, or when a refresh fails after a good load (the app's 30-second
+ * refetch met a server error or a lost connection), the screen keeps the last good model, as v1 kept its data; the
+ * error and offline states are for a first load only. An empty or refused answer replaces the model: that is news.
+ */
+export function modelToShow<M>(
+  loaded: { state: LoadState; model?: M },
+  lastGood: M | undefined,
+): M | undefined {
+  if (loaded.model !== undefined) return loaded.model;
+  const keep = loaded.state === 'loading' || loaded.state === 'error' || loaded.state === 'offline';
+  return keep ? lastGood : undefined;
 }

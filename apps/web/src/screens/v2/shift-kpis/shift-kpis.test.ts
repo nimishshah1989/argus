@@ -111,3 +111,52 @@ describe('Shift-calendar KPIs from the engine reply', () => {
     expect(shiftKpisModel(none, realT)).toBeNull();
   });
 });
+
+describe('a figure printed as the engine wrote it', () => {
+  it('keeps a tile’s label and value, and leaves a blank cell blank rather than a zero or a dash', () => {
+    const page = {
+      screen: 'shift-kpis',
+      asOf: '2026-11-11',
+      pages: [
+        {
+          page: 'sk',
+          title: 'Shift-calendar KPIs',
+          kpis: [{ label: 'Day shift', value: '55.0%', sub: null }],
+          tables: [
+            {
+              title: 'By shift',
+              header: ['Shift', 'Hours'],
+              rows: [
+                ['Day', '20.0'],
+                ['Evening', ''],
+              ],
+              rowCount: 2,
+            },
+          ],
+          charts: [],
+        },
+      ],
+    };
+    const part = {
+      asOf: '2026-11-11',
+      figures: [
+        {
+          key: 'shift-kpis.compare',
+          screen: 'shift-kpis',
+          owner: 48,
+          status: 'ready' as const,
+          value: page,
+          drill: { type: 'ticket' as const, ids: [] },
+        },
+      ],
+    };
+    const [section] = shiftKpisModel(part, realT)!.sections;
+    expect(section!.figures.map((f) => [f.label, f.value])).toEqual([['Day shift', '55.0%']]);
+    const table = section!.tables[0]!;
+    expect(table.title).toBe('By shift');
+    expect(table.rows.map((row) => row.map((cell) => cell.text))).toEqual([
+      ['Day', '20.0'],
+      ['Evening', ''],
+    ]);
+  });
+});

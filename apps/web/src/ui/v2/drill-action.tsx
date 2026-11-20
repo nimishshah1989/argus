@@ -1,14 +1,22 @@
+/* eslint-disable i18next/no-literal-string -- icon names only; the visible word is the drill label */
 import { useContext, type ReactNode } from 'react';
-import { Button } from './button.js';
 import { DrillOpenContext, type Drill } from './drill.js';
+import { Icon } from './icons.js';
 
 /**
- * The control that opens the rows behind a whole page or section, for a figure that v1 linked from the page and not
- * from a count (a count's own figure carries `drill` instead). Its words are the drill's own label.
+ * A page's own control for the rows behind it: for a page whose cards each count something narrower than the rows the
+ * engine named (one register, one age band), so the rows open from the page and not from a count they do not equal.
  */
 export function DrillAction({ drill }: { drill: Drill }) {
   const open = useContext(DrillOpenContext);
-  return <Button onClick={() => open(drill)}>{drill.label}</Button>;
+  return (
+    <p className="v2-drill-action">
+      <button type="button" className="v2-btn v2-btn-ghost" onClick={() => open(drill)}>
+        <Icon name="list" size={16} />
+        {drill.label}
+      </button>
+    </p>
+  );
 }
 
 /** A titled part of a screen that is not itself a card: its title and one quiet line, an action at the right, then its content. */
