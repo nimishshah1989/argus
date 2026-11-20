@@ -1,5 +1,5 @@
 import type { FiguresReply } from '@uptimo/shared/analytics';
-import { kpiCard, withDrill, sentence, verdictOf } from '../figures/point.js';
+import { kpiCard, sentence, verdictOf } from '../figures/point.js';
 import {
   numberIn,
   pagesOf,
@@ -7,7 +7,7 @@ import {
   type RegisterKpi,
   type Translate,
 } from '../figures/read.js';
-import { drillFor } from '../rows-behind/drill.js';
+import { seeMachinesFor } from '../rows-behind/drill.js';
 import { engineTable, type TableModel } from '../figures/table.js';
 import { commonWords, tableWords } from '../figures/words.js';
 import type { AgeModel } from './model.js';
@@ -57,6 +57,7 @@ export function ageModel(reply: FiguresReply, t: Translate): AgeModel | null {
   const source = sourceLine(c.source, reply.asOf);
   const worst = bands.reduce((a, b) => (hoursOf(b) > hoursOf(a) ? b : a));
   const first = bands[0]!;
+  const drill = seeMachinesFor(reply, 'a8-age', t);
   const formula = t('analytics.guide.age.formula');
   return {
     verdict: verdictOf(
@@ -69,9 +70,8 @@ export function ageModel(reply: FiguresReply, t: Translate): AgeModel | null {
       t('analytics.guide.age.body2'),
       [t('analytics.guide.age.body1'), formula],
     ),
-    kpis: bands.map(({ average }, i) =>
-      withDrill(kpiCard(`band-${i}`, 'clock', average, formula), drillFor(reply, 'a8-age', t)),
-    ),
+    kpis: bands.map(({ average }, i) => kpiCard(`band-${i}`, 'clock', average, formula)),
+    ...(drill ? { drill } : {}),
     bands: bandTable(bands, t),
     source,
     words: { why: c.why },

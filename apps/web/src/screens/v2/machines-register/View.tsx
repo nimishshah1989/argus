@@ -1,6 +1,7 @@
 import { useSearchParams } from 'react-router-dom';
 import { EngineTable } from '../../../ui/v2/domain/engine-table.js';
 import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
+import { DrillAction } from '../../../ui/v2/drill-action.js';
 import { KpiCard } from '../../../ui/v2/kpi-card.js';
 import { Row } from '../../../ui/v2/row.js';
 import { Segmented } from '../../../ui/v2/segmented.js';
@@ -47,6 +48,7 @@ export function RegistersView({
             onChange={choose}
           />
           <Verdict verdict={page.verdict} whyLabel={model.words.why} />
+          {model.drill ? <DrillAction drill={model.drill} /> : null}
           <Row cols={page.kpis.length >= 4 ? 4 : page.kpis.length === 2 ? 2 : 3}>
             {page.kpis.map((kpi) => (
               <KpiCard key={kpi.id} kpi={kpi} />
