@@ -110,8 +110,7 @@ export function backlogOf(data: EngineData, asOf: string): Backlog {
       (left, right) =>
         (right.workingHours ?? -1) - (left.workingHours ?? -1) ||
         left.reportedAt.localeCompare(right.reportedAt) ||
-        left.ref.localeCompare(right.ref) ||
-        left.id.localeCompare(right.id),
+        left.ref.localeCompare(right.ref),
     );
 
   const buckets = { under4: 0, to24: 0, to72: 0, over72: 0 };

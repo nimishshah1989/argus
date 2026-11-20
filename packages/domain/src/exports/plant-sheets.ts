@@ -1,3 +1,4 @@
+import { moveKeys, reportKeys, settleAll } from '../analytics/canonical-order.js';
 import { addMonths, dmy, endOfTerm } from '../analytics/plant-date.js';
 import { effectiveHours } from '../analytics/rows.js';
 import type { EngineData, ReportRow, WhyWhyRow } from '../analytics/types.js';
@@ -41,14 +42,10 @@ function joinedNames(codes: readonly string[], names: ReadonlyMap<string, string
   return codes.map((code) => names.get(code) ?? code).join(', ');
 }
 
-/** Every report, oldest first by plant date, then the log's Sr No, then its id. */
+/** Every report, oldest first by plant date, then the log's Sr No, shift, machine and ticket: never its id. */
 function reportOrder(data: EngineData): ReportRow[] {
-  return [...data.reports].sort(
-    (left, right) =>
-      left.date.localeCompare(right.date) ||
-      (left.srNo ?? Number.MAX_SAFE_INTEGER) - (right.srNo ?? Number.MAX_SAFE_INTEGER) ||
-      left.id.localeCompare(right.id),
-  );
+  const keys = reportKeys(data);
+  return settleAll(data.reports, (report) => [report.date, ...keys(report)]);
 }
 
 function reportHours(report: ReportRow): number {
@@ -128,10 +125,8 @@ function breakdownSheet(data: ExportData): ExportSheet {
 }
 
 function cellLogSheet(data: ExportData): ExportSheet {
-  const moves = [...data.data.moves].sort(
-    (left, right) =>
-      left.effectiveFrom.localeCompare(right.effectiveFrom) || left.id.localeCompare(right.id),
-  );
+  const keys = moveKeys(data.data);
+  const moves = settleAll(data.data.moves, (move) => [move.effectiveFrom, ...keys(move)]);
   return {
     name: 'Cell Change Log',
     rows: [
