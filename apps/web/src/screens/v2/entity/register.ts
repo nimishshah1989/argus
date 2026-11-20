@@ -11,5 +11,6 @@ declare module '../data.js' {
 
 export const screen: ScreenEntry<'entity'> = {
   key: 'entity',
-  provider: (ref) => import('./fixture.js').then((m) => m.entityFixture(ref)),
+  provider: (ref, ctx) => import('./live.js').then((m) => m.liveEntity(ref, ctx)),
+  frozen: (ref) => import('./fixture.js').then((m) => m.entityFixture(ref)),
 };

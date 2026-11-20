@@ -51,14 +51,16 @@ export function CellDetail({
           <DetailFigure label={words.hours} value={c.hours.shown} />
         </div>
       </DetailSection>
-      <DetailSection label={words.worst}>
-        {c.worst.map((w) => (
-          <div key={w.chip.id} className="v2-row v2-gap-8">
-            <EntityChip {...w.chip} />
-            <span className="v2-sub v2-num">{w.hours}</span>
-          </div>
-        ))}
-      </DetailSection>
+      {c.worst.length > 0 ? (
+        <DetailSection label={words.worst}>
+          {c.worst.map((w) => (
+            <div key={w.chip.id} className="v2-row v2-gap-8">
+              <EntityChip {...w.chip} />
+              <span className="v2-sub v2-num">{w.hours}</span>
+            </div>
+          ))}
+        </DetailSection>
+      ) : null}
       <SourceLine text={source} />
     </div>
   );

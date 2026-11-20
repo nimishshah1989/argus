@@ -20,6 +20,8 @@ export type MachineData = {
   hours: { shown: string; value: number };
   /** Breakdowns in the last 90 days. */
   stops: number;
+  /** True when the plant does not record this machine's breakdowns: hours and stops are then not figures, and the drawer leaves them out. */
+  untracked?: true;
   /** Breakdown hours a week, the last 12 weeks, oldest first. */
   trend: number[];
   why: Point[];
