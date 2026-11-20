@@ -160,8 +160,8 @@ export const getBoardToday = (): Promise<BoardToday> => boardToday.one('today');
 
 export {
   analyticsFiguresQuery,
+  analyticsFiguresAtQuery,
   useAnalyticsFigures,
-  useAnalyticsFiguresAt,
 } from './analytics-figures.js';
 
 /**

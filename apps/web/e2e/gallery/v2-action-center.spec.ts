@@ -105,6 +105,25 @@ test('a machine in the risk table opens its drawer', async ({ page }) => {
   await expect(page).toHaveURL(/drawer=machine:HMC-2/);
 });
 
+test('a machine chosen inside an open nudge replaces it, and one Esc closes the drawer', async ({
+  page,
+}) => {
+  await open(page, 1440);
+  await nudges(page)
+    .getByRole('button', { name: `Open ${FIRST}` })
+    .click();
+  await expect(drawer(page)).toHaveAttribute('aria-label', FIRST);
+  await drawer(page).getByRole('button', { name: 'HMC-2', exact: true }).first().click();
+  await expect(page).toHaveURL(/drawer=machine:HMC-2/);
+  await expect(drawer(page)).not.toHaveAttribute('aria-label', FIRST);
+  const listed = page.url();
+  await page.keyboard.press('Escape');
+  await expect(page).not.toHaveURL(/drawer=/);
+  await expect(drawer(page)).toHaveAttribute('inert', '');
+  expect(listed).toContain('/gallery');
+  await expect(page.getByRole('heading', { level: 1, name: 'Action Center' })).toBeVisible();
+});
+
 test('a pasted link to a nudge the board does not hold says not found', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/gallery?view=v2-action-center&drawer=decision:freq~NOPE');

@@ -172,12 +172,14 @@ async function openNudge(page: Page, title: string): Promise<void> {
   await expect(drawer(page)).toHaveAttribute('aria-label', title);
 }
 /**
- * Closes the open drawer and waits until it is closed: the close is a step Back in the history, which lands a moment
- * later, so a click or a reload straight after could still find the drawer's address (and a click on the open nudge's
- * own row closes it again).
+ * Closes the open drawer with its Close button (a phone has no Escape key) and waits until it is closed: the close is a
+ * step Back in the history, which lands a moment later, so a click or a reload straight after could still find the
+ * drawer's address (and a click on the open nudge's own row closes it again). The button is waited for, so this never
+ * acts before the drawer has mounted its key handler. Esc is covered by the gallery's 'Esc and the ✕ each close it in
+ * one history step' (v2-entity-links.spec.ts) and by v2-action-center.spec.ts.
  */
 async function closeDrawer(page: Page): Promise<void> {
-  await page.keyboard.press('Escape');
+  await drawer(page).getByRole('button', { name: 'Close', exact: true }).click();
   await expect(page).not.toHaveURL(/drawer=/);
   await expect(drawer(page)).toHaveAttribute('inert', '');
 }
@@ -277,6 +279,7 @@ async function ackAndReload(page: Page): Promise<void> {
     await expect(freq).toContainText(text);
   await openNudge(page, FREQ);
   await expect(drawer(page).getByRole('button', { name: 'Reopen', exact: true })).toBeVisible();
+  await closeDrawer(page);
   await page.reload();
   await tabs(page)
     .getByRole('button', { name: /^Acknowledged/ })

@@ -5,9 +5,10 @@ import { useTranslation } from 'react-i18next';
 import { getMe } from '../../../api.js';
 import { personKey } from '../../../data/index.js';
 import { Icon } from '../../../ui/v2/icons.js';
+import type { EntityRef } from '../../../ui/v2/entity-chip.js';
 import { SavedCopyNotice, ScreenStates, type Loaded } from '../../../ui/v2/screen-states.js';
 import { ACTION_CENTER_PATH } from '../../analytics/groups.js';
-import { ChromeContext, EntityShell } from '../entity/EntityShell.js';
+import { ChromeContext, EntityShell, type LocalEntity } from '../entity/EntityShell.js';
 import { useNav } from '../nav.js';
 import { SectionTabs } from '../section-tabs.js';
 import { useScreenModel } from '../data.js';
@@ -29,6 +30,22 @@ function useKept(loaded: Loaded<ActionCenterModel>): ActionCenterModel | undefin
   const holds =
     loaded.state === 'loading' || loaded.state === 'offline' || loaded.state === 'error';
   return loaded.model ?? (holds ? mine : undefined);
+}
+
+/**
+ * A nudge's drawer while the board has not arrived (a reload with `?drawer=decision:<id>`): the board's own state in the
+ * drawer, not the entity port's "not found", which would flash before the nudge is there to open.
+ */
+function waiting(
+  ref: EntityRef,
+  loaded: Loaded<ActionCenterModel>,
+  label: string,
+): LocalEntity | null {
+  if (ref.kind !== 'decision') return null;
+  return {
+    label,
+    content: <ScreenStates loaded={loaded}>{() => null}</ScreenStates>,
+  };
 }
 
 /** The refusal in v1's words, in the status line it always was. */
@@ -70,7 +87,11 @@ export function ActionCenterPage() {
       {model ? (
         <ActionCenterView model={model} nav={nav} title={title} {...acts} />
       ) : (
-        <EntityShell nav={nav} title={title}>
+        <EntityShell
+          nav={nav}
+          title={title}
+          local={(ref) => waiting(ref, loaded, t('common.loading'))}
+        >
           {loaded.state === 'refused' ? (
             <Refused />
           ) : (
