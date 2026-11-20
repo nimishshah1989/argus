@@ -1,0 +1,51 @@
+/*
+ * The month calendar's paint (ADR 0009 R3): the library's classic theme reads its colours from variables, and they
+ * are set here from the v2 tokens, scoped to this block so the v1 calendar's own page is never touched. Only our own
+ * chip classes are selected; the library's hashed class names never are.
+ */
+.v2-month-calendar {
+  --fc-classic-primary: var(--color-v2-accent);
+  --fc-classic-primary-foreground: var(--color-v2-on-ink);
+  --fc-classic-event: var(--color-v2-plan-tint);
+  --fc-classic-event-contrast: var(--color-v2-plan);
+  --fc-classic-foreground: var(--color-v2-ink);
+  --fc-classic-background: var(--color-v2-panel);
+  --fc-classic-border: var(--color-v2-line);
+  --fc-classic-strong-border: var(--color-v2-control-line);
+  --fc-classic-muted-foreground: var(--color-v2-ink-2);
+  --fc-classic-faint-foreground: var(--color-v2-ink-3);
+  --fc-classic-muted: var(--color-v2-subtle);
+  --fc-classic-faint: var(--color-v2-subtle);
+  --fc-classic-today: var(--color-v2-selected);
+  --fc-classic-button: var(--color-v2-accent);
+  --fc-classic-button-border: var(--color-v2-accent);
+  --fc-classic-button-foreground: var(--color-v2-on-ink);
+  font-size: var(--text-v2-secondary);
+  overflow-x: auto;
+}
+
+/* Every control the calendar draws is a tap target, on the phone as on the desk. */
+.v2-month-calendar button {
+  min-height: var(--spacing-target-min);
+  min-width: var(--spacing-target-min);
+}
+
+.v2-cal-event {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+}
+
+.v2-cal-code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-v2-mono);
+  font-weight: 600;
+}
+
+.v2-cal-event[data-crowded='true'] .v2-cal-code {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}

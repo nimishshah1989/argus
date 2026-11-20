@@ -16,8 +16,12 @@ interface SrcFile {
 const SRC = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const WEB = join(SRC, '..');
 const E2E = join(WEB, 'e2e');
-const DOOR = 'screens/analytics/PmCalendar.tsx';
-const PAGE = 'PmCalendarPage';
+/** Each door to the library and the specifier of the module that must reach it only through `import()`. */
+const DOORS = [
+  { door: 'screens/analytics/PmCalendar.tsx', page: 'PmCalendarPage' },
+  { door: 'ui/v2/domain/month-calendar.tsx', page: 'domain/month-calendar.js' },
+];
+const DOOR = DOORS[0]!.door;
 
 function readTree(root: string, dir = root, accept = /\.(tsx?|css)$/): SrcFile[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -63,25 +67,29 @@ function fullCalendarErrors(files: SrcFile[]): string[] {
     hitsOf(text)
       .filter((hit) => FULLCALENDAR.test(hit.specifier))
       .flatMap((hit) =>
-        path === DOOR ? [] : [`${at(path, text, hit.index)}: @fullcalendar outside ${DOOR}`],
+        DOORS.some((entry) => entry.door === path)
+          ? []
+          : [`${at(path, text, hit.index)}: @fullcalendar outside a door`],
       ),
   );
 }
 
-/** With the door in place, the page that mounts it is only ever reached through `import()`. */
+/** With a door in place, the module that mounts it is only ever reached through `import()`. */
 function lazyPageErrors(files: SrcFile[]): string[] {
-  if (!files.some((file) => file.path === DOOR)) return [];
   const errors: string[] = [];
-  let lazy = 0;
-  for (const { path, text } of files) {
-    for (const hit of hitsOf(text)) {
-      if (!hit.specifier.includes(PAGE)) continue;
-      if (hit.staticValue)
-        errors.push(`${at(path, text, hit.index)}: the PM page must be a lazy import()`);
-      else lazy += 1;
+  for (const { door, page } of DOORS) {
+    if (!files.some((file) => file.path === door)) continue;
+    let lazy = 0;
+    for (const { path, text } of files) {
+      for (const hit of hitsOf(text)) {
+        if (!hit.specifier.includes(page)) continue;
+        if (hit.staticValue)
+          errors.push(`${at(path, text, hit.index)}: ${page} must be a lazy import()`);
+        else lazy += 1;
+      }
     }
+    if (lazy === 0) errors.push(`no lazy import() of ${page} reaches ${door}`);
   }
-  if (lazy === 0) errors.push(`no lazy import() of ${PAGE} reaches ${DOOR}`);
   return errors;
 }
 
@@ -125,11 +133,11 @@ describe('the FullCalendar door (ADR 0009)', () => {
       },
     ];
     expect(fullCalendarErrors(files)).toEqual([
-      'faces/x.tsx:1: @fullcalendar outside screens/analytics/PmCalendar.tsx',
-      'gallery/y.ts:1: @fullcalendar outside screens/analytics/PmCalendar.tsx',
+      'faces/x.tsx:1: @fullcalendar outside a door',
+      'gallery/y.ts:1: @fullcalendar outside a door',
     ]);
     expect(lazyPageErrors(files)).toContain(
-      'screens/analytics/Analytics.tsx:1: the PM page must be a lazy import()',
+      'screens/analytics/Analytics.tsx:1: PmCalendarPage must be a lazy import()',
     );
   });
 
