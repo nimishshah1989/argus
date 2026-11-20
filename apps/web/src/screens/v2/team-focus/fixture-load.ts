@@ -1,6 +1,6 @@
 import { entityFixture } from '../entity/fixture.js';
 import type { EntityChipProps } from '../../../ui/v2/entity-chip.js';
-import { glue, pt } from '../dashboard/fixture-text.js';
+import { glue, pt } from '../fixtures/text.js';
 import { OVERLOAD, RATE, type Raw } from './fixture-actions.js';
 import type { Load, PersonLoad, Rebalance } from './model.js';
 

@@ -1,0 +1,14 @@
+.v2-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-v2-accent);
+  font-size: var(--text-v2-body);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.v2-link:focus-visible {
+  outline: 2px solid var(--color-v2-accent);
+  outline-offset: 2px;
+}

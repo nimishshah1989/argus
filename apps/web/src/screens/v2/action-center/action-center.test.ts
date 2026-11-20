@@ -3,180 +3,137 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
+import i18n from 'i18next';
+import { ENGINE_DATA } from '../../../../../../packages/domain/test/answer-key/fixture.js';
 import '../../../i18n/index.js';
-import { dashboardFixture } from '../dashboard/fixture.js';
-import { entityFixture } from '../entity/fixture.js';
-import { actionCenterFixture as model } from './fixture.js';
+import { refuseUnlessAnalytics } from '../figures/refuse.js';
+import { UUID, printed, realBoard } from '../figures/real-reply.js';
+import { actionCenterModel } from './adapter.js';
 import { ActionCenterView } from './View.js';
 
-const text = (markup: string) =>
-  markup
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-const all = (markup: string, re: RegExp) => [...markup.matchAll(re)].map((m) => text(m[1]!));
-const plain = (s: string) => s.replace(/\u00a0/g, ' ');
-const num = (s: string) => parseFloat(plain(s).replace(/[^\d.]/g, ''));
-const nav = [{ id: 'today', label: 'Today', icon: 'today' as const, href: '/a', current: true }];
-const sentence = (p: { text: string }[]) => plain(p.map((s) => s.text).join(''));
-const kpi = (id: string) => model.kpis.find((k) => k.id === id)!;
-const machines = dashboardFixture.cells.flatMap((c) => c.machines);
-
-/** The Action Center at a URL: the drawer lives in the query, so the page needs a router around it. */
-const render = (url = '/gallery') =>
-  renderToStaticMarkup(
-    createElement(
-      MemoryRouter,
-      { initialEntries: [url] },
-      createElement(ActionCenterView, { model, nav, title: 'Action Center' }),
-    ),
-  );
-
-/** Every machine, cell, person and decision the model names as a chip, wherever it sits. */
-function chipsIn(node: unknown, found: { kind: string; id: string }[] = []) {
-  if (Array.isArray(node)) node.forEach((n) => chipsIn(n, found));
-  else if (node && typeof node === 'object') {
-    const o = node as Record<string, unknown>;
-    if (
-      ['machine', 'cell', 'person', 'decision'].includes(o.kind as string) &&
-      typeof o.id === 'string' &&
-      typeof o.label === 'string'
-    )
-      found.push({ kind: o.kind as string, id: o.id });
-    Object.values(o).forEach((v) => chipsIn(v, found));
-  }
-  return found;
-}
-
-describe('the v2 Action Center on its fixture', () => {
-  const out = render();
-
-  it('answers first: the verdict, then four key figures, then the decisions to take', () => {
-    expect(sentence(model.verdict.headline)).toBe(
-      '7 decisions are waiting, worth 104.9 h a month. 3 have no owner yet.',
-    );
-    expect(text(out)).toContain('7 decisions are waiting');
-    expect(out.match(/class="v2-card v2-kpi"/g)).toHaveLength(4);
-    expect(all(out, /<h2[^>]*>(.*?)<\/h2>/g)).toEqual([
-      'Decide today',
-      'Who owns what',
-      'Not waiting',
-      'Machines that keep coming up',
-    ]);
-  });
-
-  it('lists the decisions biggest first by hours, each opening from its title', () => {
-    expect(
-      all(out, /<h3[^>]*>(.*?)<\/h3>/g).filter((t) => model.decisions.some((d) => d.title === t)),
-    ).toEqual(model.decisions.map((d) => d.title));
-    const hours = model.decisions.map((d) => num(d.hours));
-    expect(hours).toEqual([...hours].sort((a, b) => b - a));
-  });
-
-  it('starts with the drawer closed, and shows ten machines of all of them', () => {
-    expect(out).toMatch(/<aside[^>]*inert=""/);
-    expect(text(out)).toContain(`1–10 of ${model.watch.length}`);
-  });
-
-  it('opens any decision from a pasted link, waiting or parked, with its Decide button only while waiting', () => {
-    const drawer = (id: string) =>
-      /<aside[\s\S]*<\/aside>/.exec(
-        render(`/gallery?view=v2-action-center&drawer=decision:${id}`),
-      )![0];
-    const waiting = drawer('bearing');
-    expect(waiting).toMatch(/^<aside[^>]*aria-label="Keep a spare spindle bearing/);
-    expect(waiting).toContain('aria-pressed="false"');
-    expect(waiting).toContain('Approve a spare');
-    expect(waiting).toMatch(
-      /href="\/analytics\/today\/action-center\?drawer=decision:bearing"[^>]*>Open full page/,
-    );
-    const parked = drawer('oil');
-    expect(parked).toMatch(/^<aside[^>]*aria-label="Check the hydraulic oil/);
-    expect(parked).not.toContain('aria-pressed');
-  });
-
-  it('prints every machine, person and decision it names as a chip', () => {
-    expect(out).toMatch(/data-kind="person"/);
-    expect(out).toMatch(/data-kind="decision"/);
-    expect(out).toMatch(/data-kind="machine" data-cat="1"/);
-  });
+/**
+ * The completeness test: every item v1's Action Center showed is printed by the v2 screen, from the board the real
+ * engine builds over the frozen 11 November plant (not rows written for the test).
+ */
+const first = realBoard();
+const [acked, snoozed, resolved] = first.nudges.filter(
+  (n) => n.sev !== 'info' && n.status === 'open',
+);
+const AT = '2026-11-11T08:00:00.000Z';
+/** The board after a head acknowledged, snoozed and resolved one nudge each: what the server answers a write. */
+const board = realBoard({
+  [acked!.key]: {
+    status: 'ack',
+    owner: 'Asha',
+    due: '2026-11-20',
+    note: 'Check the bearing',
+    at: AT,
+  },
+  [snoozed!.key]: {
+    status: 'snooze',
+    owner: '',
+    due: '',
+    note: '',
+    at: AT,
+    until: '2026-11-18T08:00:00.000Z',
+  },
+  [resolved!.key]: { status: 'done', owner: 'Hari', due: '', note: 'Sealed', at: AT },
 });
+const t = (key: string, values?: Record<string, string | number>) =>
+  i18n.t(key, { ...values }) as string;
+const model = actionCenterModel(
+  board,
+  {
+    machines: ENGINE_DATA.machines.map((m) => ({ id: m.id, code: m.id, category: m.category })),
+    people: [{ id: 'p1', name: 'Asha', active: true }],
+    timeZone: 'Asia/Kolkata',
+  },
+  t,
+);
+const nav = [{ id: 'today', label: 'Today', icon: 'today' as const, href: '/a', current: true }];
+const markup = renderToStaticMarkup(
+  createElement(
+    MemoryRouter,
+    { initialEntries: ['/analytics/today/action-center'] },
+    createElement(ActionCenterView, { model, nav, title: 'Action Center' }),
+  ),
+);
+const strings = printed(model);
 
-describe('the fixture figures agree with each other', () => {
-  it('adds the decisions up: the worth, the money, the count', () => {
-    const hours = model.decisions.reduce((s, d) => s + num(d.hours), 0);
-    expect(num(kpi('worth').value)).toBeCloseTo(hours, 5);
-    const lakh = model.decisions.reduce(
-      (s, d) => s + (num(/([\d.]+)\slakh/.exec(d.money)?.[1] ?? '0') || 0),
-      0,
-    );
-    expect(plain(kpi('worth').more)).toContain(`₹ ${lakh.toFixed(2)} lakh a year`);
-    expect(kpi('waiting').value).toBe(String(model.decisions.length));
-  });
-
-  const isUnowned = (d: (typeof model.decisions)[number]) =>
-    !sentence(d.owner).startsWith('Owner: ') || sentence(d.owner).includes('not assigned');
-
-  it('gives every owner their share: the owners and the unowned add up to every decision and every hour', () => {
-    const lines = model.owners.map(sentence).filter((l) => !l.includes('suggested'));
-    const counts = lines.map((l) => num(/(\d+) decision/.exec(l)![1]!));
-    expect(counts.reduce((a, b) => a + b, 0)).toBe(model.decisions.length);
-    const hours = lines.map((l) => num(/([\d.]+) h a month/.exec(l)![1]!));
-    expect(hours.reduce((a, b) => a + b, 0)).toBeCloseTo(num(kpi('worth').value), 5);
-    expect(hours).toEqual([...hours.slice(0, -1)].sort((a, b) => b - a).concat(hours.at(-1)!));
-  });
-
-  it('does not count a suggestion as an owner: the verdict, the key figure, the owners and the button agree', () => {
-    const unowned = model.decisions.filter(isUnowned);
-    expect(unowned.map((d) => d.id)).toEqual(['axis', 'tmc2', 'bearing']);
-    const hours = unowned.reduce((s, d) => s + num(d.hours), 0);
-    expect(hours.toFixed(1)).toBe('79.5');
-    expect(kpi('unowned').value).toBe(String(unowned.length));
-    expect(plain(kpi('unowned').more)).toContain(`${hours.toFixed(1)} h a month`);
-    expect(sentence(model.verdict.headline)).toContain(`${unowned.length} have no owner`);
-    expect(model.words.assign).toBe(`Assign the ${unowned.length} unowned`);
-    const lines = model.owners.map(sentence);
-    expect(lines.at(-1)).toContain(
-      `${unowned.length} decisions have no owner, worth ${hours.toFixed(1)} h a month`,
-    );
-    expect(lines.filter((l) => l.startsWith('Arjun V'))).toEqual([
-      'Arjun V is suggested for 1 decision, not confirmed',
-    ]);
-  });
-
-  it('counts what is settled and parked, newest first', () => {
-    const settled = model.settled.filter((s) => s.status === 'settled').length;
-    expect(kpi('settled').value).toBe(String(settled));
-    expect(kpi('settled').more).toContain(`${model.settled.length - settled} decisions are parked`);
-    expect(model.settled.filter((s) => s.decision.decided).length).toBe(settled);
-  });
-
-  it('scores each machine from its open nudges (high 3, medium 2, low 1) and ranks the worst first', () => {
-    for (const r of model.watch) expect(r.score.value).toBe(r.high * 3 + r.medium * 2 + r.low);
-    const scores = model.watch.map((r) => r.score.value);
-    expect(scores).toEqual([...scores].sort((a, b) => b - a));
-    expect(model.watch.every((r) => r.machine.state === 'down' || r.machine.state === 'risk')).toBe(
-      true,
-    );
-  });
-
-  it('states each change against last week with its sign, and the bad ones are not green', () => {
-    expect(kpi('waiting').delta).toEqual({ text: '+2', up: true, good: false });
-    expect(kpi('settled').delta).toEqual({ text: '+1', up: true, good: true });
-    expect(plain(kpi('worth').delta.text)).toBe(
-      `+${(num(kpi('worth').value) - 92.3).toFixed(1)} h`,
-    );
-  });
-
-  it('names only things the gallery can open: every chip resolves in a drawer', () => {
-    const codes = new Set(machines.map((m) => m.code));
-    const decisions = new Set(
-      [...model.decisions, ...model.settled.map((s) => s.decision)].map((d) => d.id),
-    );
-    for (const c of chipsIn(model)) {
-      if (c.kind === 'machine') expect(codes.has(c.id), c.id).toBe(true);
-      else if (c.kind === 'decision') expect(decisions.has(c.id), c.id).toBe(true);
-      else expect(entityFixture({ kind: c.kind as 'person', id: c.id }), c.id).not.toBeNull();
+describe('the v2 Action Center prints everything v1 showed', () => {
+  it('one card for every nudge on the board, with its title, type, entries and evidence', () => {
+    expect(board.nudges.length).toBeGreaterThan(30);
+    expect(model.nudges).toHaveLength(board.nudges.length);
+    for (const [at, nudge] of board.nudges.entries()) {
+      const card = model.nudges[at]!;
+      expect(card.key).toBe(nudge.key);
+      expect(card.title).toBe(nudge.title);
+      expect(strings).toContain(t(`analytics.actionCenter.rule.${nudge.rule}`));
+      expect(strings).toContain(t('analytics.actionCenter.entries', { count: nudge.entries }));
+      if (nudge.ev !== null) expect(card.evidence).toMatch(/\d{2}-[A-Z][a-z]{2}-\d{4}$/);
+      expect(card.machines.map((m) => m.id)).toEqual(nudge.machines);
     }
+  });
+
+  it('the four priority counts, the four status tabs and the sixteen types', () => {
+    expect(model.tiles.map((tile) => [tile.id, tile.value])).toEqual(
+      (['high', 'med', 'low', 'info'] as const).map((key) => [key, String(board.bySeverity[key])]),
+    );
+    expect(model.tabs.map((tab) => [tab.status, tab.count])).toEqual(
+      (['open', 'ack', 'snoozed', 'resolved'] as const).map((key) => [key, board.counts[key]]),
+    );
+    expect(model.types).toHaveLength(16);
+    expect(model.types.map((type) => type.label)).toEqual(Object.values(board.types));
+  });
+
+  it('the machines needing attention, with their score and the rules that fired', () => {
+    expect(model.risk).toHaveLength(board.risk.length);
+    for (const [at, row] of board.risk.entries()) {
+      expect(model.risk[at]!.score.shown).toBe(String(row.score));
+      expect(model.risk[at]!.why).toBe(row.why);
+      expect(model.risk[at]!.model).toBe(row.model);
+    }
+    expect(markup).toContain(board.risk[0]!.why);
+  });
+
+  it('what was done to a stored nudge: the status, the owner, the due day and the note', () => {
+    const card = (key: string) => model.nudges.find((c) => c.key === key)!;
+    expect(card(acked!.key).status).toBe('ack');
+    expect(card(acked!.key).saved).toEqual([
+      'Acknowledged',
+      'Owner: Asha',
+      'Due 20-Nov-2026',
+      'Note: Check the bearing',
+    ]);
+    expect(card(snoozed!.key).saved).toEqual(['Snoozed until 18-Nov-2026']);
+    expect(card(resolved!.key).saved).toEqual(['Resolved', 'Owner: Hari', 'Note: Sealed']);
+    for (const key of [acked!.key, snoozed!.key, resolved!.key])
+      expect(card(key).actions).toEqual(['reopen']);
+  });
+
+  it('good news has no button; an open nudge takes acknowledge, snooze and resolve', () => {
+    const open = model.nudges.filter((c) => c.status === 'open' && c.severity !== 'info');
+    expect(open.length).toBeGreaterThan(0);
+    for (const card of open) expect(card.actions).toEqual(['ack', 'snooze', 'resolved']);
+    for (const card of model.nudges.filter((c) => c.severity === 'info'))
+      expect(card.actions).toEqual([]);
+  });
+
+  it('the page opens on the open tab with the tiles, the table and the filters', () => {
+    expect(markup).toContain(model.nudges.find((c) => c.status === 'open')!.title);
+    expect(markup).toContain('aria-label="Action Center status"');
+    expect(markup).toContain(t('analytics.actionCenter.priorityLabel'));
+    expect(markup).toContain(t('analytics.actionCenter.typeLabel'));
+    expect(markup).toContain(t('analytics.actionCenter.risk.title'));
+  });
+
+  it('no machine id, no money', () => {
+    expect(strings.some((s) => UUID.test(s))).toBe(false);
+    expect(JSON.stringify(model)).not.toMatch(/₹|spares-spend/);
+  });
+
+  it('refuses a login that may not read the analytics, as the server would', () => {
+    expect(() => refuseUnlessAnalytics('operator')).toThrow();
+    expect(() => refuseUnlessAnalytics('head')).not.toThrow();
   });
 });

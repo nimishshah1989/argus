@@ -9,5 +9,26 @@ declare module '../data.js' {
 
 export const screen: ScreenEntry<'action-center'> = {
   key: 'action-center',
-  provider: () => import('./fixture.js').then((m) => m.actionCenterFixture),
+  provider: async (_, { client }) => {
+    const [
+      { catalogue, liveBoard, liveConfig, liveRole },
+      { actionCenterModel },
+      { refuseUnlessAnalytics },
+    ] = await Promise.all([
+      import('../figures/live.js'),
+      import('./adapter.js'),
+      import('../figures/refuse.js'),
+    ]);
+    const [role, config, board] = await Promise.all([
+      liveRole(client),
+      liveConfig(client),
+      liveBoard(client),
+    ]);
+    refuseUnlessAnalytics(role);
+    return actionCenterModel(
+      board,
+      { machines: config.machines, people: config.people, timeZone: config.timeZone },
+      catalogue,
+    );
+  },
 };

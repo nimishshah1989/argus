@@ -1,111 +1,106 @@
-import { useContext } from 'react';
-import { BulletBar, BulletLegend } from '../../../ui/v2/bullet-bar.js';
-import { Button } from '../../../ui/v2/button.js';
-import { DecisionList } from '../../../ui/v2/domain/decision-list.js';
-import { MachineTable } from '../../../ui/v2/domain/machine-table.js';
-import { PlantMap } from '../../../ui/v2/domain/plant-map.js';
+/* eslint-disable i18next/no-literal-string -- typed keys only; every visible word comes from the model */
+import { Link } from 'react-router-dom';
+import { ChartCard } from '../../../ui/v2/chart-card.js';
+import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
+import { EngineTable } from '../../../ui/v2/domain/engine-table.js';
+import { EntityChip } from '../../../ui/v2/entity-chip.js';
+import { KeyPill } from '../../../ui/v2/key-pill.js';
 import { KpiCard } from '../../../ui/v2/kpi-card.js';
 import { Panel } from '../../../ui/v2/panel.js';
 import { Pareto } from '../../../ui/v2/pareto.js';
 import { Row } from '../../../ui/v2/row.js';
-import { EntityOpenContext, type EntityKind } from '../../../ui/v2/entity-chip.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
-import { TrendChart } from '../../../ui/v2/trend-chart.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
 import { EntityShell } from '../entity/EntityShell.js';
-import { useEntityParam } from '../entity/url.js';
-import { localDecision, type Acts } from './local.js';
-import type { DashboardActions, DashboardModel } from './model.js';
+import type { DashboardModel, NeedItem, NeedsNowModel } from './model.js';
 
-const ignore = () => {};
-
-/** Where the hours go, ending in its two next steps. */
-function ParetoCard({ model, act }: { model: DashboardModel; act: Acts }) {
-  const { words } = model;
+/** One ticket that needs a person: where, what it is, how long, which clock ran out, and the way to its page. */
+function Need({ item, open }: { item: NeedItem; open: string }) {
   return (
-    <Panel title={words.paretoTitle}>
-      <Pareto
-        data={model.pareto}
-        whyLabel={words.whyThese}
-        actions={
-          <>
-            <Button primary onClick={act.onAddFocus}>
-              {words.addFocus}
-            </Button>
-            <Button onClick={act.onSeeFixes}>{words.seeFixes}</Button>
-          </>
-        }
-      />
+    <li className="v2-item" data-need={item.id}>
+      <div className="v2-row v2-gap-8">
+        {item.where.chip ? <EntityChip {...item.where.chip} /> : <span>{item.where.text}</span>}
+        <span className="v2-sub">{item.ref}</span>
+        {item.breach ? <KeyPill text={item.breach} tone="loss" icon="alert" /> : null}
+      </div>
+      <p>{item.problem}</p>
+      <p className="v2-sub">{item.line}</p>
+      <Link className="v2-btn v2-btn-ghost" to={item.href}>
+        {open}
+      </Link>
+    </li>
+  );
+}
+
+/** What needs a person now: the count line, then each ticket, or the all-clear. */
+function NeedsNow({ needs }: { needs: NeedsNowModel }) {
+  return (
+    <Panel title={needs.title} sub={needs.counts} flush>
+      {needs.items.length === 0 ? (
+        <p className="v2-sub v2-item">{needs.empty}</p>
+      ) : (
+        <ul className="v2-list">
+          {needs.items.map((item) => (
+            <Need key={item.id} item={item} open={needs.open} />
+          ))}
+        </ul>
+      )}
     </Panel>
   );
 }
 
-/** The page under the header, top to bottom; a decision, a square or a row opens its item in the drawer. */
-function Body({ model, act }: { model: DashboardModel; act: Acts }) {
-  const { words } = model;
-  const open = useContext(EntityOpenContext);
-  const { current } = useEntityParam();
-  const opener = (kind: EntityKind) => ({
-    selected: current?.kind === kind ? current.id : undefined,
-    onOpen: (id: string) => open({ kind, id }),
-  });
-  const decision = opener('decision');
-  const machine = opener('machine');
-  return (
-    <>
-      <Verdict verdict={model.verdict} whyLabel={words.why} />
-      <Row cols={4}>
-        {model.kpis.map((k) => (
-          <KpiCard key={k.id} kpi={k} />
-        ))}
-      </Row>
-      <DecisionList
-        decisions={model.decisions}
-        words={words.decisions}
-        {...decision}
-        onDecide={act.onDecide}
-        onUndo={act.onUndo}
-      />
-      <Row wide>
-        <TrendChart data={model.trend} />
-        <Panel title={words.targetTitle}>
-          {model.bullets.map((b) => (
-            <BulletBar key={b.id} b={b} />
-          ))}
-          <BulletLegend words={words.legend} />
-        </Panel>
-      </Row>
-      <Row wide>
-        <ParetoCard model={model} act={act} />
-        <PlantMap cells={model.cells} words={words.plant} {...machine} />
-      </Row>
-      <MachineTable
-        machines={model.cells.flatMap((c) => c.machines)}
-        words={words.machines}
-        {...machine}
-      />
-    </>
-  );
-}
-
 /**
- * The decision-first Dashboard: the verdict, four key figures, the decisions, the trend beside the targets, where the
- * hours go beside the plant, and every machine. A decision, a square, a row or any chip opens its detail in the
- * drawer, which lives in the URL: Back, ✕, Esc or the same item again closes it.
+ * The Dashboard on the engine's own figures: the verdict, the Action Center's counts, what needs a person now, every
+ * `dashboard.*` figure as a card in its own period with its change and the rows behind it, the costliest problems, and
+ * the two pictures. A chip opens that machine in the drawer, which lives in the URL.
  */
 export function DashboardView({
   model,
   nav,
   title,
-  onDecide = ignore,
-  onUndo = ignore,
-  onAddFocus = ignore,
-  onSeeFixes = ignore,
-}: { model: DashboardModel; nav: NavItem[]; title: string } & DashboardActions) {
-  const act: Acts = { onDecide, onUndo, onAddFocus, onSeeFixes };
+}: {
+  model: DashboardModel;
+  nav: NavItem[];
+  title: string;
+}) {
+  const { words } = model;
   return (
-    <EntityShell nav={nav} title={title} local={(ref) => localDecision(model, ref, act)}>
-      <Body model={model} act={act} />
+    <EntityShell nav={nav} title={title}>
+      <Verdict verdict={model.verdict} whyLabel={words.why} />
+      {model.banner ? (
+        <div className="v2-card v2-pad v2-row v2-gap-8" data-banner="action-center">
+          <KeyPill text={model.banner.text} tone="risk" icon="alert" />
+          <Link className="v2-btn v2-btn-primary" to={model.banner.href}>
+            {words.openActionCenter}
+          </Link>
+        </div>
+      ) : null}
+      {model.needs ? <NeedsNow needs={model.needs} /> : null}
+      <Row cols={4}>
+        {model.kpis.map((kpi) => (
+          <KpiCard key={kpi.id} kpi={kpi} />
+        ))}
+      </Row>
+      {model.costliest ? (
+        <>
+          <Panel title={model.costliest.title}>
+            <Pareto data={model.costliest.pareto} whyLabel={words.why} actions={null} />
+          </Panel>
+          <EngineTable table={model.costliest.table} />
+        </>
+      ) : null}
+      <Row>
+        {model.charts.map((chart) => (
+          <ChartCard
+            key={chart.id}
+            spec={chart.spec}
+            sub={chart.sub}
+            aria={chart.aria}
+            drill={chart.drill}
+          />
+        ))}
+      </Row>
+      <SourceLine text={model.source} />
     </EntityShell>
   );
 }

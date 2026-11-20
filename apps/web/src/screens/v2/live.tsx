@@ -2,7 +2,7 @@
 import type { MessageKey } from '@uptimo/shared/i18n';
 import { useRef, type ReactElement, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { correctMove, getMe } from '../../api.js';
 import { ApiError, isOffline } from '../../data/index.js';
@@ -10,10 +10,13 @@ import { Segmented } from '../../ui/v2/segmented.js';
 import { ScreenStates } from '../../ui/v2/screen-states.js';
 import { correctionError } from '../analytics/machine-values.js';
 import { SCREEN_LABELS, groupFor, type GroupId } from '../analytics/groups.js';
+import { ActionCenterPage } from './action-center/Page.js';
 import { AgeView } from './age/View.js';
 import { CellLogView } from './cell-change-log/View.js';
+import { DashboardPage } from './dashboard/Page.js';
 import { FixFinderView } from './fix-finder/View.js';
 import { FootprintView } from './footprint/View.js';
+import { MachinePage } from './machine/Page.js';
 import { RegistersView } from './machines-register/View.js';
 import { ProblemAnalysisView } from './problem-analysis/View.js';
 import type { CellLogModel } from './cell-change-log/model.js';
@@ -21,7 +24,8 @@ import { useScreenModel, type ScreenModel, type ScreenParams } from './data.js';
 import { ChromeContext, EntityShell } from './entity/EntityShell.js';
 import { useNav } from './nav.js';
 import type { NavItem } from '../../ui/v2/shell.js';
-import type { SectionId } from '../analytics/shell/shell-data.js';
+import { SECTIONS, type SectionId } from '../analytics/shell/shell-data.js';
+import { ACTION_CENTER_PATH } from '../analytics/groups.js';
 
 /**
  * The v2 screens that are live: each renders at the URL its v1 page had, inside the v2 shell, with the data and the role
@@ -52,7 +56,36 @@ function ScreenTabs({ group, current }: { group: GroupId; current: string }) {
   );
 }
 
+/** The Today section's screens as one row above the page; each is a real route of the section. */
+function TodayTabs({ current }: { current: string }) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const tabs = SECTIONS.find((section) => section.id === 'today')?.tabs ?? [];
+  return (
+    <Segmented
+      label={t('ashell.section.today')}
+      options={tabs.map((tab) => ({ key: tab.to, label: t(tab.label) }))}
+      value={current}
+      onChange={(to) => navigate(to)}
+    />
+  );
+}
+
 /** A screen's frame: the rail by the login's role, the section's screens above, and the figures' states in place of the page. */
+function Frame({
+  section,
+  chrome,
+  children,
+}: {
+  section: SectionId;
+  chrome: ReactNode;
+  children: (nav: ReturnType<typeof useNav>) => ReactNode;
+}) {
+  const role = useQuery({ queryKey: ['me'], queryFn: getMe }).data?.user.role;
+  const nav = useNav(section, role);
+  return <ChromeContext.Provider value={chrome}>{children(nav)}</ChromeContext.Provider>;
+}
+
 function LiveFrame({
   entry,
   children,
@@ -60,12 +93,43 @@ function LiveFrame({
   entry: Pick<Live, 'group' | 'section' | 'screen'>;
   children: (nav: ReturnType<typeof useNav>) => ReactNode;
 }) {
-  const role = useQuery({ queryKey: ['me'], queryFn: getMe }).data?.user.role;
-  const nav = useNav(entry.section, role);
   return (
-    <ChromeContext.Provider value={<ScreenTabs group={entry.group} current={entry.screen} />}>
-      {children(nav)}
-    </ChromeContext.Provider>
+    <Frame
+      section={entry.section}
+      chrome={<ScreenTabs group={entry.group} current={entry.screen} />}
+    >
+      {children}
+    </Frame>
+  );
+}
+
+/** The Action Center, at the address v1 had (`/analytics/today/action-center`). */
+export function ActionCenterLive() {
+  const { t } = useTranslation();
+  return (
+    <Frame section="today" chrome={<TodayTabs current={ACTION_CENTER_PATH} />}>
+      {(nav) => <ActionCenterPage nav={nav} title={t('analytics.screen.action-center')} />}
+    </Frame>
+  );
+}
+
+/** One machine's page, at the address v1 had (`/analytics/machines/:id`). */
+export function MachinePageLive() {
+  const { id = '' } = useParams();
+  return (
+    <LiveFrame entry={{ group: 'machines', section: 'machines', screen: 'machine-page' }}>
+      {(nav) => <MachinePage id={id} nav={nav} />}
+    </LiveFrame>
+  );
+}
+
+/** The Dashboard, at the address v1 had (`/analytics/today`, and `?screen=dashboard`). */
+function DashboardLive() {
+  const { t } = useTranslation();
+  return (
+    <Frame section="today" chrome={<TodayTabs current="/analytics/today" />}>
+      {(nav) => <DashboardPage nav={nav} title={t('analytics.screen.dashboard')} />}
+    </Frame>
   );
 }
 
@@ -148,6 +212,7 @@ const screenOf = (group: GroupId, section: SectionId, screen: string) => ({
 });
 
 const LIVE: readonly Live[] = [
+  { group: 'today', section: 'today', screen: 'dashboard', page: () => <DashboardLive /> },
   {
     group: 'machines',
     section: 'machines',
@@ -223,6 +288,7 @@ const LIVE: readonly Live[] = [
 
 /** The live v2 page for a group's screen (`?screen=`, or the group's first), or null when that screen is still v1's. */
 export function liveScreen(group: string | undefined, screen: string | null): ReactElement | null {
-  const named = screen ?? (group === 'machines' ? 'registers' : null);
+  const named =
+    screen ?? (group === 'machines' ? 'registers' : group === 'today' ? 'dashboard' : null);
   return LIVE.find((entry) => entry.group === group && entry.screen === named)?.page() ?? null;
 }

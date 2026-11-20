@@ -1,5 +1,5 @@
 import { machineChip } from '../../../ui/v2/domain/plant.js';
-import { dashboardFixture } from '../dashboard/fixture.js';
+import { dashboardFixture } from '../fixtures/plant-fixture.js';
 import { byLoss, differences, kpis, trend, verdict } from './fixture-build.js';
 import { COMPARABLE, yearOf } from './fixture-rows.js';
 import { figures, statsOf, type Stats } from './fixture-stats.js';

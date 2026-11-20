@@ -1,4 +1,4 @@
-import { dashboardWords } from '../dashboard/fixture-words.js';
+import { dashboardWords } from '../fixtures/words.js';
 import type { TeamFocusWords } from './model.js';
 
 /** Every word Team Focus prints, in English for the gallery; the API adapter brings the reader's language. */

@@ -1,101 +1,39 @@
 /* eslint-disable i18next/no-literal-string -- typed keys and entity kinds only; every visible word comes from the model */
 import { useContext, useState } from 'react';
-import { fill } from '../../../i18n/fill.js';
-import { Button } from '../../../ui/v2/button.js';
-import { DataTable, type Column, type FilterChip } from '../../../ui/v2/data-table.js';
-import { DecisionList } from '../../../ui/v2/domain/decision-list.js';
+import { DataTable, type Column } from '../../../ui/v2/data-table.js';
 import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
-import { cellChip, machineChip } from '../../../ui/v2/domain/plant.js';
+import { FilterSelect, SearchField } from '../../../ui/v2/domain/nudge-controls.js';
 import { EntityChip, EntityOpenContext } from '../../../ui/v2/entity-chip.js';
-import { KeyPill } from '../../../ui/v2/key-pill.js';
 import { KpiCard } from '../../../ui/v2/kpi-card.js';
 import { Panel } from '../../../ui/v2/panel.js';
-import { Points } from '../../../ui/v2/points.js';
 import { Row } from '../../../ui/v2/row.js';
 import { Segmented } from '../../../ui/v2/segmented.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
+import { Nudge } from './Nudge.js';
 import { EntityShell } from '../entity/EntityShell.js';
 import { useEntityParam } from '../entity/url.js';
-import { localDecision, type Acts } from './local.js';
+import type { NudgeSeverity, NudgeRule } from '@uptimo/shared';
+import { keep, type Filters } from './filter.js';
 import type {
   ActionCenterActions,
   ActionCenterModel,
   ActionCenterWords,
-  WatchRow,
+  NudgeCard as NudgeCardModel,
+  RiskRow,
 } from './model.js';
 
-const ignore = () => {};
-type Tab = 'parked' | 'settled';
-
-/** Who owns what, ending in the one action that gives every unowned decision a person. */
-function OwnersCard({ model, onAssign }: { model: ActionCenterModel; onAssign: () => void }) {
-  return (
-    <Panel title={model.words.ownersTitle}>
-      <Points points={model.owners} />
-      <div>
-        <Button primary onClick={onAssign}>
-          {model.words.assign}
-        </Button>
-      </div>
-    </Panel>
-  );
-}
-
-/** The decisions that are not waiting, parked or settled; each names itself, when and who, and opens in the drawer. */
-function SettledCard({ model }: { model: ActionCenterModel }) {
-  const { words } = model;
-  const [tab, setTab] = useState<Tab>('parked');
-  const count = (s: Tab) => model.settled.filter((x) => x.status === s).length;
-  const shown = model.settled.filter((x) => x.status === tab);
-  return (
-    <Panel
-      title={words.settledTitle}
-      aside={
-        <Segmented
-          label={words.settledLabel}
-          value={tab}
-          onChange={setTab}
-          options={(['parked', 'settled'] as const).map((key) => ({
-            key,
-            label: fill(words.tabs[key], { n: count(key) }),
-          }))}
-        />
-      }
-    >
-      {shown.length === 0 ? (
-        <p className="v2-sub">{words.settledEmpty}</p>
-      ) : (
-        <Points points={shown.map((x) => x.line)} />
-      )}
-    </Panel>
-  );
-}
-
-const watchFilters = (words: ActionCenterWords['watch']): FilterChip<WatchRow>[] => [
-  { key: 'all', label: words.filters.all },
-  { key: 'high', label: words.filters.high, test: (r) => r.high > 0 },
-  { key: 'medium', label: words.filters.medium, test: (r) => r.medium > 0 },
-];
-
-/** The table's four columns: the machine, its score, its open nudges by priority, and the next step. */
-function watchColumns(words: ActionCenterWords['watch']): Column<WatchRow>[] {
-  const pill = (n: number, text: string, tone: 'loss' | 'risk' | 'neutral') =>
-    n > 0 ? <KeyPill key={tone} text={fill(text, { n })} tone={tone} /> : null;
+/** The machines that need attention: the machine and its model, the engine's score and the rules that fired. */
+function riskColumns(words: ActionCenterWords['risk']): Column<RiskRow>[] {
   return [
     {
       key: 'machine',
       label: words.columns.machine,
-      sortBy: (r) => r.machine.code,
+      sortBy: (r) => r.machine.label,
       cell: (r) => (
         <div className="v2-who">
-          <EntityChip {...machineChip(r.machine)} />
-          <div>
-            <div className="v2-who-name">{r.machine.name}</div>
-            <div className="v2-sub">
-              {r.machine.typeLabel} · <EntityChip {...cellChip(r.machine.cell)} />
-            </div>
-          </div>
+          <EntityChip {...r.machine} />
+          <span className="v2-sub">{r.model}</span>
         </div>
       ),
     },
@@ -106,23 +44,147 @@ function watchColumns(words: ActionCenterWords['watch']): Column<WatchRow>[] {
       sortBy: (r) => r.score.value,
       cell: (r) => r.score.shown,
     },
-    {
-      key: 'nudges',
-      label: words.columns.nudges,
-      cell: (r) => (
-        <div className="v2-row v2-gap-6">
-          {pill(r.high, words.priority.high, 'loss')}
-          {pill(r.medium, words.priority.medium, 'risk')}
-          {pill(r.low, words.priority.low, 'neutral')}
-        </div>
-      ),
-    },
-    { key: 'next', label: words.columns.next, cell: (r) => r.next },
+    { key: 'why', label: words.columns.why, sortBy: (r) => r.why, cell: (r) => r.why },
   ];
 }
 
-/** The page under the header, top to bottom; a decision, a machine or a person opens in the drawer. */
-function Body({ model, act }: { model: ActionCenterModel; act: Acts }) {
+/** The priority, the type and the search: the three filters over the nudges. */
+function Controls({
+  model,
+  filters,
+  change,
+}: {
+  model: ActionCenterModel;
+  filters: Filters;
+  change: (next: Partial<Filters>) => void;
+}) {
+  const { words } = model;
+  return (
+    <div className="v2-controls">
+      <FilterSelect
+        label={words.priorityLabel}
+        all={words.allPriorities}
+        value={filters.severity}
+        options={model.priorities}
+        onChange={(severity) => change({ severity: severity as NudgeSeverity | '' })}
+      />
+      <FilterSelect
+        label={words.typeLabel}
+        all={words.allTypes}
+        value={filters.rule}
+        options={model.types}
+        onChange={(rule) => change({ rule: rule as NudgeRule | '' })}
+      />
+      <SearchField
+        label={words.search}
+        value={filters.query}
+        onChange={(query) => change({ query })}
+      />
+    </div>
+  );
+}
+
+/** One group per priority, high first, each with its count; the one empty line when the tab and filters leave none. */
+function Groups({
+  model,
+  groups,
+  empty,
+  formKey,
+  onForm,
+  act,
+}: {
+  model: ActionCenterModel;
+  groups: { key: NudgeSeverity; cards: NudgeCardModel[] }[];
+  empty: string;
+  formKey: string | null;
+  onForm: (key: string | null) => void;
+  act: ActionCenterActions;
+}) {
+  if (groups.length === 0) return <p className="v2-sub">{empty}</p>;
+  return groups.map((group) => (
+    <section key={group.key} aria-label={model.severityLabels[group.key]}>
+      <h3 className="v2-group-head v2-h3">
+        {model.severityLabels[group.key]}
+        <span className="v2-sub v2-num">{group.cards.length}</span>
+      </h3>
+      {group.cards.map((card) => (
+        <Nudge
+          key={card.key}
+          card={card}
+          model={model}
+          formOpen={formKey === card.key}
+          act={act}
+          onForm={onForm}
+        />
+      ))}
+    </section>
+  ));
+}
+
+/** The nudges: status tabs with their counts, the three filters, and one group per priority, high first. */
+function Nudges({
+  model,
+  act,
+  failed,
+}: {
+  model: ActionCenterModel;
+  act: ActionCenterActions;
+  failed: boolean;
+}) {
+  const { words } = model;
+  const [filters, setFilters] = useState<Filters>({
+    status: 'open',
+    severity: '',
+    rule: '',
+    query: '',
+  });
+  const [formKey, setFormKey] = useState<string | null>(null);
+  const shown = keep(model, filters);
+  const groups = model.priorities
+    .map(({ key }) => ({ key, cards: shown.filter((card) => card.severity === key) }))
+    .filter((group) => group.cards.length > 0);
+  const change = (next: Partial<Filters>) => setFilters({ ...filters, ...next });
+  const tabs = model.tabs.map((tab) => ({ key: tab.status, label: `${tab.label} ${tab.count}` }));
+  return (
+    <Panel
+      title={words.nudgesTitle}
+      aside={
+        <Segmented
+          label={words.tabsLabel}
+          value={filters.status}
+          onChange={(status) => change({ status })}
+          options={tabs}
+        />
+      }
+    >
+      <Controls model={model} filters={filters} change={change} />
+      {failed ? (
+        <p role="alert" className="v2-sub v2-seg-loss">
+          {words.saveFailed}
+        </p>
+      ) : null}
+      <Groups
+        model={model}
+        groups={groups}
+        empty={filters.status === 'open' ? words.emptyOpen : words.empty}
+        formKey={formKey}
+        onForm={setFormKey}
+        act={act}
+      />
+    </Panel>
+  );
+}
+
+/** The page under the header, top to bottom. */
+function Body({
+  model,
+  act,
+  failed,
+}: {
+  model: ActionCenterModel;
+  act: ActionCenterActions;
+  failed: boolean;
+}) {
   const { words } = model;
   const open = useContext(EntityOpenContext);
   const { current } = useEntityParam();
@@ -130,55 +192,47 @@ function Body({ model, act }: { model: ActionCenterModel; act: Acts }) {
     <>
       <Verdict verdict={model.verdict} whyLabel={words.why} />
       <Row cols={4}>
-        {model.kpis.map((k) => (
+        {model.tiles.map((k) => (
           <KpiCard key={k.id} kpi={k} />
         ))}
       </Row>
-      <DecisionList
-        decisions={model.decisions}
-        words={words.decisions}
-        selected={current?.kind === 'decision' ? current.id : undefined}
-        onOpen={(id) => open({ kind: 'decision', id })}
-        onDecide={act.onDecide}
-        onUndo={act.onUndo}
-      />
-      <Row>
-        <OwnersCard model={model} onAssign={act.onAssign} />
-        <SettledCard model={model} />
-      </Row>
       <DataTable
-        rows={model.watch}
-        rowKey={(r) => r.machine.code}
-        columns={watchColumns(words.watch)}
-        filters={watchFilters(words.watch)}
-        text={(r) => `${r.machine.code} ${r.machine.name} ${r.machine.cell} ${r.next}`}
-        words={words.watch}
+        rows={model.risk}
+        rowKey={(r) => r.machine.id}
+        columns={riskColumns(words.risk)}
+        filters={[{ key: 'all', label: words.risk.all }]}
+        text={(r) => `${r.machine.label} ${r.model} ${r.why}`}
+        words={words.risk}
         initialSort={{ key: 'score', dir: 'desc' }}
         selected={current?.kind === 'machine' ? current.id : undefined}
-        onOpen={(r) => open({ kind: 'machine', id: r.machine.code })}
+        onOpen={(r) => open({ kind: 'machine', id: r.machine.id })}
       />
+      <Nudges model={model} act={act} failed={failed} />
       <SourceLine text={model.source} />
     </>
   );
 }
 
 /**
- * The decision-first Action Center: the verdict, four key figures, the decisions to take today with their owners,
- * who owns what beside what is parked or settled, and the machines that keep coming up. A decision, a machine, a
- * person or any chip opens its detail in the drawer, which lives in the URL.
+ * The Action Center on the plant's real nudges: the four priority counts, the machines that need attention, and every
+ * nudge under its priority with its status tab, filters and the acknowledge, snooze, resolve and reopen writes. A
+ * machine chip or row opens that machine in the drawer, which lives in the URL.
  */
 export function ActionCenterView({
   model,
   nav,
   title,
-  onDecide = ignore,
-  onUndo = ignore,
-  onAssign = ignore,
-}: { model: ActionCenterModel; nav: NavItem[]; title: string } & ActionCenterActions) {
-  const act: Acts = { onDecide, onUndo, onAssign };
+  failed = false,
+  ...act
+}: {
+  model: ActionCenterModel;
+  nav: NavItem[];
+  title: string;
+  failed?: boolean;
+} & ActionCenterActions) {
   return (
-    <EntityShell nav={nav} title={title} local={(ref) => localDecision(model, ref, act)}>
-      <Body model={model} act={act} />
+    <EntityShell nav={nav} title={title}>
+      <Body model={model} act={act} failed={failed} />
     </EntityShell>
   );
 }

@@ -1,7 +1,10 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { FROZEN, PROVIDERS, frozenOf, load, providersOf } from './data.js';
-import { dashboardFixture } from './dashboard/fixture.js';
+import type { DashboardModel } from './dashboard/model.js';
+
+/** Any model will do: the seam hands back whatever its provider returns. */
+const dashboardFixture = { source: 'frozen' } as unknown as DashboardModel;
 
 describe('the v2 screen data seam', () => {
   it('is ready with the model a provider returns', async () => {
@@ -75,8 +78,8 @@ describe('the v2 screen registry', () => {
     expect(unregistered).toEqual([]);
   });
 
-  it('serves the fixture of a registered screen', async () => {
-    const provider = PROVIDERS.dashboard as () => Promise<unknown>;
-    expect(await provider()).toBe(dashboardFixture);
+  it('shows a screen that reads the server as an error, not a crash, when there is no connection to ask', async () => {
+    const provider = PROVIDERS.dashboard as Parameters<typeof load<'dashboard'>>[0];
+    expect(await load<'dashboard'>(provider, {})).toEqual({ state: 'error' });
   });
 });

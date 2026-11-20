@@ -3,8 +3,8 @@ import type { CellDetailData } from '../../../ui/v2/domain/cell-detail.js';
 import type { PersonDetailData } from '../../../ui/v2/domain/person-detail.js';
 import type { CellData, MachineState } from '../../../ui/v2/domain/plant.js';
 import type { EntityChipProps, EntityRef } from '../../../ui/v2/entity-chip.js';
-import { dashboardFixture as plant } from '../dashboard/fixture.js';
-import { chip, glue } from '../dashboard/fixture-text.js';
+import { dashboardFixture as plant } from '../fixtures/plant-fixture.js';
+import { chip, glue } from '../fixtures/text.js';
 import type { EntityModel } from './model.js';
 import { cellWords, personWords } from './fixture-words.js';
 
