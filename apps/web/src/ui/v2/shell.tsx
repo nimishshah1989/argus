@@ -122,14 +122,16 @@ export function Shell({
       data-menu={menu}
       onTransitionEnd={remeasure}
     >
-      <nav className="v2-rail">
-        {nav.map((item) => (
-          <a key={item.id} href={item.href} aria-current={item.current ? 'page' : undefined}>
-            <Icon name={item.icon} size={18} />
-            <span className="v2-rail-label">{item.label}</span>
-          </a>
-        ))}
-      </nav>
+      <div className="v2-rail-col">
+        <nav className="v2-rail">
+          {nav.map((item) => (
+            <a key={item.id} href={item.href} aria-current={item.current ? 'page' : undefined}>
+              <Icon name={item.icon} size={18} />
+              <span className="v2-rail-label">{item.label}</span>
+            </a>
+          ))}
+        </nav>
+      </div>
       <div className="v2-main">
         <Header
           title={title}

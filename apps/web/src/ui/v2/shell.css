@@ -24,7 +24,6 @@
   height: 100dvh;
   padding: 12px 8px;
   overflow: hidden;
-  border-right: 1px solid var(--color-v2-line);
   background: var(--color-v2-subtle);
   transition:
     width var(--motion-v2-ui) var(--ease-v2),
@@ -68,9 +67,12 @@
   grid-column: 2;
   min-width: 0;
 }
-/* Each part keeps its own column, so the page stays in the middle one when the rail leaves the grid on a phone. */
-.v2-rail {
+/* Each part keeps its own column. The rail's column runs the page's full height with its tint and hairline, and the
+   rail itself stays put in it while the page scrolls. */
+.v2-rail-col {
   grid-column: 1;
+  border-right: 1px solid var(--color-v2-line);
+  background: var(--color-v2-subtle);
 }
 .v2-drawer {
   grid-column: 3;
@@ -189,6 +191,9 @@
   .v2-app,
   .v2-app[data-drawer='true'] {
     grid-template-columns: 0 minmax(0, 1fr) 0;
+  }
+  .v2-rail-col {
+    border: 0;
   }
   .v2-rail {
     position: fixed;
