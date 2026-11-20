@@ -58,7 +58,7 @@ export function AnalyticsFace() {
   const [params] = useSearchParams();
   const found = groupFor(group);
   if (!found) return <Navigate to="/analytics/today" replace />;
-  const live = liveScreen(group, params.get('screen'), params.get('drill'));
+  const live = liveScreen(group, params.get('screen'));
   if (live) return live;
   return (
     <AnalyticsShell>

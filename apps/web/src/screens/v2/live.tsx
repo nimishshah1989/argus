@@ -1,9 +1,9 @@
 /* eslint-disable i18next/no-literal-string -- screen ids and routes only; every visible word goes through t() */
 import type { MessageKey } from '@uptimo/shared/i18n';
-import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import i18n from 'i18next';
+import { Fragment, useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { correctMove, getMe, useActionCenterBoard } from '../../api.js';
 import { ApiError, isOffline } from '../../data/index.js';
@@ -13,9 +13,9 @@ import { correctionError } from '../analytics/machine-values.js';
 import { SCREEN_LABELS, groupFor, parseDrill, type GroupId } from '../analytics/groups.js';
 import { AgeView } from './age/View.js';
 import { CellLogView } from './cell-change-log/View.js';
+import { actionCenterOf } from './dashboard/adapter.js';
 import type { DashboardModel } from './dashboard/model.js';
 import { useRefresh } from './dashboard/refresh.js';
-import { actionCenterOf } from './dashboard/adapter.js';
 import { ActionCenter, DashboardView } from './dashboard/View.js';
 import { FixFinderView } from './fix-finder/View.js';
 import { FootprintView } from './footprint/View.js';
@@ -25,6 +25,12 @@ import type { CellLogModel } from './cell-change-log/model.js';
 import { useScreenModel, type ScreenModel, type ScreenParams } from './data.js';
 import { savedFigures } from './figures/live.js';
 import { ChromeContext, EntityShell } from './entity/EntityShell.js';
+import { liveReply } from './figures/live.js';
+import {
+  NO_SUCH_FIGURE,
+  figureForLegacyDrill,
+  searchForLegacyDrill,
+} from './rows-behind/legacy.js';
 import { useNav } from './nav.js';
 import type { NavItem } from '../../ui/v2/shell.js';
 import { sectionsFor, type SectionId } from '../analytics/shell/shell-data.js';
@@ -74,6 +80,31 @@ function TodayTabs() {
   );
 }
 
+/**
+ * An old v1 link (`?drill=<type>:<ids>`, from a tile, a bookmark or a pasted address) opens the same rows in the rows
+ * panel: the figure those ids belong to is found in the engine's reply and the address becomes `?drawer=figure:<key>`.
+ * Ids no figure counts open the panel with nothing in it, never a v1 table.
+ */
+function useLegacyDrill(screen: string) {
+  const { search } = useLocation();
+  const navigate = useNavigate();
+  const client = useQueryClient();
+  useEffect(() => {
+    const asked = parseDrill(new URLSearchParams(search).get('drill'));
+    if (!asked) return;
+    let current = true;
+    const go = (figure: string) =>
+      current && navigate({ search: searchForLegacyDrill(search, figure) }, { replace: true });
+    liveReply(client).then(
+      (reply) => go(figureForLegacyDrill(reply, asked, screen)),
+      () => go(NO_SUCH_FIGURE),
+    );
+    return () => {
+      current = false;
+    };
+  }, [search, screen, client, navigate]);
+}
+
 /** A screen's frame: the rail by the login's role, the section's screens above, and the figures' states in place of the page. */
 function LiveFrame({
   entry,
@@ -84,6 +115,7 @@ function LiveFrame({
 }) {
   const role = useQuery({ queryKey: ['me'], queryFn: getMe }).data?.user.role;
   const nav = useNav(entry.section, role);
+  useLegacyDrill(entry.screen);
   const tabs =
     entry.group === 'today' ? (
       <TodayTabs />
@@ -178,7 +210,8 @@ function ModelPage<
 
 /**
  * The Dashboard keeps what it shows while it reads again: what needs you now and the Action Center count are read every
- * 30 seconds, as v1's were, and a failed refresh leaves the last answer in place rather than blanking the page.
+ * 30 seconds, as v1's were, and a refresh that fails leaves the last answer in place. The last answer is this page's own
+ * (the page is keyed by its screen, so another screen never inherits it), and a first load that fails shows the error.
  */
 function DashboardPage() {
   const { t } = useTranslation();
@@ -214,12 +247,7 @@ const screenOf = (group: GroupId, section: SectionId, screen: string) => ({
 });
 
 const LIVE: readonly Live[] = [
-  {
-    group: 'today',
-    section: 'today',
-    screen: 'dashboard',
-    page: () => <DashboardPage />,
-  },
+  { group: 'today', section: 'today', screen: 'dashboard', page: () => <DashboardPage /> },
   {
     group: 'machines',
     section: 'machines',
@@ -295,20 +323,25 @@ const LIVE: readonly Live[] = [
 
 /**
  * The live v2 page for a group's screen (`?screen=`, or the group's first), or null when that screen is still v1's. A
- * rows-behind link from a v1 screen (`?drill=`) still goes to the v1 table that draws those rows.
+ * Machines screen the group does not have (a bookmark, a typo, the machine page's id) goes to the register, the
+ * group's first v2 screen: there is no v1 copy of it to fall back to.
  */
-export function liveScreen(
-  group: string | undefined,
-  screen: string | null,
-  drill: string | null = null,
-): ReactElement | null {
+export function liveScreen(group: string | undefined, screen: string | null): ReactElement | null {
   if (group === 'today') {
-    // v1: Team Focus and a well-formed rows link keep their v1 pages; anything else, an unknown ?screen= or a
-    // malformed ?drill=, is the Dashboard.
-    if (screen === 'team-focus' || parseDrill(drill) !== null) return null;
-    return LIVE.find((entry) => entry.group === 'today')?.page() ?? null;
+    // v1: Team Focus keeps its v1 page; anything else on Today (no ?screen=, an unknown one, a legacy ?drill=) is the Dashboard.
+    if (screen === 'team-focus') return null;
+    return keyed('today', 'dashboard', LIVE[0]!.page());
   }
-  const first = group === 'machines' ? 'registers' : null;
-  const named = screen ?? first;
-  return LIVE.find((entry) => entry.group === group && entry.screen === named)?.page() ?? null;
+  const named = screen ?? (group === 'machines' ? 'registers' : null);
+  const found = LIVE.find((entry) => entry.group === group && entry.screen === named);
+  if (found) return keyed(found.group, found.screen, found.page());
+  const known = groupFor('machines')?.screens.filter((id) => id !== 'machine-page') ?? [];
+  return group === 'machines' && named !== null && !known.includes(named) ? (
+    <Navigate to="/analytics/machines?screen=registers" replace />
+  ) : null;
 }
+
+/** One page per screen: a change of `?screen=` remounts, so a screen never draws the the one before's model. */
+const keyed = (group: string, screen: string, page: ReactElement) => (
+  <Fragment key={`${group}:${screen}`}>{page}</Fragment>
+);

@@ -10,10 +10,13 @@ declare module '../data.js' {
 export const screen: ScreenEntry<'machines-register'> = {
   key: 'machines-register',
   provider: async (_, { client }) => {
-    const [{ liveReply, catalogue }, { registersModel }] = await Promise.all([
+    const [{ liveReply, catalogue }, { registersModel }, { requireComputed }] = await Promise.all([
       import('../figures/live.js'),
       import('./adapter.js'),
+      import('../figures/computed.js'),
     ]);
-    return registersModel(await liveReply(client), catalogue);
+    const reply = await liveReply(client);
+    requireComputed(reply, 'registers');
+    return registersModel(reply, catalogue);
   },
 };

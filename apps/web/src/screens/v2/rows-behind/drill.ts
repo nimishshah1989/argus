@@ -17,3 +17,16 @@ export function drillFor(
   if (figure?.status !== 'ready' || figure.drill.ids.length === 0) return undefined;
   return { figure: key, label: fill(t('v2m.rows.open'), { figure: figureName(key, t) }) };
 }
+
+/**
+ * The page-level "See the machines" control: opens every row the figure counted, for a page whose cards count
+ * something narrower (one register, one age band). It is a control of the page, not of a count.
+ */
+export function seeMachinesFor(
+  reply: Pick<FiguresReply, 'figures'>,
+  key: string,
+  t: Translate,
+): Drill | undefined {
+  const drill = drillFor(reply, key, t);
+  return drill ? { ...drill, label: t('analytics.registers.seeMachines') } : undefined;
+}

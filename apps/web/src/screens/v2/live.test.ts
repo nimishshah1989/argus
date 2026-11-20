@@ -1,3 +1,4 @@
+import { Navigate } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { liveScreen } from './live.js';
 
@@ -15,23 +16,50 @@ describe('which v2 screens are live at their v1 address', () => {
     expect(liveScreen('machines', null)).not.toBeNull();
   });
 
-  it('serves the Dashboard at Today’s address, with or without ?screen=, and leaves Team Focus and a rows-behind link to v1', () => {
+  it('serves the Dashboard at Today’s address, with or without ?screen=, and leaves Team Focus to v1', () => {
     expect(liveScreen('today', null)).not.toBeNull();
     expect(liveScreen('today', 'dashboard')).not.toBeNull();
     expect(liveScreen('today', 'team-focus')).toBeNull();
-    expect(liveScreen('today', null, 'ticket:t1,t2')).toBeNull();
   });
 
-  it('sends an unknown ?screen= and a malformed ?drill= on Today to the Dashboard, as v1 did', () => {
+  it('sends an unknown ?screen= on Today to the Dashboard, as v1 did', () => {
     expect(liveScreen('today', 'no-such-screen')).not.toBeNull();
-    expect(liveScreen('today', null, 'garbage')).not.toBeNull();
-    expect(liveScreen('today', null, 'widget:1')).not.toBeNull();
-    expect(liveScreen('today', null, 'ticket:')).not.toBeNull();
+    expect(liveScreen('today', '')).not.toBeNull();
+  });
+
+  it('keys every page by its group and screen, so a change of ?screen= remounts and one screen never draws the model of the one before', () => {
+    const key = (group: string, screen: string | null) => liveScreen(group, screen)?.key;
+    expect(key('today', null)).toBe('today:dashboard');
+    expect(key('today', 'bogus')).toBe('today:dashboard');
+    expect(key('machines', 'registers')).toBe('machines:registers');
+    expect(key('machines', null)).toBe('machines:registers');
+    expect(key('machines', 'a8-age')).toBe('machines:a8-age');
+    expect(key('breakdowns', 'fix-finder')).toBe('breakdowns:fix-finder');
+    const keys = [
+      key('today', null),
+      key('machines', 'registers'),
+      key('machines', 'a8-age'),
+      key('machines', 'a7-footprint'),
+      key('machines', 'cell-change-log'),
+      key('breakdowns', 'fix-finder'),
+      key('breakdowns', 'a10-problems'),
+    ];
+    expect(new Set(keys).size).toBe(keys.length);
   });
 
   it('leaves every other screen to the v1 page', () => {
     expect(liveScreen('machines', 'compare')).toBeNull();
     expect(liveScreen('breakdowns', null)).toBeNull();
     expect(liveScreen('breakdowns', 'cell-change-log')).toBeNull();
+  });
+
+  it('sends an unknown Machines screen to the register, never to a v1 copy of it', () => {
+    for (const bogus of ['bogus', 'machine-page', '']) {
+      const sent = liveScreen('machines', bogus);
+      expect(sent?.type, bogus).toBe(Navigate);
+      expect((sent?.props as { to: string }).to, bogus).toBe(
+        '/analytics/machines?screen=registers',
+      );
+    }
   });
 });
