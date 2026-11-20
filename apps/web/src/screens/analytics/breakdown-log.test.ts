@@ -46,12 +46,21 @@ function logFigure(count: number): Figure {
           page: 'breakdowns',
           title: 'Breakdown Log',
           kpis: [],
-          tables: [{ title: '', header: HEADER, rows, rowCount: rows.length, truncated: true }],
+          tables: [
+            {
+              title: '',
+              header: HEADER,
+              rows,
+              rowTicketIds: rows.map((_, at) => `id-${at}`),
+              rowCount: rows.length,
+              truncated: true,
+            },
+          ],
           charts: [],
         },
       ],
     },
-    drill: { type: 'ticket', ids: rows.map((_, at) => `id-${at}`) },
+    drill: { type: 'ticket', ids: rows.map((_, at) => `id-${at}`).sort() },
   } as Figure;
 }
 
