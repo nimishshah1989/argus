@@ -57,9 +57,9 @@ export function decision(s: Spec): DecisionData {
   };
 }
 
-/** Who owns each decision waiting. The Dashboard's four are the same decisions, so its drawers and this page agree. */
+/** Who owns each decision waiting; null when nobody has taken it, even if someone is suggested (`SUGGESTED`). The Dashboard's four are the same decisions, so its drawers and this page agree. */
 export const OWNER: Record<string, PersonId | null> = {
-  axis: 'arjun-v',
+  axis: null,
   tmc2: null,
   dcmc: 'meera-k',
   wj01: 'neel-s',
@@ -67,6 +67,9 @@ export const OWNER: Record<string, PersonId | null> = {
   'night-pm': 'meera-k',
   amc: 'neel-s',
 };
+
+/** Who the engine suggests for a decision nobody owns yet: a suggestion is not an owner. */
+export const SUGGESTED: Record<string, PersonId> = { axis: 'arjun-v' };
 
 const extra: DecisionData[] = [
   decision({

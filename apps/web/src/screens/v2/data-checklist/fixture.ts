@@ -94,7 +94,7 @@ const checkRow = (c: Check): CheckData => {
     status: c.status === 'gap' ? 'gap' : 'check',
     statusLabel: c.status === 'gap' ? 'Gap' : 'Check',
     title: c.title,
-    state: pt(`${shown.join(', ')}${rest > 0 ? ` and ${rest} more` : ''}`),
+    state: pt(`${shown.join(' ')}${rest > 0 ? ` and ${rest} more` : ''}`),
     impact: c.impact,
     records: String(n),
     recordsNote: n === 1 ? 'record to fix' : 'records to fix',

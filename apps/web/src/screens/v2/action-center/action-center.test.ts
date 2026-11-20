@@ -53,7 +53,7 @@ describe('the v2 Action Center on its fixture', () => {
 
   it('answers first: the verdict, then four key figures, then the decisions to take', () => {
     expect(sentence(model.verdict.headline)).toBe(
-      '7 decisions are waiting, worth 104.9 h a month. 2 have no owner yet.',
+      '7 decisions are waiting, worth 104.9 h a month. 3 have no owner yet.',
     );
     expect(text(out)).toContain('7 decisions are waiting');
     expect(out.match(/class="v2-card v2-kpi"/g)).toHaveLength(4);
@@ -114,8 +114,11 @@ describe('the fixture figures agree with each other', () => {
     expect(kpi('waiting').value).toBe(String(model.decisions.length));
   });
 
-  it('gives every owner their share: the owners add up to every decision and every hour', () => {
-    const lines = model.owners.map(sentence);
+  const isUnowned = (d: (typeof model.decisions)[number]) =>
+    !sentence(d.owner).startsWith('Owner: ') || sentence(d.owner).includes('not assigned');
+
+  it('gives every owner their share: the owners and the unowned add up to every decision and every hour', () => {
+    const lines = model.owners.map(sentence).filter((l) => !l.includes('suggested'));
     const counts = lines.map((l) => num(/(\d+) decision/.exec(l)![1]!));
     expect(counts.reduce((a, b) => a + b, 0)).toBe(model.decisions.length);
     const hours = lines.map((l) => num(/([\d.]+) h a month/.exec(l)![1]!));
@@ -123,12 +126,22 @@ describe('the fixture figures agree with each other', () => {
     expect(hours).toEqual([...hours.slice(0, -1)].sort((a, b) => b - a).concat(hours.at(-1)!));
   });
 
-  it('counts the decisions nobody owns, and keeps them last', () => {
-    const unowned = model.decisions.filter((d) => sentence(d.owner).includes('not assigned'));
-    expect(kpi('unowned').value).toBe(String(unowned.length));
-    expect(sentence(model.owners.at(-1)!)).toContain(`${unowned.length} decisions have no owner`);
+  it('does not count a suggestion as an owner: the verdict, the key figure, the owners and the button agree', () => {
+    const unowned = model.decisions.filter(isUnowned);
+    expect(unowned.map((d) => d.id)).toEqual(['axis', 'tmc2', 'bearing']);
     const hours = unowned.reduce((s, d) => s + num(d.hours), 0);
+    expect(hours.toFixed(1)).toBe('79.5');
+    expect(kpi('unowned').value).toBe(String(unowned.length));
     expect(plain(kpi('unowned').more)).toContain(`${hours.toFixed(1)} h a month`);
+    expect(sentence(model.verdict.headline)).toContain(`${unowned.length} have no owner`);
+    expect(model.words.assign).toBe(`Assign the ${unowned.length} unowned`);
+    const lines = model.owners.map(sentence);
+    expect(lines.at(-1)).toContain(
+      `${unowned.length} decisions have no owner, worth ${hours.toFixed(1)} h a month`,
+    );
+    expect(lines.filter((l) => l.startsWith('Arjun V'))).toEqual([
+      'Arjun V is suggested for 1 decision, not confirmed',
+    ]);
   });
 
   it('counts what is settled and parked, newest first', () => {

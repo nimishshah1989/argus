@@ -4,7 +4,7 @@ import type { Point } from '../../../ui/v2/points.js';
 import { dashboardFixture } from '../dashboard/fixture.js';
 import { glue, pt, pts } from '../dashboard/fixture-text.js';
 import type { ActionCenterModel, WatchRow } from './model.js';
-import { OWNER, PEOPLE, waiting, type PersonId } from './fixture-decisions.js';
+import { OWNER, PEOPLE, SUGGESTED, waiting, type PersonId } from './fixture-decisions.js';
 import { notWaiting } from './fixture-settled.js';
 import { actionCenterWords } from './fixture-words.js';
 
@@ -28,7 +28,7 @@ const parked = notWaiting.filter((s) => s.status === 'parked').length;
 const settledNow = notWaiting.length - parked;
 
 /** Last week, for the changes the key figures state: invented, and the only inputs that are not computed. */
-const LAST_WEEK = { waiting: 5, hours: 92.3, unowned: 1, settled: 2 };
+const LAST_WEEK = { waiting: 5, hours: 92.3, unowned: 2, settled: 2 };
 
 const change = (now: number, before: number, text: (n: number) => string, goodWhenUp: boolean) => ({
   text: `${now >= before ? '+' : '−'}${text(Math.abs(now - before))}`,
@@ -91,6 +91,15 @@ function ownerLines(): Point[] {
     (p) =>
       `{{person:${p.id}|${PEOPLE[p.id]}}} has **${many(p.own.length, 'decision', 'decisions')}**, worth ++${h1(sum(p.own, hours))} h a month++`,
   );
+  const suggested = (Object.keys(PEOPLE) as PersonId[]).flatMap((id) => {
+    const n = unowned.filter((d) => SUGGESTED[d.id] === id).length;
+    return n > 0
+      ? [
+          `{{person:${id}|${PEOPLE[id]}}} is suggested for **${many(n, 'decision', 'decisions')}**, not confirmed`,
+        ]
+      : [];
+  });
+  lines.push(...suggested);
   if (unowned.length > 0)
     lines.push(
       `!!${many(unowned.length, 'decision has', 'decisions have')} no owner!!, worth **${h1(unownedHours)} h a month**`,
@@ -122,7 +131,7 @@ export const actionCenterFixture: ActionCenterModel = {
       `**${many(waiting.length, 'decision', 'decisions')}** ${waiting.length === 1 ? 'is' : 'are'} waiting, worth ++${h1(totalHours)} h a month++. !!${many(unowned.length, 'has', 'have')} no owner!! yet.`,
     ),
     why: pts(
-      `The biggest, {{decision:${waiting[0]!.id}|${waiting[0]!.title}}}, is **${glue(`${h1(hours(waiting[0]!))} h`)}** a month`,
+      `The biggest decision, worth **${glue(`${h1(hours(waiting[0]!))} h`)}** a month, is {{decision:${waiting[0]!.id}|${waiting[0]!.title}}}`,
       `**${glue(`${h1(unownedHours)} h`)}** a month sits with decisions nobody owns`,
       `${many(settledNow, 'decision was', 'decisions were')} settled this week and ${many(parked, 'is', 'are')} parked`,
     ),
