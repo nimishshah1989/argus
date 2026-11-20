@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { addDays } from '@uptimo/shared';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { expect, test } from './test.js';
@@ -116,6 +116,12 @@ const dayUnder = (page: Page, x: number, y: number): Promise<string | null> =>
     [x, y],
   );
 
+/** Whether a point is inside the window, where the pointer can be and `elementsFromPoint` can see. */
+const inWindow = async (page: Page, x: number, y: number): Promise<boolean> => {
+  const size = page.viewportSize();
+  return size !== null && x >= 0 && y >= 0 && x < size.width && y < size.height;
+};
+
 /**
  * Holds the pointer over `day`'s cell until the page itself says the pointer is on it. The month's second fetch
  * (the six-week grid) can grow a row after the cell was measured, so one measurement may land a row away; each
@@ -127,12 +133,32 @@ async function hoverDay(page: Page, day: string): Promise<void> {
     if (box) {
       const x = box.x + box.width / 2;
       const y = box.y + box.height / 2;
+      // The pointer can only land on what is inside the window: a cell below the fold is scrolled to first (the
+      // drag follows the pointer through a scroll), and the next pass measures it again.
+      if (!(await inWindow(page, x, y))) {
+        await page.evaluate(
+          (by) => window.scrollBy(0, by),
+          y - (page.viewportSize()?.height ?? 700) / 2,
+        );
+        continue;
+      }
       await page.mouse.move(x, y, { steps: 10 });
       if ((await dayUnder(page, x, y)) === day) return;
     }
     await page.waitForTimeout(150);
   }
   throw new Error(`the pointer never settled on ${day}`);
+}
+
+/** Scrolls so the middle of the span between two elements is the middle of the window. */
+async function centreBoth(page: Page, a: Locator, b: Locator): Promise<void> {
+  const [boxA, boxB] = [await a.boundingBox(), await b.boundingBox()];
+  const size = page.viewportSize();
+  if (!boxA || !boxB || !size) return;
+  const top = Math.min(boxA.y, boxB.y);
+  const bottom = Math.max(boxA.y + boxA.height, boxB.y + boxB.height);
+  if (bottom - top > size.height) return;
+  await page.evaluate((by) => window.scrollBy(0, by), (top + bottom) / 2 - size.height / 2);
 }
 
 async function dragEvent(
@@ -149,6 +175,8 @@ async function dragEvent(
   await event.scrollIntoViewIfNeeded();
   await expect(event).toBeVisible();
   await expect(cell).toBeVisible();
+  // The job and its target day are both in the window before the drag starts, when the grid is short enough to allow it.
+  await centreBoth(page, event, cell);
   const from = await event.boundingBox();
   if (!from) throw new Error(`cannot drag ${code} onto ${day}: no box`);
   await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
