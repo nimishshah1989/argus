@@ -130,7 +130,8 @@ function CellChangeLogPage() {
 
 /** A screen that only draws its model: the model through the shared seam, the states in the shell until it is ready. */
 function ModelPage<
-  K extends 'dashboard' | 'machines-register' | 'age' | 'footprint' | 'fix-finder' | 'problem-analysis',
+  K extends
+    'dashboard' | 'machines-register' | 'age' | 'footprint' | 'fix-finder' | 'problem-analysis',
 >({
   entry,
   screen,
