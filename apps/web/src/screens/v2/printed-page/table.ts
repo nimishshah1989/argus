@@ -5,23 +5,29 @@ import type {
 } from '../../../ui/v2/domain/printed-table.js';
 export type { PrintedCell, PrintedChip, PrintedTable };
 import type { PageTable } from '../../analytics/page-content.js';
-import { dayValue, machineChip, numberValue, personChips, shortDate } from './printed.js';
+import { cellChip, dayValue, machineChip, numberValue, personChips, shortDate } from './printed.js';
 
 const NUMBER = /^-?[\d,]+(\.\d+)?%?$/;
 const DASH = '—';
 
 /** What a column holds, read from the engine's own header: its words are data, as v1's own screens read them. */
-function kindOf(label: string): 'machine' | 'people' | 'date' | 'text' {
+function kindOf(label: string): 'machine' | 'cell' | 'people' | 'date' | 'text' {
   const name = label.trim().toLowerCase();
-  if (name === 'machine') return 'machine';
-  if (name === 'done by') return 'people';
+  if (name === 'machine' || name === 'machine id') return 'machine';
+  if (name === 'cell') return 'cell';
+  if (name === 'done by' || name === 'name') return 'people';
   if (name === 'date') return 'date';
   return 'text';
 }
 
+/** A printed row label that names a cell, not a total or an empty cell. */
+const isCellName = (printed: string): boolean => printed !== '' && !/^plant total/i.test(printed);
+
 function cellOf(kind: ReturnType<typeof kindOf>, printed: string, numeric: boolean): PrintedCell {
   if (kind === 'machine')
     return { text: printed, sort: printed, chips: printed === '' ? [] : [machineChip(printed)] };
+  if (kind === 'cell')
+    return { text: printed, sort: printed, chips: isCellName(printed) ? [cellChip(printed)] : [] };
   if (kind === 'people') return { text: printed, sort: printed, chips: personChips(printed) };
   if (kind === 'date') return { text: shortDate(printed), sort: dayValue(printed), chips: [] };
   return { text: printed, sort: numeric ? numberValue(printed) : printed, chips: [] };
