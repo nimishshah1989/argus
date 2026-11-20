@@ -66,6 +66,6 @@ file you edit besides the gallery registry, where you add one `v2-<name>` view t
 - Screenshots (light, dark, phone) of each screen at deviceScaleFactor 1 into the scratchpad `shots/` folder, not the
   repo; the orchestrator looks at them before merge.
 - PR: draft, template headings, one `changes/` fragment per screen's PR (follow `changes/` naming already used), body with
-  what changed for a user, tests, how to try (`/gallery?view=v2-<name>`), `Large PR:` and `Tests removed: none` lines,
+  what changed for a user, tests, how to try (`/gallery?view=v2-<name>`), `Large PR:`, `Tests removed: none` and `No parity: <reason, 10+ characters>` lines (CI's pr-meta fails without the last),
   "Elements I found missing", and anything you could not verify. Reach the PR in about an hour; past two, cut scope and say what.
 - No new dependency, no secrets, no real data. Never weaken or delete a test.
