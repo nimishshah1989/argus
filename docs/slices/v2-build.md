@@ -15,6 +15,13 @@ Applies to every v2 screen from batch 2 on. Read with `docs/HANDOFF.md`, `docs/p
    `docs/DATA-MAP.md` or an engine figure) and whether the engine computes it already. Build the cheap ones that the engine
    already computes. Where the engine would need new work, write the row `needs server: <what>`; do not invent the number.
 
+## 1b. "needs server" is never a reason to leave out what v1 shows (Nimish, 20 Nov)
+
+If v1 shows something today, the data already exists: find where v1 gets it (endpoint, drill reply, figure) and use the same
+source. A v1 feature the v2 screen does not show is `MISSING`, which blocks going live; it is never `needs server`. Rows for NEW
+ideas v1 never had are written `later: <idea>` and do not block anything. A real server change is only for (a) a v1 feature whose
+data exists in no v1 source (say exactly what), (b) a v1 bug the screen would otherwise copy, or (c) a new screen v1 never had.
+
 ## 2. Data: the real reply, not invented rows
 
 - The screen's model is built from the engine reply v1 already uses, by a small pure adapter `screens/v2/<name>/adapter.ts`
