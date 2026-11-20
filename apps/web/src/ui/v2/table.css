@@ -144,9 +144,21 @@ td.v2-row-action .v2-icon-btn:focus-visible {
   font-size: var(--text-v2-label);
 }
 
+/* A table of nine columns or more is wider than its card: it scrolls inside the card, never the page. (A scrolling card holds the sticky header to itself, so narrower tables keep the page's.) */
+.v2-table-scroll:has(th:nth-child(9)) {
+  overflow-x: auto;
+}
+/* Inside a scrolling card "sticky" is the card's own top edge, so the header sits there and not 60px down over the rows. */
+.v2-table-scroll:has(th:nth-child(9)) th {
+  top: 0;
+}
+
 @media (max-width: 760px) {
   .v2-table-scroll {
     overflow-x: auto;
+  }
+  .v2-table-scroll th {
+    top: 0;
   }
   .v2-table {
     min-width: 640px;

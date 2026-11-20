@@ -1,0 +1,62 @@
+/**
+ * The v2 Machines section (batch 2): the register, OEM, age, footprint and the cell change log. Its own namespace, so
+ * a v2 batch never edits another screen's catalogue. `{name}` gaps are filled by the screen; `{{name}}` by i18next.
+ */
+export const analyticsV2MachinesEn = {
+  'v2m.title.register': 'Machines register',
+  'v2m.title.oem': 'OEM',
+  'v2m.title.age': 'Age',
+  'v2m.title.footprint': 'Footprint',
+  'v2m.title.log': 'Cell change log',
+  'v2m.why': 'Why?',
+  'v2m.all': 'All',
+  'v2m.cancel': 'Cancel',
+  'v2m.none': '—',
+  'v2m.search': 'Search {n} rows',
+  'v2m.showing': '{from}–{to} of {total}',
+  'v2m.noResults': 'No row matches this search and filter.',
+  'v2m.open': 'Open',
+  'v2m.source': 'Source: the analytics engine · figures as of {date}',
+  'v2m.reg.headline': '{title}: {count} machines on the register.',
+  'v2m.reg.cell': 'Cell {n}',
+  'v2m.reg.list': 'Machines on this register',
+  'v2m.reg.controllers': 'Controller brand and series',
+  'v2m.reg.makes': 'Make',
+  'v2m.reg.controller': 'Controller',
+  'v2m.reg.make': 'Make',
+  'v2m.reg.count': 'Machines',
+  'v2m.reg.share': 'Share of machines',
+  'v2m.reg.detail': 'Series or categories, with counts',
+  'v2m.age.headline':
+    'Machines aged {band} lose the most: {hours} of breakdown each, against {youngHours} for those aged {youngBand}.',
+  'v2m.age.bands': 'Age bands',
+  'v2m.age.band': 'Age band',
+  'v2m.age.hours': 'Breakdown hours',
+  'v2m.age.fleet': 'Machines and breakdowns',
+  'v2m.age.average': 'Average per machine',
+  'v2m.age.how': 'How it is worked out',
+  'v2m.fp.headline': 'The fleet needs a floor of {floor}, and its machines fill {share} of it.',
+  'v2m.fp.headlineFew':
+    'Only {mapped} machines have a length and a width, so the floor cannot be sized.',
+  'v2m.fp.growth': 'Machine area by purchase year, cumulative',
+  'v2m.fp.growthSub': 'Square metres of machine added each year; hover for the exact figure.',
+  'v2m.fp.growthAria': 'The fleet’s machine area grew year by year from {from} to {to}.',
+  'v2m.fp.year': 'Purchase year',
+  'v2m.fp.area': 'Cumulative area (m²)',
+  'v2m.oem.headline':
+    '{young} machines under 300 days old have had {breakdowns} breakdowns; {oem} of the downtime looks like the maker’s or commissioning.',
+  'v2m.oem.headlineFew': '{young} machines are under 300 days old.',
+  'v2m.oem.why':
+    'A young machine is under 300 days old and inside its warranty. A breakdown’s cause is a suggestion from the words of the log until a person confirms it.',
+  'v2m.log.headline':
+    '{moves} cell and location moves are on record. The latest was {machine} on {day}.',
+  'v2m.log.headlineNone': 'No cell or location move has been recorded yet.',
+  'v2m.log.kMoves': 'Moves on record',
+  'v2m.log.kMovesSub': 'every recorded cell and location move',
+  'v2m.log.kMachines': 'Machines that moved',
+  'v2m.log.kMachinesSub': 'machines with at least one move',
+  'v2m.log.exportTitle': 'Controlled document',
+  'v2m.log.action': 'Action',
+  'v2m.log.exported': 'The cell change log was downloaded.',
+  'v2m.log.correctSub': '{machine}: cell {change}',
+};
