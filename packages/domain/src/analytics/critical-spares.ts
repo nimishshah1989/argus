@@ -81,10 +81,8 @@ function labelOf(spellings: ReadonlyMap<string, Spelling>): string {
  * twice on one report is one use and one downtime contribution; a NO DT report is one use and zero hours.
  */
 export function partsOf(events: readonly FailureEvent[]): PartUse[] {
-  const ordered = [...events].sort(
-    (left, right) =>
-      left.report.date.localeCompare(right.report.date) ||
-      left.report.id.localeCompare(right.report.id),
+  const ordered = [...events].sort((left, right) =>
+    left.report.date.localeCompare(right.report.date),
   );
   const tallies = new Map<string, Tally>();
   ordered.forEach((event, sequence) => {

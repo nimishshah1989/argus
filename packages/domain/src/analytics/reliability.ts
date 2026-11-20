@@ -215,10 +215,8 @@ function categoryFit(bases: readonly Basis[]): CategoryFit | null {
 
 /** The machine's own report tickets, in date order: the fit's drill names every report behind its events. */
 function eventTickets(events: readonly FailureEvent[]): string[] {
-  const ordered = [...events].sort(
-    (left, right) =>
-      left.report.date.localeCompare(right.report.date) ||
-      left.report.id.localeCompare(right.report.id),
+  const ordered = [...events].sort((left, right) =>
+    left.report.date.localeCompare(right.report.date),
   );
   return [...new Set(ordered.map((event) => event.ticket.id))];
 }
