@@ -31,3 +31,12 @@ export function ratio(a: string, b: string): number {
   const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return (hi! + 0.05) / (lo! + 0.05);
 }
+
+/** A token's real colour: follows `var(--…)` aliases (a few hops at most) and fails loudly on anything not hex. */
+export function resolve(tokens: Tokens, name: string): string {
+  let value = tokens[name];
+  for (let hops = 0; value?.startsWith('var(--') && hops < 4; hops++)
+    value = tokens[value.slice(6, -1)];
+  if (!value || !/^#[0-9a-f]{6}$/i.test(value)) throw new Error(`${name} is not a hex colour`);
+  return value;
+}

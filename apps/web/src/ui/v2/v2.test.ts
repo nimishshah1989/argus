@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { Dashboard } from '../../screens/v2/dashboard/Dashboard.js';
 import { dashboardFixture as model } from '../../screens/v2/dashboard/fixture.js';
-import { ratio, readTokens } from '../contrast.js';
+import { ratio, readTokens, resolve } from '../contrast.js';
 import { BulletBar, place } from './bullet-bar.js';
 import { DecisionRow } from './domain/decision-row.js';
 import { nextTile } from './domain/plant.js';
@@ -201,7 +201,8 @@ describe('v2 fixture figures agree with each other', () => {
       0,
     );
     expect(plain(winBack.note)).toContain(`${hours.toFixed(1)} h a month`);
-    expect(num(winBack.value)).toBeCloseTo(lakh, 2);
+    expect(plain(winBack.note)).toContain(`₹ ${lakh.toFixed(2)} lakh a year`);
+    expect(num(winBack.value)).toBeCloseTo(lakh / 12, 2);
   });
 
   it('shares out the month’s breakdown hours across the Pareto bars, and the rest is smaller than the top', () => {
@@ -243,9 +244,14 @@ describe('v2 tokens', () => {
     min: number,
   ) =>
     list
-      .map(([fg, bg]) => [fg, bg, ratio(tokens[v2(fg)]!, tokens[v2(bg)]!)] as const)
+      .map(([fg, bg]) => [fg, bg, ratio(resolve(tokens, v2(fg)), resolve(tokens, v2(bg)))] as const)
       .filter(([, , r]) => r < min)
       .map(([fg, bg, r]) => `${fg} on ${bg}: ${r.toFixed(2)}`);
+
+  it('checks the real colour behind an alias, and refuses one that is not a colour', () => {
+    expect(resolve({ a: 'var(--b)', b: '#ffffff' }, 'a')).toBe('#ffffff');
+    expect(() => resolve({ a: 'var(--missing)' }, 'a')).toThrow(/not a hex colour/);
+  });
 
   for (const [name, tokens] of Object.entries(readTokens(css))) {
     it(`reads every v2 text at 4.5:1 or better on its background in ${name}`, () => {

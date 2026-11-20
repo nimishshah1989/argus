@@ -78,14 +78,14 @@ export const dashboardFixture: DashboardModel = {
       'Breakdown hours: !!312 h!! this month vs **286 h** in October',
       '**3 machines** (HMC-2, TC-10, VC-22) caused !!31%!! of the hours',
       'Biggest jump: **Cell 8**, !!+14 h!!',
-      'The 4 decisions below win back ++79.7 h a month++ (++₹ 15.59 lakh a year++)',
+      'The 4 decisions below win back ++79.7 h a month++ (++₹ 1.30 lakh a month++, ₹ 15.59 lakh a year)',
     ),
     figures: [
       { label: 'Lost this month', value: glue('₹ 10.4 lakh'), note: glue('312.4 breakdown hours') },
       {
         label: 'You can win back',
-        value: glue('₹ 15.59 lakh'),
-        note: glue('a year · 79.7 h a month'),
+        value: glue('₹ 1.30 lakh'),
+        note: glue('79.7 h a month · ₹ 15.59 lakh a year'),
         tone: 'gain',
       },
     ],
