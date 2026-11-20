@@ -1,6 +1,6 @@
 /**
  * The documented reference fields. `path` is matched against a value's path, array positions written `[]` and an id
- * used as an object key `{id}`.
+ * used as an object key `{id}`. `unordered` marks a list of ids whose order is a tie-break, not a meaning.
  */
 export interface Reference {
   /** The figure the entry is for; absent means any figure. */
@@ -9,6 +9,7 @@ export interface Reference {
   /** The sibling field that carries the printable code; it must be there and must not be a UUID. */
   codeBeside?: string;
   why: string;
+  unordered?: true;
 }
 
 export const REFERENCES: readonly Reference[] = [
@@ -78,6 +79,7 @@ export const REFERENCES: readonly Reference[] = [
   {
     path: /^byMachine\.{id}\.drill\.(breakdowns|pm|moves)\[\]$/,
     why: 'the rows the machine page opens through the drill endpoint',
+    unordered: true,
   },
   {
     path: /^machines\.{id}$/,
@@ -85,6 +87,7 @@ export const REFERENCES: readonly Reference[] = [
   },
   {
     path: /^machines\.{id}\.drill\.(fit|spares)\[\]$/,
-    why: 'the rows behind a reliability fit or a spare, in date order',
+    why: 'the rows behind a reliability fit or a spare: same-day ties order by id, and no order is meant',
+    unordered: true,
   },
 ];

@@ -83,6 +83,27 @@ function missingCodes(checks: CodeChecks, value: FigureValue, path: string): voi
   }
 }
 
+/**
+ * The value with every list the references call unordered sorted, so a tie-break by id is not a difference. `isId`
+ * says which object keys are ids: UUIDs in the re-keyed run, the fixture's own ids in the plain one.
+ */
+function settled(value: FigureValue, isId: (key: string) => boolean, path = ''): FigureValue {
+  if (Array.isArray(value)) {
+    const items = (value as readonly FigureValue[]).map((item) => settled(item, isId, `${path}[]`));
+    const unordered = REFERENCES.some(
+      (ref) => ref.unordered === true && ref.path.test(`${path}[]`),
+    );
+    return unordered ? [...items].sort() : items;
+  }
+  if (value === null || typeof value !== 'object') return value;
+  return Object.fromEntries(
+    Object.entries(value as { readonly [key: string]: FigureValue }).map(([key, item]) => [
+      key,
+      settled(item, isId, path === '' ? key : `${path}.${isId(key) ? '{id}' : key}`),
+    ]),
+  );
+}
+
 interface Plant {
   name: string;
   data: EngineData;
@@ -143,6 +164,7 @@ describe.each(PLANTS)('the engine prints no database id: $name', ({ data, asOf, 
 
   it('gives the same figures whatever the ids are: no text, order or position comes from an id', () => {
     const back = originalIds(data);
+    const fixtureIds = new Set(back.values());
     const read = <T>(value: T): T =>
       JSON.parse(
         JSON.stringify(value).replace(
@@ -151,12 +173,15 @@ describe.each(PLANTS)('the engine prints no database id: $name', ({ data, asOf, 
         ),
       ) as T;
     const plain = run(data, asOf, DEFAULT_PROFILE, span);
+    const isFixtureId = (key: string): boolean => fixtureIds.has(key);
     const differ = plain.figures
       .filter((figure, index) => {
         const other = read(result.figures[index]!);
         return (
-          !isDeepStrictEqual(other.value, figure.value) ||
-          !isDeepStrictEqual([...other.drill.ids].sort(), [...figure.drill.ids].sort())
+          !isDeepStrictEqual(
+            settled(other.value, isFixtureId),
+            settled(figure.value, isFixtureId),
+          ) || !isDeepStrictEqual([...other.drill.ids].sort(), [...figure.drill.ids].sort())
         );
       })
       .map((figure) => figure.key);
