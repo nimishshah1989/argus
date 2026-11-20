@@ -30,6 +30,11 @@ Q12 Evidence and memory: <verdict>
 Q13 No secrets or real data: <verdict>
 Q14 Honest review: <verdict>
 Q15 Merge keeps main green: <verdict>
+Q16 Scope kept: <verdict>
+
+<!-- A PR that changes a v2 screen (apps/web/src/screens/v2/<screen>/) also needs a `## Coverage` section with the
+table from docs/design/v2/COVERAGE.md (Item, Source, v2, Where in v2) and the same table committed at
+docs/design/v2/scope/<screen>.md. A MISSING or DROPPED row ends with `Nimish said yes: <date>`. -->
 
 ## Verification
 

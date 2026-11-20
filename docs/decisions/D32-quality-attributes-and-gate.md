@@ -9,7 +9,7 @@ The quality rails in D31 said _who_ reviews and _how_ work is sized. They did no
 a change must satisfy before it may merge — so each session re-derived the same list and missed different items.
 That is the repeated instruction `principle-encode-lessons-in-structure` tells us to encode.
 
-1. **`docs/QUALITY-ATTRIBUTES.md` is the per-change contract.** Fifteen numbered attributes (Q1–Q15), each with a
+1. **`docs/QUALITY-ATTRIBUTES.md` is the per-change contract.** Sixteen numbered attributes (Q1–Q16; Q16 "Scope kept" was added on 20 Nov with the coverage gate), each with a
    definition, the exact runner (`quality`, `CI: api suite`, `CI: gallery` or `review`) and the failure
    condition. The ids are stable and are cited by reviewers, PR bodies and gate reports.
 2. **One command runs the automatic set.** `pnpm quality` locally (fast, before a push) and `pnpm quality:pr` in

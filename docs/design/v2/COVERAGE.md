@@ -6,6 +6,13 @@ from the v1 screen, its e2e spec and its section of `docs/spec/SPEC.md`, before 
 | Item (figure, column, filter, chip, sort, drill, export, explanation, state, link, role-dependent view) | Source (v1 file or spec line) | v2  | Where in v2 |
 | ------------------------------------------------------------------------------------------------------- | ----------------------------- | --- | ----------- |
 
+- **What `pnpm quality:pr` reads (Q16).** It applies when the PR changes a non-test `.tsx` file under
+  `apps/web/src/screens/v2/<screen>/`. It reads the `## Coverage` section of the body and each
+  `docs/design/v2/scope/<screen>.md` in the diff, and in them every table whose header has a column named exactly
+  `v2` (any case). A table needs at least one data row. A row whose `v2` cell says MISSING or DROPPED fails unless
+  that cell, or the last cell of the row, ends with `Nimish said yes: <date>` (`2026-11-21` or `21 Nov 2026`). The
+  other columns (Item, Source, Where in v2) and any table without a `v2` column, such as **More intelligent**, are
+  not read. The check proves the table exists and is clean, not that it is true.
 - **v2 column:** `same` (same figure, same meaning), `moved` (now in the drawer, a tooltip, another card: say where),
   `better` (same item, more detail or smarter), `MISSING`, `DROPPED`. A renamed or recomputed figure is `changed` and
   needs a line saying why it still means the same thing.
@@ -19,7 +26,7 @@ from the v1 screen, its e2e spec and its section of `docs/spec/SPEC.md`, before 
 ## What goes in a builder's brief and in the PR body (a checklist)
 
 - Coverage table filled; MISSING rows listed at the top of the PR under "What must be decided".
-- PR body has every line CI checks: Q1 to Q15 each `pass`, `n/a — reason` or `fail — finding` (never `pending`),
+- PR body has every line CI checks: Q1 to Q16 each `pass`, `n/a — reason` or `fail — finding` (never `pending`),
   `Large PR:`, `Tests removed:`, `No parity: <10+ characters>` (gallery-only PRs), what changed for a user, how to try it.
 - Light checks (CLAUDE.md, Git): `pnpm format:check`, `lint`, `typecheck`, `ui:check`, `pii:scan`, `changelog:check`, the
   tests you touched; Prettier on every file edited by script.
