@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { correctMove, getConfig, getMe } from '../../api.js';
 import { ApiError } from '../../data/index.js';
 import { FormSheet } from '../../patterns/form-sheet.js';
 import { Button } from '../../ui/button.js';
 import { Download } from '../../ui/icon.js';
-import { Stack } from '../../ui/layout.js';
+import { DataTable, EmptyState, tableView, type Column } from '../../ui/elements/index.js';
 import {
   cellLogCsv,
   cellMoves,
@@ -17,8 +18,11 @@ import {
   type CellLogLabels,
   type CellMove,
 } from './machine-values.js';
+import { Template } from './shell/patterns/template.js';
 
 type Figure = FiguresReply['figures'][number];
+
+const REGISTER = 'register' as const;
 
 function labelsOf(t: (key: string) => string): CellLogLabels {
   return {
@@ -109,14 +113,6 @@ function Change({
   );
 }
 
-function HeadCell({ children }: { children: string }) {
-  return (
-    <th scope="col" className="p-2 font-medium text-neutral-600">
-      {children}
-    </th>
-  );
-}
-
 /**
  * The correction sheet: one date, prefilled from the move's ISO day. A 422 that names the field puts the
  * server's words on the form; any other refusal shows the catalogue's line. The sheet stays open on refusal.
@@ -179,7 +175,7 @@ function CorrectCell({ move, onSaved }: { move: CellMove; onSaved: () => void })
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   return (
-    <td className="p-2">
+    <>
       <Button
         // eslint-disable-next-line i18next/no-literal-string -- prop value, not copy
         variant="secondary"
@@ -188,8 +184,63 @@ function CorrectCell({ move, onSaved }: { move: CellMove; onSaved: () => void })
         {t('analytics.cellLog.correct')}
       </Button>
       {open ? <CorrectSheet move={move} onClose={() => setOpen(false)} onSaved={onSaved} /> : null}
-    </td>
+    </>
   );
+}
+
+/** At most this many moves paint at once; the pager appears only when there are more. */
+const PAGE_SIZE = 50;
+const LINK = 'inline-flex min-h-target-min items-center font-semibold text-accent-text';
+
+/** The columns: date, machine (a link to its page), the cell and location change, and the head's correction. */
+function columnsOf(
+  t: TFunction,
+  codeOf: (id: string) => string | null,
+  onSaved: (() => void) | null,
+): Column<CellMove>[] {
+  const absent = t('analytics.value.none');
+  return [
+    {
+      id: 'date',
+      header: t('analytics.cellLog.date'),
+      cell: (move) => <span className="tabular-nums">{displayDay(move.date)}</span>,
+    },
+    {
+      id: 'machine',
+      header: t('analytics.cellLog.machine'),
+      cell: (move) => (
+        <Link to={`/analytics/machines/${move.machineId}`} className={LINK}>
+          {codeOf(move.machineId) ?? absent}
+        </Link>
+      ),
+    },
+    {
+      id: 'cell',
+      header: t('analytics.cellLog.cell'),
+      cell: (move) => <Change from={move.fromCell} to={move.toCell} absent={absent} />,
+    },
+    {
+      id: 'location',
+      header: t('analytics.cellLog.location'),
+      cell: (move) => (
+        <Change
+          from={move.fromLocation}
+          to={move.toLocation}
+          absent={absent}
+          noChange={t('analytics.cellLog.noChange')}
+        />
+      ),
+    },
+    ...(onSaved
+      ? [
+          {
+            id: 'correct',
+            header: t('analytics.cellLog.correct'),
+            cell: (move: CellMove) => <CorrectCell move={move} onSaved={onSaved} />,
+          },
+        ]
+      : []),
+  ];
 }
 
 /** The moves table: date, machine (a link to its page), cell and location change, and the head's correction. */
@@ -205,58 +256,52 @@ function CellLogTable({
   onSaved: () => void;
 }) {
   const { t } = useTranslation();
-  const absent = t('analytics.value.none');
+  const [page, setPage] = useState(0);
+  const columns = columnsOf(t, codeOf, canCorrect ? onSaved : null);
+  const view = tableView([...moves], columns, { filter: '', page, pageSize: PAGE_SIZE }, () => '');
   return (
-    <div className="overflow-x-auto rounded-2xl bg-surface shadow-card">
-      <table className="w-full text-left text-footnote">
-        <caption className="sr-only">{t('analytics.cellLog.title')}</caption>
-        <thead>
-          <tr>
-            <HeadCell>{t('analytics.cellLog.date')}</HeadCell>
-            <HeadCell>{t('analytics.cellLog.machine')}</HeadCell>
-            <HeadCell>{t('analytics.cellLog.cell')}</HeadCell>
-            <HeadCell>{t('analytics.cellLog.location')}</HeadCell>
-            {canCorrect ? <HeadCell>{t('analytics.cellLog.correct')}</HeadCell> : null}
-          </tr>
-        </thead>
-        <tbody>
-          {moves.map((move) => (
-            <tr key={move.id} className="border-t border-neutral-200">
-              <td className="p-2 tabular-nums">{displayDay(move.date)}</td>
-              <td className="p-2">
-                <Link
-                  to={`/analytics/machines/${move.machineId}`}
-                  className="inline-flex min-h-target-min items-center font-semibold text-accent-text"
-                >
-                  {codeOf(move.machineId) ?? absent}
-                </Link>
-              </td>
-              <td className="p-2">
-                <Change from={move.fromCell} to={move.toCell} absent={absent} />
-              </td>
-              <td className="p-2">
-                <Change
-                  from={move.fromLocation}
-                  to={move.toLocation}
-                  absent={absent}
-                  noChange={t('analytics.cellLog.noChange')}
-                />
-              </td>
-              {canCorrect ? <CorrectCell move={move} onSaved={onSaved} /> : null}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      columns={columns}
+      rows={view.rows}
+      rowKey={(move) => move.id}
+      total={view.total}
+      page={view.page}
+      pageSize={PAGE_SIZE}
+      labels={{
+        caption: t('analytics.cellLog.title'),
+        filter: t('analytics.cellLog.title'),
+        previous: t('analytics.keytable.previous'),
+        next: t('analytics.keytable.next'),
+        page: (current, pages) => t('analytics.keytable.page', { page: current, pages }),
+        range: (from, to, total) =>
+          t('analytics.keytable.range', {
+            from: from.toLocaleString('en-IN'),
+            to: to.toLocaleString('en-IN'),
+            total: total.toLocaleString('en-IN'),
+          }),
+        empty: t('analytics.keytable.empty'),
+      }}
+      onSort={() => undefined}
+      onPage={setPage}
+      hidePagerWhenFits
+    />
   );
 }
 
 /**
- * The cell change log (39b): every move the engine recorded, latest first, with its machine, cell and location
- * change. The export carries the platform's controlled document number. A not-computed engine shows the honest
- * "Not computed yet" and offers no export.
+ * The cell change log (39b) on the register template: every move the engine recorded, latest first, with its machine,
+ * cell and location change. The export carries the platform's controlled document number. A not-computed engine shows
+ * the honest "Not computed yet" and offers no export.
  */
-export function CellChangeLog({ figure }: { figure: Figure | undefined }) {
+export function CellChangeLog({
+  figure,
+  menu,
+  asOf,
+}: {
+  figure: Figure | undefined;
+  menu: ReactNode;
+  asOf: string;
+}) {
   const { t } = useTranslation();
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
   const role = useQuery({ queryKey: ['me'], queryFn: getMe }).data?.user.role;
@@ -269,30 +314,38 @@ export function CellChangeLog({ figure }: { figure: Figure | undefined }) {
   // The server's settings gate allows exactly these two roles; the plant head is not one of them.
   const canCorrect = role === 'head' || role === 'admin';
   return (
-    <Stack gap={4}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <p className="max-w-3xl text-body text-neutral-600">{t('analytics.cellLog.intro')}</p>
-        <ExportButton moves={moves} codeOf={codeOf} disabled={!exportable} />
-      </div>
-      {saved ? (
-        <p role="status" className="text-footnote font-medium text-ok-ink">
-          {t('analytics.cellLog.saved')}
-        </p>
-      ) : null}
-      {!ready ? (
-        <div data-cell-log="not-computed" className="rounded-2xl bg-surface p-4 shadow-card">
-          <p className="text-body font-medium text-neutral-600">{t('analytics.notComputed')}</p>
-        </div>
-      ) : moves.length === 0 ? (
-        <p className="text-body text-neutral-600">{t('analytics.cellLog.empty')}</p>
-      ) : (
-        <CellLogTable
-          moves={moves}
-          codeOf={codeOf}
-          canCorrect={canCorrect}
-          onSaved={() => setSaved(true)}
-        />
-      )}
-    </Stack>
+    <Template
+      kind={REGISTER}
+      trail={menu}
+      title={t('analytics.screen.cell-change-log')}
+      lede={t('analytics.cellLog.lede', {
+        asOf: t('analytics.asOf', { date: asOf }),
+        intro: t('analytics.cellLog.intro'),
+      })}
+      actions={<ExportButton moves={moves} codeOf={codeOf} disabled={!exportable} />}
+      main={
+        <>
+          {saved ? (
+            <p role="status" className="text-footnote font-medium text-ok-ink">
+              {t('analytics.cellLog.saved')}
+            </p>
+          ) : null}
+          {!ready ? (
+            <div data-cell-log="not-computed">
+              <EmptyState title={t('analytics.notComputed')} />
+            </div>
+          ) : moves.length === 0 ? (
+            <EmptyState title={t('analytics.cellLog.empty')} />
+          ) : (
+            <CellLogTable
+              moves={moves}
+              codeOf={codeOf}
+              canCorrect={canCorrect}
+              onSaved={() => setSaved(true)}
+            />
+          )}
+        </>
+      }
+    />
   );
 }

@@ -135,14 +135,41 @@ function usePagedRows(rows: Row[], columns: Column<Row>[]) {
   return { ...view, sort, pageSize: PAGE_SIZE, onSort, onPage: setPage };
 }
 
-/** One engine table: its title over the data table; a table the engine left untitled is named by its header. */
-export function KeyTable({ table }: { table: PageTable }) {
+/**
+ * One engine table: its title over the data table; a table the engine left untitled is named by its header. `fits`
+ * leaves the pager out when every row is on the one page; `heading={false}` leaves the visible title to the screen,
+ * which prints its own, and keeps the title as the table's name.
+ */
+export function KeyTable({
+  table,
+  fits = false,
+  heading = true,
+  dim,
+}: {
+  table: PageTable;
+  /** Columns printed in the quiet ink (a read-only cell). */
+  dim?: (column: number) => boolean;
+  fits?: boolean;
+  heading?: boolean;
+}) {
   const headingId = useId();
   const rows = useMemo(() => table.rows.map((cells, at) => ({ at, cells })), [table]);
-  const columns = useMemo(() => columnsOf(table, rows), [table, rows]);
+  const columns = useMemo(
+    () =>
+      columnsOf(table, rows).map((column, at) =>
+        dim?.(at) === true
+          ? {
+              ...column,
+              cell: (row: Row) => <span className="text-neutral-600">{column.cell(row)}</span>,
+            }
+          : column,
+      ),
+    [table, rows, dim],
+  );
   const caption = table.title === '' ? table.header.join(' · ') : table.title;
   const labels = useTableLabels(caption);
   const view = usePagedRows(rows, columns);
+  const titled = heading && table.title !== '';
   if (table.heat === true)
     return (
       <HeatTable
@@ -152,11 +179,8 @@ export function KeyTable({ table }: { table: PageTable }) {
       />
     );
   return (
-    <section
-      aria-labelledby={table.title === '' ? undefined : headingId}
-      className="flex flex-col gap-2"
-    >
-      {table.title === '' ? null : (
+    <section aria-labelledby={titled ? headingId : undefined} className="flex flex-col gap-2">
+      {!titled ? null : (
         <h3 id={headingId} className="text-body font-semibold">
           {table.title}
         </h3>
@@ -172,6 +196,7 @@ export function KeyTable({ table }: { table: PageTable }) {
         labels={labels}
         onSort={view.onSort}
         onPage={view.onPage}
+        hidePagerWhenFits={fits}
       />
     </section>
   );
@@ -193,9 +218,15 @@ export function KeyChart({ spec }: { spec: ChartSpec }) {
 export function KeyBody({
   tables,
   charts,
+  renderTable,
+  fits,
 }: {
   tables: readonly PageTable[];
   charts: readonly ChartSpec[];
+  /** A screen's own card for one table (A4's Specialization); every other table keeps the shared one. */
+  renderTable?: (table: PageTable) => ReactNode;
+  /** Leave a table's pager out when its rows fit on one page. */
+  fits?: boolean;
 }): ReactNode {
   return (
     <>
@@ -206,7 +237,7 @@ export function KeyBody({
       ))}
       {tables.map((table, at) => (
         <div key={`${table.title}-${at}`} data-span="full">
-          <KeyTable table={table} />
+          {renderTable?.(table) ?? <KeyTable table={table} fits={fits} />}
         </div>
       ))}
     </>

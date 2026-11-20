@@ -6,12 +6,13 @@ import { StateNotice } from '../../patterns/frame.js';
 import { viewState, type ViewState } from '../../patterns/view-state.js';
 import { Stack } from '../../ui/layout.js';
 import { CellChangeLog } from './CellChangeLog.js';
-import { ComparePage } from './ComparePage.js';
+import { DrillTable } from './DrillTable.js';
 import { EnergyPage } from './EnergyPage.js';
 import { GroupPage } from './GroupPage.js';
+import { KeyScreen } from './key-screen.js';
 import { Registers } from './Registers.js';
 import { ScreenMenu } from './screen-menu.js';
-import { SCREEN_LABELS, type AnalyticsGroup } from './groups.js';
+import { SCREEN_LABELS, parseDrill, type AnalyticsGroup } from './groups.js';
 
 const REGISTERS = 'registers';
 const CELL_LOG = 'cell-change-log';
@@ -73,18 +74,29 @@ export function MachinesPage({ group }: { group: AnalyticsGroup }) {
     return (
       <Registers group={group} figure={figureOf(REGISTERS)} menu={menu} asOf={figures.data.asOf} />
     );
+  const asOf = figures.data.asOf;
+  if (screen === CELL_LOG)
+    return <CellChangeLog figure={figureOf(CELL_LOG)} menu={menu} asOf={asOf} />;
+  if (screen === COMPARE) {
+    const drill = parseDrill(params.get('drill'));
+    const found = figureOf(COMPARE);
+    return (
+      <KeyScreen
+        screen={COMPARE}
+        figures={found ? [found] : []}
+        group={group}
+        menu={menu}
+        asOf={asOf}
+        drill={drill ? <DrillTable group={group} drill={drill} headingLevel={3} /> : null}
+      />
+    );
+  }
   return (
     <Stack gap={6}>
       {menu}
-      <p className="text-footnote text-neutral-600">
-        {t('analytics.asOf', { date: figures.data.asOf })}
-      </p>
-      {screen === CELL_LOG ? (
-        <CellChangeLog figure={figureOf(CELL_LOG)} />
-      ) : screen === ENERGY ? (
+      <p className="text-footnote text-neutral-600">{t('analytics.asOf', { date: asOf })}</p>
+      {screen === ENERGY ? (
         <EnergyPage figure={figureOf(ENERGY)} group={group} />
-      ) : screen === COMPARE ? (
-        <ComparePage figure={figureOf(COMPARE)} group={group} />
       ) : (
         <GroupPage group={group} only={screen} />
       )}

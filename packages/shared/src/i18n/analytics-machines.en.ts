@@ -20,6 +20,7 @@ export const analyticsMachinesEn = {
   'analytics.cellLog.title': 'Cell / Location Change Log',
   'analytics.cellLog.intro':
     'Every recorded move, latest first. A breakdown before a move stays with the old cell; from the move date on it belongs to the new cell.',
+  'analytics.cellLog.lede': '{{asOf}} · {{intro}}',
   'analytics.cellLog.export': 'Export to CSV',
   'analytics.cellLog.exportError': 'Could not export the cell change log.',
   'analytics.cellLog.empty': 'No cell or location moves logged yet.',

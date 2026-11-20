@@ -1,12 +1,7 @@
+import { useId, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { FiguresReply } from '@uptimo/shared/analytics';
-import { KeyPage } from './KeyPage.js';
-import { DataTable } from './parts.js';
-import type { AnalyticsGroup } from './groups.js';
+import { KeyTable } from './key-body.js';
 import type { PageTable } from './page-content.js';
-import { SortTable } from './sort-table.js';
-
-type Figure = FiguresReply['figures'][number];
 
 /** The unplaced card: its last engine column is the key's bare `Accept` cell, so the screen names it. */
 function isUnplaced(table: PageTable): boolean {
@@ -28,9 +23,7 @@ function UnplacedCard({ table }: { table: PageTable }) {
   const header = table.header.map((cell, index) =>
     index === table.header.length - 1 && cell.trim() === '' ? t('analytics.problems.accept') : cell,
   );
-  return (
-    <SortTable title={table.title === '' ? null : table.title} header={header} rows={table.rows} />
-  );
+  return <KeyTable table={{ ...table, header }} fits />;
 }
 
 /**
@@ -40,49 +33,34 @@ function UnplacedCard({ table }: { table: PageTable }) {
  */
 function GroupEditor({ table }: { table: PageTable }) {
   const { t } = useTranslation();
+  const headingId = useId();
+  const title = t('analytics.problems.editorTitle');
   return (
-    <section className="flex flex-col gap-2">
-      <h3 className="text-body font-semibold">{t('analytics.problems.editorTitle')}</h3>
+    <section aria-labelledby={headingId} className="flex flex-col gap-2">
+      <h3 id={headingId} className="text-body font-semibold">
+        {title}
+      </h3>
       <p className="text-footnote text-neutral-600">{t('analytics.problems.editorReadOnly')}</p>
-      <DataTable
-        header={table.header}
-        rows={table.rows}
-        renderCell={(cell, _rowIndex, columnIndex) =>
-          columnIndex === 0 || columnIndex === table.header.length - 1 ? (
-            <span className="text-neutral-500">{cell}</span>
-          ) : (
-            cell
-          )
-        }
+      <KeyTable
+        table={{ ...table, title, sortable: false }}
+        fits
+        heading={false}
+        dim={(column) => column === 0 || column === table.header.length - 1}
       />
     </section>
   );
 }
 
 /**
- * A10 Problem Analysis (41e-2): the key page through the existing KeyPage seam — the four page KPIs, the four
- * what-if KPIs, the two charts (the Pareto bar and the group bubble), the five data tables and the read-only
- * group editor. The five data tables sort in the face's one sortable table; the unplaced card and the editor
- * are the screen's own cards because the platform's cells need a header and a read-only frame.
+ * A10 Problem Analysis (41e-2) on the key screen: the four page KPIs, the four what-if KPIs, the two charts (the
+ * Pareto bar and the group bubble), the five data tables and the read-only group editor. The five data tables sort in
+ * the key table; the unplaced card and the editor are the screen's own cards because the platform's cells need a
+ * header and a read-only frame.
  */
-export function ProblemsPage({
-  figure,
-  group,
-}: {
-  figure: Figure | undefined;
-  group: AnalyticsGroup;
-}) {
-  return (
-    <KeyPage
-      figure={figure}
-      group={group}
-      renderTable={(table) =>
-        isUnplaced(table) ? (
-          <UnplacedCard table={table} />
-        ) : isEditor(table) ? (
-          <GroupEditor table={table} />
-        ) : undefined
-      }
-    />
-  );
+export function problemTable(table: PageTable): ReactNode {
+  return isUnplaced(table) ? (
+    <UnplacedCard table={table} />
+  ) : isEditor(table) ? (
+    <GroupEditor table={table} />
+  ) : undefined;
 }

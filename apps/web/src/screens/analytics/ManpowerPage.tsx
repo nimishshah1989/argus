@@ -1,13 +1,9 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { FiguresReply } from '@uptimo/shared/analytics';
+import { Card } from '../../ui/card.js';
 import { SegmentedBar } from '../../ui/segmented-bar.js';
-import { KeyPage } from './KeyPage.js';
-import type { AnalyticsGroup } from './groups.js';
+import { KeyTable } from './key-body.js';
 import type { PageTable } from './page-content.js';
-import { DataTable } from './parts.js';
-
-type Figure = FiguresReply['figures'][number];
 
 /** The two forms of the Specialization card; the ids are not copy, so the catalogue test does not see them. */
 const CATEGORY = 'category';
@@ -36,36 +32,21 @@ function SpecializationCard({ table }: { table: PageTable }) {
         onSelect={(id) => setView(id === CODE ? CODE : CATEGORY)}
       />
       {view === CATEGORY ? (
-        <DataTable header={table.header} rows={table.rows} />
+        <KeyTable table={table} fits heading={false} />
       ) : (
-        <div className="rounded-2xl bg-surface p-4 shadow-card">
+        <Card>
           <p className="text-body font-medium text-neutral-600">{t('analytics.notComputed')}</p>
-        </div>
+        </Card>
       )}
     </section>
   );
 }
 
 /**
- * A4 manpower (41e-1): the key page rendered through the existing KeyPage seam, so the three KPIs, the five
- * tables, the chart and the drill all come from the engine. Only the Specialization card is the screen's own,
- * because it owns the platform's category/code toggle; the mapper marks the Manpower table and the two month
- * matrices sortable, and PageFigure draws them in the face's one sortable table.
+ * A4 manpower (41e-1) on the key screen: the three KPIs, the five tables, the chart and the drill all come from the
+ * engine. Only the Specialization card is the screen's own, because it owns the platform's category/code toggle; the
+ * mapper marks the Manpower table and the two month matrices sortable, and the key table draws them.
  */
-export function ManpowerPage({
-  figure,
-  group,
-}: {
-  figure: Figure | undefined;
-  group: AnalyticsGroup;
-}) {
-  return (
-    <KeyPage
-      figure={figure}
-      group={group}
-      renderTable={(table) =>
-        table.title === 'Specialization' ? <SpecializationCard table={table} /> : undefined
-      }
-    />
-  );
+export function manpowerTable(table: PageTable): ReactNode {
+  return table.title === 'Specialization' ? <SpecializationCard table={table} /> : undefined;
 }
