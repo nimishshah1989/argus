@@ -1,5 +1,7 @@
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import { coverageProblems } from './check-coverage.js';
 
 /**
  * The per-change quality gate (D32, docs/QUALITY-ATTRIBUTES.md). `pnpm quality` runs the auto
@@ -7,7 +9,7 @@ import { pathToFileURL } from 'node:url';
  * The pure scanners live here so they are testable without git or CI.
  */
 
-export const IDS: readonly string[] = Array.from({ length: 15 }, (_, i) => `Q${i + 1}`);
+export const IDS: readonly string[] = Array.from({ length: 16 }, (_, i) => `Q${i + 1}`);
 export const REVIEW = 'Q1 Q11 Q14';
 
 const REMOVED_ASSERTION = /\bexpect\s*\(/;
@@ -79,7 +81,7 @@ export function weakenedTests(diffText: string): string[] {
   return findings;
 }
 
-/** The ids Q1..Q15 a PR body never declared as a `Q<id> ...` line carrying a verdict. */
+/** The ids Q1..Q16 a PR body never declared as a `Q<id> ...` line carrying a verdict. */
 export function missingAttributes(body: string): string[] {
   const declared = new Set<string>();
   for (const line of stripComments(body).split('\n')) {
@@ -221,6 +223,19 @@ function runLocal(): void {
   if (failed.length > 0) process.exitCode = 1;
 }
 
+function changedPaths(): string[] {
+  const text = gitText(['diff', '--name-only', 'origin/main...HEAD']) ?? '';
+  return text.split('\n').filter((path) => path.length > 0);
+}
+
+function readText(path: string): string | null {
+  try {
+    return readFileSync(path, 'utf8');
+  } catch {
+    return null;
+  }
+}
+
 function runPr(): void {
   const body = process.env.PR_BODY ?? '';
   const missingIds = missingAttributes(body);
@@ -232,6 +247,8 @@ function runPr(): void {
     const findings = weakenedTests(gitDiff() ?? '');
     if (findings.length > 0 && testsRemovedReason(body) === null)
       problems.push(`weakened tests:\n  ${findings.join('\n  ')}`);
+    const scope = coverageProblems({ body, changed: changedPaths(), read: readText });
+    if (scope.length > 0) problems.push(`scope kept (Q16):\n  ${scope.join('\n  ')}`);
   } else {
     console.log('quality:pr: no origin/main to compare with, skipping the test-integrity scan');
   }
@@ -241,7 +258,7 @@ function runPr(): void {
     process.exitCode = 1;
     return;
   }
-  console.log('quality:pr OK — 15 attributes declared, no weakened tests');
+  console.log('quality:pr OK — 16 attributes declared, no weakened tests, scope kept');
 }
 
 function gitText(args: string[]): string | null {
