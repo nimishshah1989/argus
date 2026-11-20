@@ -5,7 +5,8 @@
 export interface Printed {
   path: string;
   tiles: [string, string, string?][];
-  rows: [string, number, string[]][];
+  /** The optional fourth entry is a column header the table must have; with a blank name it finds the table by that header alone (the old editor table had no name). */
+  rows: [string, number, string[], string?][];
 }
 
 const B = '/analytics/breakdowns?screen=';
@@ -51,6 +52,7 @@ export const PRINTED: Printed[] = [
     path: `${B}a10-problems`,
     tiles: [['Groups', '3']],
     rows: [
+      ['', 0, ['1', 'Coolant', 'coolant, leak', ''], 'Order'],
       [
         'Entries the system could not place',
         0,
@@ -79,6 +81,8 @@ export const PRINTED: Printed[] = [
     tiles: [],
     rows: [
       ['Scorecard', 0, ['Health', '82', '74']],
+      ['Checkup', 0, ['Coolant', 'Ok']],
+      ['Specifications', 0, ['Year', '2019']],
       ['Longest breakdowns', 0, ['01-02-2026', '6.5']],
     ],
   },

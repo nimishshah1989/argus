@@ -49,13 +49,25 @@ function Body({
   );
 }
 
+/**
+ * A figure's heading: the engine's own title, unless it only repeats the screen's name (the first shift figure is
+ * titled "Shift-calendar KPIs"), when the figure's catalogue label says what it is. The engine writes English, so the
+ * title is compared with the screen's English name, whatever language the page is in.
+ */
+export function figureHeading(title: string, english: string, label: string): string {
+  return title === '' || title === english ? label : title;
+}
+
 /** One figure of a screen that has several: its heading and its tiles, then its body. */
 function Part({
   name,
+  english,
   page,
   ...rest
 }: {
   name: string;
+  /** The screen's name in English, which is the language the engine's own titles are in. */
+  english: string;
   figure: Figure;
   page: Page;
   group: AnalyticsGroup;
@@ -64,8 +76,7 @@ function Part({
   const { t } = useTranslation();
   // The engine titles the first shift figure with the screen's own name: the heading then says what the figure is.
   const label = `analytics.figure.${rest.figure.key}` as MessageKey;
-  const title =
-    page.title === '' || page.title === name ? t(label, { defaultValue: name }) : page.title;
+  const title = figureHeading(page.title, english, t(label, { defaultValue: name }));
   return (
     <>
       <div data-span="full">
@@ -109,7 +120,8 @@ export function KeyScreen({
   renderTable?: TableCard;
 }) {
   const { t } = useTranslation();
-  const name = t(SCREEN_LABELS[screen] ?? 'analytics.screen.unknown');
+  const labelKey = SCREEN_LABELS[screen] ?? 'analytics.screen.unknown';
+  const [name, english] = [t(labelKey), t(labelKey, { lng: 'en' })];
   const pages = figures.map((figure) => {
     const content = figure.status === 'ready' ? contentOf(figure, t) : null;
     return { figure, page: content?.kind === 'page' ? content : null };
@@ -139,6 +151,7 @@ export function KeyScreen({
                 figure={figure}
                 page={page}
                 name={name}
+                english={english}
                 group={group}
                 renderTable={renderTable}
               />

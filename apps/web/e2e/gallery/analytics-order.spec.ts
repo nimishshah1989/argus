@@ -57,11 +57,13 @@ for (const scheme of ['light', 'dark'] as const) {
             tileOf(page, [label, value, ...(sub ? [sub] : [])]),
             `${path}: ${label}`,
           ).toBeVisible();
-        for (const [name, at, cells] of rows) {
-          const row = page
-            .getByRole('table', { name, exact: true })
-            .getByRole('row')
-            .nth(at + 1);
+        for (const [name, at, cells, header] of rows) {
+          const named =
+            name === '' ? page.getByRole('table') : page.getByRole('table', { name, exact: true });
+          const table = header
+            ? named.filter({ has: page.getByRole('columnheader', { name: header, exact: true }) })
+            : named;
+          const row = table.getByRole('row').nth(at + 1);
           await expect(row.getByRole('cell'), `${path}: ${name} ${at}`).toHaveText(cells);
         }
       }
