@@ -1,33 +1,35 @@
 import { useId, type ReactNode } from 'react';
 
 /**
- * A titled section on the white surface. `aside` sits right of the title (a count, a filter). `inset` puts the
- * title inside the surface, for a list whose rows run edge to edge.
+ * A titled card: white, a hairline edge, a soft resting shadow, its title row inside. `aside` sits right of the title
+ * (a count, a filter); `sub` is one quiet line under it. `flush` lets the rows run to the card's edges.
  */
 export function Panel({
   title,
+  sub,
   aside,
-  inset = false,
+  flush = false,
   children,
 }: {
   title: string;
+  sub?: string;
   aside?: ReactNode;
-  inset?: boolean;
+  flush?: boolean;
   children: ReactNode;
 }) {
   const id = useId();
-  const head = (
-    <div className="v2-section-head">
-      <h2 id={id} className="v2-h2">
-        {title}
-      </h2>
-      {aside}
-    </div>
-  );
   return (
-    <section aria-labelledby={id} className={inset ? 'v2-surface v2-inset' : 'v2-section'}>
-      {head}
-      {inset ? children : <div className="v2-surface v2-pad">{children}</div>}
+    <section aria-labelledby={id} className={flush ? 'v2-card v2-flush' : 'v2-card v2-pad'}>
+      <div className="v2-card-head">
+        <div>
+          <h2 id={id} className="v2-h2">
+            {title}
+          </h2>
+          {sub ? <p className="v2-sub">{sub}</p> : null}
+        </div>
+        {aside}
+      </div>
+      {children}
     </section>
   );
 }

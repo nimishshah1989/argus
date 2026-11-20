@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Argus — Footprint</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&amp;family=JetBrains+Mono:wght@600&amp;display=swap">
+<style>
+body{margin:0;background:#F6F6F4}
+.num{font-variant-numeric:tabular-nums}
+.code{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;font-weight:600}
+.cellbox{border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px;box-sizing:border-box}
+.m{all:unset;box-sizing:border-box;border-radius:6px;padding:4px 6px;color:#fff;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;cursor:pointer;overflow:hidden;white-space:nowrap;transition:transform .15s}
+.m:hover{transform:scale(1.04)}
+.m:focus-visible,button:focus-visible{outline:2px solid #2563EB;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.m{transition:none}}
+</style>
+</helmet>
+<div style="font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.5;color:#111827;max-width:1360px;margin:0 auto;padding:32px 40px 56px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px;">
+  <header style="display:flex;flex-direction:column;gap:10px;max-width:860px;">
+    <span style="font-size:13px;color:#4B5563;">Footprint · where the lost hours sit</span>
+    <h1 style="margin:0;font-size:28px;line-height:1.25;font-weight:700;letter-spacing:-.02em;"><span style="color:#B91C1C;">20 machines</span> (16%) cause <span style="color:#B91C1C;">61%</span> of all breakdown hours.</h1>
+  </header>
+
+  <div style="display:grid;grid-template-columns:minmax(320px,1fr) minmax(0,2fr);gap:24px;align-items:start;">
+    <section aria-labelledby="h-curve" style="background:#fff;border:1px solid #E5E5E0;border-radius:18px;padding:20px 24px;display:flex;flex-direction:column;gap:10px;">
+      <h2 id="h-curve" style="margin:0;font-size:15px;font-weight:700;">Share of machines against share of hours</h2>
+      <svg viewBox="0 0 360 300" width="100%" role="img" aria-label="Concentration curve: the worst 16 percent of machines cause 61 percent of breakdown hours">
+        <line x1="40" y1="260" x2="340" y2="20" stroke="#DCDDD8" stroke-dasharray="4 4"></line>
+        <path d="{{curve}}" fill="none" stroke="#B91C1C" stroke-width="2.5"></path>
+        <line x1="{{mark.x}}" x2="{{mark.x}}" y1="260" y2="{{mark.y}}" stroke="#111827" stroke-width="1"></line>
+        <line x1="40" x2="{{mark.x}}" y1="{{mark.y}}" y2="{{mark.y}}" stroke="#111827" stroke-width="1"></line>
+        <circle cx="{{mark.x}}" cy="{{mark.y}}" r="5" fill="#B91C1C"></circle>
+        <text x="{{mark.tx}}" y="{{mark.ty}}" font-size="13" font-weight="700" fill="#B91C1C">16% → 61%</text>
+        <text x="40" y="285" font-size="13" fill="#4B5563">0%</text><text x="340" y="285" text-anchor="end" font-size="13" fill="#4B5563">100% of machines</text>
+        <text x="34" y="24" text-anchor="end" font-size="13" fill="#4B5563">100%</text>
+      </svg>
+      <p style="margin:0;font-size:13px;color:#4B5563;">Dashed line: if every machine lost the same hours.</p>
+    </section>
+
+    <section aria-labelledby="h-map" style="display:flex;flex-direction:column;gap:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;"><h2 id="h-map" style="margin:0;font-size:15px;font-weight:700;">Cells and machines, sized by hours lost</h2><span style="font-size:13px;color:#4B5563;">Tap a machine</span></div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;">
+        <sc-for list="{{cells}}" as="c" hint-placeholder-count="9">
+          <div class="cellbox" style="{{c.box}}">
+            <div style="display:flex;justify-content:space-between;font-size:13px;"><b>{{c.name}}</b><span class="num" style="{{c.hStyle}}">{{c.h}}</span></div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+              <sc-for list="{{c.ms}}" as="m" hint-placeholder-count="4"><button type="button" class="m" aria-label="{{m.tip}}" title="{{m.tip}}" onClick="{{m.pick}}" style="{{m.style}}">{{m.code}}</button></sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <sc-if value="{{picked.has}}" hint-placeholder-val="{{false}}"><div style="background:#fff;border:1px solid #E5E5E0;border-radius:12px;padding:12px 16px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;"><span class="code" style="font-size:15px;">{{picked.code}}</span><span>{{picked.text}}</span><a href="#" style="font-weight:600;color:#1F2937;">Open machine</a></div></sc-if>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { pick: null }; }
+  renderVals() {
+    const S = this.state;
+    const pts = [[0, 0], [5, 28], [10, 46], [16, 61], [25, 73], [40, 85], [60, 93], [80, 98], [100, 100]];
+    const X = (p) => 40 + p * 3, Y = (p) => 260 - p * 2.4;
+    const curve = pts.map(([a, b], i) => `${i ? 'L' : 'M'}${X(a)},${Y(b)}`).join(' ');
+    const mark = { x: X(16), y: Y(61), tx: X(16) + 10, ty: Y(61) - 8 };
+    const data = [['Cell 1', [['TC-10', 74], ['TC-5', 44], ['TC-13', 31], ['TC-3', 12]]], ['Cell 2', [['VC-8', 61], ['VC-9', 44], ['VC-11', 18]]], ['Cell 3', [['HMC-2', 112], ['VC-22', 52], ['DCMC-02', 20]]], ['Cell 4', [['TC-22', 29], ['TC-24', 11]]], ['Cell 5', [['VC-14', 18], ['VC-31', 39], ['VC-33', 9]]], ['Cell 6', [['TMC-2', 308], ['WJ-01', 47], ['TMC-5', 22]]], ['Cell 7', [['VTL-3', 66], ['VC-54', 9]]], ['Cell 8', [['TC-31', 39], ['TC-40', 33], ['TC-41', 28], ['TC-44', 21]]], ['Cell 9', [['GRD-2', 21], ['GRD-5', 8]]]];
+    const maxM = 308;
+    const cells = data.map(([name, ms]) => {
+      const h = ms.reduce((s, [, v]) => s + v, 0), hot = h > 200;
+      return {
+        name, h: `${h} h`, hStyle: `font-weight:700;color:${hot ? '#B91C1C' : '#111827'};`,
+        box: `background:${hot ? '#FEF2F2' : '#fff'};border:1px solid ${hot ? '#FCA5A5' : '#E5E5E0'};min-height:${90 + Math.min(110, h / 3)}px;`,
+        ms: ms.map(([code, v]) => ({ code, tip: `${code}: ${v} breakdown hours`, pick: () => this.setState({ pick: S.pick === code ? null : code }),
+          style: `flex:${Math.max(1, v / 30)} 1 ${40 + v / maxM * 160}px;min-height:${28 + v / maxM * 60}px;background:${v > 60 ? '#B91C1C' : v > 30 ? '#D97706' : '#8A857C'};${S.pick === code ? 'outline:2px solid #111827;outline-offset:2px;' : ''}` })),
+      };
+    });
+    const all = data.flatMap(([cell, ms]) => ms.map(([code, v]) => [code, v, cell]));
+    const p = all.find((r) => r[0] === S.pick);
+    const picked = p ? { has: true, code: p[0], text: `${p[2]} · ${p[1]} breakdown hours · ${(p[1] / 3124 * 100).toFixed(1)}% of the plant` } : { has: false };
+    return { curve, mark, cells, picked };
+  }
+}
+</script>
+</body>
+</html>

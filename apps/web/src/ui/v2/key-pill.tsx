@@ -1,9 +1,18 @@
+import { Icon, type IconName } from './icons.js';
 import type { Tone } from './points.js';
 
 /** A pill always has a meaning; plain weight (`strong`) is for text, not pills. */
-export type PillTone = Exclude<Tone, 'strong'>;
+export type PillTone = Exclude<Tone, 'strong'> | 'neutral';
 
-/** A key pointer visible without clicking: a short word or number on a soft tint of its meaning. */
-export function KeyPill({ text, tone }: { text: string; tone: PillTone }) {
-  return <span className={`v2-pill v2-pill-${tone}`}>{text}</span>;
+/**
+ * A key pointer or a status tag, visible without clicking: a short word on a soft tint of its meaning, with an icon
+ * when it names a state, so colour never carries it alone.
+ */
+export function KeyPill({ text, tone, icon }: { text: string; tone: PillTone; icon?: IconName }) {
+  return (
+    <span className={`v2-pill v2-pill-${tone}`}>
+      {icon ? <Icon name={icon} size={12} /> : null}
+      {text}
+    </span>
+  );
 }

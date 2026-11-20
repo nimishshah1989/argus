@@ -2,6 +2,11 @@
 @import './ui/tokens.css';
 @import './ui/elements/elements.css';
 @import './ui/v2/v2.css';
+@import './ui/v2/cards.css';
+@import './ui/v2/shell.css';
+@import './ui/v2/table.css';
+@import './ui/v2/domain.css';
+@import './ui/v2/motion.css';
 
 @layer base {
   /* The phone's own behaviour (the mobile-native list): no grey flash on a tap, no landscape text inflation. */

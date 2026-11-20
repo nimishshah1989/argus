@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { MOTION } from './motion.js';
 import { Segs, type Point } from './points.js';
 import { WhyToggle } from './why-toggle.js';
 
@@ -50,7 +51,7 @@ function Chart({ data }: { data: ParetoData }) {
     <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={data.aria}>
       {TICKS.map((p) => (
         <g key={p}>
-          <line x1={X0} x2={AXIS - 6} y1={yOf(p / 100)} y2={yOf(p / 100)} className="v2-grid" />
+          <line x1={X0} x2={AXIS - 6} y1={yOf(p / 100)} y2={yOf(p / 100)} className="v2-gridline" />
           <text x={AXIS} y={yOf(p / 100) + 4} className="v2-svg-note" data-tick={p}>
             {`${p}%`}
           </text>
@@ -64,11 +65,11 @@ function Chart({ data }: { data: ParetoData }) {
             width={BAR}
             height={b.h}
             rx={5}
-            className={i < data.top ? 'v2-bar-top' : 'v2-bar'}
+            className={`${i < data.top ? 'v2-bar-top' : 'v2-bar'} ${MOTION.growY}`}
           >
             <title>{b.label}</title>
           </rect>
-          <text x={b.cx} y={BASE + 18} textAnchor="middle" className="v2-svg-strong">
+          <text x={b.cx} y={BASE + 18} textAnchor="middle" className="v2-svg-value">
             {b.shown}
           </text>
           <text x={b.cx} y={BASE + 38} textAnchor="middle" className="v2-svg-note">
@@ -77,15 +78,17 @@ function Chart({ data }: { data: ParetoData }) {
         </g>
       ))}
       <line x1={split} x2={split} y1={TOP} y2={BASE} className="v2-split" />
-      <polyline points={bars.map((b) => `${b.cx},${b.cy}`).join(' ')} className="v2-running" />
-      {bars.map((b) => (
-        <circle key={b.label} cx={b.cx} cy={b.cy} r={3} className="v2-running-dot" />
-      ))}
-      {last ? (
-        <text x={last.cx} y={last.cy - 10} textAnchor="middle" className="v2-svg-strong" data-end>
-          {`${Math.round((running / sum) * 100)}%`}
-        </text>
-      ) : null}
+      <g className={MOTION.draw}>
+        <polyline points={bars.map((b) => `${b.cx},${b.cy}`).join(' ')} className="v2-running" />
+        {bars.map((b) => (
+          <circle key={b.label} cx={b.cx} cy={b.cy} r={3} className="v2-running-dot" />
+        ))}
+        {last ? (
+          <text x={last.cx} y={last.cy - 10} textAnchor="middle" className="v2-svg-value" data-end>
+            {`${Math.round((running / sum) * 100)}%`}
+          </text>
+        ) : null}
+      </g>
     </svg>
   );
 }
@@ -106,11 +109,11 @@ export function Pareto({
   }
   return (
     <div className="v2-pareto">
-      <div className="v2-scroll">
+      <div className="v2-scroll" tabIndex={0}>
         <Chart data={data} />
       </div>
       <div className="v2-stack v2-gap-12">
-        <p className="v2-hero">
+        <p className="v2-lede">
           <Segs point={data.conclusion} />
         </p>
         <WhyToggle label={whyLabel} points={data.why} />

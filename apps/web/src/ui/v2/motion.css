@@ -1,0 +1,92 @@
+/* The v2 kit's motion (motion.ts names the classes; UX-RULES.md §8). Data motion takes --motion-v2-data, UI motion
+   --motion-v2-ui, all on one ease-out curve. Nothing here plays because a page loaded; under reduced motion all of it
+   is instant. */
+@keyframes v2-grow-y {
+  from {
+    transform: scaleY(0);
+  }
+}
+@keyframes v2-grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes v2-draw {
+  from {
+    clip-path: inset(-8px 100% -8px -8px);
+  }
+  to {
+    clip-path: inset(-8px -8px -8px -8px);
+  }
+}
+@keyframes v2-reflow {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@keyframes v2-flash-up {
+  from {
+    color: var(--v2-flash-up, var(--color-v2-gain));
+  }
+}
+@keyframes v2-flash-down {
+  from {
+    color: var(--v2-flash-down, var(--color-v2-loss));
+  }
+}
+@keyframes v2-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+
+.v2-grow-y {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: v2-grow-y var(--motion-v2-data) var(--ease-v2) 120ms backwards;
+}
+.v2-grow-x {
+  transform-origin: 0 50%;
+  animation: v2-grow-x var(--motion-v2-data) var(--ease-v2) 120ms backwards;
+}
+.v2-draw {
+  animation: v2-draw var(--motion-v2-data) var(--ease-v2) 150ms backwards;
+}
+.v2-reflow {
+  animation: v2-reflow var(--motion-v2-ui) var(--ease-v2) backwards;
+  animation-delay: calc(var(--v2-i, 0) * 25ms);
+}
+/* A value that changed flashes the colour of its direction once. Which direction is good is the caller's to say. */
+[data-flash='up'] {
+  animation: v2-flash-up var(--motion-v2-data) var(--ease-v2);
+}
+[data-flash='down'] {
+  animation: v2-flash-down var(--motion-v2-data) var(--ease-v2);
+}
+.v2-lift {
+  transition:
+    transform var(--motion-v2-fast) var(--ease-v2),
+    box-shadow var(--motion-v2-fast) var(--ease-v2);
+}
+.v2-lift:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-v2-raised);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v2-grow-y,
+  .v2-grow-x,
+  .v2-draw,
+  .v2-reflow,
+  [data-flash='up'],
+  [data-flash='down'] {
+    animation: none;
+  }
+  .v2-lift,
+  .v2-lift:hover {
+    transition: none;
+    transform: none;
+  }
+}

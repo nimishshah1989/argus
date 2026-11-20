@@ -21,6 +21,48 @@ const FACES_RULES: [string, RegExp][] = [
 ];
 const LUCIDE = /['"]lucide-react(?:\/[^'"]*)?['"]/;
 
+/**
+ * v2 screens only compose the kit (docs/design/v2/LANGUAGE.md): colour, type size, weight and motion live in
+ * ui/v2. A line that is only a comment may name them; code after a comment on the same line is still checked.
+ */
+const NAMED =
+  'white|black|red|green|blue|yellow|orange|purple|pink|gray|grey|teal|cyan|brown|navy|maroon|olive|lime|silver|gold';
+const PALETTE =
+  'red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone';
+const V2_SCREEN_RULES: [string, RegExp][] = [
+  [
+    'raw colour in screens/v2/',
+    new RegExp(
+      [
+        String.raw`#[0-9a-fA-F]{3,8}\b`,
+        String.raw`\b(?:rgba?|hsla?|oklch|oklab|lch|lab|color-mix)\(`,
+        // A colour property given a literal value: `color: 'red'`, `fill="#fff"`, `background: "white"`.
+        String.raw`\b(?:color|background(?:-?[cC]olor)?|fill|stroke|border-?[cC]olor|outline-?[cC]olor)\s*[:=]\s*\{?\s*['"\x60](?!none|currentColor|transparent|inherit)[^'"\x60]`,
+        // A named colour as a value, or a Tailwind palette class (`bg-red-500`, `text-white`).
+        String.raw`['"\x60](?:${NAMED})['"\x60]`,
+        String.raw`\b(?:bg|text|border|ring|fill|stroke|outline|divide|from|via|to)-(?:white|black|(?:${PALETTE})-\d{2,3})\b`,
+      ].join('|'),
+      'i',
+    ),
+  ],
+  [
+    'font size in screens/v2/',
+    /font-?size|fontSize|\btext-(?:xs|sm|base|lg|\d?xl|caption|footnote|body|title\d?|tv-\d+|v2-[\w-]+|\[[^\]]+\])(?![\w-])/i,
+  ],
+  [
+    'font weight in screens/v2/',
+    /font-?weight|fontWeight|\bfont-(?:thin|extralight|light|normal|medium|semibold|bold|extrabold|black)\b/i,
+  ],
+  // CSS or style syntax only, so copy that says "transition" passes.
+  [
+    'animation in screens/v2/',
+    /@keyframes|\b(?:animation|transition)(?:-[\w-]+)?\s*:|\banimation(?:Name|Duration)?\s*:|\banimate-\w/i,
+  ],
+];
+/** A line that is only a comment: a line comment, a whole block comment, or a line inside a block comment. */
+const COMMENT_ONLY =
+  /^\s*(?:\/\/.*|\/\*(?:(?!\*\/).)*(?:\*\/\s*)?|\*(?!\/)(?:(?!\*\/).)*(?:\*\/\s*)?|\*\/\s*)$/;
+
 export function readWebSrc(webSrc: string): UiFile[] {
   const files: UiFile[] = [];
   const walk = (dir: string): void => {
@@ -48,6 +90,9 @@ export function uiErrors(files: UiFile[]): string[] {
     lines.forEach((line, i) => {
       if (faces)
         for (const [message, pattern] of FACES_RULES)
+          if (pattern.test(line)) errors.push(`${path}:${i + 1}: ${message}`);
+      if (path.startsWith('screens/v2/') && !COMMENT_ONLY.test(line))
+        for (const [message, pattern] of V2_SCREEN_RULES)
           if (pattern.test(line)) errors.push(`${path}:${i + 1}: ${message}`);
       if (path !== 'ui/icon.ts' && LUCIDE.test(line))
         errors.push(`${path}:${i + 1}: lucide-react outside ui/icon.ts`);

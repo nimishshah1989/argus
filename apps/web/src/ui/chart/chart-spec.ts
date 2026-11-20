@@ -61,6 +61,8 @@ export type ChartSpec =
       series: ChartSeries[];
       /** Two series on two axes: the first on the left, the second on the right. */
       secondAxis?: boolean;
+      /** A class for the pointer tooltip, which then drops its own frame so the class styles it (the v2 glass tip). */
+      tooltipClass?: string;
       /** The value axis title. */
       valueLabel?: string;
     } & LegendChoice &

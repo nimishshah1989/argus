@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Argus — Compare Machines</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&amp;family=JetBrains+Mono:wght@600&amp;display=swap">
+<style>
+body{margin:0;background:#F6F6F4}
+.num{font-variant-numeric:tabular-nums}
+.code{font-family:'JetBrains Mono',ui-monospace,monospace;font-weight:600}
+.why{display:inline-flex;align-items:center;min-height:32px;padding:0 12px;border-radius:999px;border:1px solid #DCDDD8;background:#fff;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.why:hover,.why[aria-expanded="true"]{background:#111827;color:#fff;border-color:#111827}
+.open{animation:open .22s cubic-bezier(.2,.8,.2,1)}@keyframes open{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+button:focus-visible{outline:2px solid #2563EB;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.open{animation:none}}
+</style>
+</helmet>
+<div style="font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.5;color:#111827;max-width:1360px;margin:0 auto;padding:32px 40px 56px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px;">
+
+  <header style="display:flex;flex-direction:column;gap:12px;max-width:880px;">
+    <span style="font-size:13px;color:#4B5563;">Compare Machines · same type, same work, side by side</span>
+    <h1 style="margin:0;font-size:28px;line-height:1.25;font-weight:700;letter-spacing:-.02em;"><span class="code" style="color:#B91C1C;">VC-8</span> loses <span style="color:#B91C1C;">3.4×</span> more hours than <span class="code" style="color:#11673F;">VC-14</span> doing the same work.</h1>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <button type="button" class="why" aria-expanded="{{verdict.open}}" onClick="{{verdict.toggle}}">Why?</button>
+      <span style="font-size:13px;color:#4B5563;">Machines:</span>
+      <sc-for list="{{picker}}" as="p" hint-placeholder-count="5"><button type="button" aria-pressed="{{p.on}}" onClick="{{p.pick}}" style="{{p.style}}">{{p.code}}</button></sc-for>
+    </div>
+    <sc-if value="{{verdict.isOpen}}" hint-placeholder-val="{{false}}">
+      <ul class="open" style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;"><sc-for list="{{verdict.points}}" as="pt" hint-placeholder-count="3"><li><sc-for list="{{pt}}" as="sg" hint-placeholder-count="2"><span style="{{sg.s}}">{{sg.t}}</span></sc-for></li></sc-for></ul>
+    </sc-if>
+  </header>
+
+  <div style="overflow-x:auto;background:#fff;border:1px solid #E5E5E0;border-radius:18px;">
+    <table style="width:100%;border-collapse:collapse;min-width:760px;">
+      <caption style="text-align:left;padding:16px 20px 4px;font-size:15px;font-weight:700;">Side by side · best in each row is marked ✓</caption>
+      <thead><tr>
+        <th scope="col" style="text-align:left;padding:12px 20px;font-size:13px;color:#4B5563;font-weight:600;width:220px;">Figure</th>
+        <sc-for list="{{cols}}" as="c" hint-placeholder-count="3"><th scope="col" style="text-align:left;padding:12px 16px;"><span class="code" style="{{c.style}}">{{c.code}}</span><div style="font-size:13px;color:#4B5563;font-weight:500;">{{c.sub}}</div></th></sc-for>
+      </tr></thead>
+      <tbody>
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="7">
+          <tr style="border-top:1px solid #EFEFEB;">
+            <th scope="row" style="text-align:left;padding:12px 20px;font-weight:600;">{{r.label}}<div style="font-size:13px;color:#4B5563;font-weight:400;">{{r.hint}}</div></th>
+            <sc-for list="{{r.cells}}" as="c" hint-placeholder-count="3">
+              <td style="padding:12px 16px;vertical-align:middle;">
+                <div style="display:flex;align-items:center;gap:8px;"><span class="num" style="{{c.vStyle}}">{{c.v}}</span><sc-if value="{{c.best}}" hint-placeholder-val="{{false}}"><span style="font-size:13px;font-weight:700;color:#11673F;">✓ best</span></sc-if></div>
+                <div style="height:6px;border-radius:3px;background:#F1F1EE;margin-top:6px;overflow:hidden;max-width:220px;"><div style="{{c.bar}}"></div></div>
+              </td>
+            </sc-for>
+          </tr>
+        </sc-for>
+      </tbody>
+    </table>
+  </div>
+
+  <section aria-labelledby="h-diff" style="display:flex;flex-direction:column;gap:12px;">
+    <h2 id="h-diff" style="margin:0;font-size:15px;font-weight:700;">What VC-14 does that VC-8 does not</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;">
+      <sc-for list="{{diffs}}" as="d" hint-placeholder-count="3">
+        <div style="background:#fff;border:1px solid #E5E5E0;border-radius:18px;padding:16px 18px;display:flex;flex-direction:column;gap:6px;"><b>{{d.title}}</b><span style="font-size:13px;color:#4B5563;line-height:1.5;"><sc-for list="{{d.text}}" as="sg" hint-placeholder-count="2"><span style="{{sg.s}}">{{sg.t}}</span></sc-for></span></div>
+      </sc-for>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { open: {}, pick: ['VC-8', 'VC-14', 'VC-9'] }; }
+  renderVals() {
+    const S = this.state;
+    const RED = 'font-weight:700;color:#B91C1C;', GRN = 'font-weight:700;color:#11673F;', AMB = 'font-weight:700;color:#B45309;', BLD = 'font-weight:700;';
+    const rich = (s) => s.split(/(\*\*[^*]+\*\*|!![^!]+!!|\+\+[^+]+\+\+|~~[^~]+~~)/).filter(Boolean).map((t) => t.startsWith('**') ? { t: t.slice(2, -2), s: BLD } : t.startsWith('!!') ? { t: t.slice(2, -2), s: RED } : t.startsWith('++') ? { t: t.slice(2, -2), s: GRN } : t.startsWith('~~') ? { t: t.slice(2, -2), s: AMB } : { t, s: '' });
+    const verdict = { open: S.open.v ? 'true' : 'false', isOpen: !!S.open.v, toggle: () => this.setState({ open: { v: !S.open.v } }), points: ['Both are **vertical machining centres**, same model, Cell 2 and Cell 5', 'VC-8 lost !!61 h!! this year, VC-14 ++18 h++', 'The gap is mostly ~~axis encoder~~ faults: **13 on VC-8, 0 on VC-14** since its fix'].map(rich) };
+    const M = { 'VC-8': ['Cell 2 · 6 yrs', [7.8, 61, 13, 4.7, 312, 99.1, 1.42]], 'VC-14': ['Cell 5 · 6 yrs', [9.4, 18, 5, 3.6, 870, 99.7, 0.52]], 'VC-9': ['Cell 2 · 5 yrs', [8.1, 44, 10, 4.4, 405, 99.3, 1.10]], 'VC-22': ['Cell 3 · 7 yrs', [6.9, 52, 8, 6.5, 470, 99.2, 1.38]], 'VC-54': ['Cell 7 · new', [8.8, 9, 2, 4.5, 610, 99.8, 0.30]] };
+    const defs = [['Health score', 'out of 10', true, (v) => v.toFixed(1)], ['Breakdown hours', 'this year', false, (v) => `${v} h`], ['Breakdowns', 'this year', false, (v) => `${v}`], ['Time to repair', 'average', false, (v) => `${v.toFixed(1)} h`], ['Time between failures', 'average', true, (v) => `${v} h`], ['Availability', 'this year', true, (v) => `${v.toFixed(1)}%`], ['Money lost', 'this year', false, (v) => `₹ ${v.toFixed(2)} lakh`]];
+    const sel = S.pick;
+    const rows = defs.map(([label, hint, higher, fmt], i) => {
+      const vals = sel.map((c) => M[c][1][i]); const best = higher ? Math.max(...vals) : Math.min(...vals); const max = Math.max(...vals);
+      return { label, hint, cells: sel.map((c, j) => { const v = vals[j], isBest = v === best, worst = !isBest && (higher ? v === Math.min(...vals) : v === max); return { v: fmt(v), best: isBest, vStyle: `font-weight:700;color:${isBest ? '#11673F' : worst ? '#B91C1C' : '#111827'};`, bar: `height:100%;width:${(v / max * 100).toFixed(1)}%;border-radius:3px;background:${isBest ? '#11673F' : worst ? '#B91C1C' : '#8A857C'};` }; }) };
+    });
+    const cols = sel.map((code) => ({ code, sub: M[code][0], style: 'font-size:15px;padding:2px 8px;border-radius:6px;background:#DCFCE7;color:#065F46;' }));
+    const picker = Object.keys(M).map((code) => { const on = sel.includes(code); return { code, on: on ? 'true' : 'false', pick: () => this.setState({ pick: on ? (sel.length > 2 ? sel.filter((c) => c !== code) : sel) : (sel.length < 4 ? [...sel, code] : sel) }), style: `font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;min-height:36px;padding:0 12px;border-radius:999px;cursor:pointer;border:1px solid ${on ? '#111827' : '#DCDDD8'};background:${on ? '#111827' : '#fff'};color:${on ? '#fff' : '#1F2937'};` }; });
+    const diffs = [['Axis encoder fix on 12 Aug', '++0 encoder faults++ since; VC-8 had !!13!! in the same months'], ['Coolant guard on the encoder', 'A ₹ 2,400 cover keeps coolant out; **VC-8 has none**'], ['Night shift trained', 'VC-14 repairs take **3.6 h**; VC-8 night repairs take !!6.1 h!!']].map(([title, text]) => ({ title, text: rich(text) }));
+    return { verdict, picker, cols, rows, diffs };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Argus — Action Center</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&amp;family=JetBrains+Mono:wght@600&amp;display=swap">
+<style>
+body{margin:0;background:#F6F6F4}
+.num{font-variant-numeric:tabular-nums}
+.code{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;font-weight:600;padding:2px 7px;border-radius:6px;background:#F1F1EE}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 14px;border-radius:10px;border:1px solid #DCDDD8;background:#fff;font:inherit;font-size:15px;font-weight:600;color:#1F2937;cursor:pointer;transition:background .18s}
+.btn:hover{background:#F3F3F0}.btn:active{transform:scale(.98)}
+.btn-primary{background:#111827;color:#fff;border-color:#111827}.btn-primary:hover{background:#000}
+.btn-done{background:#E8F5EE;color:#11673F;border-color:#BFE3CF}
+.why{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 12px;border-radius:999px;border:1px solid #DCDDD8;background:#fff;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.why:hover,.why[aria-expanded="true"]{background:#111827;color:#fff;border-color:#111827}
+.open{animation:open .22s cubic-bezier(.2,.8,.2,1)}
+@keyframes open{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+button:focus-visible{outline:2px solid #2563EB;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.open{animation:none}.btn:active{transform:none}}
+</style>
+</helmet>
+<div style="font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.5;color:#111827;max-width:1360px;margin:0 auto;padding:32px 40px 56px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px;">
+
+  <header style="display:flex;flex-wrap:wrap;gap:24px;justify-content:space-between;align-items:flex-start;">
+    <div style="display:flex;flex-direction:column;gap:10px;max-width:760px;">
+      <span style="font-size:13px;color:#4B5563;">Action Center · nudges worked out from the log, PM and team</span>
+      <h1 style="margin:0;font-size:28px;line-height:1.25;font-weight:700;letter-spacing:-.02em;"><span style="color:#B91C1C;">1 machine</span> needs you today. 15 more can wait for this week.</h1>
+    </div>
+    <div style="display:flex;gap:28px;">
+      <sc-for list="{{counts}}" as="c" hint-placeholder-count="4"><div><div style="font-size:13px;color:#4B5563;">{{c.label}}</div><div class="num" style="{{c.style}}">{{c.n}}</div></div></sc-for>
+    </div>
+  </header>
+
+  <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;">
+    <div role="group" aria-label="Show" style="display:flex;gap:2px;background:#EAEAE6;border-radius:11px;padding:3px;">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="4"><button type="button" aria-pressed="{{t.on}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button></sc-for>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <sc-for list="{{kinds}}" as="k" hint-placeholder-count="5"><button type="button" aria-pressed="{{k.on}}" onClick="{{k.pick}}" style="{{k.style}}">{{k.label}}</button></sc-for>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:minmax(0,2.2fr) minmax(300px,1fr);gap:28px;align-items:start;">
+    <section aria-label="Nudges" style="background:#fff;border:1px solid #E5E5E0;border-radius:18px;overflow:hidden;">
+      <sc-for list="{{nudges}}" as="n" hint-placeholder-count="6">
+        <article style="border-bottom:1px solid #EFEFEB;padding:18px 24px;display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start;">
+            <div style="display:flex;flex-direction:column;gap:8px;min-width:0;flex:1;">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span style="{{n.prioStyle}}">{{n.prio}}</span><span style="font-size:13px;font-weight:600;color:#4B5563;">{{n.kind}}</span><span class="code">{{n.code}}</span>
+              </div>
+              <h2 style="margin:0;font-size:15px;font-weight:700;">{{n.title}}</h2>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                <sc-for list="{{n.keys}}" as="k" hint-placeholder-count="2"><span class="num" style="{{k.s}}">{{k.t}}</span></sc-for>
+                <button type="button" class="why" aria-expanded="{{n.open}}" onClick="{{n.toggle}}">Why and what to do</button>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="{{n.ackClass}}" onClick="{{n.ack}}">{{n.ackText}}</button>
+              <button type="button" class="btn" onClick="{{n.snooze}}">Snooze 7 days</button>
+              <button type="button" class="btn" onClick="{{n.resolve}}">Resolved</button>
+            </div>
+          </div>
+          <sc-if value="{{n.isOpen}}" hint-placeholder-val="{{false}}">
+            <div class="open" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;">
+              <div style="background:#FAFAF8;border-radius:12px;padding:12px 16px;"><div style="font-size:13px;font-weight:700;margin-bottom:4px;">Why</div><ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;"><sc-for list="{{n.why}}" as="pt" hint-placeholder-count="3"><li><sc-for list="{{pt}}" as="sg" hint-placeholder-count="2"><span style="{{sg.s}}">{{sg.t}}</span></sc-for></li></sc-for></ul></div>
+              <div style="background:#F3F7FF;border-radius:12px;padding:12px 16px;"><div style="font-size:13px;font-weight:700;margin-bottom:4px;color:#1E40AF;">What to do</div><ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;"><sc-for list="{{n.todo}}" as="pt" hint-placeholder-count="2"><li><sc-for list="{{pt}}" as="sg" hint-placeholder-count="2"><span style="{{sg.s}}">{{sg.t}}</span></sc-for></li></sc-for></ul></div>
+            </div>
+          </sc-if>
+        </article>
+      </sc-for>
+      <sc-if value="{{empty}}" hint-placeholder-val="{{false}}"><p style="margin:0;padding:32px 24px;color:#4B5563;">Nothing here. Nudges you acknowledge, snooze or resolve move to their tab.</p></sc-if>
+    </section>
+
+    <aside style="display:flex;flex-direction:column;gap:12px;">
+      <h2 style="margin:0;font-size:15px;font-weight:700;">Machines with the most nudges</h2>
+      <div style="background:#fff;border:1px solid #E5E5E0;border-radius:18px;padding:8px 16px;">
+        <sc-for list="{{machines}}" as="m" hint-placeholder-count="6">
+          <div style="display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #EFEFEB;">
+            <span class="code">{{m.code}}</span>
+            <div style="height:8px;border-radius:4px;background:#F1F1EE;overflow:hidden;"><div style="{{m.bar}}"></div></div>
+            <span class="num" style="font-size:13px;font-weight:700;">{{m.score}}</span>
+          </div>
+        </sc-for>
+        <p style="margin:10px 0 6px;font-size:13px;color:#4B5563;">Score: high nudge 3, medium 2, low 1.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1900}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { tab: 'open', kind: 'all', open: {}, st: {} }; }
+  renderVals() {
+    const S = this.state;
+    const RED = 'font-weight:700;color:#B91C1C;', GRN = 'font-weight:700;color:#11673F;', AMB = 'font-weight:700;color:#B45309;', BLD = 'font-weight:700;';
+    const rich = (s) => s.split(/(\*\*[^*]+\*\*|!![^!]+!!|\+\+[^+]+\+\+|~~[^~]+~~)/).filter(Boolean).map((t) => t.startsWith('**') ? { t: t.slice(2, -2), s: BLD } : t.startsWith('!!') ? { t: t.slice(2, -2), s: RED } : t.startsWith('++') ? { t: t.slice(2, -2), s: GRN } : t.startsWith('~~') ? { t: t.slice(2, -2), s: AMB } : { t, s: '' });
+    const pill = (c, bg) => `font-size:13px;font-weight:700;padding:2px 10px;border-radius:999px;background:${bg};color:${c};`;
+    const P = { High: pill('#991B1B', '#FEE2E2'), Medium: pill('#92400E', '#FEF3C7'), Low: pill('#1E40AF', '#DBEAFE') };
+    const all = [
+      { id: 'n1', prio: 'High', kind: 'Frequent breakdowns', code: 'HMC-2', title: 'Broke down 6 times in 30 days', keys: [['6 in 30 days', '#B91C1C', '#FEECEC'], ['was 4', '#4B5563', '#F1F1EE']], why: ['**6 breakdowns**, !!5.9 h!! lost in 30 days (previous 30: **4**)', 'Most common cause: ~~tool changer (ATC)~~, **3 times**', 'Team: Arjun V (4), Neel S (2)'], todo: ['Put it on the **watch list**', 'Review the last 6 breakdowns together', 'Plan **one stop** to fix the repeating cause'] },
+      { id: 'n2', prio: 'Medium', kind: 'Worsening machine', code: 'TC-10', title: 'Repairs are getting longer every month', keys: [['MTTR 5.2 h', '#B45309', '#FEF3C7'], ['type avg 3.1 h', '#4B5563', '#F1F1EE']], why: ['Average repair **5.2 h**, its type averages **3.1 h**', 'Up three months in a row: ~~3.8 → 4.6 → 5.2 h~~', '!!2 of 5!! repairs waited for spares'], todo: ['Check spares for the **turret clamp**', 'Ask Arjun V what slowed the last repair'] },
+      { id: 'n3', prio: 'Medium', kind: 'Long breakdown', code: 'VC-22', title: 'One breakdown took 14 hours', keys: [['14 h once', '#B45309', '#FEF3C7']], why: ['A single breakdown of !!14 h!! on 2 Nov', 'Above the **12 h** Why-Why limit, no Why-Why written yet'], todo: ['Write the **Why-Why** for 2 Nov', 'Note the root cause in the log'] },
+      { id: 'n4', prio: 'Medium', kind: 'Slow repairs', code: 'TC-31', title: 'Repairs take twice its type', keys: [['2.1× its type', '#B45309', '#FEF3C7']], why: ['Average repair **6.4 h** against **3.0 h** for turning centres'], todo: ['Check whether the right person is called first'] },
+      { id: 'n5', prio: 'Low', kind: 'New machine', code: 'VC-54', title: 'New machine already broke down twice', keys: [['2 in 45 days', '#1E40AF', '#DBEAFE'], ['Warranty', '#6B21A8', '#F3E8FF']], why: ['Installed **6 Oct**, **2 breakdowns** since', 'Still under ++warranty++'], todo: ['Raise both with the **OEM** under warranty'] },
+      { id: 'n6', prio: 'Low', kind: 'Good news', code: 'VC-14', title: 'No breakdowns for 90 days after the axis fix', keys: [['0 in 90 days', '#11673F', '#E8F5EE']], why: ['Axis encoder fixed on **12 Aug**', '++0 breakdowns++ since; it had **5** in the 90 days before'], todo: ['Use the same fix on **VC-8, VC-9, TC-5**'] },
+    ];
+    const state = (id) => S.st[id] || 'open';
+    const setSt = (id, v) => () => this.setState({ st: { ...S.st, [id]: state(id) === v ? 'open' : v } });
+    const visible = all.filter((n) => state(n.id) === S.tab && (S.kind === 'all' || n.prio === S.kind));
+    const nudges = visible.map((n) => ({
+      ...n, prioStyle: P[n.prio], why: n.why.map(rich), todo: n.todo.map(rich),
+      keys: n.keys.map(([t, c, bg]) => ({ t, s: pill(c, bg) })),
+      open: S.open[n.id] ? 'true' : 'false', isOpen: !!S.open[n.id], toggle: () => this.setState({ open: { ...S.open, [n.id]: !S.open[n.id] } }),
+      ackClass: state(n.id) === 'ack' ? 'btn btn-done' : 'btn btn-primary', ackText: state(n.id) === 'ack' ? '✓ Acknowledged' : 'Acknowledge',
+      ack: setSt(n.id, 'ack'), snooze: setSt(n.id, 'snoozed'), resolve: setSt(n.id, 'resolved'),
+    }));
+    const cnt = (v) => all.filter((n) => state(n.id) === v).length;
+    const seg = (on) => `border:0;font:inherit;font-size:13px;font-weight:600;min-height:36px;padding:0 14px;border-radius:8px;cursor:pointer;${on ? 'background:#fff;color:#111827;box-shadow:0 1px 3px rgba(17,24,39,.14);' : 'background:transparent;color:#4B5563;'}`;
+    const tabs = [['open', 'Open'], ['ack', 'Acknowledged'], ['snoozed', 'Snoozed'], ['resolved', 'Resolved']].map(([k, l]) => ({ label: `${l} ${cnt(k)}`, on: S.tab === k ? 'true' : 'false', pick: () => this.setState({ tab: k }), style: seg(S.tab === k) }));
+    const chip = (on) => `font:inherit;font-size:13px;font-weight:600;min-height:36px;padding:0 14px;border-radius:999px;cursor:pointer;border:1px solid ${on ? '#111827' : '#DCDDD8'};background:${on ? '#111827' : '#fff'};color:${on ? '#fff' : '#1F2937'};`;
+    const kinds = [['all', 'All priorities'], ['High', 'High'], ['Medium', 'Medium'], ['Low', 'Low']].map(([k, l]) => ({ label: l, on: S.kind === k ? 'true' : 'false', pick: () => this.setState({ kind: k }), style: chip(S.kind === k) }));
+    const counts = [['High', 1, '#B91C1C'], ['Medium', 12, '#B45309'], ['Low', 3, '#1E40AF'], ['Good news', 1, '#11673F']].map(([label, n, c]) => ({ label, n, style: `font-size:28px;font-weight:700;color:${c};` }));
+    const machines = [['HMC-2', 4], ['TC-10', 4], ['VC-22', 4], ['TC-13', 2], ['VC-54', 2], ['VC-19', 2]].map(([code, score]) => ({ code, score, bar: `height:100%;width:${score * 25}%;background:${score >= 4 ? '#DC2626' : '#F59E0B'};border-radius:4px;` }));
+    return { counts, tabs, kinds, nudges, empty: nudges.length === 0, machines };
+  }
+}
+</script>
+</body>
+</html>

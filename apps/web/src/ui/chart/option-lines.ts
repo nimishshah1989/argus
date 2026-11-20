@@ -26,7 +26,16 @@ export function lineOption(spec: LineSpec, p: Palette): Option {
   return {
     ...(spec.axisTitles ? withTitleRoom(base) : base),
     ...drawOption(spec.draw),
-    tooltip: axisTooltip('line'),
+    tooltip: spec.tooltipClass
+      ? {
+          ...axisTooltip('line'),
+          className: spec.tooltipClass,
+          backgroundColor: 'transparent',
+          borderWidth: 0,
+          padding: 0,
+          extraCssText: 'box-shadow:none;',
+        }
+      : axisTooltip('line'),
     xAxis: categoryAxis(spec.categories, p, spec.axisTitles ? spec.categoryLabel : undefined),
     yAxis: secondAxis ? [axis, { ...axis, splitLine: { show: false } }] : axis,
     series: spec.series.map((s, i) => ({

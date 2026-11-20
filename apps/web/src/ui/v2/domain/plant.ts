@@ -1,10 +1,49 @@
 import { fill } from '../../../i18n/fill.js';
+import type { IconName } from '../icons.js';
 import type { Point } from '../points.js';
 
 /** Domain kit: every machine of the plant by cell, in its state now. */
 export type MachineState = 'run' | 'risk' | 'down' | 'pm' | 'idle';
-/** `code` is unique across the plant: it names the square and keys the picked machine. */
-export type MachineData = { code: string; state: MachineState; why: Point[] };
+/**
+ * One machine as every v2 screen sees it: on the plant map, in the machines table, in its drawer. `code` is unique
+ * across the plant. `cat` is its type's fixed colour (1 to 5), the same on every screen.
+ */
+export type MachineData = {
+  code: string;
+  name: string;
+  typeLabel: string;
+  cat: 1 | 2 | 3 | 4 | 5;
+  cell: string;
+  state: MachineState;
+  /** Breakdown hours this month: the engine's figure, and the number that sorts it. */
+  hours: { shown: string; value: number };
+  /** Breakdowns in the last 90 days. */
+  stops: number;
+  /** Breakdown hours a week, the last 12 weeks, oldest first. */
+  trend: number[];
+  why: Point[];
+};
+
+/** The icon a state wears on its tile, its tag and its drawer; running needs none. */
+export const STATE_ICON: Record<MachineState, IconName | undefined> = {
+  run: undefined,
+  risk: 'alert',
+  down: 'stop',
+  pm: 'wrench',
+  idle: 'pause',
+};
+/** A 12-week trend's tone: rising breakdown hours are a loss, falling or flat a gain. */
+export const trendTone = (values: number[]): 'gain' | 'loss' =>
+  (values[values.length - 1] ?? 0) > (values[0] ?? 0) ? 'loss' : 'gain';
+
+/** The tag tone a state wears. */
+export const STATE_TONE = {
+  run: 'gain',
+  risk: 'risk',
+  down: 'loss',
+  pm: 'plan',
+  idle: 'neutral',
+} as const;
 export type CellData = { name: string; machines: MachineData[] };
 export type PlantFilter = 'all' | 'down' | 'risk' | 'pm';
 
