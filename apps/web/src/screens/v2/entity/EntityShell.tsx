@@ -1,4 +1,4 @@
-import type { ComponentProps } from 'react';
+import { createContext, useContext, type ComponentProps, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { DrawerSpec } from '../../../ui/v2/drawer.js';
 import { EntityOpenContext, type EntityRef } from '../../../ui/v2/entity-chip.js';
@@ -16,6 +16,9 @@ export type EntityShellProps = Omit<ComponentProps<typeof Shell>, 'drawer'> & {
   /** A screen's own version of an entity it holds live (a decision with its Decide button); null falls through to the port. */
   local?: (ref: EntityRef) => LocalEntity | null;
 };
+
+/** What a route puts above every screen inside it (the section's other screens): a screen draws it without knowing. */
+export const ChromeContext = createContext<ReactNode>(null);
 
 /** Asked for while the drawer is closed or a screen holds the entity itself: nothing is fetched, so it never answers. */
 const NOT_ASKED: Provider<'entity'> = () => new Promise(() => {});
@@ -71,10 +74,12 @@ function useEntityDrawer(
 export function EntityShell({ local, children, ...shell }: EntityShellProps) {
   const { current, open, close } = useEntityParam();
   const drawer = useEntityDrawer(current, close, local);
+  const chrome = useContext(ChromeContext);
   const press = (ref: EntityRef) => (same(current, ref) ? close() : open(ref));
   return (
     <EntityOpenContext.Provider value={press}>
       <Shell {...shell} drawer={drawer}>
+        {chrome}
         {children}
       </Shell>
     </EntityOpenContext.Provider>

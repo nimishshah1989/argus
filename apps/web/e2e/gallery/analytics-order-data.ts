@@ -1,8 +1,8 @@
 /**
  * What each analytics screen lists: every control, heading and chart `summary`, top to bottom (see analytics-order.spec.ts).
  * Read off the screens BEFORE the 87 restyle (`git show d3fbd43b`), then re-read with `summary` added. The old screens
- * and the new differ in exactly three ways, all deliberate: the charts' summaries come before the tables (charts first,
- * as on Reports and Money); the shift-calendar page has one h2 and an h3 per figure; the Cell change log has an h2.
+ * and the new differ in exactly two ways, all deliberate: the charts' summaries come before the tables (charts first,
+ * as on Reports and Money); the shift-calendar page has one h2 and an h3 per figure.
  */
 export const SHELL_PHONE = [
   'button: Menu',
@@ -120,18 +120,6 @@ export const SCREENS: [string, string[], string[]][] = [
       'h3: Longest brea',
       'button: Date',
       'button: Hours',
-    ],
-  ],
-  [
-    '/analytics/machines?screen=cell-change-log',
-    MACHINES_MENU,
-    [
-      'h2: Cell change ',
-      'button: Export to CS',
-      'a: CNC-01',
-      'button: Correct date',
-      'a: DRL-04',
-      'button: Correct date',
     ],
   ],
 ];

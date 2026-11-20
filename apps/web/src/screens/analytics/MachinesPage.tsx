@@ -5,7 +5,6 @@ import { useOnline } from '../../data/index.js';
 import { StateNotice } from '../../patterns/frame.js';
 import { viewState, type ViewState } from '../../patterns/view-state.js';
 import { Stack } from '../../ui/layout.js';
-import { CellChangeLog } from './CellChangeLog.js';
 import { DrillTable } from './DrillTable.js';
 import { EnergyPage } from './EnergyPage.js';
 import { GroupPage } from './GroupPage.js';
@@ -15,7 +14,6 @@ import { ScreenMenu } from './screen-menu.js';
 import { SCREEN_LABELS, parseDrill, type AnalyticsGroup } from './groups.js';
 
 const REGISTERS = 'registers';
-const CELL_LOG = 'cell-change-log';
 const ENERGY = 'a5-energy';
 const COMPARE = 'compare';
 
@@ -75,8 +73,6 @@ export function MachinesPage({ group }: { group: AnalyticsGroup }) {
       <Registers group={group} figure={figureOf(REGISTERS)} menu={menu} asOf={figures.data.asOf} />
     );
   const asOf = figures.data.asOf;
-  if (screen === CELL_LOG)
-    return <CellChangeLog figure={figureOf(CELL_LOG)} menu={menu} asOf={asOf} />;
   if (screen === COMPARE) {
     const drill = parseDrill(params.get('drill'));
     const found = figureOf(COMPARE);
