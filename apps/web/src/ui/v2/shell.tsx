@@ -91,9 +91,8 @@ function Header({
 }
 
 /**
- * The v2 app frame: a 60 px icon rail that opens to 212 px on hover with the section names, a sticky glass header
- * holding only the page title, search and alerts, the page itself at full width, and the drawer. When the drawer
- * opens or closes the page reflows, and charts are told to measure again.
+ * The v2 app frame: an icon rail that opens on hover with the section names, a sticky glass header (title, search,
+ * alerts), the page at full width, and the drawer, which reflows the page and has the charts measure again.
  */
 export function Shell({
   nav,
