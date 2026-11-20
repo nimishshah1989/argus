@@ -3,6 +3,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import '../../../i18n/index.js';
+import { DecisionDetail } from '../../../ui/v2/domain/decision-detail.js';
 import { Drawer } from '../../../ui/v2/drawer.js';
 import { EntityChip, type EntityRef } from '../../../ui/v2/entity-chip.js';
 import { Segs, type Point } from '../../../ui/v2/points.js';
@@ -160,5 +161,20 @@ describe('the entity fixture', () => {
       'Vertical machining centre 24',
     );
     expect(entityFixture({ kind: 'person', id: 'neel-s' })?.label).toBe('Neel S');
+  });
+});
+
+describe('a decision opened from the port', () => {
+  it('shows no Decide button unless the screen can take the decision', () => {
+    const m = entityFixture({ kind: 'decision', id: plant.decisions[0]!.id });
+    if (m?.kind !== 'decision') throw new Error('fixture has no decision');
+    const props = { d: m.decision, words: m.words, source: m.source };
+    expect(renderToStaticMarkup(createElement(DecisionDetail, props))).not.toContain(
+      m.decision.action,
+    );
+    const act = { onDecide: () => {}, onUndo: () => {} };
+    expect(renderToStaticMarkup(createElement(DecisionDetail, { ...props, ...act }))).toContain(
+      m.decision.action,
+    );
   });
 });

@@ -65,10 +65,12 @@ const V2_SCREEN_RULES: [string, RegExp][] = [
  */
 const CODE_CLASS = /\bv2-code\b/;
 /** `{m.code}` or `{d.codes.join(', ')}` as JSX text; an attribute (`key={m.code}`) and a template part pass. */
-const CODE_AS_TEXT = /(?<![=\w$])\{\s*[\w.?]*\.codes?(?:\.join\([^)]*\))?\s*\}/;
+const CODE_AS_TEXT =
+  /(?<![=\w$])\{\s*(?:[\w?]+\.)*(?:codes?|\w+Codes?)(?:\[\d+\])?(?:\.join\([^)]*\))?\s*\}/;
 const ENTITY_WORD = /\b[A-Z]{2,5}-\d{1,4}\b/;
 const QUOTED = /'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`/g;
 const ALLOW_CODE = /\/\/\s*ui-allow:\s*entity-code\s+\S/;
+const SHELL_FILE = /^(?:screens\/v2\/|gallery\/v2-)(?:.+\/)?[^/]+\.tsx$/;
 const SHELL_IMPORT =
   /import\s*(?:type\s*)?\{[^}]*\bShell\b[^}]*\}\s*from\s*['"][^'"]*ui\/v2\/shell(?:\.js)?['"]/;
 
@@ -108,7 +110,7 @@ const inKit = (path: string) => path.startsWith('screens/v2/') || path.startsWit
 
 /** The entity-link rules for one line (rules 1 to 3); a comment-only line is never wrong. */
 function entityErrors(path: string, line: string, n: number): string[] {
-  if (COMMENT_ONLY.test(line)) return [];
+  if (COMMENT_ONLY.test(line) || ALLOW_CODE.test(line)) return [];
   const found: string[] = [];
   if (path !== 'ui/v2/entity-chip.tsx' && CODE_CLASS.test(line))
     found.push(`${path}:${n}: v2-code outside entity-chip.tsx; use EntityChip`);
@@ -135,10 +137,11 @@ export function uiErrors(files: UiFile[]): string[] {
         errors.push(`${path}:${i + 1}: lucide-react outside ui/icon.ts`);
       errors.push(...entityErrors(path, line, i + 1));
     });
-    const shell = /^screens\/v2\/(?:.+\/)?View\.tsx$/.test(path) && SHELL_IMPORT.exec(text);
+    const shell =
+      SHELL_FILE.test(path) && !path.endsWith('/EntityShell.tsx') && SHELL_IMPORT.exec(text);
     if (shell) {
       const at = text.slice(0, shell.index).split('\n').length;
-      errors.push(`${path}:${at}: Shell in a screen View; use EntityShell`);
+      errors.push(`${path}:${at}: Shell in a screen; use EntityShell`);
     }
     if (faces && path.endsWith('.tsx') && lines.length > FACES_LINES)
       errors.push(`${path}: ${lines.length} lines (faces limit ${FACES_LINES})`);

@@ -58,7 +58,7 @@ renders it as a link "Open full page" in the drawer footer (visible without scro
 - `EntityShell.tsx`: `<EntityShell nav title local? {...ShellProps minus drawer}>`. It wraps the kit `Shell`, provides
   `EntityOpenContext` from `useEntityParam`, loads the current entity with `useScreenModel('entity', ref)` and passes the
   drawer (label, detail content, `fullPage` from `entityHref`, `onClose`) to `Shell`. Loading shows the designed
-  skeleton, error and not-found states from `screen-states.tsx` inside the drawer. `local?: (ref: EntityRef) => DrawerSpec['content'] | null`
+  skeleton, error and not-found states from `screen-states.tsx` inside the drawer. `local?: (ref: EntityRef) => { label: string; content: ReactNode } | null`
   lets a screen supply an entity it holds live with its own actions (the Dashboard's decisions keep their Decide
   button); `null` falls through to the port.
 - **The Dashboard moves onto it**: delete its `useState` drawer and `drawer.tsx` selection code; its View renders
@@ -75,7 +75,7 @@ renders it as a link "Open full page" in the drawer footer (visible without scro
 3. In `screens/v2/**/fixture*.ts`: a quoted string that has a space in it and an entity-code word (`[A-Z]{2,5}-\d{1,4}`)
    outside `{{…}}` fails: "entity code in text; write {{machine:CODE|CODE}}". A bare `'VC-67'` is data, not prose,
    and passes. A line may carry `// ui-allow: entity-code <reason>`.
-4. A `screens/v2/**/View.tsx` that imports `Shell` from `ui/v2/shell` fails: use `EntityShell`.
+4. A `.tsx` under `screens/v2/` or `gallery/v2-*` (except `EntityShell`) that imports `Shell` from `ui/v2/shell` fails: use `EntityShell`.
 
 ## Done means
 

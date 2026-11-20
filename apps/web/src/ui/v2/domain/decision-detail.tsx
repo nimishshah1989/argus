@@ -25,7 +25,7 @@ export function DecisionDetail({
   words,
   source,
   ...act
-}: { d: DecisionData; words: DecisionDetailWords; source: string } & DecisionCallbacks) {
+}: { d: DecisionData; words: DecisionDetailWords; source: string } & Partial<DecisionCallbacks>) {
   return (
     <div className="v2-detail">
       <div className="v2-row v2-gap-8">
@@ -50,9 +50,11 @@ export function DecisionDetail({
       <DetailSection label={words.why}>
         <Points points={d.detail} />
       </DetailSection>
-      <div className="v2-row v2-gap-8">
-        <DecisionAction d={d} {...act} />
-      </div>
+      {act.onDecide && act.onUndo ? (
+        <div className="v2-row v2-gap-8">
+          <DecisionAction d={d} onDecide={act.onDecide} onUndo={act.onUndo} />
+        </div>
+      ) : null}
       <SourceLine text={source} />
     </div>
   );

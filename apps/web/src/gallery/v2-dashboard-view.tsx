@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { useNav } from '../screens/v2/nav.js';
-import { Shell } from '../ui/v2/shell.js';
+import { EntityShell } from '../screens/v2/entity/EntityShell.js';
 import { useScreenModel, type Provider } from '../screens/v2/data.js';
 import { DashboardView } from '../screens/v2/dashboard/View.js';
 import { ScreenStates } from '../ui/v2/screen-states.js';
@@ -37,9 +37,9 @@ export default function V2DashboardView() {
     });
   if (loaded.state !== 'ready' || !loaded.model)
     return (
-      <Shell nav={nav} title={title}>
+      <EntityShell nav={nav} title={title}>
         <ScreenStates loaded={loaded}>{() => null}</ScreenStates>
-      </Shell>
+      </EntityShell>
     );
   const model = loaded.model;
   return (

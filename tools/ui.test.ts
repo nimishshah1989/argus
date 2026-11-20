@@ -138,6 +138,8 @@ describe('check-ui', () => {
         'ui/v2/domain/b.tsx:1: a code printed as text; use EntityChip',
         'ui/v2/domain/b.tsx:2: a code printed as text; use EntityChip',
       ]);
+      const more = ['<p>{code}</p>', '<p>{m.machineCode}</p>', '<p>{d.codes[0]}</p>'].join('\n');
+      expect(check({ 'screens/v2/a/View.tsx': more })).toHaveLength(3);
       const good = [
         '<tr key={m.code} data-code={m.code} aria-label={`${m.code}, ${m.cell}`}>',
         '{d.codes.map((c) => <EntityChip key={c.id} {...c} />)}',
@@ -170,13 +172,19 @@ describe('check-ui', () => {
       const one = "import { Shell, type NavItem } from '../../../ui/v2/shell.js';";
       const many = "import {\n  type NavItem,\n  Shell,\n} from '../../../ui/v2/shell';";
       expect(check({ 'screens/v2/a/View.tsx': one, 'screens/v2/b/View.tsx': many })).toEqual([
-        'screens/v2/a/View.tsx:1: Shell in a screen View; use EntityShell',
-        'screens/v2/b/View.tsx:1: Shell in a screen View; use EntityShell',
+        'screens/v2/a/View.tsx:1: Shell in a screen; use EntityShell',
+        'screens/v2/b/View.tsx:1: Shell in a screen; use EntityShell',
       ]);
       const ok = "import { EntityShell } from '../entity/EntityShell.js';";
       const type = "import type { NavItem } from '../../../ui/v2/shell.js';";
       expect(check({ 'screens/v2/a/View.tsx': `${ok}\n${type}` })).toEqual([]);
       expect(check({ 'screens/v2/entity/EntityShell.tsx': one })).toEqual([]);
+      expect(check({ 'gallery/v2-x-view.tsx': one })).toEqual([
+        'gallery/v2-x-view.tsx:1: Shell in a screen; use EntityShell',
+      ]);
+      expect(check({ 'screens/v2/a/Page.tsx': one })).toEqual([
+        'screens/v2/a/Page.tsx:1: Shell in a screen; use EntityShell',
+      ]);
     });
   });
 });

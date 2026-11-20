@@ -4,11 +4,9 @@ import { MachineDetail } from '../../../ui/v2/domain/machine-detail.js';
 import { PersonDetail } from '../../../ui/v2/domain/person-detail.js';
 import type { EntityModel } from './model.js';
 
-const ignore = () => {};
-
 /**
- * The drawer's content for what the port sent. A decision here is shown without its Decide button taking effect: a
- * screen that holds decisions live supplies its own through `EntityShell`'s `local`.
+ * The drawer's content for what the port sent. A decision here has no Decide button: a screen that holds decisions
+ * live supplies its own, with the button, through `EntityShell`'s `local`.
  */
 export function EntityDetail({ model }: { model: EntityModel }) {
   switch (model.kind) {
@@ -20,13 +18,7 @@ export function EntityDetail({ model }: { model: EntityModel }) {
       return <PersonDetail p={model.person} words={model.words} source={model.source} />;
     case 'decision':
       return (
-        <DecisionDetail
-          d={model.decision}
-          words={model.words}
-          source={model.source}
-          onDecide={ignore}
-          onUndo={ignore}
-        />
+        <DecisionDetail d={model.decision} words={model.words} source={model.source} />
       );
   }
 }

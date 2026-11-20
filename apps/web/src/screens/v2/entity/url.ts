@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { EntityKind, EntityRef } from '../../../ui/v2/entity-chip.js';
 
@@ -39,15 +40,22 @@ export function useEntityParam(): {
   const { search, state } = useLocation();
   const navigate = useNavigate();
   const current = entityFrom(search);
+  const back = useRef(false);
+  useEffect(() => {
+    back.current = false;
+  }, [search]);
   return {
     current,
     open: (ref) =>
       current
         ? navigate({ search: searchWith(search, ref) }, { replace: true, state })
         : navigate({ search: searchWith(search, ref) }, { state: OURS }),
-    close: () =>
-      isOurs(state)
-        ? navigate(-1)
-        : navigate({ search: searchWith(search, null) }, { replace: true, state }),
+    // Back is sent once until the address changes: a double press must not step out of the page.
+    close: () => {
+      if (!isOurs(state)) return navigate({ search: searchWith(search, null) }, { replace: true, state });
+      if (back.current) return;
+      back.current = true;
+      navigate(-1);
+    },
   };
 }

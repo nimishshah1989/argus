@@ -27,7 +27,9 @@ const same = (a: EntityRef | null, b: EntityRef) => a?.kind === b.kind && a.id =
  * it arrived) is not shown: the drawer says "loading" until the right one is here.
  */
 function useEntity(asked: EntityRef | null, fetch: boolean): Loaded<EntityModel> {
-  const loaded = useScreenModel('entity', asked ?? NONE, asked && fetch ? undefined : NOT_ASKED);
+  // The params change when a screen stops holding the entity, so that starts the load a never-answering provider skipped.
+  const params = asked && fetch ? asked : NONE;
+  const loaded = useScreenModel('entity', params, asked && fetch ? undefined : NOT_ASKED);
   const m = loaded.model;
   const current = loaded.state === 'ready' && m && asked && same(asked, { kind: m.kind, id: m.id });
   return current || loaded.state !== 'ready'
