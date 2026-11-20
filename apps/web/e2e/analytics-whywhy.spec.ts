@@ -11,6 +11,10 @@ import { MACHINES, apiLogin, raiseTicketViaApi, signIn } from './fixtures.js';
  * figures reply is refetched, and downloads the saved record's PDF. The figures reply is stubbed (the face's
  * established seam) but is built from the real saved record, so the row can only read Completed after the
  * server accepted the save.
+ *
+ * Two candidates, on purpose: the engine lists rows worst hours first but sorts the drill ids, so the first row's
+ * ticket is made the one whose id sorts LAST. A screen that paired rows with tickets by position in the drill would
+ * save the first row's Why-Why on the second ticket; the test reads both tickets back to prove it did not.
  */
 
 type Figure = FiguresReply['figures'][number];
@@ -31,35 +35,58 @@ const WHYS = [
   'The PM checklist missed the filter',
 ];
 const CONCLUSION = 'The bearing was worn because the oil line was blocked.';
+const WORST_PROBLEM = 'A6: spindle noise';
+const OTHER_PROBLEM = 'A6: coolant leak';
 
-let ticket: Ticket;
+/** The worst-hours candidate (the first row) and the other one; the first's id sorts after the second's. */
+let worst: Ticket;
+let other: Ticket;
 let headToken: string;
 let headName: string;
 
-test.beforeAll(async () => {
+/** A closed breakdown report on the machine: a ticket the A6 list could name. */
+async function closedTicket(problem: string): Promise<Ticket> {
   const operator = await apiLogin('op');
   const maintenance = await apiLogin('asha');
-  headToken = await apiLogin('head');
   const personId = (await getJson<Me>(maintenance, '/api/v1/auth/me')).user.actingPersonId;
-  const raised = await raiseTicketViaApi(operator, MACHINE.id, 'A6: spindle noise');
+  const raised = await raiseTicketViaApi(operator, MACHINE.id, problem);
   await commandViaApi(maintenance, raised.id, 'start', { personId });
   await commandViaApi(maintenance, raised.id, 'close', {
     personId,
     kind: 'report',
     report: {
-      problem: 'A6: spindle noise',
+      problem,
       correctiveAction: 'Replaced the bearing',
       doneByPersonIds: [personId],
       failureComponent: 'M',
     },
   });
-  ticket = raised;
+  return raised;
+}
+
+test.beforeAll(async () => {
+  headToken = await apiLogin('head');
+  const first = await closedTicket(WORST_PROBLEM);
+  const second = await closedTicket(OTHER_PROBLEM);
+  // The rows are worst first and the drill ids are sorted, so make the worst row's ticket the later id.
+  [other, worst] = first.id < second.id ? [first, second] : [second, first];
   const me = (await getJson<Me>(headToken, '/api/v1/auth/me')).user;
   headName = me.actingPerson?.name ?? me.name;
 });
 
-/** A6's key page, with the row's status read from the real saved record. */
-function a6Figure(completed: boolean): Figure {
+const rowOf = (ticket: Ticket, problem: string, completed: boolean): string[] => [
+  MACHINE.code,
+  DATE,
+  problem,
+  ticket === worst ? '13.00' : '12.50',
+  completed ? 'Completed' : 'Not Started',
+  completed ? 'View / EditPDF' : 'Start Why-Why',
+];
+
+/** A6's key page: two candidates worst first, each row's status read from its real saved record. */
+function a6Figure(completed: { worst: boolean; other: boolean }): Figure {
+  const problemOf = (ticket: Ticket) => (ticket === worst ? WORST_PROBLEM : OTHER_PROBLEM);
+  const ordered = [worst, other];
   return {
     key: 'a6-why-why',
     screen: 'a6-why-why',
@@ -77,36 +104,36 @@ function a6Figure(completed: boolean): Figure {
             {
               title: 'Why-Why (Root Cause) Analysis',
               header: ['Machine', 'Date', 'Problem', 'Down (Hrs)', 'Status', ''],
-              rows: [
-                [
-                  MACHINE.code,
-                  DATE,
-                  'A6: spindle noise',
-                  '13.00',
-                  completed ? 'Completed' : 'Not Started',
-                  completed ? 'View / EditPDF' : 'Start Why-Why',
-                ],
-              ],
-              rowCount: 1,
+              rows: ordered.map((ticket) =>
+                rowOf(
+                  ticket,
+                  problemOf(ticket),
+                  ticket === worst ? completed.worst : completed.other,
+                ),
+              ),
+              rowCount: 2,
+              rowTicketIds: ordered.map((ticket) => ticket.id),
             },
           ],
           charts: [],
         },
       ],
     },
-    drill: { type: 'ticket', ids: [ticket.id] },
+    // The engine sorts the drill ids, so they are NOT in row order.
+    drill: { type: 'ticket', ids: [worst.id, other.id].sort() },
   };
 }
 
 async function stubFigures(page: Page): Promise<void> {
   await page.route('**/api/v1/analytics/figures', async (route) => {
-    const record = await getJson<unknown | null>(headToken, `/api/v1/tickets/${ticket.id}/why-why`);
+    const saved = async (ticket: Ticket) =>
+      (await getJson<unknown | null>(headToken, `/api/v1/tickets/${ticket.id}/why-why`)) !== null;
     const reply: FiguresReply = {
       asOf: AS_OF,
       profile: {} as FiguresReply['profile'],
       excludedMachines: 0,
-      rows: { machines: 12, moves: 0, tickets: 1, tasks: 0, reports: 1, people: 4 },
-      figures: [a6Figure(record !== null)],
+      rows: { machines: 12, moves: 0, tickets: 2, tasks: 0, reports: 2, people: 4 },
+      figures: [a6Figure({ worst: await saved(worst), other: await saved(other) })],
     };
     await route.fulfill({ json: reply });
   });
@@ -146,6 +173,19 @@ test('a head starts a Why-Why on the first candidate, saves it, sees Completed a
 
   await expect(form.getByText('Saved.', { exact: true })).toBeVisible();
   await expect(row.getByText('Completed', { exact: true })).toBeVisible();
+
+  // The record went to the clicked row's own ticket, and the other candidate is untouched.
+  const saved = await getJson<{ conclusion: string } | null>(
+    headToken,
+    `/api/v1/tickets/${worst.id}/why-why`,
+  );
+  expect(saved?.conclusion).toBe(CONCLUSION);
+  expect(
+    await getJson<unknown | null>(headToken, `/api/v1/tickets/${other.id}/why-why`),
+  ).toBeNull();
+  await expect(
+    table.getByRole('row').nth(2).getByText('Not Started', { exact: true }),
+  ).toBeVisible();
 
   const download = page.waitForEvent('download');
   await form.getByRole('button', { name: 'Download PDF', exact: true }).click();
