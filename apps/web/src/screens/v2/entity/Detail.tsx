@@ -17,8 +17,6 @@ export function EntityDetail({ model }: { model: EntityModel }) {
     case 'person':
       return <PersonDetail p={model.person} words={model.words} source={model.source} />;
     case 'decision':
-      return (
-        <DecisionDetail d={model.decision} words={model.words} source={model.source} />
-      );
+      return <DecisionDetail d={model.decision} words={model.words} source={model.source} />;
   }
 }

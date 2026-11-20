@@ -52,7 +52,8 @@ export function useEntityParam(): {
         : navigate({ search: searchWith(search, ref) }, { state: OURS }),
     // Back is sent once until the address changes: a double press must not step out of the page.
     close: () => {
-      if (!isOurs(state)) return navigate({ search: searchWith(search, null) }, { replace: true, state });
+      if (!isOurs(state))
+        return navigate({ search: searchWith(search, null) }, { replace: true, state });
       if (back.current) return;
       back.current = true;
       navigate(-1);

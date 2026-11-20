@@ -29,7 +29,8 @@ export function Drawer({ drawer }: { drawer: DrawerSpec | null }) {
     if (open === undefined) return;
     back.current ??= document.activeElement as HTMLElement | null;
     close.current?.focus({ preventScroll: true });
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !e.defaultPrevented && onClose.current?.();
+    const onKey = (e: KeyboardEvent) =>
+      e.key === 'Escape' && !e.defaultPrevented && onClose.current?.();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
