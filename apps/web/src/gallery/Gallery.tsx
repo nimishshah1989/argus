@@ -74,6 +74,21 @@ const V2DashboardView = () => (
   </Suspense>
 );
 
+// The v2 Team Focus and Compare on their fixtures (batch 1): each its own chunk.
+const V2TeamFocus = lazy(() => import('./v2-team-focus-view.js'));
+const V2TeamFocusView = () => (
+  <Suspense fallback={null}>
+    <V2TeamFocus />
+  </Suspense>
+);
+
+const V2Compare = lazy(() => import('./v2-compare-view.js'));
+const V2CompareView = () => (
+  <Suspense fallback={null}>
+    <V2Compare />
+  </Suspense>
+);
+
 // The v2 Machine page on its fixture: `&id=VC-67` picks the machine; its own chunk too.
 const V2Machine = lazy(() => import('./v2-machine-view.js'));
 const V2MachineView = () => (
@@ -105,6 +120,8 @@ const VIEWS: Record<string, () => React.JSX.Element> = {
   charts: ChartDoorView,
   templates: TemplatesView,
   'v2-dashboard': V2DashboardView,
+  'v2-team-focus': V2TeamFocusView,
+  'v2-compare': V2CompareView,
   'v2-machine': V2MachineView,
   'v2-action-center': V2ActionCenterView,
   'v2-data-checklist': V2DataChecklistView,

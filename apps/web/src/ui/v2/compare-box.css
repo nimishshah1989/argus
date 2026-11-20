@@ -1,0 +1,33 @@
+/* A compared thing's figures: label and hint, the figure in the number face, and who is ahead. Two boxes side by side
+   share the same rows, so each line meets its twin. Tokens only. */
+
+.v2-compare-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.v2-compare-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-v2-inner);
+  min-height: 56px;
+  border-top: 1px solid var(--color-v2-line-soft);
+}
+.v2-compare-label {
+  color: var(--color-v2-ink);
+  font-size: var(--text-v2-body);
+  font-weight: 600;
+}
+.v2-compare-value {
+  min-width: 72px;
+  color: var(--color-v2-ink);
+  font-size: var(--text-v2-body);
+  text-align: right;
+}
+.v2-compare-row > .v2-pill {
+  min-width: 96px;
+  justify-content: center;
+}

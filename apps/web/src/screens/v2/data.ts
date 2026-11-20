@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import type { EntityRef } from '../../ui/v2/entity-chip.js';
 import type { LoadState, Loaded } from '../../ui/v2/screen-states.js';
+import type { CompareModel, CompareParams } from './compare/model.js';
 import type { ActionCenterModel } from './action-center/model.js';
 import type { DashboardModel } from './dashboard/model.js';
 import type { DataChecklistModel } from './data-checklist/model.js';
 import type { EntityModel } from './entity/model.js';
+import type { TeamFocusModel } from './team-focus/model.js';
 import type { MachinePageModel } from './machine/model.js';
 
 /**
@@ -16,6 +18,8 @@ export type Screens = {
   dashboard: { params: Record<string, never>; model: DashboardModel };
   /** One machine, cell, person or decision, for the drawer on any screen; nothing when it is not found. */
   entity: { params: EntityRef; model: EntityModel };
+  compare: { params: CompareParams; model: CompareModel };
+  'team-focus': { params: Record<string, never>; model: TeamFocusModel };
   /** One machine's own page; nothing when the code is not a machine of the plant. */
   machine: { params: { id: string }; model: MachinePageModel };
   'action-center': { params: Record<string, never>; model: ActionCenterModel };
@@ -33,6 +37,8 @@ export type Provider<K extends ScreenKey> = (
 const PROVIDERS: { [K in ScreenKey]: Provider<K> } = {
   dashboard: () => import('./dashboard/fixture.js').then((m) => m.dashboardFixture),
   entity: (ref) => import('./entity/fixture.js').then((m) => m.entityFixture(ref)),
+  compare: (pair) => import('./compare/fixture.js').then((m) => m.compareFixture(pair)),
+  'team-focus': () => import('./team-focus/fixture.js').then((m) => m.teamFocusFixture),
   machine: ({ id }) => import('./machine/fixture.js').then((m) => m.machineFixture(id)),
   'action-center': () => import('./action-center/fixture.js').then((m) => m.actionCenterFixture),
   'data-checklist': () => import('./data-checklist/fixture.js').then((m) => m.dataChecklistFixture),
