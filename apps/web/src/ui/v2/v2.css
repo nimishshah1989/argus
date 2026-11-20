@@ -35,17 +35,6 @@
   font-variant-numeric: tabular-nums;
   font-weight: 500;
 }
-.v2-code {
-  padding: 2px 7px;
-  border-radius: 6px;
-  background: var(--color-v2-track);
-  font-family: var(--font-v2-mono);
-  font-size: var(--text-v2-label);
-  white-space: nowrap;
-}
-.v2-code[data-cat] {
-  border-left: 3px solid var(--v2-cat);
-}
 [data-cat='1'] {
   --v2-cat: var(--color-v2-cat-1);
 }

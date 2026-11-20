@@ -40,6 +40,9 @@ const PATHS = {
   gauge: ['M12 14 16 9', 'M3.5 17a9 9 0 1 1 17 0'],
   list: ['M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01'],
   inbox: ['M3 13h5l1 3h6l1-3h5', 'M5 5h14l2 8v6H3v-6z'],
+  cell: ['M4 4h7v7H4z', 'M13 4h7v7h-7z', 'M4 13h7v7H4z', 'M13 13h7v7h-7z'],
+  person: ['M12 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z', 'M5 20c0-3.5 3-6 7-6s7 2.5 7 6'],
+  decision: ['M5 21V4', 'M5 4h12l-2.5 4L17 12H5'],
 } as const;
 
 export type IconName = keyof typeof PATHS;

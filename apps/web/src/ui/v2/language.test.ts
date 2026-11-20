@@ -9,7 +9,15 @@ import { Row } from './row.js';
 import { ScreenStates } from './screen-states.js';
 
 const html = (el: ReactElement) => renderToStaticMarkup(el);
-const SHEETS = ['v2.css', 'cards.css', 'shell.css', 'table.css', 'domain.css', 'motion.css'];
+const SHEETS = [
+  'v2.css',
+  'cards.css',
+  'shell.css',
+  'table.css',
+  'domain.css',
+  'entity-chip.css',
+  'motion.css',
+];
 const css = (name: string) =>
   readFileSync(new URL(name, import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
 const kit = SHEETS.map(css).join('\n');

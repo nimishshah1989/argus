@@ -37,15 +37,15 @@ export function ErrorState({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-/** Loaded, but nothing to show. */
-export function EmptyState() {
+/** Loaded, but nothing to show; `text` says what is missing when "nothing to show" is too vague (a thing not found). */
+export function EmptyState({ text }: { text?: string }) {
   const { t } = useTranslation();
   return (
     <div className="v2-states v2-state-box" data-state="empty">
       <span className="v2-sub">
         <Icon name="inbox" size={24} />
       </span>
-      <p>{t('analytics.state.empty')}</p>
+      <p>{text ?? t('analytics.state.empty')}</p>
     </div>
   );
 }
@@ -53,9 +53,11 @@ export function EmptyState() {
 /** The one place a screen's load state turns into what the reader sees; `children` draws the ready model. */
 export function ScreenStates<M>({
   loaded,
+  emptyText,
   children,
 }: {
   loaded: Loaded<M>;
+  emptyText?: string;
   children: (model: M) => ReactNode;
 }) {
   if (loaded.state === 'ready' && loaded.model !== undefined) return children(loaded.model);
@@ -63,7 +65,7 @@ export function ScreenStates<M>({
     loaded.state === 'error' ? (
       <ErrorState onRetry={loaded.retry} />
     ) : loaded.state === 'empty' ? (
-      <EmptyState />
+      <EmptyState text={emptyText} />
     ) : (
       <Skeleton />
     );

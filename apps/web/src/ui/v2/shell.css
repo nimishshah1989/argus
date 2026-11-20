@@ -164,7 +164,7 @@
   top: 0;
   height: 100vh;
   height: 100dvh;
-  overflow: hidden auto;
+  overflow: hidden;
   border-left: 1px solid var(--color-v2-line);
   background: var(--color-v2-glass);
   box-shadow: var(--shadow-v2-overlay);
@@ -175,10 +175,23 @@
   box-shadow: none;
 }
 .v2-drawer-body {
-  position: relative;
+  display: flex;
+  flex-direction: column;
   width: var(--size-v2-drawer);
-  padding: 20px;
+  height: 100%;
   animation: v2-slide-in var(--motion-v2-ui) var(--ease-v2);
+}
+/* The detail scrolls; the footer (Open full page) stays in sight under it. */
+.v2-drawer-scroll {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  padding: 20px;
+  overflow: hidden auto;
+}
+.v2-drawer-foot {
+  padding: 12px 20px;
+  border-top: 1px solid var(--color-v2-line);
 }
 .v2-drawer-close {
   position: absolute;
@@ -256,6 +269,7 @@
   .v2-why,
   .v2-chev,
   .v2-btn,
+  .v2-entity,
   .v2-icon-btn {
     transition: none;
   }
@@ -264,6 +278,7 @@
     animation: none;
   }
   .v2-btn:active,
+  .v2-entity:active,
   .v2-icon-btn:active,
   .v2-chip:active {
     transform: none;
