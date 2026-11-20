@@ -1,3 +1,4 @@
+/* eslint-disable i18next/no-literal-string -- the template's kind and state are prop values, not copy */
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useActionCenterBoard, useAnalyticsFigures } from '../../api.js';

@@ -127,6 +127,32 @@ describe('the Dashboard from the engine’s own reply', () => {
     );
   });
 
+  it('opens exactly the rows a count card counts: the card’s number is the number of rows behind it', () => {
+    const counted = [
+      'total-machines',
+      'utilities',
+      'dg-sets',
+      'cnc-machines',
+      'conventional-machines',
+      'process-machines',
+      'total-breakdowns',
+    ];
+    for (const name of counted) {
+      const figure = real.figures.find((f) => f.key === `dashboard.${name}`)!;
+      const card = cards(model()).find((k) => k.id === figure.key)!;
+      expect(Number(card.value.replace(/,/g, '')), name).toBe(figure.drill.ids.length);
+    }
+    const free = real.figures.find((f) => f.key === 'dashboard.breakdown-free')!;
+    expect(cards(model()).find((k) => k.id === free.key)!.value).toMatch(
+      new RegExp(`^${free.drill.ids.length} of `),
+    );
+  });
+
+  it('gives a figure that counted nothing no control, rather than one that opens an empty panel', () => {
+    const events = cards(model()).find((k) => k.id === 'dashboard.plant-events')!;
+    expect(events.drill).toBeUndefined();
+  });
+
   it('shows no money to anyone: Today never did', () => {
     expect(printed(model({ board: board(2, 1) })).some((text) => text.includes('₹'))).toBe(false);
   });

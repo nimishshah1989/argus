@@ -126,7 +126,7 @@ export const label = (key: string, t: Translate): string =>
 /** The row's way to its rows: every v1 figure that named rows still opens them. */
 export function drillOf(figure: Figure, t: Translate): Drill | undefined {
   return figure.drill.ids.length > 0
-    ? { figure: figure.key, label: fill(t('v2d.drill'), { figure: label(figure.key, t) }) }
+    ? { figure: figure.key, label: fill(t('v2m.rows.open'), { figure: label(figure.key, t) }) }
     : undefined;
 }
 

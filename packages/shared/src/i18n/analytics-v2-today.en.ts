@@ -14,8 +14,6 @@ export const analyticsV2TodayEn = {
     'Each figure says what it covers: the year so far, or every record to date. Changes are always against the same figure 30 days earlier, on the date shown.',
   'v2d.why.needs':
     'Needs you now means a breached acknowledge or restore clock, a paused breakdown waiting on someone, or a follow-up task past its date.',
-  'v2d.why.money':
-    'No money is shown on this page; the Money screens carry it for the roles that may see it.',
   'v2d.vs': 'vs {date}',
   'v2d.added': 'added in {days} days',
   'v2d.cover.ytd': 'Year to date',
@@ -24,7 +22,6 @@ export const analyticsV2TodayEn = {
   'v2d.cover.clean': 'Last 30 days',
   'v2d.line': '{cover} · {what}',
   'v2d.notComputed': 'Not computed yet',
-  'v2d.drill': 'Show the rows behind {figure}',
   'v2d.section.running': 'How the plant is running',
   'v2d.section.running.sub':
     'Availability and the breakdown share cover the year so far; the two totals cover every record to date.',

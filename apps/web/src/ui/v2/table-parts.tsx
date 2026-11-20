@@ -92,6 +92,18 @@ export function TablePager({
   );
 }
 
+/** The table's title, with its one quiet line when it has one. */
+function TableTitle({ title, sub }: { title: string; sub?: string }) {
+  return sub ? (
+    <div>
+      <h2 className="v2-h2">{title}</h2>
+      <p className="v2-sub">{sub}</p>
+    </div>
+  ) : (
+    <h2 className="v2-h2">{title}</h2>
+  );
+}
+
 /** The table's title, its search and its filter chips (one chosen at a time). */
 export function TableBar({
   title,
@@ -121,14 +133,7 @@ export function TableBar({
 }) {
   return (
     <div className="v2-table-bar">
-      {sub ? (
-        <div>
-          <h2 className="v2-h2">{title}</h2>
-          <p className="v2-sub">{sub}</p>
-        </div>
-      ) : (
-        <h2 className="v2-h2">{title}</h2>
-      )}
+      <TableTitle title={title} sub={sub} />
       {aside}
       {hideSearch ? null : (
         <label className="v2-table-search">

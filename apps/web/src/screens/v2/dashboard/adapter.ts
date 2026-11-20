@@ -8,7 +8,7 @@ import { COMPARE_DAYS, priorDate } from '../../analytics/today-change.js';
 import { sentence } from '../figures/point.js';
 import { dayText, sourceLine, type Translate } from '../figures/read.js';
 import { GROUPS, NO_VALUE, dash, drillOf, kpiOf, valueOf } from './cards.js';
-import type { DashboardFacts, DashboardModel, NeedsModel } from './model.js';
+import type { DashboardFacts, DashboardModel } from './model.js';
 import { bubblePoints, costliestOf, machinesTable, needsOf, warningOf } from './tables.js';
 import { needsNow } from './needs.js';
 
@@ -16,7 +16,6 @@ type Figure = FiguresReply['figures'][number];
 
 function verdictOf(
   figure: Figure | undefined,
-  needs: NeedsModel,
   open: DashboardFacts['open'],
   ctx: { reply: FiguresReply; prior: FiguresReply | undefined; priorDay: string },
   t: Translate,
@@ -42,13 +41,33 @@ function verdictOf(
     ctx.prior ? t('analytics.today.vs', { date: ctx.priorDay, days: COMPARE_DAYS }) : null,
   ].filter((part) => part !== null);
   return {
-    headline: [
-      { text: first, ...(needs.state === 'ready' && needs.table ? { tone: 'risk' as const } : {}) },
-      ...fleet,
-    ],
+    headline: [{ text: first, ...(items ? { tone: 'risk' as const } : {}) }, ...fleet],
     context: parts.join(' · '),
     why: [[{ text: t('v2d.why.cover') }], [{ text: t('v2d.why.needs') }]],
   };
+}
+
+/** The bubble chart and the expansion timeline as the engine drew them in v1, each with its rows behind it. */
+function chartsOf(reply: FiguresReply, t: Translate): DashboardModel['charts'] {
+  const pictures = [
+    ['bubble-chart', 'v2d.bubble.sub', 'v2d.bubble.aria'],
+    ['expansion-timeline', 'v2d.timeline.sub', 'v2d.timeline.aria'],
+  ] as const;
+  return pictures.flatMap(([name, sub, aria]) => {
+    const figure = reply.figures.find((f) => f.key === dash(name));
+    const content = figure ? contentOf(figure, t as unknown as TFunction) : null;
+    if (!figure || content?.kind !== 'chart') return [];
+    const drill = drillOf(figure, t);
+    return [
+      {
+        id: figure.key,
+        spec: content.spec,
+        sub: t(sub),
+        aria: t(aria),
+        ...(drill ? { drill } : {}),
+      },
+    ];
+  });
 }
 
 /**
@@ -77,27 +96,10 @@ export function dashboardModel(facts: DashboardFacts, translate: Translate): Das
     }),
   }));
   const costliest = figureOf(dash('costliest-problems'));
-  const bubble = figureOf(dash('bubble-chart'));
-  const timeline = figureOf(dash('expansion-timeline'));
-  const chartOf = (figure: Figure | undefined, sub: string, aria: string) => {
-    const content = figure ? contentOf(figure, t as unknown as TFunction) : null;
-    if (!figure || content?.kind !== 'chart') return [];
-    const drill = drillOf(figure, t);
-    return [
-      {
-        id: figure.key,
-        spec: content.spec,
-        sub: t(sub),
-        aria: t(aria),
-        ...(drill ? { drill } : {}),
-      },
-    ];
-  };
   const banner = board === null ? null : bannerOf(board);
   return {
     verdict: verdictOf(
       figureOf(dash('fleet-availability')),
-      needs,
       open,
       { reply, prior, priorDay: ctx.priorDay },
       t,
@@ -114,11 +116,8 @@ export function dashboardModel(facts: DashboardFacts, translate: Translate): Das
     sections: sections.filter((s) => s.kpis.length > 0),
     costliest: costliest ? costliestOf(costliest, t) : null,
     warning: warningOf(reply, machines, t),
-    charts: [
-      ...chartOf(bubble, 'v2d.bubble.sub', 'v2d.bubble.aria'),
-      ...chartOf(timeline, 'v2d.timeline.sub', 'v2d.timeline.aria'),
-    ],
-    machines: machinesTable(bubblePoints(bubble), machines, t),
+    charts: chartsOf(reply, t),
+    machines: machinesTable(bubblePoints(figureOf(dash('bubble-chart'))), machines, t),
     source: sourceLine(t('v2m.source'), reply.asOf),
     words: { why: t('v2m.why') },
   };
