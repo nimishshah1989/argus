@@ -66,7 +66,7 @@ test('Ctrl K opens a search over every page, typing narrows it, Enter goes there
   await expect(palette.getByRole('option')).toContainText('Screen in Problems');
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/analytics\/breakdowns\?screen=a3-mttr-mtbf$/);
-  await expect(page.getByRole('heading', { name: 'Problems', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'MTTR and MTBF' })).toBeVisible();
 
   await page.goto('/analytics/machines');
   await expect(searchButton(page)).toBeVisible();

@@ -43,28 +43,6 @@ const MACHINES_MENU = [
 /** Each screen: its path, its group's menu, and its own part after the shell and the menu. */
 export const SCREENS: [string, string[], string[]][] = [
   [
-    '/analytics/breakdowns?screen=a1-bd-pm',
-    BREAKDOWNS_MENU,
-    [
-      'h2: Breakdown ag',
-      'summary: Show the num',
-      'summary: Show the num',
-      'h3: By cell',
-      'h3: By month',
-      'a: See the rows',
-    ],
-  ],
-  [
-    '/analytics/breakdowns?screen=a2-category-cell',
-    BREAKDOWNS_MENU,
-    ['h2: Category and', 'summary: Show the num', 'h3: By category'],
-  ],
-  [
-    '/analytics/breakdowns?screen=a3-mttr-mtbf',
-    BREAKDOWNS_MENU,
-    ['h2: MTTR and MTB', 'summary: Show the num', 'h3: By category'],
-  ],
-  [
     '/analytics/breakdowns?screen=a4-manpower',
     BREAKDOWNS_MENU,
     [

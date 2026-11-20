@@ -21,6 +21,9 @@ const SCREENS = [
   ['breakdowns', 'shift-kpis', 'Shift-calendar KPIs'],
   ['forecast-scorecard', 'a9-bottleneck-forecast', 'Bottleneck Analysis'],
   ['forecast-scorecard', 'forecast-lab', 'Forecast Lab'],
+  ['breakdowns', 'a1-bd-pm', 'BD % and PM split'],
+  ['breakdowns', 'a2-category-cell', 'Category and cell'],
+  ['breakdowns', 'a3-mttr-mtbf', 'MTTR and MTBF'],
 ] as const;
 
 const draw = (props: PageProps, loaded: { state: LoadState }, lastGood?: unknown) =>
@@ -54,7 +57,7 @@ describe('moving between two live screens', () => {
   });
 });
 
-describe('Energy, Shift-calendar KPIs, Bottleneck and Forecast Lab in every state that is not the page', () => {
+describe('Energy, Shift-calendar KPIs, Bottleneck, Forecast Lab, BD % and PM split, Category and cell and MTTR and MTBF in every state that is not the page', () => {
   for (const [group, screen, title] of SCREENS) {
     const { props } = pageOf(group, screen);
     const states: LoadState[] = ['loading', 'error', 'empty', 'offline', 'refused'];

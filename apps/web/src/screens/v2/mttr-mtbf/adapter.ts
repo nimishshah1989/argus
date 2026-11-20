@@ -1,5 +1,6 @@
 import type { TFunction } from 'i18next';
 import { fill } from '../../../i18n/fill.js';
+import type { Translate } from '../figures/read.js';
 import {
   byTitle,
   chartOf,
@@ -19,8 +20,9 @@ import {
 import { say, strong } from '../printed-page/segs.js';
 import { verdictOf } from '../printed-page/verdict.js';
 import { pageWords } from '../printed-page/words.js';
+import { seeRowsFor } from '../rows-behind/drill.js';
 
-const KEY = 'a3-mttr-mtbf';
+export const FIGURE = 'a3-mttr-mtbf';
 const CELL_MONTHS = 'Month-on-Month MTTR & MTBF — Cell-wise and Plant-wide';
 const CELLS = 'By Cell';
 const MACHINES = 'By Individual Machine';
@@ -34,10 +36,11 @@ const MACHINE_CHIPS = 2;
  * the plant's own year figures, the engine's last column of its plant-wide row, and the cell that is slowest to fix.
  */
 export function mttrMtbfModel(reply: FiguresPart, t: TFunction): PrintedPageModel | null {
-  const page = pageOf(figureOf(reply, KEY), t);
+  const page = pageOf(figureOf(reply, FIGURE), t);
   if (page === null) return null;
   const words = pageWords(t, 'v2r.mm.source');
   const source = fill(words.source, { date: shortDate(reply.asOf) });
+  const say_: Translate = (key, values) => t(key, { ...values }) as string;
   const months = byTitle(page, CELL_MONTHS);
   const plant = (half: { rows: string[][] } | undefined): string | undefined => {
     const row = half?.rows.find((r) => /^plant total/i.test(r[0] ?? ''));
@@ -72,6 +75,7 @@ export function mttrMtbfModel(reply: FiguresPart, t: TFunction): PrintedPageMode
           ]
         : [],
     ),
+    drill: seeRowsFor(reply, FIGURE, say_),
     source,
     words,
   };

@@ -67,7 +67,7 @@ test('Ctrl K opens a search over the real routes and Enter goes there', async ({
   await expect(palette.getByRole('option')).toHaveCount(1);
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/analytics\/breakdowns\?screen=a3-mttr-mtbf$/);
-  await expect(page.getByRole('heading', { name: 'Problems', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'MTTR and MTBF' })).toBeVisible();
 
   // Esc closes it and the focus goes back to the Search button.
   await page.getByRole('button', { name: /^Search/ }).click();
