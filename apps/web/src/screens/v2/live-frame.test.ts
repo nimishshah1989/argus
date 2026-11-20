@@ -23,6 +23,9 @@ const SCREENS = [
   ['breakdowns', 'a6-why-why', 'Why-Why'],
   ['forecast-scorecard', 'a9-bottleneck-forecast', 'Bottleneck Analysis'],
   ['forecast-scorecard', 'forecast-lab', 'Forecast Lab'],
+  ['breakdowns', 'a1-bd-pm', 'BD % and PM split'],
+  ['breakdowns', 'a2-category-cell', 'Category and cell'],
+  ['breakdowns', 'a3-mttr-mtbf', 'MTTR and MTBF'],
 ] as const;
 
 const draw = (props: PageProps, loaded: { state: LoadState }, lastGood?: unknown) =>
@@ -56,7 +59,7 @@ describe('moving between two live screens', () => {
   });
 });
 
-describe('Energy, Shift-calendar KPIs, Manpower, Why-Why, Bottleneck and Forecast Lab in every state that is not the page', () => {
+describe('Energy, Shift-calendar KPIs, Manpower, Why-Why, Bottleneck, Forecast Lab, BD % and PM split, Category and cell and MTTR and MTBF in every state that is not the page', () => {
   for (const [group, screen, title] of SCREENS) {
     const { props } = pageOf(group, screen);
     const states: LoadState[] = ['loading', 'error', 'empty', 'offline', 'refused'];
@@ -109,5 +112,35 @@ describe('a screen that has drawn once', () => {
   it('replaces the page when the refresh brings news: nothing computed, or a refusal', () => {
     for (const state of ['empty', 'refused'] as const)
       expect(draw(drawn, { state }, 'model'), state).not.toContain('the page');
+  });
+});
+
+describe('the section’s screens row', () => {
+  const { props } = pageOf('breakdowns', 'a1-bd-pm');
+  const as = (role: string) => {
+    const client = new QueryClient();
+    client.setQueryData(['me'], { user: { role } });
+    return renderToStaticMarkup(
+      h(
+        QueryClientProvider,
+        { client },
+        h(
+          MemoryRouter,
+          null,
+          h(ModelFrame as unknown as (p: Record<string, unknown>) => ReactElement, {
+            ...props,
+            loaded: { state: 'loading', retry: () => {} },
+          }),
+        ),
+      ),
+    );
+  };
+
+  it('is left out for a login that may not open analytics, who sees the refusal and no menu of screens', () => {
+    expect(as('operator')).not.toContain('Breakdowns screens');
+  });
+
+  it('is there for a login that may', () => {
+    expect(as('supervisor')).toContain('Breakdowns screens');
   });
 });

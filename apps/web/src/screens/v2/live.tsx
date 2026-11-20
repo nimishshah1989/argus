@@ -9,6 +9,9 @@ import { ScreenStates } from '../../ui/v2/screen-states.js';
 import { correctionError } from '../analytics/machine-values.js';
 import { groupFor, type GroupId } from '../analytics/groups.js';
 import { AgeView } from './age/View.js';
+import { BdPmView } from './bd-pm/View.js';
+import { CategoryCellView } from './category-cell/View.js';
+import { MttrMtbfView } from './mttr-mtbf/View.js';
 import { CellLogView } from './cell-change-log/View.js';
 import { DashboardPage } from './dashboard/Page.js';
 import { BottleneckView } from './bottleneck/View.js';
@@ -235,6 +238,48 @@ const LIVE: readonly Live[] = [
         empty="analytics.notComputed"
         title="v2r.ww.title"
         draw={(model, shell) => <WhyWhyLive model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'breakdowns',
+    section: 'problems',
+    screen: 'a1-bd-pm',
+    page: () => (
+      <ModelPage
+        entry={screenOf('breakdowns', 'problems', 'a1-bd-pm')}
+        screen="bd-pm"
+        empty="analytics.notComputed"
+        title="v2r.bd.title"
+        draw={(model, shell) => <BdPmView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'breakdowns',
+    section: 'problems',
+    screen: 'a2-category-cell',
+    page: () => (
+      <ModelPage
+        entry={screenOf('breakdowns', 'problems', 'a2-category-cell')}
+        screen="category-cell"
+        empty="analytics.notComputed"
+        title="v2r.cc.title"
+        draw={(model, shell) => <CategoryCellView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'breakdowns',
+    section: 'problems',
+    screen: 'a3-mttr-mtbf',
+    page: () => (
+      <ModelPage
+        entry={screenOf('breakdowns', 'problems', 'a3-mttr-mtbf')}
+        screen="mttr-mtbf"
+        empty="analytics.notComputed"
+        title="v2r.mm.title"
+        draw={(model, shell) => <MttrMtbfView model={model} {...shell} />}
       />
     ),
   },

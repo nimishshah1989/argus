@@ -4,6 +4,7 @@ import type { Drill } from '../../../ui/v2/drill.js';
 import type { FigureData } from '../../../ui/v2/figure-tile.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
 import { fill } from '../../../i18n/fill.js';
+import { drawnChart } from '../../analytics/key-chart.js';
 import type { PageKpi, PageTable } from '../../analytics/page-content.js';
 import { unpair, type PairWords } from './pair.js';
 import { numberValue, type Page } from './printed.js';
@@ -50,7 +51,10 @@ const sizeOf = (spec: ChartSpec): number =>
 
 const axisOf = (spec: ChartSpec): string => (spec.kind === 'scatter' ? '' : spec.categoryLabel);
 
-/** The chart with the line under it and the sentence for a screen reader; bars, lines and mixed charts alike. */
+/**
+ * The chart with the line under it and the sentence for a screen reader; bars, lines and mixed charts alike. Two or more
+ * series name themselves in a legend, and a chart of one series with no value-axis title takes its series' name, as in v1.
+ */
 export function chartOf(spec: ChartSpec, words: PageWords): PageChart {
   const values = {
     title: spec.title,
@@ -60,7 +64,7 @@ export function chartOf(spec: ChartSpec, words: PageWords): PageChart {
   };
   return {
     id: spec.title,
-    spec,
+    spec: drawnChart(spec),
     sub: fill(words.chart.sub, values),
     aria: fill(words.chart.aria, values),
   };

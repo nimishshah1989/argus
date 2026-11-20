@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getBrand, getMe } from '../../api.js';
+import { readsAnalytics } from '../../roles.js';
 import { Segmented } from '../../ui/v2/segmented.js';
 import { ScreenStates, type Loaded } from '../../ui/v2/screen-states.js';
 import { SCREEN_LABELS, groupFor, parseDrill, type GroupId } from '../analytics/groups.js';
@@ -112,7 +113,8 @@ export function LiveFrame({
     <WhoContext.Provider value={{ role, company: brand || t('analytics.title') }}>
       <ChromeContext.Provider
         value={
-          entry.group === 'today' ? (
+          /* A login that may not open the analytics face sees the refusal, not the section's menu (as in v1). */
+          role !== undefined && !readsAnalytics(role) ? null : entry.group === 'today' ? (
             <TodayTabs />
           ) : (
             <ScreenTabs group={entry.group} current={entry.screen} />
@@ -137,7 +139,10 @@ export type ModelKey =
   | 'forecast-lab'
   | 'shift-kpis'
   | 'manpower'
-  | 'why-why';
+  | 'why-why'
+  | 'bd-pm'
+  | 'category-cell'
+  | 'mttr-mtbf';
 
 export type PageConfig<K extends ModelKey> = {
   entry: LiveEntry;

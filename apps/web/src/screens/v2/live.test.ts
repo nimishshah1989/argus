@@ -15,6 +15,9 @@ describe('which v2 screens are live at their v1 address', () => {
       ['breakdowns', 'shift-kpis'],
       ['breakdowns', 'a4-manpower'],
       ['breakdowns', 'a6-why-why'],
+      ['breakdowns', 'a1-bd-pm'],
+      ['breakdowns', 'a2-category-cell'],
+      ['breakdowns', 'a3-mttr-mtbf'],
       ['forecast-scorecard', 'a9-bottleneck-forecast'],
       ['forecast-scorecard', 'forecast-lab'],
     ] as const)
@@ -51,6 +54,9 @@ describe('which v2 screens are live at their v1 address', () => {
       key('breakdowns', 'a10-problems'),
       key('breakdowns', 'a4-manpower'),
       key('breakdowns', 'a6-why-why'),
+      key('breakdowns', 'a1-bd-pm'),
+      key('breakdowns', 'a2-category-cell'),
+      key('breakdowns', 'a3-mttr-mtbf'),
     ];
     expect(new Set(keys).size).toBe(keys.length);
   });
