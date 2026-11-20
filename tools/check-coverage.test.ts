@@ -16,7 +16,8 @@ function problems(body: string, scopeText: string | null, changed = [...SCREEN_F
   return coverageProblems({
     body,
     changed,
-    read: (path) => (path === SCOPE ? scopeText : null),
+    read: (path) =>
+      path === SCOPE ? scopeText : path.endsWith('/team-focus/View.tsx') ? '' : null,
   });
 }
 
@@ -152,5 +153,25 @@ describe('rule 3: MISSING or DROPPED needs Nimish said yes', () => {
     expect(problems(bodyWith(`${CLEAN}\n\n${second}`), CLEAN)).toEqual([
       expect.stringContaining('Rank'),
     ]);
+  });
+});
+
+describe('shared v2 folders are not screens', () => {
+  it('Q16 does not hold a PR that only changes shared code with no View.tsx (printed-page, entity)', () => {
+    expect(
+      coverageProblems({
+        body: bodyWith(null),
+        changed: [
+          'apps/web/src/screens/v2/printed-page/PageBody.tsx',
+          'apps/web/src/screens/v2/entity/EntityShell.tsx',
+        ],
+        read: () => null,
+      }),
+    ).toEqual([]);
+  });
+
+  it('Q16 still holds a real screen changed next to shared code', () => {
+    const changed = ['apps/web/src/screens/v2/printed-page/PageBody.tsx', ...SCREEN_FILES];
+    expect(problems(bodyWith(null), null, changed)).not.toEqual([]);
   });
 });
