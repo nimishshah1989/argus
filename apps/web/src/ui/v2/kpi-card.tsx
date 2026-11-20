@@ -9,7 +9,7 @@ export type KpiData = {
   icon: IconName;
   /** The figure exactly as the engine printed it. */
   value: string;
-  /** The change against `period`, signed (`+9%`), with its direction and whether that direction is good. `flat`: no change, neutral and no arrow. */
+  /** The change against `period`, signed (`+9%`), with its direction and whether that direction is good. `flat`: no change, neutral and no arrow. An empty `text` says nothing: the engine holds no earlier figure to compare with. */
   delta: { text: string; up: boolean; good: boolean; flat?: boolean };
   period: string;
   /** One line on what the figure means. */
@@ -37,10 +37,12 @@ export function KpiCard({ kpi }: { kpi: KpiData }) {
           <div key={value.n} className="v2-kpi-value" data-flash={value.flash}>
             {value.text}
           </div>
-          <span className={`v2-delta v2-delta-${tone}`}>
-            {kpi.delta.flat ? null : <Icon name={kpi.delta.up ? 'up' : 'down'} size={12} />}
-            {kpi.delta.text} {kpi.period}
-          </span>
+          {kpi.delta.text === '' ? null : (
+            <span className={`v2-delta v2-delta-${tone}`}>
+              {kpi.delta.flat ? null : <Icon name={kpi.delta.up ? 'up' : 'down'} size={12} />}
+              {kpi.delta.text} {kpi.period}
+            </span>
+          )}
         </div>
         {kpi.trend ? <Sparkline values={kpi.trend} tone={tone} draw /> : null}
       </div>

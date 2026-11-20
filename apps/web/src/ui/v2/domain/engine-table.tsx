@@ -1,0 +1,118 @@
+import { Fragment, useContext } from 'react';
+import { Button } from '../button.js';
+import { DataTable, type Column, type FilterChip, type TableWords } from '../data-table.js';
+import { EntityChip, EntityOpenContext, type EntityChipProps } from '../entity-chip.js';
+
+/** One printed cell: what it says, what it sorts by, and the thing it names when it names one. */
+export type Cell = {
+  text: string;
+  sort: number | string;
+  chip?: EntityChipProps;
+  /** Several things in one cell (the machines a fault happened on). */
+  chips?: EntityChipProps[];
+  /** What goes between several chips ("4 → 2"). */
+  join?: string;
+  /** A button in the cell: its id goes to `onAction`; `text` is its label. */
+  action?: string;
+  /** A word the engine printed beside the thing (a machine marked "NOT IN PRODUCTION DATA"). */
+  note?: string;
+};
+
+export type EngineTableWords = TableWords & { all: string };
+
+/** A table of the engine's printed cells, ready to draw: numbers right, every cell sortable, the chips that filter it. */
+export type TableModel = {
+  id: string;
+  title: string;
+  header: {
+    label: string;
+    numeric: boolean;
+    /** A column of buttons: not sorted. */ fixed?: boolean;
+  }[];
+  rows: Cell[][];
+  /** Filter chips after "All": each keeps the rows whose `column` says `key`. */
+  chips: { key: string; label: string; column: number }[];
+  words: EngineTableWords;
+};
+
+type Row = { id: string; cells: Cell[] };
+
+/** The thing a row opens in the drawer: the first thing it names; a row that names nothing opens nothing. */
+const firstChip = (row: Row): EntityChipProps | undefined =>
+  row.cells.find((c) => c.chip)?.chip ?? row.cells.find((c) => c.chips?.length)?.chips?.[0];
+
+function columnsOf(table: TableModel, onAction?: (id: string) => void): Column<Row>[] {
+  return table.header.map((h, i) => ({
+    key: `c${i}`,
+    label: h.label,
+    numeric: h.numeric,
+    ...(h.fixed ? {} : { sortBy: (row: Row) => row.cells[i]?.sort ?? '' }),
+    cell: (row) => {
+      const cell = row.cells[i];
+      if (!cell) return null;
+      if (cell.action)
+        return (
+          <span onClick={(e) => e.stopPropagation()}>
+            <Button onClick={() => onAction?.(cell.action ?? '')}>{cell.text}</Button>
+          </span>
+        );
+      if (cell.chips?.length)
+        return cell.chips.map((chip, at) => (
+          <Fragment key={`${at}-${chip.id}`}>
+            {at > 0 ? cell.join : null}
+            <EntityChip {...chip} />
+          </Fragment>
+        ));
+      if (!cell.chip) return cell.text;
+      return (
+        <>
+          <EntityChip {...cell.chip} />
+          {cell.note ? <span className="v2-sub"> {cell.note}</span> : null}
+        </>
+      );
+    },
+  }));
+}
+
+/**
+ * The engine's own table in the kit's table: search over every cell, a chip for each common value of one column, sort
+ * on every column, ten rows a page. A cell that names a machine or a cell is a chip, and its row opens that thing.
+ */
+export function EngineTable({
+  table,
+  onAction,
+}: {
+  table: TableModel;
+  onAction?: (id: string) => void;
+}) {
+  const open = useContext(EntityOpenContext);
+  const rows: Row[] = table.rows.map((cells, i) => ({ id: String(i), cells }));
+  const named = rows.some((row) => firstChip(row));
+  const filters: FilterChip<Row>[] = [
+    { key: 'all', label: table.words.all },
+    ...table.chips.map((c) => ({
+      key: c.key,
+      label: c.label,
+      test: (row: Row) => row.cells[c.column]?.text === c.key,
+    })),
+  ];
+  return (
+    <DataTable
+      rows={rows}
+      rowKey={(row) => row.id}
+      rowLabel={(row) => firstChip(row)?.id ?? row.id}
+      columns={columnsOf(table, onAction)}
+      filters={filters}
+      text={(row) => row.cells.map((c) => c.text).join(' ')}
+      words={table.words}
+      onOpen={
+        named
+          ? (row) => {
+              const chip = firstChip(row);
+              if (chip) open({ kind: chip.kind, id: chip.id });
+            }
+          : undefined
+      }
+    />
+  );
+}
