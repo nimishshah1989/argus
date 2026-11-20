@@ -8,6 +8,7 @@ export const analyticsV2TodayEn = {
     'A nudge is a rule firing on the breakdown log, the PM entries, the machines or the team. High, medium and low ask a person to act; good news only tells you.',
   'v2t.ac.why2':
     'A machine scores 3 for each high, 2 for each medium and 1 for each low nudge open on it.',
+  'v2t.ac.clear': 'No nudge is open right now.',
   'v2t.ac.nudges': 'Nudges',
   'v2t.dash.headline':
     'Fleet availability is {availability}. {breakdowns} breakdowns have cost {hours}, and {problem} costs the most.',

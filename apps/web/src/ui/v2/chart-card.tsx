@@ -12,19 +12,22 @@ export function ChartCard({
   sub,
   aria,
   drill,
+  id,
 }: {
   spec: ChartSpec;
   sub: string;
   aria: string;
   /** The rows behind the picture: when given, a button in the head opens them. */
   drill?: Drill;
+  /** What a test or a link finds it by: the figure it draws. */
+  id?: string;
 }) {
   const open = useContext(DrillOpenContext);
   const { ref, state } = useChart(
     spec.kind === 'scatter' ? spec : ({ ...spec, draw: true } as ChartSpec),
   );
   return (
-    <section className="v2-card v2-pad" aria-label={spec.title}>
+    <section className="v2-card v2-pad" aria-label={spec.title} data-kpi={id}>
       <div className="v2-card-head">
         <div>
           <h2 className="v2-h2">{spec.title}</h2>

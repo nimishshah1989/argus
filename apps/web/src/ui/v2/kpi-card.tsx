@@ -30,7 +30,7 @@ export function KpiCard({ kpi }: { kpi: KpiData }) {
   const open = useContext(DrillOpenContext);
   const tone = kpi.delta.flat ? 'neutral' : kpi.delta.good ? 'gain' : 'loss';
   return (
-    <section className="v2-card v2-kpi" tabIndex={0} aria-label={kpi.label}>
+    <section className="v2-card v2-kpi" tabIndex={0} aria-label={kpi.label} data-kpi={kpi.id}>
       <div className="v2-kpi-label">
         <span className="v2-kpi-icon">
           <Icon name={kpi.icon} size={15} />

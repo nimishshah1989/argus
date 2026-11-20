@@ -46,7 +46,7 @@ function Fit({ fit }: { fit: FitModel }) {
       ))}
       {fit.trend ? (
         <p className="v2-sub">
-          <strong>{fit.trend.word}</strong> {fit.trend.slope}
+          <strong>{fit.trend.word}</strong> <span>{fit.trend.slope}</span>
         </p>
       ) : null}
     </div>

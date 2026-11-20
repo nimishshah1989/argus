@@ -27,10 +27,11 @@ export function FilterSelect({
   options: { key: string; label: string }[];
   onChange: (key: string) => void;
 }) {
+  const id = useId();
   return (
-    <label>
-      {label}
-      <select value={value} onChange={(e) => onChange(e.target.value)}>
+    <div className="v2-field">
+      <label htmlFor={id}>{label}</label>
+      <select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
         <option value="">{all}</option>
         {options.map((o) => (
           <option key={o.key} value={o.key}>
@@ -38,7 +39,7 @@ export function FilterSelect({
           </option>
         ))}
       </select>
-    </label>
+    </div>
   );
 }
 
@@ -52,11 +53,12 @@ export function SearchField({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const id = useId();
   return (
-    <label className="v2-grow">
-      {label}
-      <input type="search" value={value} onChange={(e) => onChange(e.target.value)} />
-    </label>
+    <div className="v2-field v2-grow">
+      <label htmlFor={id}>{label}</label>
+      <input id={id} type="search" value={value} onChange={(e) => onChange(e.target.value)} />
+    </div>
   );
 }
 
@@ -86,8 +88,8 @@ export function NudgeForm({
   };
   return (
     <form className="v2-nudge-form" aria-label={words.title} onSubmit={submit}>
-      <label htmlFor={`${id}-owner`}>
-        {words.owner}
+      <div className="v2-field">
+        <label htmlFor={`${id}-owner`}>{words.owner}</label>
         <select id={`${id}-owner`} name="owner" defaultValue="">
           <option value="">{words.ownerNone}</option>
           {people.map((person) => (
@@ -96,15 +98,15 @@ export function NudgeForm({
             </option>
           ))}
         </select>
-      </label>
-      <label htmlFor={`${id}-due`}>
-        {words.due}
+      </div>
+      <div className="v2-field">
+        <label htmlFor={`${id}-due`}>{words.due}</label>
         <input id={`${id}-due`} name="due" type="date" />
-      </label>
-      <label htmlFor={`${id}-note`}>
-        {words.note}
+      </div>
+      <div className="v2-field">
+        <label htmlFor={`${id}-note`}>{words.note}</label>
         <input id={`${id}-note`} name="note" type="text" maxLength={500} />
-      </label>
+      </div>
       <div className="v2-row v2-gap-8">
         <button type="submit" className="v2-btn v2-btn-primary">
           {words.save}

@@ -187,7 +187,7 @@ export function actionCenterModel(
     verdict: {
       headline: [
         board.counts.open === 0
-          ? { text: t('analytics.actionCenter.emptyOpen') }
+          ? { text: t('v2t.ac.clear') }
           : {
               text: t('analytics.actionCenter.banner', { high, medium: med }),
               tone: high > 0 ? 'loss' : 'risk',

@@ -82,12 +82,12 @@ export function DashboardView({
         ))}
       </Row>
       {model.costliest ? (
-        <>
+        <div className="v2-stack" data-kpi="dashboard.costliest-problems">
           <Panel title={model.costliest.title}>
             <Pareto data={model.costliest.pareto} whyLabel={words.why} actions={null} />
           </Panel>
           <EngineTable table={model.costliest.table} />
-        </>
+        </div>
       ) : null}
       <Row>
         {model.charts.map((chart) => (
@@ -97,6 +97,7 @@ export function DashboardView({
             sub={chart.sub}
             aria={chart.aria}
             drill={chart.drill}
+            id={chart.id}
           />
         ))}
       </Row>

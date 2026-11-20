@@ -4,15 +4,16 @@
   align-items: flex-end;
   gap: var(--space-v2-inner);
 }
-.v2-controls label,
-.v2-nudge-form label {
+.v2-field {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+.v2-field label {
   color: var(--color-v2-ink-2);
   font-size: var(--text-v2-secondary);
 }
-.v2-controls .v2-grow {
+.v2-field.v2-grow {
   flex: 1 1 12rem;
 }
 .v2-controls select,
