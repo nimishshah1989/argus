@@ -99,6 +99,21 @@ describe('a figure tile with its own tags and detail', () => {
   it('keeps a quiet line out of the button name, and a short unit beside the figure', () => {
     expect(tile).not.toContain('Breakdowns by month');
     expect(tile).not.toContain('role="img"');
+    expect(tile).toMatch(/<svg[^>]*aria-hidden="true"/);
     expect(tile).not.toContain('block');
+    expect(tile).toContain('>\u00a0h</span>');
+  });
+  it('leaves the default unit markup exactly as it was for every other screen', () => {
+    const plain = renderToStaticMarkup(
+      createElement(KpiTile, {
+        label: 'Downtime',
+        value: 12,
+        format: (n: number) => String(n),
+        unit: 'hours',
+      }),
+    );
+    expect(plain).toContain(
+      '12 <span class="block whitespace-nowrap text-footnote font-semibold text-neutral-600 sm:inline">hours</span>',
+    );
   });
 });

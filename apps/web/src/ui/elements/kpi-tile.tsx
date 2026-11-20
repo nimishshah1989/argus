@@ -114,17 +114,31 @@ function Headline({
   return (
     <Tag className={`text-title2 font-bold tabular-nums ${WRAP}`}>
       {testId ? <span data-testid={testId}>{figure}</span> : figure}
-      {unit && figure !== NO_VALUE ? (
-        <>
-          {' '}
-          <span
-            className={`whitespace-nowrap text-footnote font-semibold text-neutral-600 ${beside ? '' : 'block sm:inline'}`}
-          >
-            {unit}
-          </span>
-        </>
-      ) : null}
+      {unit && figure !== NO_VALUE ? <Unit unit={unit} beside={beside} /> : null}
     </Tag>
+  );
+}
+
+/**
+ * The word unit after the figure: under it on a phone, beside it from `sm` up. `beside` keeps a short unit on the
+ * figure's line, its separator a non-breaking space inside the same no-wrap box so it cannot wrap before the unit.
+ */
+function Unit({ unit, beside }: { unit: string; beside?: boolean }) {
+  if (beside) {
+    return (
+      <span className="whitespace-nowrap text-footnote font-semibold text-neutral-600">
+        {'\u00a0'}
+        {unit}
+      </span>
+    );
+  }
+  return (
+    <>
+      {' '}
+      <span className="block whitespace-nowrap text-footnote font-semibold text-neutral-600 sm:inline">
+        {unit}
+      </span>
+    </>
   );
 }
 
