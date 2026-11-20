@@ -27,6 +27,9 @@ export type TableWords = {
   open: string;
 };
 
+/** A table with more columns than this scrolls sideways inside its card instead of running past it. */
+const WIDE = 9;
+
 type TableProps<R> = {
   rows: R[];
   rowKey: (row: R) => string;
@@ -129,7 +132,7 @@ export function DataTable<R>(props: TableProps<R>) {
         chip={ask.chip}
         onChip={ask.onChip}
       />
-      <div className="v2-table-scroll">
+      <div className="v2-table-scroll" data-wide={columns.length > WIDE ? '' : undefined}>
         <table className="v2-table">
           <TableHead columns={columns} sort={ask.sort} onSort={ask.onSort} />
           <TableRows t={props} rows={view.rows} changes={changes} />

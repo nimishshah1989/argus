@@ -144,6 +144,11 @@ td.v2-row-action .v2-icon-btn:focus-visible {
   font-size: var(--text-v2-label);
 }
 
+/* A wide table scrolls inside its card; the header sticks to that scroll, so only wide tables pay for it. */
+.v2-table-scroll[data-wide] {
+  overflow-x: auto;
+}
+
 @media (max-width: 760px) {
   .v2-table-scroll {
     overflow-x: auto;

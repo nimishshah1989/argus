@@ -94,6 +94,8 @@ import { analyticsTablesEn } from './analytics-tables.en.js';
 import { analyticsTablesGu } from './analytics-tables.gu.js';
 import { analyticsV2ProblemsEn } from './analytics-v2-problems.en.js';
 import { analyticsV2ProblemsGu } from './analytics-v2-problems.gu.js';
+import { analyticsV2ReliabilityEn } from './analytics-v2-reliability.en.js';
+import { analyticsV2ReliabilityGu } from './analytics-v2-reliability.gu.js';
 
 /** The English catalogues by namespace; each key lives in exactly one. */
 export const NAMESPACES: Record<string, Record<string, string>> = {
@@ -145,6 +147,7 @@ export const NAMESPACES: Record<string, Record<string, string>> = {
   'analytics-register': analyticsRegisterEn,
   'analytics-tables': analyticsTablesEn,
   'analytics-v2-problems': analyticsV2ProblemsEn,
+  'analytics-v2-reliability': analyticsV2ReliabilityEn,
 };
 
 /** One flat catalogue; no type annotation, so `MessageKey` keeps every key as a literal. */
@@ -197,6 +200,7 @@ export const en = {
   ...analyticsRegisterEn,
   ...analyticsTablesEn,
   ...analyticsV2ProblemsEn,
+  ...analyticsV2ReliabilityEn,
 };
 
 export type MessageKey = keyof typeof en;
@@ -251,6 +255,7 @@ export const gu = {
   ...analyticsRegisterGu,
   ...analyticsTablesGu,
   ...analyticsV2ProblemsGu,
+  ...analyticsV2ReliabilityGu,
 };
 
 export * from './overrides.js';
