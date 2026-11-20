@@ -2,7 +2,7 @@ import type { TFunction } from 'i18next';
 import { fill } from '../../../i18n/fill.js';
 import { machineChip, personChips, shortDate } from '../printed-page/printed.js';
 import type { LogModel, LogQuery, LogRow, LogWords } from './model.js';
-import type { LogReply } from './serve.js';
+import type { LogEntry, LogReply } from './serve.js';
 import { logWords } from './words.js';
 
 const DASH = '—';
@@ -13,7 +13,7 @@ const whole = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
  * One printed entry. A ticket number the platform never issued (an imported row carries its workbook id there) is not
  * printed as one.
  */
-function rowOf(printed: string[]): LogRow {
+function rowOf({ cells: printed, ticketId }: LogEntry): LogRow {
   const [
     ,
     srNo = '',
@@ -28,6 +28,7 @@ function rowOf(printed: string[]): LogRow {
   ] = printed;
   return {
     id: `${srNo}|${ticket}|${machine}`,
+    ticketId,
     srNo,
     ticket: TICKET_NUMBER.test(ticket) ? ticket : DASH,
     date: shortDate(date),
@@ -42,7 +43,7 @@ function rowOf(printed: string[]): LogRow {
 
 /** The log's newest entry says how fresh it is; the count says how big. Both are the engine's. */
 function verdictOf(reply: LogReply, words: LogWords, source: string): LogModel['verdict'] {
-  const newest = reply.rows[0]?.[3];
+  const newest = reply.rows[0]?.cells[3];
   return {
     headline: [
       {
