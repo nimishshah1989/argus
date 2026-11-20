@@ -14,8 +14,8 @@ export const analyticsV2ActionEn = {
   'v2a.kpi.info': 'Good news, nothing to do',
   'v2a.kpi.more':
     'Counts open nudges only. Acknowledged, snoozed and resolved ones are in their own tabs below.',
-  'v2a.verdict.calm': '{n} nudges are open, none of them urgent.',
-  'v2a.why.top': ' ranks first for attention, with a score of {score}: {why}.',
+  'v2a.verdict.calm': '{{n}} nudges are open, none of them urgent.',
+  'v2a.why.top': ' ranks first for attention, with a score of {{score}}: {{why}}.',
   'v2a.why.scope':
     'Each nudge is worked out from the breakdown log, PM entries, machines and team against the plant’s own limits. Acknowledged, snoozed and resolved nudges leave the counts above.',
   'v2a.detail.about': 'What stands behind it',

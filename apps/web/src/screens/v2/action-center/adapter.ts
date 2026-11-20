@@ -7,7 +7,6 @@ import {
   type NudgeSeverity,
   type NudgeStatus,
 } from '@uptimo/shared';
-import { fill } from '../../../i18n/fill.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
 import type { Point } from '../../../ui/v2/points.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
@@ -175,14 +174,14 @@ function verdictOf(board: ActionCenterBoardReply, names: Names, t: Translate): V
     open === 0
       ? t('analytics.actionCenter.emptyOpen')
       : high + med === 0
-        ? fill(t('v2a.verdict.calm'), { n: open })
+        ? t('v2a.verdict.calm', { n: open })
         : t('analytics.actionCenter.banner', { high, medium: med });
   const top = riskOf(board, names)[0];
   const why: Point[] = [];
   if (top?.machine)
     why.push([
       { text: top.machine.label, entity: top.machine },
-      { text: fill(t('v2a.why.top'), { score: top.score.shown, why: top.why }) },
+      { text: t('v2a.why.top', { score: top.score.shown, why: top.why }) },
     ]);
   why.push([{ text: t('v2a.why.scope') }]);
   return {

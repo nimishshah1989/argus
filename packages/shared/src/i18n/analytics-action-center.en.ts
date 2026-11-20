@@ -38,6 +38,7 @@ export const analyticsActionCenterEn = {
   'analytics.actionCenter.typeLabel': 'Type',
   'analytics.actionCenter.type': 'All types',
   'analytics.actionCenter.search': 'Search machine or text',
+  'analytics.actionCenter.entries': '{{count}} entries',
   'analytics.actionCenter.entries_one': '{{count}} entry',
   'analytics.actionCenter.entries_other': '{{count}} entries',
   'analytics.actionCenter.verdict.high': 'Act now',

@@ -3,7 +3,7 @@ import { useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getMe } from '../../../api.js';
-import { personKey } from '../../../data/person-cache.js';
+import { personKey } from '../../../data/index.js';
 import { Icon } from '../../../ui/v2/icons.js';
 import { SavedCopyNotice, ScreenStates, type Loaded } from '../../../ui/v2/screen-states.js';
 import { ACTION_CENTER_PATH } from '../../analytics/groups.js';
