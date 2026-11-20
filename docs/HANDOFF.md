@@ -10,7 +10,7 @@ shows the commit it serves. Open PRs via `gh api --method POST repos/nimishshah1
   Mono; icon rail; glass header; 420px reflowing drawer; tables of 10 rows with search, sort, chips; motion carries
   information, never page-load fades). `docs/design/v2/LANGUAGE.md`: decision-first, ELI5 bullets behind a click,
   bold or colour only for highlights, side-by-side boxes aligned.
-- Kit + Dashboard merged (#496, #497). Gallery: `/gallery?view=v2-dashboard` (staging builds with the gallery on, #498).
+- Kit + Dashboard merged (#496, #497). **Entity links merged (#500):** every screen uses `EntityShell` (never the raw `Shell`); a machine, cell, person or decision is an `EntityChip`, in text a segment `{{kind:id|label}}`; the drawer is `?drawer=kind:id`; `entityHref` maps an entity to its full page; recipe in `docs/slices/entity-links.md`. Gallery: `/gallery?view=v2-dashboard` (staging builds with the gallery on, #498).
 - Plug-and-play rule: a screen is `screens/v2/<name>/{model.ts, View.tsx, fixture.ts}`; View uses kit components only
   (`ui/v2`, `ui/v2/domain`); data comes through `useScreenModel` (`screens/v2/data.ts`); `ui:check` blocks colours,
   sizes, weights and animation in screen files. The backend later plugs in an adapter; screens do not change.
