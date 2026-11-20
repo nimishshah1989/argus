@@ -1,6 +1,6 @@
 # Where things stand — handoff for the next session (human or model)
 
-Read this, the tail of `docs/plan/ledger.md`, then `docs/plan/v2-next.md` (queue, recipe, ready-to-paste briefs). `git log
+**The one plan is `docs/plan/MILESTONES.md` (ticket 91 is the redesign); everything else is detail under it.** Read this, the tail of `docs/plan/ledger.md`, then `docs/slices/v2-build.md` (section 5) (queue, recipe, ready-to-paste briefs). `git log
 origin/main` and the PR list beat this text. As of 12:15 UTC, 20 Nov 2026. **Paused by Nimish** to continue locally on cheaper
 models. Staging deploys on every merge (`https://cosmos.3-108-95-203.sslip.io/api/v1/health` shows the commit).
 
@@ -48,7 +48,7 @@ look, Bhavin's step order, button order and words unchanged. Desk, ticket, TV: f
 Waiting amber, Transferred blue; Indian grouping; system dark and light; power and air failures count in downtime. Real data
 already in the public repo is an accepted risk: add NO more (never commit screenshots of Bhavin's files).
 
-## What cost time (details in `docs/plan/v2-next.md`)
+## What cost time (details in `docs/slices/v2-build.md` (section 5))
 
 About 20 minutes from brief to an open PR, 40 to 85 to merge. Waste: PR-body lines CI checks (`No parity:`, Q14 never `pending`),
 the gallery job limit (now 15 min), PRs appending to the same registry lines, one Team Focus gallery test that hung in CI twice and

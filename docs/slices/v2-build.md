@@ -1,6 +1,6 @@
 # v2 build contract: how every remaining screen is built (adapter-first, nothing lost)
 
-Applies to every v2 screen from batch 2 on. Read with `docs/HANDOFF.md`, `docs/plan/v2-next.md` (recipe, prototype result),
+Applies to every v2 screen from batch 2 on. Read with `docs/HANDOFF.md`, `docs/slices/v2-build.md` (section 5) (recipe, prototype result),
 `docs/design/v2/UX-RULES.md` (section 11), `LANGUAGE.md`, `COVERAGE.md`, `docs/slices/entity-links.md`.
 
 ## 1. Inventory before design (the rule that stops scope loss)
@@ -62,3 +62,17 @@ the screen does not go live yet, and the PR says what blocks it. The gallery hol
   (each push cancels and restarts CI). Check the body is yours before you stop. Do not mark the PR ready; the orchestrator does.
 - Five screens per PR. If the inventory of a screen is large, say so and cut to four rather than drop scope.
 - No real names, phone numbers or screenshots in the repo. Screenshots go to a scratch folder, never the shared `shots/` folder wipe.
+
+## 5. Lessons (so nobody repeats them)
+
+- Prototype (Action Center from the real engine reply): the saving is correctness, not code (about 60 lines). Real data shows at once what
+  v1 carries that an invented model dropped. Real data is sparse (acknowledgements have empty owners); the engine writes ids into nudge
+  titles (UUIDs on staging): map them in the adapter. A value per decision or "hours won back" does not exist in the engine.
+- What cost time: PR-body lines CI checks (use `pnpm pr:body`; Q14 and Q16 never `pending`), PRs appending to shared files (now
+  self-registering), the gallery job limit (15 min, 4 shards, fonts cached), one Team Focus gallery test that hung in CI and never
+  locally (instrumented), two builders fixing the same kit problem (check main before touching a kit file), gate and tests written
+  against folders that are not screens (a folder is a screen only with a View.tsx).
+- Cost: a builder run is about 300k to 450k tokens; tests are minimal (one smoke on the real server, one completeness test, ported v1 assertions).
+- Model for the work: a cheaper model for copying a screen, adapters and fixtures; a stronger one for the coverage inventory, URL and
+  history logic, CI changes and the final read of a coverage table against the v1 code.
+- Checks before a push (web and docs only): `pnpm format:check`, `lint`, `typecheck`, `ui:check`, `pii:scan`, `changelog:check`; run Prettier on every file edited by script. Anything else: full `pnpm precheck`.
