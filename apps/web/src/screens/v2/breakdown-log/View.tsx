@@ -20,12 +20,27 @@ import {
 
 const FILTERS: LogFilterId[] = ['date', 'shift', 'machine', 'code'];
 
+/** The platform's eye: the ticket number opens the row's own ticket, the one the engine printed beside it. */
+function TicketLink({ row, label }: { row: LogRow; label: string }) {
+  if (row.ticketId === null) return <span className="v2-num">{row.ticket}</span>;
+  return (
+    <a
+      className="v2-ref v2-num"
+      href={`/desk/${encodeURIComponent(row.ticketId)}`}
+      aria-label={fill(label, { srNo: row.srNo })}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {row.ticket}
+    </a>
+  );
+}
+
 function columns(model: LogModel): Column<LogRow>[] {
   const c = model.words.columns;
   const sortable = (key: LogSortKey) => ({ key, label: c[key], sortBy: () => 0 });
   return [
     { ...sortable('srNo'), numeric: true, cell: (r) => r.srNo },
-    { ...sortable('ticket'), cell: (r) => <span className="v2-num">{r.ticket}</span> },
+    { ...sortable('ticket'), cell: (r) => <TicketLink row={r} label={model.words.openTicket} /> },
     { ...sortable('date'), cell: (r) => r.date },
     { ...sortable('shift'), cell: (r) => r.shift },
     { ...sortable('machine'), cell: (r) => <EntityChip {...r.machine} /> },

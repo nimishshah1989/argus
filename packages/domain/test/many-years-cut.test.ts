@@ -140,13 +140,15 @@ describe('the cut fixes the six span figures', () => {
         .map(({ entry }, position) => ({ entry, srNo: position + 1 }))
         .filter(({ entry }) => entry[0] >= HAND[key].from && entry[0] <= HAND[key].to)
         .sort((a, b) => b.srNo - a.srNo);
+      /** The fixture's ticket id is its printed ticket number. */
+      const ticketOf = ([date, id, code]: Entry) => `T-${id}-${date}-${code.replace(' ', '')}`;
       const rows = numbered.map(({ entry: [date, id, code, hours], srNo }) => {
         const [shift, problem, by] = KIND[code]!;
         const [y, m, d] = date.split('-');
         return [
           '👁',
           String(srNo),
-          `T-${id}-${date}-${code.replace(' ', '')}`,
+          ticketOf([date, id, code, hours]),
           `${d}-${m}-${y}`,
           shift,
           id,
@@ -165,7 +167,16 @@ describe('the cut fixes the six span figures', () => {
             title: 'Breakdown Log',
             kpis: [],
             charts: [],
-            tables: [{ title: '', header, rows, rowCount: rows.length, truncated: true }],
+            tables: [
+              {
+                title: '',
+                header,
+                rows,
+                rowTicketIds: numbered.map(({ entry }) => ticketOf(entry)),
+                rowCount: rows.length,
+                truncated: true,
+              },
+            ],
           },
         ],
       };

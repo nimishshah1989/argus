@@ -8,6 +8,7 @@ export function logWords(t: TFunction): LogWords {
     headline: t('v2p.bl.headline'),
     whole: t('v2p.bl.whole'),
     intro: t('analytics.log.intro'),
+    openTicket: t('v2p.bl.openTicket'),
     source: t('v2p.bl.source'),
     table: {
       title: t('v2p.bl.title'),

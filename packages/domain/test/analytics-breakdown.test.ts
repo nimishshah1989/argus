@@ -267,6 +267,8 @@ interface LogTable {
   rows: string[][];
   rowCount: number;
   truncated?: boolean;
+  /** Argus's addition to the platform's key: the ticket behind each row, in row order. */
+  rowTicketIds?: string[];
 }
 interface LogPage {
   page: string;
@@ -514,6 +516,44 @@ describe('the breakdown log fallback number', () => {
       ['1', 'no-sr-older'],
     ]);
     expect(computed.drillIds).toHaveLength(3);
+  });
+});
+
+describe("the breakdown log names each row's own ticket", () => {
+  it('pairs every printed row with its ticket although the sorted drill ids come in another order', () => {
+    // Printed newest first: recorded (42), no-sr-newer, no-sr-older. Sorted by id the drill reads newer, older,
+    // recorded, so a screen pairing row N with drill id N would open the wrong ticket on every row.
+    const older = fallbackRow('no-sr-older', '2026-01-02', null);
+    const newer = fallbackRow('no-sr-newer', '2026-01-04', null);
+    const imported = fallbackRow('recorded', '2026-01-06', 42);
+    const data: EngineData = {
+      timeZone: 'Asia/Kolkata',
+      machines: [],
+      moves: [],
+      tickets: [newer.ticket, imported.ticket, older.ticket],
+      tasks: [],
+      reports: [newer.report, imported.report, older.report],
+      people: [],
+      lists: {},
+    };
+    const result = runWith({ 'breakdown-log': COMPUTERS['breakdown-log']! } as never, {
+      data,
+      asOf: AS_OF,
+      profile: DEFAULT_PROFILE,
+    });
+    const found = result.figures.find((candidate) => candidate.key === 'breakdown-log')!;
+    const table = (found.value as unknown as LogValue).pages[0]!.tables[0]!;
+    expect(table.rows.map((row) => row[6])).toEqual(['recorded', 'no-sr-newer', 'no-sr-older']);
+    expect(table.rowTicketIds).toEqual([
+      'ticket-recorded',
+      'ticket-no-sr-newer',
+      'ticket-no-sr-older',
+    ]);
+    expect(found.drill.ids).toEqual([
+      'ticket-no-sr-newer',
+      'ticket-no-sr-older',
+      'ticket-recorded',
+    ]);
   });
 });
 

@@ -76,6 +76,7 @@ export function workbookFigures(rows: readonly WorkbookRow[]): FiguresPart {
               'Code',
             ],
             rows: entries.map((e) => printedEntry(e.row, e.srNo)),
+            rowTicketIds: entries.map((e) => e.row.ticketId ?? e.row.id),
             rowCount: entries.length,
             truncated: true,
           },
