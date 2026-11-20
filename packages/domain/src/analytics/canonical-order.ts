@@ -70,6 +70,12 @@ export function reportKeys(data: EngineData): (report: ReportRow) => readonly Ke
     report.recordedHours,
     report.category,
     report.rootCause,
+    report.responseMin,
+    report.repairMin,
+    report.spareCost,
+    report.doneBy.join(','),
+    report.supportedBy.join(','),
+    report.correctiveAction,
   ];
 }
 
@@ -96,10 +102,18 @@ function lookups(data: EngineData) {
   };
 }
 
-/** The plant with every run of same-day rows in the canonical order; the input is not touched. */
+/** The plants `canonicalOrder` has made, so a second call on one (a figure inside a figure) costs nothing. */
+const made = new WeakSet<object>();
+
+/**
+ * The plant with every run of same-day rows in the canonical order; the input is not touched. Idempotent: a plant
+ * this made is returned as it is. Every function that reads a loaded plant directly calls it first, so no caller
+ * can see the order the database happened to send.
+ */
 export function canonicalOrder(data: EngineData): EngineData {
+  if (made.has(data)) return data;
   const { machineAt, ticketRef } = lookups(data);
-  return {
+  const result: EngineData = {
     ...data,
     moves: settleDays(data.moves, (move) => move.effectiveFrom, moveKeys(data)),
     tickets: settleDays(
@@ -139,4 +153,6 @@ export function canonicalOrder(data: EngineData): EngineData {
         }
       : {}),
   };
+  made.add(result);
+  return result;
 }

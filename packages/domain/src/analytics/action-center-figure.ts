@@ -1,3 +1,4 @@
+import { canonicalOrder } from './canonical-order.js';
 import {
   ACTION_CENTER_TYPES,
   SEVERITY_WEIGHT,
@@ -220,7 +221,8 @@ export const actionCenterFigure: Computer = (input) => {
  * The screen's board: every current nudge with its status, its evidence, whether it is wholly outside production
  * data and the stored ack, plus the status and severity counts and the same risk rows the page prints.
  */
-export function actionCenterBoard(input: ComputeInput): ActionCenterBoard {
+export function actionCenterBoard(loaded: ComputeInput): ActionCenterBoard {
+  const input = { ...loaded, data: canonicalOrder(loaded.data) };
   const core = coreOf(input);
   const excluded = new Set(
     input.data.machines

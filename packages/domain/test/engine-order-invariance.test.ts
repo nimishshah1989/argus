@@ -6,7 +6,8 @@ import { ENGINE_DATA } from './answer-key/fixture.js';
 import { MANY_YEARS } from './many-years/fixture.js';
 import { AS_OF_ENGINE, HAND } from './many-years/hand.js';
 import { originalIds, rekeyToUuids } from './answer-key/rekey.js';
-import { loadedLikeTheServer, shuffledWithinDays } from './answer-key/reorder.js';
+import { loadedLikeTheServer } from './answer-key/reorder.js';
+import { VARIANTS, read, type Against } from './answer-key/variants.js';
 
 /**
  * A plant's figures are a function of what it recorded, never of the UUIDs its rows were given or of the order of
@@ -21,8 +22,6 @@ import { loadedLikeTheServer, shuffledWithinDays } from './answer-key/reorder.js
  * order. So the loaded-like-the-server runs are held against the fixture's ids loaded the same way, and the
  * shuffled-day runs against the fixture's own order.
  */
-
-const UUID_IN_TEXT = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g;
 
 interface Plant {
   name: string;
@@ -46,45 +45,6 @@ const PLANTS: readonly Plant[] = [
     span: { from: HAND.both.from, to: HAND.both.to },
   },
 ];
-
-type Against = 'the fixture order' | 'the fixture ids loaded like the server';
-
-interface Variant {
-  name: string;
-  salt: string;
-  order: (data: EngineData) => EngineData;
-  against: Against;
-}
-
-const VARIANTS: readonly Variant[] = [
-  {
-    name: 'UUIDs set A, loaded by date then id',
-    salt: 'a',
-    order: loadedLikeTheServer,
-    against: 'the fixture ids loaded like the server',
-  },
-  {
-    name: 'UUIDs set B, loaded by date then id',
-    salt: 'b',
-    order: loadedLikeTheServer,
-    against: 'the fixture ids loaded like the server',
-  },
-  {
-    name: 'UUIDs set C, each day shuffled',
-    salt: 'c',
-    order: (data) => shuffledWithinDays(data, 7),
-    against: 'the fixture order',
-  },
-  {
-    name: 'the fixture ids, each day shuffled',
-    salt: '',
-    order: (data) => shuffledWithinDays(data, 99),
-    against: 'the fixture order',
-  },
-];
-
-const read = <T>(value: T, back: ReadonlyMap<string, string>): T =>
-  JSON.parse(JSON.stringify(value).replace(UUID_IN_TEXT, (uuid) => back.get(uuid) ?? uuid)) as T;
 
 /** The first place two figure values differ, as a short text. */
 function firstDifference(a: FigureValue, b: FigureValue): string {

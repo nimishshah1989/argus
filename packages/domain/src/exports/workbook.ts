@@ -1,3 +1,4 @@
+import { canonicalOrder } from '../analytics/canonical-order.js';
 import { metadataNumber } from '../analytics/format.js';
 import { machineAge } from '../analytics/machine-facts.js';
 import type { MachineRow } from '../analytics/types.js';
@@ -107,7 +108,8 @@ function registerSheet(data: ExportData, spec: RegisterSpec): ExportSheet {
   };
 }
 
-export function workbookSheets(data: ExportData): ExportSheet[] {
+export function workbookSheets(loaded: ExportData): ExportSheet[] {
+  const data = { ...loaded, data: canonicalOrder(loaded.data) };
   const machines = data.data.machines;
   return [
     registerSheet(data, {
