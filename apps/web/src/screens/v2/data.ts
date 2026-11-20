@@ -3,6 +3,7 @@ import type { EntityRef } from '../../ui/v2/entity-chip.js';
 import type { LoadState, Loaded } from '../../ui/v2/screen-states.js';
 import type { DashboardModel } from './dashboard/model.js';
 import type { EntityModel } from './entity/model.js';
+import type { MachinePageModel } from './machine/model.js';
 
 /**
  * The one seam between v2 screens and their data. Every screen is a key here, with the params it is asked for and
@@ -13,6 +14,8 @@ export type Screens = {
   dashboard: { params: Record<string, never>; model: DashboardModel };
   /** One machine, cell, person or decision, for the drawer on any screen; nothing when it is not found. */
   entity: { params: EntityRef; model: EntityModel };
+  /** One machine's own page; nothing when the code is not a machine of the plant. */
+  machine: { params: { id: string }; model: MachinePageModel };
 };
 export type ScreenKey = keyof Screens;
 export type ScreenParams<K extends ScreenKey> = Screens[K]['params'];
@@ -26,6 +29,7 @@ export type Provider<K extends ScreenKey> = (
 const PROVIDERS: { [K in ScreenKey]: Provider<K> } = {
   dashboard: () => import('./dashboard/fixture.js').then((m) => m.dashboardFixture),
   entity: (ref) => import('./entity/fixture.js').then((m) => m.entityFixture(ref)),
+  machine: ({ id }) => import('./machine/fixture.js').then((m) => m.machineFixture(id)),
 };
 
 /** One load, as the state a screen shows: ready with its model, empty, or error. */

@@ -74,6 +74,14 @@ const V2DashboardView = () => (
   </Suspense>
 );
 
+// The v2 Machine page on its fixture: `&id=VC-67` picks the machine; its own chunk too.
+const V2Machine = lazy(() => import('./v2-machine-view.js'));
+const V2MachineView = () => (
+  <Suspense fallback={null}>
+    <V2Machine />
+  </Suspense>
+);
+
 /** The gallery's whole-page views, picked by `?view=`; anything else is the section list. */
 const VIEWS: Record<string, () => React.JSX.Element> = {
   desktop: DesktopView,
@@ -83,6 +91,7 @@ const VIEWS: Record<string, () => React.JSX.Element> = {
   charts: ChartDoorView,
   templates: TemplatesView,
   'v2-dashboard': V2DashboardView,
+  'v2-machine': V2MachineView,
 };
 
 /** Own keys only, so `?view=constructor` is not a view. */
