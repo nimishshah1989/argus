@@ -54,6 +54,7 @@ export const analyticsV2ProblemsEn = {
   'v2p.bl.search': 'Search the log',
   'v2p.bl.srNo': 'Sr No',
   'v2p.bl.ticket': 'Ticket',
+  'v2p.bl.openTicket': 'Open the ticket for Sr No {srNo}',
   'v2p.bl.hours': 'Downtime (hrs)',
   // PM Calendar. The calendar's own words (legend, spread, move) are the v1 keys `pm.*`.
   'v2p.pm.headline': 'PM compliance is {pm} and schedule compliance is {schedule}.',

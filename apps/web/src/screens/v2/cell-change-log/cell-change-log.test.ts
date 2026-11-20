@@ -65,7 +65,11 @@ describe('the cell change log, from the engine’s own reply', () => {
     const unchanged = engineMoves.findIndex(
       (m) => m.fromLocation !== null && m.fromLocation === m.toLocation,
     );
-    if (unchanged >= 0) expect(model.table.rows[unchanged]?.[3]?.text).toBe('No change');
+    expect(
+      unchanged,
+      'the answer key holds a move whose location did not change',
+    ).toBeGreaterThanOrEqual(0);
+    expect(model.table.rows[unchanged]?.[3]?.text).toBe('No change');
     expect(model.table.rows.every((row) => row[3]?.text !== '')).toBe(true);
   });
 
@@ -84,6 +88,13 @@ describe('the cell change log, from the engine’s own reply', () => {
         String(role),
       ).toBe(may);
     }
+  });
+
+  it('words the saved-copy notice with the day the figures are for, before and after a correction', () => {
+    const { words } = cellLogModel(served, t, reader('head'))!;
+    expect(words.savedCopy).toContain('11-Nov-2026');
+    expect(words.savedAfterCorrection).toContain('11-Nov-2026');
+    expect(words.savedAfterCorrection).toMatch(/earlier date/);
   });
 
   it('hands the correction the day the move stands at, as the date field reads it', () => {
@@ -114,5 +125,60 @@ describe('the cell change log, from the engine’s own reply', () => {
       ),
     };
     expect(cellLogModel(notReady, t, reader('head'))).toBeNull();
+  });
+});
+
+/** Moves written the way v1's printed-data check had them (`CNC-01` stays put in its location, `DRL-04` came from nowhere). */
+const logWith = (moves: Record<string, unknown>[]): FiguresReply => ({
+  ...real,
+  figures: real.figures.map((f) => (f.key === 'cell-change-log' ? { ...f, value: { moves } } : f)),
+});
+const M1 = '10000000-0000-4000-8000-0000000000a1';
+const M3 = '10000000-0000-4000-8000-0000000000a3';
+const listed = (id: string) => ({ [M1]: 'CNC-01', [M3]: 'DRL-04' })[id] ?? null;
+const V1_MOVES = [
+  {
+    id: 'mv1',
+    machineId: M1,
+    date: '2026-02-10',
+    fromCell: '2',
+    toCell: '6',
+    fromLocation: '434',
+    toLocation: '434',
+  },
+  {
+    id: 'mv2',
+    machineId: M3,
+    date: '2026-01-05',
+    fromCell: null,
+    toCell: '2',
+    fromLocation: null,
+    toLocation: 'Bay B',
+  },
+];
+const asHead = { codeOf: listed, role: 'head', today: '2026-11-11' };
+
+describe('what v1 printed for the log, kept', () => {
+  it('prints a missing cell or location as a dash, a location that did not change as "No change", and each machine by its code', () => {
+    const model = cellLogModel(logWith(V1_MOVES), t, asHead)!;
+    const rows = model.table.rows.map((row) => row.map((cell) => cell.text));
+    expect(rows).toEqual([
+      ['10-Feb-2026', 'CNC-01', '2 → 6', 'No change', 'Correct date'],
+      ['05-Jan-2026', 'DRL-04', '— → Cell 2', '— → Bay B', 'Correct date'],
+    ]);
+    expect(model.table.rows.map((row) => row[1]?.chip?.label)).toEqual(['CNC-01', 'DRL-04']);
+  });
+
+  it('shows a dash with no chip, and never a database id, for a machine the plant no longer lists', () => {
+    const gone = '10000000-0000-4000-8000-0000000000ff';
+    const model = cellLogModel(logWith([{ ...V1_MOVES[0], machineId: gone }]), t, asHead)!;
+    expect(model.table.rows[0]?.[1]).toMatchObject({ text: '—' });
+    expect(model.table.rows[0]?.[1]?.chip).toBeUndefined();
+    expect(model.moves[0]?.code).toBe('—');
+    // The move still carries its machine id so a head can correct it; it is never printed.
+    expect(model.moves[0]?.machineId).toBe(gone);
+    expect(printed({ ...model, moves: [], csv: undefined }).some((text) => UUID.test(text))).toBe(
+      false,
+    );
   });
 });

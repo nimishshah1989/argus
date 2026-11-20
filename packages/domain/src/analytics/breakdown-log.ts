@@ -95,6 +95,8 @@ export const breakdownLogFigure: Computer = ({ data, asOf }) => {
             title: '',
             header: HEADER,
             rows,
+            // The eye's own ticket, row for row: the engine sorts the drill ids, so a screen must not pair by position.
+            rowTicketIds: entries.map((entry) => entry.row.ticket.id),
             // The count is the rows built, never a constant: the screen truncates what it shows, the figure does not.
             rowCount: rows.length,
             truncated: true,

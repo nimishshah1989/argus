@@ -11,7 +11,7 @@ export function printedLog(reply: FiguresPart, t: TFunction): PrintedLog | null 
   const figure = figureOf(reply, KEY);
   const table = pageOf(figure, t)?.tables[0];
   if (figure === undefined || table === undefined || table.rows.length === 0) return null;
-  return { header: table.header, rows: table.rows };
+  return { header: table.header, rows: table.rows, ticketIds: table.rowTicketIds ?? [] };
 }
 
 /**

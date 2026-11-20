@@ -252,6 +252,20 @@ export function machineRecord(value: unknown, id: string): MachineRecord | null 
   return looksLikeMachine ? parseRecord(root, id) : null;
 }
 
+/**
+ * The id a machine's record is kept under, from what a link carries: the id itself, or the machine's code (the v2
+ * chips and drawers name a machine by its code). An id or code the value does not hold comes back as it was asked.
+ */
+export function machineIdOf(value: unknown, idOrCode: string): string {
+  const map = bag(bag(value)?.byMachine) ?? bag(bag(value)?.machines);
+  if (!map || bag(map[idOrCode])) return idOrCode;
+  const found = Object.entries(map).find(([, entry]) => {
+    const record = bag(entry);
+    return pickText(bag(record?.machine) ?? record ?? {}, 'code') === idOrCode;
+  });
+  return found?.[0] ?? idOrCode;
+}
+
 /** Completed years from the purchase record to the plant day; a year-only machine says it is estimated. */
 export function ageOf(
   machine: MachineFacts,

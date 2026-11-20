@@ -3,9 +3,13 @@ import type { LogFilterId, LogQuery, LogSortKey } from './model.js';
 
 /**
  * The engine's printed log: its header and one row per entry (the eye, Sr No, ticket, date, shift, machine, problem, done by, hours,
- * code). The engine sorts a figure's drill ids, so they do not line up with these rows and carry no meaning here.
+ * code), and `ticketIds`, the ticket behind each row in row order. The engine sorts a figure's drill ids, so those do not
+ * line up with these rows and carry no meaning here; a row's ticket is the one the table printed beside it.
  */
-export type PrintedLog = { header: string[]; rows: string[][] };
+export type PrintedLog = { header: string[]; rows: string[][]; ticketIds: string[] };
+
+/** One printed entry with the id of its own ticket (null when the figure named none). */
+export type LogEntry = { cells: string[]; ticketId: string | null };
 
 /**
  * One page of the log and the counts around it: the contract of a server that pages the log. Until the server
@@ -13,7 +17,7 @@ export type PrintedLog = { header: string[]; rows: string[][] };
  * and receives pages and never holds more than one.
  */
 export type LogReply = {
-  rows: string[][];
+  rows: LogEntry[];
   /** Rows that match the query. */
   matching: number;
   /** The whole log. */
@@ -55,11 +59,11 @@ function optionsOf(rows: string[][], id: LogFilterId): string[] {
     : values.sort((a, b) => a.localeCompare(b));
 }
 
-function sorted(rows: { row: string[] }[], sort: NonNullable<LogQuery['sort']>) {
+function sorted(rows: LogEntry[], sort: NonNullable<LogQuery['sort']>) {
   const sign = sort.dir === 'asc' ? 1 : -1;
   return [...rows].sort((a, b) => {
-    const x = orderValue(sort.key, a.row);
-    const y = orderValue(sort.key, b.row);
+    const x = orderValue(sort.key, a.cells);
+    const y = orderValue(sort.key, b.cells);
     // A dash means nothing was recorded: it sorts last whichever way.
     if (typeof x === 'number' && Number.isNaN(x))
       return typeof y === 'number' && Number.isNaN(y) ? 0 : 1;
@@ -72,17 +76,17 @@ function sorted(rows: { row: string[] }[], sort: NonNullable<LogQuery['sort']>) 
 }
 
 /** Every entry that matches the query, in the order asked. */
-function matches(log: PrintedLog, query: LogQuery): { row: string[] }[] {
+function matches(log: PrintedLog, query: LogQuery): LogEntry[] {
   const needle = query.query.trim().toLocaleLowerCase();
   const kept = log.rows
-    .map((row) => ({ row }))
-    .filter(({ row }) =>
+    .map((cells, at): LogEntry => ({ cells, ticketId: log.ticketIds[at] ?? null }))
+    .filter(({ cells }) =>
       (Object.keys(FILTER_COLUMN) as LogFilterId[]).every(
-        (id) => query.filters[id] === '' || cell(row, FILTER_COLUMN[id]) === query.filters[id],
+        (id) => query.filters[id] === '' || cell(cells, FILTER_COLUMN[id]) === query.filters[id],
       ),
     )
     .filter(
-      ({ row }) => needle === '' || row.slice(1).join(' ').toLocaleLowerCase().includes(needle),
+      ({ cells }) => needle === '' || cells.slice(1).join(' ').toLocaleLowerCase().includes(needle),
     );
   return query.sort ? sorted(kept, query.sort) : kept;
 }
@@ -94,7 +98,7 @@ export function cutPage(log: PrintedLog, query: LogQuery): LogReply {
   const start = (Math.min(Math.max(1, query.page), pages) - 1) * PAGE_SIZE;
   const page = ordered.slice(start, start + PAGE_SIZE);
   return {
-    rows: page.map((entry) => entry.row),
+    rows: page,
     matching: ordered.length,
     count: log.rows.length,
     options: {
@@ -108,4 +112,4 @@ export function cutPage(log: PrintedLog, query: LogQuery): LogReply {
 
 /** Every row that matches the query, for the export: the whole narrowed log, in the order asked. */
 export const everyMatch = (log: PrintedLog, query: LogQuery): string[][] =>
-  matches(log, query).map((entry) => entry.row);
+  matches(log, query).map((entry) => entry.cells);
