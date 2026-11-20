@@ -336,10 +336,6 @@ describe('the Action Center’s AMC and legal nudges', () => {
   });
 });
 
-// The sheets print the machine's code, never its id (the fixture's two machines are VC-01 and VC-02).
-const CODE_FREE = 'VC-01';
-const CODE_USED = 'VC-02';
-
 describe('the workbook’s two register sheets', () => {
   it('prints the AMC type, start, stored end and the not-renewing cell', async () => {
     const comprehensive = amcRows().find(
