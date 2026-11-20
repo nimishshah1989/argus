@@ -2,7 +2,7 @@ import type { FiguresReply } from '@uptimo/shared/analytics';
 import { fill } from '../../../i18n/fill.js';
 import type { IconName } from '../../../ui/v2/icons.js';
 import { REGISTER_TABS } from '../../analytics/machine-values.js';
-import { kpiCard, sentence, verdictOf } from '../figures/point.js';
+import { kpiCard, withDrill, sentence, verdictOf } from '../figures/point.js';
 import {
   machineChip,
   pagesOf,
@@ -11,6 +11,8 @@ import {
   type RegisterPage,
   type Translate,
 } from '../figures/read.js';
+import type { Drill } from '../../../ui/v2/drill.js';
+import { drillFor } from '../rows-behind/drill.js';
 import { engineTable, type Cell, type TableModel } from '../figures/table.js';
 import { commonWords, tableWords, type CommonWords } from '../figures/words.js';
 import type { RegisterPageModel, RegistersModel } from './model.js';
@@ -85,10 +87,10 @@ function listTable(
   });
 }
 
-type Ctx = { c: CommonWords; t: Translate; source: string };
+type Ctx = { c: CommonWords; t: Translate; source: string; drill?: Drill };
 
 function pageModel(page: RegisterPage, label: string, ctx: Ctx): RegisterPageModel {
-  const { c, t, source } = ctx;
+  const { c, t, source, drill } = ctx;
   const { summary, controllers, makes } = splitKpis(page);
   const [first, ...others] = summary;
   const verdict = verdictOf(
@@ -133,7 +135,12 @@ function pageModel(page: RegisterPage, label: string, ctx: Ctx): RegisterPageMod
     id: page.id,
     label,
     verdict,
-    kpis: summary.map((kpi, i) => kpiCard(`${page.id}-${i}`, ICONS[i] ?? 'list', kpi, source)),
+    kpis: summary.map((kpi, i) =>
+      withDrill(
+        kpiCard(`${page.id}-${i}`, ICONS[i] ?? 'list', kpi, source),
+        i === 0 ? drill : undefined,
+      ),
+    ),
     tables: [...splits, ...printed],
   };
 }
@@ -155,7 +162,9 @@ export function registersModel(reply: FiguresReply, t: Translate): RegistersMode
     return tab ? t(tab.labelKey) : id;
   };
   return {
-    pages: found.map((page) => pageModel(page, label(page.id), { c, t, source })),
+    pages: found.map((page) =>
+      pageModel(page, label(page.id), { c, t, source, drill: drillFor(reply, 'registers', t) }),
+    ),
     source,
     words: { tabs: t('analytics.registers.tabs'), why: c.why },
   };

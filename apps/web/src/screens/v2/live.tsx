@@ -10,27 +10,25 @@ import { Segmented } from '../../ui/v2/segmented.js';
 import { ScreenStates } from '../../ui/v2/screen-states.js';
 import { correctionError } from '../analytics/machine-values.js';
 import { SCREEN_LABELS, groupFor, type GroupId } from '../analytics/groups.js';
+import { AgeView } from './age/View.js';
 import { CellLogView } from './cell-change-log/View.js';
 import { DashboardView } from './dashboard/View.js';
-import type { DashboardModel } from './dashboard/model.js';
+import { FixFinderView } from './fix-finder/View.js';
+import { FootprintView } from './footprint/View.js';
+import { RegistersView } from './machines-register/View.js';
+import { ProblemAnalysisView } from './problem-analysis/View.js';
 import type { CellLogModel } from './cell-change-log/model.js';
-import { useScreenModel } from './data.js';
+import { useScreenModel, type ScreenModel, type ScreenParams } from './data.js';
 import { ChromeContext, EntityShell } from './entity/EntityShell.js';
 import { useNav } from './nav.js';
+import type { NavItem } from '../../ui/v2/shell.js';
 import { sectionsFor, type SectionId } from '../analytics/shell/shell-data.js';
 
 /**
  * The v2 screens that are live: each renders at the URL its v1 page had, inside the v2 shell, with the data and the role
  * rules v1 used. `AnalyticsFace` asks here first and falls back to v1's page for any screen not listed.
  */
-type Live = {
-  group: GroupId;
-  section: SectionId;
-  screen: string;
-  /** The group's first screen, which its address opens with no `?screen=`. */
-  first?: true;
-  page: () => ReactElement;
-};
+type Live = { group: GroupId; section: SectionId; screen: string; page: () => ReactElement };
 
 const NAV_LABEL: Partial<Record<GroupId, MessageKey>> = {
   machines: 'analytics.machines.nav',
@@ -130,21 +128,30 @@ function CellChangeLogPage() {
   );
 }
 
-/** The Dashboard: Today's first screen, the landing page of a head. Each figure it prints is the engine's own. */
-function DashboardPage() {
+/** A screen that only draws its model: the model through the shared seam, the states in the shell until it is ready. */
+function ModelPage<
+  K extends 'dashboard' | 'machines-register' | 'age' | 'footprint' | 'fix-finder' | 'problem-analysis',
+>({
+  entry,
+  screen,
+  title,
+  draw,
+}: {
+  entry: Pick<Live, 'group' | 'section' | 'screen'>;
+  screen: K;
+  title: MessageKey;
+  draw: (model: ScreenModel<K>, shell: { nav: NavItem[]; title: string }) => ReactElement;
+}) {
   const { t } = useTranslation();
-  const loaded = useScreenModel('dashboard', {});
-  const last = useRef<DashboardModel>(undefined);
-  if (loaded.state === 'ready' && loaded.model) last.current = loaded.model;
-  const model = loaded.model ?? (loaded.state === 'loading' ? last.current : undefined);
-  const title = t('analytics.screen.dashboard');
+  const loaded = useScreenModel(screen, {} as ScreenParams<K>);
+  const heading = t(title);
   return (
-    <LiveFrame entry={{ group: 'today', section: 'today', screen: 'dashboard' }}>
+    <LiveFrame entry={entry}>
       {(nav) =>
-        model ? (
-          <DashboardView model={model} nav={nav} title={title} />
+        loaded.state === 'ready' && loaded.model ? (
+          draw(loaded.model, { nav, title: heading })
         ) : (
-          <EntityShell nav={nav} title={title}>
+          <EntityShell nav={nav} title={heading}>
             <ScreenStates loaded={loaded}>{() => null}</ScreenStates>
           </EntityShell>
         )
@@ -153,13 +160,25 @@ function DashboardPage() {
   );
 }
 
+const screenOf = (group: GroupId, section: SectionId, screen: string) => ({
+  group,
+  section,
+  screen,
+});
+
 const LIVE: readonly Live[] = [
   {
     group: 'today',
     section: 'today',
     screen: 'dashboard',
-    first: true,
-    page: () => <DashboardPage />,
+    page: () => (
+      <ModelPage
+        entry={screenOf('today', 'today', 'dashboard')}
+        screen="dashboard"
+        title="analytics.screen.dashboard"
+        draw={(model, shell) => <DashboardView model={model} {...shell} />}
+      />
+    ),
   },
   {
     group: 'machines',
@@ -167,23 +186,84 @@ const LIVE: readonly Live[] = [
     screen: 'cell-change-log',
     page: () => <CellChangeLogPage />,
   },
+  {
+    group: 'machines',
+    section: 'machines',
+    screen: 'registers',
+    page: () => (
+      <ModelPage
+        entry={screenOf('machines', 'machines', 'registers')}
+        screen="machines-register"
+        title="v2m.title.register"
+        draw={(model, shell) => <RegistersView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'machines',
+    section: 'machines',
+    screen: 'a8-age',
+    page: () => (
+      <ModelPage
+        entry={screenOf('machines', 'machines', 'a8-age')}
+        screen="age"
+        title="v2m.title.age"
+        draw={(model, shell) => <AgeView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'machines',
+    section: 'machines',
+    screen: 'a7-footprint',
+    page: () => (
+      <ModelPage
+        entry={screenOf('machines', 'machines', 'a7-footprint')}
+        screen="footprint"
+        title="v2m.title.footprint"
+        draw={(model, shell) => <FootprintView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'breakdowns',
+    section: 'problems',
+    screen: 'fix-finder',
+    page: () => (
+      <ModelPage
+        entry={screenOf('breakdowns', 'problems', 'fix-finder')}
+        screen="fix-finder"
+        title="analytics.screen.fix-finder"
+        draw={(model, shell) => <FixFinderView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'breakdowns',
+    section: 'problems',
+    screen: 'a10-problems',
+    page: () => (
+      <ModelPage
+        entry={screenOf('breakdowns', 'problems', 'a10-problems')}
+        screen="problem-analysis"
+        title="v2p.pa.title"
+        draw={(model, shell) => <ProblemAnalysisView model={model} {...shell} />}
+      />
+    ),
+  },
 ];
 
 /**
  * The live v2 page for a group's screen (`?screen=`, or the group's first), or null when that screen is still v1's. A
- * rows-behind link (`?drill=`) still goes to the v1 page that draws it, until every screen opens its rows in the drawer.
+ * rows-behind link from a v1 screen (`?drill=`) still goes to the v1 table that draws those rows.
  */
 export function liveScreen(
   group: string | undefined,
   screen: string | null,
   drilled = false,
 ): ReactElement | null {
-  if (drilled) return null;
-  return (
-    LIVE.find(
-      (entry) =>
-        entry.group === group &&
-        (entry.screen === screen || (entry.first === true && screen === null)),
-    )?.page() ?? null
-  );
+  if (drilled && group === 'today') return null;
+  const first = group === 'machines' ? 'registers' : group === 'today' ? 'dashboard' : null;
+  const named = screen ?? first;
+  return LIVE.find((entry) => entry.group === group && entry.screen === named)?.page() ?? null;
 }

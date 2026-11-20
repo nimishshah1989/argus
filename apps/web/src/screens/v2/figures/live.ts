@@ -1,8 +1,8 @@
 import i18n from 'i18next';
 import type { QueryClient } from '@tanstack/react-query';
-import type { FiguresReply } from '@uptimo/shared/analytics';
+import type { DrillReply, DrillType, FiguresReply } from '@uptimo/shared/analytics';
 import type { Config } from '@uptimo/shared/replies';
-import { analyticsFiguresQuery, getConfig, getMe, getState } from '../../../api.js';
+import { analyticsFiguresQuery, getConfig, getDrill, getMe, getState } from '../../../api.js';
 import { ApiError } from '../../../data/index.js';
 import { LiveOffline } from './live-error.js';
 import type { Translate } from './read.js';
@@ -55,3 +55,11 @@ export async function liveCodes(client: Client): Promise<(machineId: string) => 
   const { machines } = await liveConfig(client);
   return (machineId) => machines.find((machine) => machine.id === machineId)?.code ?? null;
 }
+
+/** The rows a figure counted (`GET /analytics/drill`), under the key v1's drill table reads them with. */
+export const liveDrill = (
+  client: Client,
+  type: DrillType,
+  ids: readonly string[],
+): Promise<DrillReply> =>
+  read(client, { queryKey: ['analytics-drill', type, ids], queryFn: () => getDrill(type, ids) });
