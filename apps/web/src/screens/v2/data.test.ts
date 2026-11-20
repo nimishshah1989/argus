@@ -1,6 +1,6 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { PROVIDERS, load, providersOf } from './data.js';
+import { FROZEN, PROVIDERS, frozenOf, load, providersOf } from './data.js';
 import { dashboardFixture } from './dashboard/fixture.js';
 
 describe('the v2 screen data seam', () => {
@@ -33,6 +33,22 @@ describe('the v2 screen registry', () => {
     });
     expect(Object.keys(found)).toEqual(['demo']);
     expect(await (found.demo as () => Promise<string>)()).toBe('model');
+  });
+
+  it("keeps a screen's frozen answer apart from its live provider, and only for the screens that have one", () => {
+    const live = () => Promise.resolve('live');
+    const frozen = () => Promise.resolve('frozen');
+    const modules = {
+      './a/register.ts': { screen: { key: 'a', provider: live, frozen } },
+      './b/register.ts': { screen: { key: 'b', provider: live } },
+    };
+    expect(providersOf(modules)).toEqual({ a: live, b: live });
+    expect(frozenOf(modules)).toEqual({ a: frozen });
+  });
+
+  it('keeps a frozen answer for the gallery on each screen that now reads the server', () => {
+    for (const key of ['breakdown-log', 'fix-finder', 'problem-analysis'])
+      expect(FROZEN, key).toHaveProperty(key);
   });
 
   it('refuses two screens that claim one key', () => {

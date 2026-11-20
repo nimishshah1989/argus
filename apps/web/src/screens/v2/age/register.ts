@@ -9,11 +9,11 @@ declare module '../data.js' {
 
 export const screen: ScreenEntry<'age'> = {
   key: 'age',
-  provider: async () => {
+  provider: async (_, { client }) => {
     const [{ liveReply, catalogue }, { ageModel }] = await Promise.all([
       import('../figures/live.js'),
       import('./adapter.js'),
     ]);
-    return ageModel(await liveReply(), catalogue);
+    return ageModel(await liveReply(client), catalogue);
   },
 };

@@ -4,13 +4,12 @@ import { expect, test, type Page } from '@playwright/test';
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 const drawer = (page: Page) => page.locator('aside.v2-drawer');
 
-/** The five Machines screens of batch 2: the gallery view, its heading and a line the answer key makes true. */
+/** The four Machines screens of batch 2 still in the gallery (the cell change log is live): the gallery view, its heading and a line the answer key makes true. */
 const SCREENS = [
   { view: 'v2-machines-register', heading: 'Machines register', lede: 'CNC Machines: 126' },
   { view: 'v2-oem', heading: 'OEM', lede: '24 machines under 300 days old' },
   { view: 'v2-age', heading: 'Age', lede: 'Machines aged 20+ yrs lose the most' },
   { view: 'v2-footprint', heading: 'Footprint', lede: 'The fleet needs a floor of 2,970 m²' },
-  { view: 'v2-cell-change-log', heading: 'Cell change log', lede: '15 cell and location moves' },
 ] as const;
 
 async function open(
@@ -95,28 +94,9 @@ test('the register opens on CNC, switches register in the URL and says what a ma
   await expect(list.getByText(/^1–10 of 16$/)).toBeVisible();
 });
 
-test('the cell change log exports its controlled document and a head corrects a date', async ({
+test('no rupee on the OEM page for a login that is not a head, plant head or admin', async ({
   page,
 }) => {
-  await open(page, 'v2-cell-change-log', 'Cell change log');
-  const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export to CSV', exact: true }).click();
-  const file = await download;
-  expect(file.suggestedFilename()).toMatch(/^cell-change-log-\d{4}-\d{2}-\d{2}\.csv$/);
-  await page.getByRole('button', { name: 'Correct date', exact: true }).first().click();
-  const form = page.getByRole('form', { name: 'Correct the move date' });
-  await expect(form.getByLabel('New date')).toHaveValue('2026-10-03');
-  await form.getByLabel('New date').fill('2026-10-04');
-  await form.getByRole('button', { name: 'Save', exact: true }).click();
-  await expect(page.getByText('Move date corrected.')).toBeVisible();
-  await expect(page.getByRole('cell', { name: '04-Oct-2026' })).toBeVisible();
-});
-
-test('a login that is not a head or an admin gets no correction, and no rupee on the OEM page', async ({
-  page,
-}) => {
-  await open(page, 'v2-cell-change-log', 'Cell change log', { query: '&role=op' });
-  await expect(page.getByRole('button', { name: 'Correct date' })).toHaveCount(0);
   await open(page, 'v2-oem', 'OEM', { query: '&role=op' });
   await expect(page.locator('main')).not.toContainText('₹');
   await open(page, 'v2-oem', 'OEM');

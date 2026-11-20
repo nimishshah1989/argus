@@ -9,13 +9,13 @@ declare module '../data.js' {
 
 export const screen: ScreenEntry<'oem'> = {
   key: 'oem',
-  provider: async () => {
+  provider: async (_, { client }) => {
     const [{ liveReply, liveRole, catalogue }, { mayReadMoney }, { oemModel }] = await Promise.all([
       import('../figures/live.js'),
       import('../figures/read.js'),
       import('./adapter.js'),
     ]);
-    const [reply, role] = await Promise.all([liveReply(), liveRole()]);
+    const [reply, role] = await Promise.all([liveReply(client), liveRole(client)]);
     return oemModel(reply, catalogue, { money: mayReadMoney(role) });
   },
 };

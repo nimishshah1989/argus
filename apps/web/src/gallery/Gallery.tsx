@@ -2,6 +2,7 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
+import { SourceContext } from '../screens/v2/data.js';
 import { setLanguage } from '../i18n/index.js';
 import { Button } from '../ui/button.js';
 import { Inline, Page, Stack } from '../ui/layout.js';
@@ -164,7 +165,7 @@ function useDocumentAttributes(
   );
 }
 
-export default function Gallery() {
+function GalleryPage() {
   const { t } = useTranslation('gallery');
   const [params] = useSearchParams();
   const lang = params.get('lang') === 'gu' ? 'gu' : 'en';
@@ -223,5 +224,14 @@ export default function Gallery() {
         <ElementsSection />
       </Page>
     </div>
+  );
+}
+
+/** The gallery runs every screen on its frozen answer key (a screen's `frozen` provider), never on the server. */
+export default function Gallery() {
+  return (
+    <SourceContext.Provider value="frozen">
+      <GalleryPage />
+    </SourceContext.Provider>
   );
 }

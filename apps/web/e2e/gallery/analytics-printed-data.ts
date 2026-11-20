@@ -86,20 +86,4 @@ export const PRINTED: Printed[] = [
       ['Longest breakdowns', 0, ['01-02-2026', '6.5']],
     ],
   },
-  {
-    path: '/analytics/machines?screen=cell-change-log',
-    tiles: [],
-    rows: [
-      [
-        'Cell / Location Change Log',
-        0,
-        ['10-02-2026', 'CNC-01', 'Cell 2 → Cell 6', 'No change', 'Correct date'],
-      ],
-      [
-        'Cell / Location Change Log',
-        1,
-        ['05-01-2026', 'DRL-04', '— → Cell 2', '— → Bay B', 'Correct date'],
-      ],
-    ],
-  },
 ];

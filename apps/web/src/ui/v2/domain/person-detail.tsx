@@ -7,7 +7,7 @@ export type PersonDetailData = {
   role: string;
   /** The decisions and machines they are on now, each with one line on what they are doing. */
   now: { chip: EntityChipProps; note: string }[];
-  /** This month: the jobs they closed and the hours they worked. */
+  /** This month: the jobs they closed and the hours they worked; both empty when the plant records neither (the part is left out). */
   jobs: string;
   hours: string;
 };
@@ -44,12 +44,14 @@ export function PersonDetail({
           </div>
         ))}
       </DetailSection>
-      <DetailSection label={words.month}>
-        <div className="v2-figures">
-          <DetailFigure label={words.jobs} value={p.jobs} />
-          <DetailFigure label={words.hours} value={p.hours} />
-        </div>
-      </DetailSection>
+      {p.jobs !== '' || p.hours !== '' ? (
+        <DetailSection label={words.month}>
+          <div className="v2-figures">
+            <DetailFigure label={words.jobs} value={p.jobs} />
+            <DetailFigure label={words.hours} value={p.hours} />
+          </div>
+        </DetailSection>
+      ) : null}
       <SourceLine text={source} />
     </div>
   );

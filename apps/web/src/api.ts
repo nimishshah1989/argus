@@ -23,12 +23,7 @@ import {
   type PmRescheduleReply,
 } from '@uptimo/shared';
 import type { BoardToday } from '@uptimo/shared/board';
-import {
-  drillReplySchema,
-  type DrillReply,
-  type DrillType,
-  type FiguresReply,
-} from '@uptimo/shared/analytics';
+import { drillReplySchema, type DrillReply, type DrillType } from '@uptimo/shared/analytics';
 import type { User } from '@uptimo/shared/auth';
 import type {
   Criticality,
@@ -78,10 +73,6 @@ export const tickets = defineResource<TicketDetail, Ticket>({
   path: '/api/v1/tickets',
 });
 const boardToday = defineResource<BoardToday>({ key: 'board', path: '/api/v1/board' });
-const analyticsFigures = defineResource<FiguresReply>({
-  key: 'analytics-figures',
-  path: '/api/v1/analytics/figures',
-});
 /**
  * `GET /analytics/drill` answers `{ type, rows }`, not a cursor page: the engine's plain rows, the same shape
  * the engine reads. The shared contract owns that reply; `list` is only the query-string helper here.
@@ -167,13 +158,11 @@ export function getState(): Promise<State> {
 /** The plant's day score for the live board's Response today and Repair today tiles. */
 export const getBoardToday = (): Promise<BoardToday> => boardToday.one('today');
 
-/** `GET /analytics/figures`: every figure the menu shows, as of the plant's today (or an earlier date, for a change). */
-export const useAnalyticsFigures = () => analyticsFigures.useOne();
-export const useAnalyticsFiguresAt = (asOf: string) =>
-  useQuery({
-    queryKey: ['analytics-figures', 'at', asOf],
-    queryFn: () => analyticsFigures.list({ asOf }) as unknown as Promise<FiguresReply>,
-  });
+export {
+  analyticsFiguresQuery,
+  useAnalyticsFigures,
+  useAnalyticsFiguresAt,
+} from './analytics-figures.js';
 
 /**
  * `GET /pm/calendar?from&to` (50c): the six-week grid's occurrences, parsed at this boundary. The range is the

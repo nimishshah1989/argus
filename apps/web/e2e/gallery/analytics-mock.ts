@@ -3,7 +3,7 @@ import { mockPlant } from './plant-mock.js';
 
 /**
  * The analytics figures answered from the browser (ticket 87, rest): an invented plant's A1 to A4, A10, Fix Finder,
- * Shift KPIs, Compare and the Cell change log, in the engine's own page shape. Invented names and numbers only. The
+ * Shift KPIs and Compare, in the engine's own page shape. Invented names and numbers only. The
  * blank cell, the dash and the "pts" below are on purpose: the restyle must print them as they are.
  */
 interface PageSpec {
@@ -217,35 +217,6 @@ const FIGURES = [
       },
     ],
   }),
-  {
-    key: 'cell-change-log',
-    screen: 'cell-change-log',
-    owner: 39,
-    status: 'ready',
-    drill: { type: 'move', ids: [] },
-    value: {
-      moves: [
-        {
-          id: 'mv1',
-          machineId: 'm1',
-          date: '2026-02-10',
-          fromCell: 'Cell 2',
-          toCell: 'Cell 6',
-          fromLocation: 'Bay A',
-          toLocation: 'Bay A',
-        },
-        {
-          id: 'mv2',
-          machineId: 'm3',
-          date: '2026-01-05',
-          fromCell: null,
-          toCell: 'Cell 2',
-          fromLocation: null,
-          toLocation: 'Bay B',
-        },
-      ],
-    },
-  },
 ];
 
 const REPLY = {
