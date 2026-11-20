@@ -36,6 +36,7 @@ export const analyticsActionCenterGu = gujarati(analyticsActionCenterEn, {
   'analytics.actionCenter.typeLabel': 'પ્રકાર',
   'analytics.actionCenter.type': 'બધા પ્રકાર',
   'analytics.actionCenter.search': 'મશીન કે લખાણ શોધો',
+  'analytics.actionCenter.entries': '{{count}} એન્ટ્રી',
   'analytics.actionCenter.entries_one': '{{count}} એન્ટ્રી',
   'analytics.actionCenter.entries_other': '{{count}} એન્ટ્રી',
   'analytics.actionCenter.verdict.high': 'હમણાં જ કરો',

@@ -2,57 +2,164 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
-const BEARING = 'Keep a spare spindle bearing for the turning centres';
+const FIRST = 'HMC-2 has broken down 12 times in 30 days';
 const drawer = (page: Page) => page.locator('aside.v2-drawer');
+const nudges = (page: Page) => page.getByRole('region', { name: 'Nudges', exact: true });
+const tabs = (page: Page) => page.getByRole('group', { name: 'Action Center status' });
 
-async function open(page: Page, width: number, theme = 'light', extra = '') {
+async function open(page: Page, width: number, theme = 'light') {
   await page.setViewportSize({ width, height: 900 });
   await page.goto('about:blank');
-  await page.goto(`/gallery?view=v2-action-center&theme=${theme}${extra}`);
+  await page.goto(`/gallery?view=v2-action-center&theme=${theme}`);
   await expect(page.getByRole('heading', { level: 1, name: 'Action Center' })).toBeVisible();
-  await expect(page.locator('.v2-lede').getByText('7 decisions are waiting')).toBeVisible();
+  await expect(page.locator('.v2-lede')).toContainText('5 high-priority and 26 medium nudges');
+  // A pointer left on the rail opens it over the first column (a machine chip sits under it): park it on the page.
+  await page.mouse.move(Math.round(width / 2), 450);
 }
 
 for (const width of [1440, 390]) {
-  test(`${width} px: a decision opens the drawer, Back closes it, the table filters, nothing scrolls sideways`, async ({
+  test(`${width} px: the four counts, a nudge opens the drawer, Back closes it, the list filters, nothing scrolls sideways`, async ({
     page,
   }) => {
     await open(page, width);
-    await page.getByRole('button', { name: BEARING }).click();
-    await expect(drawer(page)).toHaveAttribute('aria-label', BEARING);
-    await expect(page).toHaveURL(/drawer=decision:bearing/);
+    for (const [name, value] of [
+      ['High priority', '5'],
+      ['Medium', '26'],
+      ['Low', '2'],
+      ['Good news', '0'],
+    ] as const)
+      await expect(page.getByRole('region', { name, exact: true })).toContainText(value);
+    await nudges(page)
+      .getByRole('button', { name: `Open ${FIRST}` })
+      .click();
+    await expect(drawer(page)).toHaveAttribute('aria-label', FIRST);
+    await expect(page).toHaveURL(/drawer=decision:freq~HMC-2/);
+    await expect(drawer(page).getByRole('button', { name: 'Acknowledge' })).toBeVisible();
     await page.goBack();
     await expect(drawer(page)).toHaveAttribute('inert', '');
-    const table = page.getByRole('region', { name: 'Machines that keep coming up' });
-    await expect(table.getByText('1–10 of 13')).toBeVisible();
-    await table.getByRole('button', { name: 'Has a high nudge' }).click();
-    await expect(table.getByText('1–5 of 5')).toBeVisible();
+    await expect(nudges(page).getByText('1–10 of 33')).toBeVisible();
+    await nudges(page).getByRole('button', { name: 'High priority' }).click();
+    await expect(nudges(page).getByText('1–5 of 5')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(
       false,
     );
   });
 }
 
-test('a machine in the table opens its drawer; a parked decision opens without a Decide button', async ({
+test('the four status tabs, the type filter and the search narrow the list; an empty one says so', async ({
   page,
 }) => {
   await open(page, 1440);
-  await page.getByRole('button', { name: 'Open GRD-127' }).click();
-  await expect(drawer(page)).toHaveAttribute('aria-label', 'Grinder 127');
-  await page.keyboard.press('Escape');
-  await page
-    .getByRole('button', { name: 'Check the hydraulic oil on the vertical centres' })
+  await page.getByLabel('Type', { exact: true }).selectOption('recur');
+  await expect(nudges(page).getByText('1–1 of 1')).toBeVisible();
+  await page.getByLabel('Type', { exact: true }).selectOption('');
+  await nudges(page).getByRole('searchbox').fill('vc-14');
+  await expect(nudges(page).getByText('1–1 of 1')).toBeVisible();
+  await nudges(page).getByRole('searchbox').fill('');
+  await tabs(page)
+    .getByRole('button', { name: /^Acknowledged/ })
     .click();
-  await expect(drawer(page)).toHaveAttribute('aria-label', /hydraulic oil/);
-  await expect(drawer(page).locator('[aria-pressed]')).toHaveCount(0);
+  const row = nudges(page).getByRole('row').filter({ hasText: 'TC-3 has broken down' });
+  for (const text of ['Acknowledged', 'Asha', 'Due 20-Nov-2026', 'Note: Check the bearing'])
+    await expect(row).toContainText(text);
+  await tabs(page)
+    .getByRole('button', { name: /^Snoozed/ })
+    .click();
+  await expect(nudges(page)).toContainText('Snoozed until 18-Nov-2026');
+  await tabs(page)
+    .getByRole('button', { name: /^Resolved/ })
+    .click();
+  await nudges(page).getByRole('searchbox').fill('no such machine');
+  await expect(nudges(page)).toContainText('Nothing here.');
+});
+
+test('the form of an open nudge is in the drawer; a stored one offers Reopen', async ({ page }) => {
+  await open(page, 1440);
+  await nudges(page)
+    .getByRole('button', { name: `Open ${FIRST}` })
+    .click();
+  await drawer(page).getByRole('button', { name: 'Acknowledge' }).click();
+  const form = drawer(page).getByRole('form', { name: 'Acknowledge nudge' });
+  await expect(form.getByLabel('Owner')).toBeVisible();
+  await expect(form.getByLabel('Due date')).toBeVisible();
+  await expect(form.getByLabel('Note')).toBeVisible();
+  await expect(drawer(page).getByRole('button', { name: 'Snooze 7 days' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await tabs(page)
+    .getByRole('button', { name: /^Acknowledged/ })
+    .click();
+  await nudges(page)
+    .getByRole('button', { name: /^Open TC-3 has broken down/ })
+    .click();
+  await expect(drawer(page).getByRole('button', { name: 'Reopen' })).toBeVisible();
+  await expect(drawer(page).getByRole('button', { name: 'Snooze 7 days' })).toHaveCount(0);
+});
+
+test('a machine in the risk table opens its drawer', async ({ page }) => {
+  await open(page, 1440);
+  const risk = page.getByRole('region', { name: 'Machines needing attention' });
+  await expect(risk.getByRole('row')).toHaveCount(9);
+  const chip = risk.getByRole('button', { name: 'HMC-2', exact: true }).first();
+  await chip.scrollIntoViewIfNeeded();
+  await chip.click({ timeout: 15_000 });
+  await expect(page).toHaveURL(/drawer=machine:HMC-2/);
+});
+
+test('a machine chosen inside an open nudge replaces it, and one Esc closes the drawer', async ({
+  page,
+}) => {
+  await open(page, 1440);
+  await nudges(page)
+    .getByRole('button', { name: `Open ${FIRST}` })
+    .click();
+  await expect(drawer(page)).toHaveAttribute('aria-label', FIRST);
+  await drawer(page).getByRole('button', { name: 'HMC-2', exact: true }).first().click();
+  await expect(page).toHaveURL(/drawer=machine:HMC-2/);
+  await expect(drawer(page)).not.toHaveAttribute('aria-label', FIRST);
+  const listed = page.url();
+  await page.keyboard.press('Escape');
+  await expect(page).not.toHaveURL(/drawer=/);
+  await expect(drawer(page)).toHaveAttribute('inert', '');
+  expect(listed).toContain('/gallery');
+  await expect(page.getByRole('heading', { level: 1, name: 'Action Center' })).toBeVisible();
+});
+
+test('a pasted link to a nudge the board does not hold says not found', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/gallery?view=v2-action-center&drawer=decision:freq~NOPE');
+  await expect(page.locator('[data-state="empty"]')).toBeVisible({ timeout: 15_000 });
+});
+
+test('the priority chips count the rows they open, under the tab and the type', async ({
+  page,
+}) => {
+  await open(page, 1440);
+  for (const chip of ['All priorities 33', 'High priority 5', 'Medium 26', 'Low 2', 'Good news 0'])
+    await expect(nudges(page).getByRole('button', { name: chip, exact: true })).toBeVisible();
+  await nudges(page).getByRole('button', { name: 'Medium 26', exact: true }).click();
+  await expect(nudges(page).getByText('1–10 of 26')).toBeVisible();
+  await nudges(page).getByRole('button', { name: 'Next' }).click();
+  await nudges(page).getByRole('button', { name: 'Next' }).click();
+  await expect(nudges(page).getByText('21–26 of 26')).toBeVisible();
+  await page.getByLabel('Type', { exact: true }).selectOption('freq');
+  await expect(nudges(page).getByRole('button', { name: /^Medium \d+$/ })).toBeVisible();
+  await tabs(page)
+    .getByRole('button', { name: /^Acknowledged/ })
+    .click();
+  await expect(
+    nudges(page).getByRole('button', { name: 'All priorities 1', exact: true }),
+  ).toBeVisible();
 });
 
 for (const theme of ['light', 'dark']) {
-  test(`axe finds nothing in ${theme}, with the Whys and a drawer open`, async ({ page }) => {
+  test(`axe finds nothing in ${theme}, with the Why and a drawer open`, async ({ page }) => {
     await open(page, 1440, theme);
-    for (const why of await page.getByRole('button', { name: /^Why/ }).all()) await why.click();
-    await page.getByRole('button', { name: BEARING }).click();
-    await expect(drawer(page)).toHaveAttribute('aria-label', BEARING);
+    await page.getByRole('button', { name: 'Why?', exact: true }).click();
+    await nudges(page)
+      .getByRole('button', { name: `Open ${FIRST}` })
+      .click();
+    await drawer(page).getByRole('button', { name: 'Acknowledge' }).click();
+    await expect(drawer(page)).toHaveAttribute('aria-label', FIRST);
     const { violations } = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
     expect(violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(' ')}`)).toEqual([]);
   });

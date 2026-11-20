@@ -1,6 +1,6 @@
 import type { CheckData } from '../../../ui/v2/domain/check-row.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
-import { PEOPLE } from '../action-center/fixture-decisions.js';
+import { PEOPLE } from './fixture-people.js';
 import { pt, pts } from '../dashboard/fixture-text.js';
 import type { CheckGroup, DataChecklistModel, RecordRow } from './model.js';
 import {
