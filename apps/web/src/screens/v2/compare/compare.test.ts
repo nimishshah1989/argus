@@ -31,7 +31,8 @@ const figure = (side: 0 | 1, id: string) => model.boxes[side].figures.find((f) =
 
 describe('the Compare fixture adds up', () => {
   it('prints each machine’s hours and breakdowns as its breakdowns added up', () => {
-    const [a, b] = DEFAULT_PAIR.a === model.boxes[0].chip.id ? [0, 1] : [1, 0];
+    const [a, b] =
+      DEFAULT_PAIR.a === model.boxes[0].chip.id ? ([0, 1] as const) : ([1, 0] as const);
     for (const [side, code] of [
       [a, DEFAULT_PAIR.a],
       [b, DEFAULT_PAIR.b],
@@ -91,7 +92,7 @@ describe('the Compare fixture adds up', () => {
     for (const series of model.trend.series) {
       const rows = yearOf(series.name)!.breakdowns;
       const total = rows.reduce((s, r) => s + r.tenths, 0) / 10;
-      const shown = series.values.reduce((s, v) => s + (v ?? 0), 0);
+      const shown = series.values.reduce((s: number, v) => s + (v ?? 0), 0);
       expect(shown).toBeLessThanOrEqual(total + 0.05);
       expect(shown).toBeCloseTo(
         rows.filter((r) => r.week >= 34).reduce((s, r) => s + r.tenths, 0) / 10,
