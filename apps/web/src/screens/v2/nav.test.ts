@@ -14,20 +14,26 @@ const find = (role: string | undefined, query: string, t = english) =>
   filterEntries(paletteEntries(searchEntries(sectionsFor(role)), t), query).map((row) => row.to);
 
 describe('the rail', () => {
-  it('ends with the way out to the desk for a login that may work there', () => {
-    for (const role of ['technician', 'supervisor', 'head', 'plant_head', 'admin', undefined]) {
-      const items = rail(role);
-      expect(items.at(-1), String(role)).toMatchObject({ label: 'Desk', href: '/desk' });
-      expect(items.filter((item) => item.id !== 'desk').length).toBeGreaterThan(0);
-    }
+  it('ends with the way out to the desk for every login, as v1 showed it', () => {
+    for (const role of [
+      'operator',
+      'board',
+      'technician',
+      'supervisor',
+      'head',
+      'plant_head',
+      'admin',
+      undefined,
+    ])
+      expect(rail(role).at(-1), String(role)).toMatchObject({ label: 'Desk', href: '/desk' });
   });
 
-  it('shows no desk link to a login that has no desk, and the Guide alone to one the engine refuses', () => {
+  it('gives a login the engine refuses the Guide and the desk, and nothing else', () => {
     for (const role of ['operator', 'board'])
       expect(
         rail(role).map((item) => item.label),
         role,
-      ).toEqual(['Guide']);
+      ).toEqual(['Guide', 'Desk']);
   });
 
   it('marks the section you are on, and keeps the order the shell has', () => {

@@ -4,7 +4,6 @@ import type { MessageKey } from '@uptimo/shared/i18n';
 import type { IconName } from '../../ui/v2/icons.js';
 import type { PaletteEntry } from '../../ui/v2/palette-match.js';
 import type { NavItem } from '../../ui/v2/shell.js';
-import { mayOpenDesk } from '../../roles.js';
 import {
   searchEntries,
   sectionsFor,
@@ -25,7 +24,7 @@ const ICON: Record<SectionId, IconName> = {
 
 /**
  * The rail for a v2 screen, with `current` marked as the page you are on. A known `role` gets the sections it may open
- * (as v1's menu does), and the way out to the desk only if it may work there; none gets all of them.
+ * (as v1's menu does), then the way out to the desk, which v1 showed to every login; none gets all of them.
  */
 export function navItems(
   current: SectionId,
@@ -46,7 +45,7 @@ export function navItems(
     href: '/desk',
     end: true,
   };
-  return role === undefined || mayOpenDesk(role) ? [...sections, desk] : sections;
+  return [...sections, desk];
 }
 
 export function useNav(current: SectionId, role?: string): NavItem[] {

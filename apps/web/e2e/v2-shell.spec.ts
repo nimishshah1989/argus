@@ -48,9 +48,9 @@ test('a technician has the Guide and the way out to the desk, and no figures sec
   await expect(rail(page).getByRole('link')).toHaveText(['Guide', 'Desk']);
 });
 
-test('an operator has the Guide alone: no desk to go to', async ({ page }) => {
+test('an operator has the Guide and the way out to the desk, as in v1', async ({ page }) => {
   await openMachines(page, 'op');
-  await expect(rail(page).getByRole('link')).toHaveText(['Guide']);
+  await expect(rail(page).getByRole('link')).toHaveText(['Guide', 'Desk']);
 });
 
 test('Ctrl K opens a search over every page, typing narrows it, Enter goes there and Esc puts focus back', async ({
