@@ -20,3 +20,12 @@ export function Button({
     </button>
   );
 }
+
+/** The quiet button that goes to another page: the same look as `Button`, a real link underneath. */
+export function LinkButton({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <a className="v2-btn v2-btn-ghost" href={href}>
+      {children}
+    </a>
+  );
+}

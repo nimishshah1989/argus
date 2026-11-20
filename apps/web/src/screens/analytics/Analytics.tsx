@@ -2,7 +2,6 @@ import { lazy, Suspense } from 'react';
 import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { groupFor } from './groups.js';
 import { ActionCenterPage } from './ActionCenterPage.js';
-import { Dashboard } from './Dashboard.js';
 import { BreakdownsPage } from './BreakdownsPage.js';
 import { DataChecklist } from './DataChecklist.js';
 import { ForecastPage } from './ForecastPage.js';
@@ -11,6 +10,7 @@ import { GuidePage } from './GuidePage.js';
 import { MachinePage } from './MachinePage.js';
 import { MachinesPage } from './MachinesPage.js';
 import { MoneyPage } from './MoneyPage.js';
+import { TodayRest } from './TodayRest.js';
 import { ReportsPage } from './ReportsPage.js';
 import { AnalyticsShell } from './shell/AnalyticsShell.js';
 import { liveScreen } from '../v2/live.js';
@@ -58,14 +58,14 @@ export function AnalyticsFace() {
   const [params] = useSearchParams();
   const found = groupFor(group);
   if (!found) return <Navigate to="/analytics/today" replace />;
-  const live = liveScreen(group, params.get('screen'));
+  const live = liveScreen(group, params.get('screen'), params.has('drill'));
   if (live) return live;
   return (
     <AnalyticsShell>
       {found.id === 'guide' ? (
         <GuidePage />
       ) : found.id === 'today' ? (
-        <Dashboard group={found} />
+        <TodayRest group={found} />
       ) : found.id === 'machines' ? (
         <MachinesPage group={found} />
       ) : found.id === 'breakdowns' ? (

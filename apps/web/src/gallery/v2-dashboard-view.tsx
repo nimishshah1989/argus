@@ -1,29 +1,29 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { useNav } from '../screens/v2/nav.js';
 import { EntityShell } from '../screens/v2/entity/EntityShell.js';
-import { useScreenModel, type Provider } from '../screens/v2/data.js';
-import { DashboardView } from '../screens/v2/dashboard/View.js';
-import { ScreenStates } from '../ui/v2/screen-states.js';
+import { dashboardFixture } from '../screens/v2/dashboard/fixture.js';
+import { ScreenStates, type Loaded } from '../ui/v2/screen-states.js';
+import type { DemoModel } from '../screens/v2/dashboard/fixture-model.js';
+import { DemoView } from './v2-dashboard-demo.js';
 
-/** Providers that show each load state in the gallery: `&state=loading`, `empty` or `error`. */
-function previewProvider(state: string | null): Provider<'dashboard'> | undefined {
-  if (state === 'loading') return () => new Promise(() => {});
-  if (state === 'empty') return () => Promise.resolve(null);
-  if (state === 'error') return () => Promise.reject(new Error('preview'));
-  return undefined;
+/** The demo's load states, previewed with `&state=loading|empty|error`. */
+function previewLoad(state: string | null): Loaded<DemoModel> {
+  const retry = () => {};
+  if (state === 'loading') return { state: 'loading', retry };
+  if (state === 'empty') return { state: 'empty', retry };
+  if (state === 'error') return { state: 'error', retry };
+  return { state: 'ready', model: dashboardFixture, retry };
 }
 
 /**
- * The v2 Dashboard as a screen will run it: the model through the shared seam (`useScreenModel`), the load states
- * from the kit inside the same shell, and this view standing in for the server on which decisions are taken.
+ * The kit's plant demo: the decision-first page the v2 look was approved on, on its invented plant. It is the host the
+ * entity-chip, drawer and plant-map tests run on; the real Dashboard is the live screen at `/analytics/today`.
  */
 export default function V2DashboardView() {
   const [params] = useSearchParams();
-  const state = params.get('state');
-  const provider = useMemo(() => previewProvider(state), [state]);
-  const loaded = useScreenModel('dashboard', {}, provider);
+  const loaded = previewLoad(params.get('state'));
   const nav = useNav('today');
   const { t } = useTranslation();
   const title = t('analytics.screen.dashboard');
@@ -43,7 +43,7 @@ export default function V2DashboardView() {
     );
   const model = loaded.model;
   return (
-    <DashboardView
+    <DemoView
       model={{
         ...model,
         decisions: model.decisions.map((d) => ({ ...d, decided: decided.has(d.id) })),

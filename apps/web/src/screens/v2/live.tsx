@@ -11,17 +11,26 @@ import { ScreenStates } from '../../ui/v2/screen-states.js';
 import { correctionError } from '../analytics/machine-values.js';
 import { SCREEN_LABELS, groupFor, type GroupId } from '../analytics/groups.js';
 import { CellLogView } from './cell-change-log/View.js';
+import { DashboardView } from './dashboard/View.js';
+import type { DashboardModel } from './dashboard/model.js';
 import type { CellLogModel } from './cell-change-log/model.js';
 import { useScreenModel } from './data.js';
 import { ChromeContext, EntityShell } from './entity/EntityShell.js';
 import { useNav } from './nav.js';
-import type { SectionId } from '../analytics/shell/shell-data.js';
+import { sectionsFor, type SectionId } from '../analytics/shell/shell-data.js';
 
 /**
  * The v2 screens that are live: each renders at the URL its v1 page had, inside the v2 shell, with the data and the role
  * rules v1 used. `AnalyticsFace` asks here first and falls back to v1's page for any screen not listed.
  */
-type Live = { group: GroupId; section: SectionId; screen: string; page: () => ReactElement };
+type Live = {
+  group: GroupId;
+  section: SectionId;
+  screen: string;
+  /** The group's first screen, which its address opens with no `?screen=`. */
+  first?: true;
+  page: () => ReactElement;
+};
 
 const NAV_LABEL: Partial<Record<GroupId, MessageKey>> = {
   machines: 'analytics.machines.nav',
@@ -46,6 +55,22 @@ function ScreenTabs({ group, current }: { group: GroupId; current: string }) {
   );
 }
 
+/** Today's screens as one row above the page: each tab is its own route, as the section's tabs are in the v1 shell. */
+function TodayTabs() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const role = useQuery({ queryKey: ['me'], queryFn: getMe }).data?.user.role;
+  const tabs = sectionsFor(role).find((section) => section.id === 'today')?.tabs ?? [];
+  return (
+    <Segmented
+      label={t('ashell.tabs', { section: t('ashell.section.today') })}
+      options={tabs.map((tab) => ({ key: tab.to, label: t(tab.label) }))}
+      value={tabs[0]?.to ?? ''}
+      onChange={(to) => navigate(to)}
+    />
+  );
+}
+
 /** A screen's frame: the rail by the login's role, the section's screens above, and the figures' states in place of the page. */
 function LiveFrame({
   entry,
@@ -56,11 +81,13 @@ function LiveFrame({
 }) {
   const role = useQuery({ queryKey: ['me'], queryFn: getMe }).data?.user.role;
   const nav = useNav(entry.section, role);
-  return (
-    <ChromeContext.Provider value={<ScreenTabs group={entry.group} current={entry.screen} />}>
-      {children(nav)}
-    </ChromeContext.Provider>
-  );
+  const tabs =
+    entry.group === 'today' ? (
+      <TodayTabs />
+    ) : (
+      <ScreenTabs group={entry.group} current={entry.screen} />
+    );
+  return <ChromeContext.Provider value={tabs}>{children(nav)}</ChromeContext.Provider>;
 }
 
 /** One head's or admin's correction of a move's date: the server's words on a refusal; never offline. */
@@ -103,7 +130,37 @@ function CellChangeLogPage() {
   );
 }
 
+/** The Dashboard: Today's first screen, the landing page of a head. Each figure it prints is the engine's own. */
+function DashboardPage() {
+  const { t } = useTranslation();
+  const loaded = useScreenModel('dashboard', {});
+  const last = useRef<DashboardModel>(undefined);
+  if (loaded.state === 'ready' && loaded.model) last.current = loaded.model;
+  const model = loaded.model ?? (loaded.state === 'loading' ? last.current : undefined);
+  const title = t('analytics.screen.dashboard');
+  return (
+    <LiveFrame entry={{ group: 'today', section: 'today', screen: 'dashboard' }}>
+      {(nav) =>
+        model ? (
+          <DashboardView model={model} nav={nav} title={title} />
+        ) : (
+          <EntityShell nav={nav} title={title}>
+            <ScreenStates loaded={loaded}>{() => null}</ScreenStates>
+          </EntityShell>
+        )
+      }
+    </LiveFrame>
+  );
+}
+
 const LIVE: readonly Live[] = [
+  {
+    group: 'today',
+    section: 'today',
+    screen: 'dashboard',
+    first: true,
+    page: () => <DashboardPage />,
+  },
   {
     group: 'machines',
     section: 'machines',
@@ -112,7 +169,21 @@ const LIVE: readonly Live[] = [
   },
 ];
 
-/** The live v2 page for a group's screen (`?screen=`, or the group's first), or null when that screen is still v1's. */
-export function liveScreen(group: string | undefined, screen: string | null): ReactElement | null {
-  return LIVE.find((entry) => entry.group === group && entry.screen === screen)?.page() ?? null;
+/**
+ * The live v2 page for a group's screen (`?screen=`, or the group's first), or null when that screen is still v1's. A
+ * rows-behind link (`?drill=`) still goes to the v1 page that draws it, until every screen opens its rows in the drawer.
+ */
+export function liveScreen(
+  group: string | undefined,
+  screen: string | null,
+  drilled = false,
+): ReactElement | null {
+  if (drilled) return null;
+  return (
+    LIVE.find(
+      (entry) =>
+        entry.group === group &&
+        (entry.screen === screen || (entry.first === true && screen === null)),
+    )?.page() ?? null
+  );
 }

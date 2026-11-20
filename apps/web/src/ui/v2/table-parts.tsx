@@ -1,4 +1,5 @@
 /* eslint-disable i18next/no-literal-string -- icon names and typed unions only; every visible word comes in as a prop or t() */
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from './icons.js';
 import type { SortDir } from './table-model.js';
@@ -94,6 +95,8 @@ export function TablePager({
 /** The table's title, its search and its filter chips (one chosen at a time). */
 export function TableBar({
   title,
+  sub,
+  aside,
   search,
   query,
   onQuery,
@@ -103,6 +106,10 @@ export function TableBar({
   hideSearch = false,
 }: {
   title: string;
+  /** One quiet line under the title (a count, a total). */
+  sub?: string;
+  /** Something beside the title: the control that opens the rows behind the table's figure. */
+  aside?: ReactNode;
   search: string;
   query: string;
   onQuery: (query: string) => void;
@@ -114,7 +121,15 @@ export function TableBar({
 }) {
   return (
     <div className="v2-table-bar">
-      <h2 className="v2-h2">{title}</h2>
+      {sub ? (
+        <div>
+          <h2 className="v2-h2">{title}</h2>
+          <p className="v2-sub">{sub}</p>
+        </div>
+      ) : (
+        <h2 className="v2-h2">{title}</h2>
+      )}
+      {aside}
       {hideSearch ? null : (
         <label className="v2-table-search">
           <Icon name="search" />

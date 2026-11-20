@@ -16,7 +16,7 @@ export const catalogue: Translate = (key, values) => i18n.t(key, { ...values }) 
  * retries a lost connection twice. When the connection is lost and an older copy is cached, that copy is served (as
  * v1 does); with none, the read fails as `LiveOffline`. A refusal stays the server's `ApiError`.
  */
-async function read<T>(
+export async function read<T>(
   client: QueryClient | undefined,
   query: { queryKey: readonly unknown[]; queryFn: () => Promise<T> },
 ): Promise<T> {
