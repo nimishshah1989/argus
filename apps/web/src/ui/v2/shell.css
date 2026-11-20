@@ -195,18 +195,27 @@
   .v2-rail-col {
     border: 0;
   }
+  /* The open menu starts under the header, so the toggle stays in reach; closed, it leaves the tab order. */
   .v2-rail {
     position: fixed;
+    top: 60px;
     left: 0;
     width: var(--size-v2-rail-open);
+    height: calc(100vh - 60px);
+    height: calc(100dvh - 60px);
+    visibility: hidden;
     transform: translateX(-100%);
-    transition: transform var(--motion-v2-ui) var(--ease-v2);
+    transition:
+      transform var(--motion-v2-ui) var(--ease-v2),
+      visibility 0s linear var(--motion-v2-ui);
   }
   .v2-rail .v2-rail-label {
     opacity: 1;
   }
   .v2-app[data-menu='true'] .v2-rail {
+    visibility: visible;
     transform: none;
+    transition: transform var(--motion-v2-ui) var(--ease-v2);
     box-shadow: var(--shadow-v2-overlay);
   }
   .v2-menu {
@@ -240,6 +249,7 @@
 @media (prefers-reduced-motion: reduce) {
   .v2-app,
   .v2-rail,
+  .v2-app[data-menu='true'] .v2-rail,
   .v2-rail-label,
   .v2-kpi,
   .v2-kpi-more,

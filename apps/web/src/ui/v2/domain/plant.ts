@@ -32,6 +32,10 @@ export const STATE_ICON: Record<MachineState, IconName | undefined> = {
   pm: 'wrench',
   idle: 'pause',
 };
+/** A 12-week trend's tone: rising breakdown hours are a loss, falling or flat a gain. */
+export const trendTone = (values: number[]): 'gain' | 'loss' =>
+  (values[values.length - 1] ?? 0) > (values[0] ?? 0) ? 'loss' : 'gain';
+
 /** The tag tone a state wears. */
 export const STATE_TONE = {
   run: 'gain',

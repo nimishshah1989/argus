@@ -60,9 +60,12 @@ export function DecisionAction({ d, onDecide, onUndo }: { d: DecisionData } & De
   );
 }
 
-/** Clicks on the row open the drawer, except on its own buttons (Why, the action). */
-const onRow = (open: () => void) => (e: MouseEvent) =>
-  (e.target as HTMLElement).closest('button, a') ? undefined : open();
+/** Clicks on the row open the drawer, except on its own buttons, inside its open Why, or to select text. */
+const onRow = (open: () => void) => (e: MouseEvent) => {
+  if ((e.target as HTMLElement).closest('button, a, .v2-open')) return;
+  if (window.getSelection()?.toString()) return;
+  open();
+};
 
 /**
  * One decision: what it is, its short Why in place, what it is worth, its last 90 days, and the one action that

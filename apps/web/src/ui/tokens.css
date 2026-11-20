@@ -274,6 +274,7 @@
   --color-v2-plan-tint: #e8f0fa;
   --color-v2-decide: #6b21a8;
   --color-v2-decide-tint: #f3e8ff;
+  --color-v2-decide-fill: #7e3fc8;
   --color-v2-idle-fill: #8e8e93;
   /* Machine types: one fixed colour each, the same on every screen (a dot or an edge, 3:1 on the panel). */
   --color-v2-cat-1: #4f5bd5;
@@ -478,6 +479,7 @@
   --color-v2-plan-tint: #16233d;
   --color-v2-decide: #d8b4fe;
   --color-v2-decide-tint: #2a2140;
+  --color-v2-decide-fill: #a87ff0;
   --color-v2-idle-fill: #6e6e73;
   --color-v2-cat-1: #8b95f5;
   --color-v2-cat-2: #3cc5c3;

@@ -2,6 +2,7 @@ import { DataTable, type Column, type FilterChip, type TableWords } from '../dat
 import { KeyPill } from '../key-pill.js';
 import { Sparkline } from '../sparkline.js';
 import {
+  trendTone,
   STATE_ICON,
   STATE_TONE,
   type MachineData,
@@ -72,14 +73,7 @@ function machineColumns(words: MachineTableWords): Column<MachineData>[] {
     {
       key: 'trend',
       label: words.columns.trend,
-      cell: (m) => (
-        <Sparkline
-          values={m.trend}
-          tone={m.trend[m.trend.length - 1]! > m.trend[0]! ? 'loss' : 'gain'}
-          width={80}
-          height={24}
-        />
-      ),
+      cell: (m) => <Sparkline values={m.trend} tone={trendTone(m.trend)} width={80} height={24} />,
     },
   ];
 }

@@ -74,11 +74,49 @@ describe('check-ui', () => {
     ]);
   });
 
-  it('lets a v2 screen compose the kit, and leaves the kit itself alone', () => {
+  it('checks code that follows a comment on the same line', () => {
+    expect(check({ 'screens/v2/a/View.tsx': "/* note */ const c = '#ffffff';" })).toEqual([
+      'screens/v2/a/View.tsx:1: raw colour in screens/v2/',
+    ]);
+  });
+
+  it('flags named colours, colour declarations and palette classes in a v2 screen', () => {
+    const errors = check({
+      'screens/v2/a/View.tsx': [
+        "const s = { color: 'red' };",
+        '<rect fill="tomato" />',
+        "const tone = 'white';",
+        '<p className="bg-red-500" />',
+        '<path fill="none" stroke="currentColor" />',
+      ].join('\n'),
+    });
+    expect(errors).toEqual([
+      'screens/v2/a/View.tsx:1: raw colour in screens/v2/',
+      'screens/v2/a/View.tsx:2: raw colour in screens/v2/',
+      'screens/v2/a/View.tsx:3: raw colour in screens/v2/',
+      'screens/v2/a/View.tsx:4: raw colour in screens/v2/',
+    ]);
+  });
+
+  it("flags the project's size classes and arbitrary sizes in a v2 screen", () => {
+    const errors = check({
+      'screens/v2/a/View.tsx': [
+        '<p className="text-body" />',
+        '<p className="text-[14px]" />',
+      ].join('\n'),
+    });
+    expect(errors).toEqual([
+      'screens/v2/a/View.tsx:1: font size in screens/v2/',
+      'screens/v2/a/View.tsx:2: font size in screens/v2/',
+    ]);
+  });
+
+  it('lets a v2 screen compose the kit and print copy, and leaves the kit itself alone', () => {
     expect(
       check({
         'screens/v2/a/View.tsx': '<Panel title={words.title}><Row>{children}</Row></Panel>',
-        'ui/v2/v2.css': '.x { font-size: 12px; animation: none; color: #fff; }',
+        'screens/v2/a/fixture.ts': "const note = 'A smooth transition to the new shift';",
+        'ui/v2/kit.tsx': "const s = { color: '#fff', fontSize: 12, animation: 'none' };",
       }),
     ).toEqual([]);
   });

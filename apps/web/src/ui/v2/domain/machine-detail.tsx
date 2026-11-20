@@ -2,7 +2,7 @@ import { KeyPill } from '../key-pill.js';
 import { Points } from '../points.js';
 import { Sparkline } from '../sparkline.js';
 import { DetailFigure, DetailSection, SourceLine } from './detail-parts.js';
-import { STATE_ICON, STATE_TONE, type MachineData, type MachineState } from './plant.js';
+import { trendTone, STATE_ICON, STATE_TONE, type MachineData, type MachineState } from './plant.js';
 
 export type MachineDetailWords = {
   states: Record<MachineState, string>;
@@ -49,13 +49,7 @@ export function MachineDetail({
         </div>
       </DetailSection>
       <DetailSection label={words.trend}>
-        <Sparkline
-          values={m.trend}
-          tone={m.trend[m.trend.length - 1]! > m.trend[0]! ? 'loss' : 'gain'}
-          width={360}
-          height={56}
-          draw
-        />
+        <Sparkline values={m.trend} tone={trendTone(m.trend)} width={360} height={56} draw />
       </DetailSection>
       <SourceLine text={source} />
     </div>

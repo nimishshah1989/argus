@@ -1,7 +1,7 @@
 /* eslint-disable i18next/no-literal-string -- icon names and typed unions only; every visible word comes in as a prop or t() */
 import { useEffect, useRef, useState, type ReactNode, type TransitionEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Drawer, type DrawerSpec } from './drawer.js';
+import { Drawer, useDrawerFrame, type DrawerSpec } from './drawer.js';
 import { Icon, type IconName } from './icons.js';
 
 export type NavItem = {
@@ -113,6 +113,7 @@ export function Shell({
   children: ReactNode;
 }) {
   const [menu, setMenu] = useState(false);
+  const { covered } = useDrawerFrame(drawer !== null);
   const remeasure = (e: TransitionEvent) =>
     e.target === e.currentTarget && window.dispatchEvent(new Event('resize'));
   return (
@@ -122,7 +123,7 @@ export function Shell({
       data-menu={menu}
       onTransitionEnd={remeasure}
     >
-      <div className="v2-rail-col">
+      <div className="v2-rail-col" inert={covered}>
         <nav className="v2-rail">
           {nav.map((item) => (
             <a key={item.id} href={item.href} aria-current={item.current ? 'page' : undefined}>
@@ -132,7 +133,7 @@ export function Shell({
           ))}
         </nav>
       </div>
-      <div className="v2-main">
+      <div className="v2-main" inert={covered}>
         <Header
           title={title}
           alerts={alerts}

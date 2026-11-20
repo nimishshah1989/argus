@@ -34,7 +34,7 @@ export function KpiCard({ kpi }: { kpi: KpiData }) {
       </div>
       <div className="v2-kpi-row">
         <div>
-          <div className="v2-kpi-value" data-flash={value.flash}>
+          <div key={value.n} className="v2-kpi-value" data-flash={value.flash}>
             {value.text}
           </div>
           <span className={`v2-delta v2-delta-${tone}`}>

@@ -7,6 +7,8 @@ export type TrendData = {
   /** What the chart says aloud, as one sentence. */
   aria: string;
   categoryLabel: string;
+  /** What the value axis counts, e.g. "Hours". */
+  valueLabel: string;
   categories: string[];
   series: { name: string; values: (number | undefined)[]; tone?: ChartTone }[];
 };
@@ -20,6 +22,8 @@ export function TrendChart({ data }: { data: TrendData }) {
     kind: 'line',
     title: data.title,
     categoryLabel: data.categoryLabel,
+    valueLabel: data.valueLabel,
+    axisTitles: true,
     categories: data.categories,
     series: data.series,
     legend: data.series.length > 1,
@@ -29,8 +33,10 @@ export function TrendChart({ data }: { data: TrendData }) {
   return (
     <section className="v2-card v2-pad" aria-label={data.title}>
       <div className="v2-card-head">
-        <h2 className="v2-h2">{data.title}</h2>
-        <p className="v2-sub">{data.sub}</p>
+        <div>
+          <h2 className="v2-h2">{data.title}</h2>
+          <p className="v2-sub">{data.sub}</p>
+        </div>
       </div>
       <div
         ref={ref}

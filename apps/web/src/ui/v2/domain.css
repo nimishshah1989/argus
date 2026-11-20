@@ -83,7 +83,7 @@
   border-radius: 5px;
   color: var(--color-v2-on-ink);
   cursor: pointer;
-  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform var(--motion-v2-fast) var(--ease-v2);
 }
 /* Tiles stay 22 px to the eye; the tap reaches 44 px around each, like the Why pill. */
 button.v2-tile::after {

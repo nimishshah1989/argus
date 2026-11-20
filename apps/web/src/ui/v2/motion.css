@@ -60,10 +60,10 @@
 }
 /* A value that changed flashes the colour of its direction once. Which direction is good is the caller's to say. */
 [data-flash='up'] {
-  animation: v2-flash-up 1200ms var(--ease-v2);
+  animation: v2-flash-up var(--motion-v2-data) var(--ease-v2);
 }
 [data-flash='down'] {
-  animation: v2-flash-down 1200ms var(--ease-v2);
+  animation: v2-flash-down var(--motion-v2-data) var(--ease-v2);
 }
 .v2-lift {
   transition:

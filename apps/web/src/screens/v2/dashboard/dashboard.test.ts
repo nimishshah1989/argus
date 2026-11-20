@@ -82,6 +82,13 @@ describe('the fixture figures agree with each other', () => {
     );
   });
 
+  it('names only machines the plant has, and gives running machines no breakdown hours', () => {
+    const codes = new Set(machines.map((m) => m.code));
+    const named = model.decisions.find((d) => d.id === 'axis')!.codes;
+    expect(named.filter((c) => !codes.has(c))).toEqual([]);
+    expect(machines.filter((m) => m.state === 'run' && m.hours.value > 0)).toEqual([]);
+  });
+
   it('ends the trend on this month and last month, as the KPI says', () => {
     const breakdown = model.trend.series[0]!.values;
     expect(breakdown.at(-1)).toBe(num(kpi('hours').value));

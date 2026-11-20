@@ -46,13 +46,13 @@ const TYPES = {
   GRD: { label: 'Grinder', cat: 4 },
 } as const;
 /** How heavy each state's month is, in tenths of an hour before the month's total shares them out. */
-const WEIGHT: Record<MachineState, number> = { down: 220, risk: 110, pm: 30, idle: 0, run: 14 };
+const WEIGHT: Record<MachineState, number> = { down: 220, risk: 110, pm: 30, idle: 0, run: 0 };
 
 const raw = SIZES.flatMap((n, c) =>
   Array.from({ length: n }, (_, i) => {
     const state = ODD[`${c + 1}-${i}`] ?? 'run';
     const kind = KINDS[c]!;
-    const weight = state === 'idle' ? 0 : WEIGHT[state] + ((c * 7 + i * 13) % 17);
+    const weight = WEIGHT[state] && WEIGHT[state] + ((c * 7 + i * 13) % 17);
     return { c, i, state, kind, weight };
   }),
 );

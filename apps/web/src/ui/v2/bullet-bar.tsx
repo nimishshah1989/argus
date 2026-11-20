@@ -55,7 +55,7 @@ export function BulletBar({ b }: { b: BulletData }) {
       >
         <span>
           <span className="v2-sub v2-block">{b.label}</span>
-          <span className="v2-num v2-block" data-flash={shown.flash}>
+          <span key={shown.n} className="v2-num v2-block" data-flash={shown.flash}>
             {shown.text}
             {b.unit}
           </span>

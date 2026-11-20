@@ -26,7 +26,7 @@ export const dashboardFixture: DashboardModel = {
       id: 'axis',
       kind: 'fix',
       kindLabel: 'Fix for good',
-      codes: ['VC-8', 'VC-9', 'TC-5'],
+      codes: ['VC-67', 'VC-94', 'TC-56'],
       title: 'Stop axis motor and encoder failures',
       keys: [
         { text: '16% of all hours', tone: 'loss' },
@@ -34,13 +34,13 @@ export const dashboardFixture: DashboardModel = {
       ],
       why: pts(
         '!!478 h!! in **98 breakdowns** on 44 machines',
-        'Worst on **VC-8 (13)**, **VC-9 (10)**, **TC-5 (5)**',
+        'Worst on **VC-67 (13)**, **VC-94 (10)**, **TC-56 (5)**',
       ),
       detail: pts(
         '!!478 h!! in **98 breakdowns** on 44 machines',
-        'Worst on **VC-8 (13)**, **VC-9 (10)**, **TC-5 (5)**',
+        'Worst on **VC-67 (13)**, **VC-94 (10)**, **TC-56 (5)**',
         'Causes: ~~cable bends~~ and ~~coolant in encoders~~',
-        '++Arjun V++ fixed the same fault on **VC-14**; it has not come back in 5 months',
+        '++Arjun V++ fixed the same fault on **VC-18**; it has not come back in 5 months',
       ),
       hours: glue('48.1 h'),
       money: glue('₹ 10.38 lakh a year'),

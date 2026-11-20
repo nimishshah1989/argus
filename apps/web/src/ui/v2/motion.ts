@@ -24,67 +24,66 @@ export function reducedMotion(): boolean {
   return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-const NUMBER = /\d[\d,]*(?:\.\d+)?/;
+const NUMBER = /[-−]?\d[\d,]*(?:\.\d+)?/;
+/** The first number in printed text, with its sign (an ASCII hyphen or a typographic minus). */
 const valueOf = (text: string) => {
   const m = NUMBER.exec(text);
-  return m ? Number(m[0].replace(/,/g, '')) : null;
+  return m ? Number(m[0].replace(/,/g, '').replace('−', '-')) : null;
 };
 
-/** `text` with its first number moved to `value`, printed with the same decimals and grouping. */
+/** `text` with its first number moved to `value`, printed with the same sign style, decimals and grouping. */
 export function withValue(text: string, value: number): string {
   const m = NUMBER.exec(text);
   if (!m) return text;
   const raw = m[0];
   const decimals = raw.split('.')[1]?.length ?? 0;
-  const shown = Math.max(0, value).toLocaleString('en-IN', {
+  const digits = Math.abs(value).toLocaleString('en-IN', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
     useGrouping: raw.includes(','),
   });
+  const minus = raw.startsWith('−') ? '−' : '-';
+  const shown = value < 0 && Number(digits.replace(/,/g, '')) !== 0 ? minus + digits : digits;
   return text.slice(0, m.index) + shown + text.slice(m.index + raw.length);
 }
 
-export type Tick = { text: string; flash?: 'up' | 'down' };
+/** A figure as it shows now; `n` counts changes, so a second rise in a row flashes again (it keys the element). */
+export type Tick = { text: string; flash?: 'up' | 'down'; n: number };
 
 /**
- * A printed figure that arrives: on first load it ticks up from zero, on an update it ticks from the old value to
- * the new one and flashes its direction once. It always ends on the engine's own text, character for character.
+ * A printed figure that arrives: on first load it ticks up from zero; on an update it ticks from the value on screen
+ * to the new one and flashes its direction once. It always ends on the engine's own text, character for character.
  */
 export function useTick(text: string, ms = 700): Tick {
-  const [shown, setShown] = useState<Tick>({ text });
-  const last = useRef<string | null>(null);
+  const [shown, setShown] = useState<Tick>({ text, n: 0 });
+  const target = useRef<string | null>(null);
+  const onScreen = useRef<number>(0);
+  const changes = useRef(0);
   useLayoutEffect(() => {
-    const before = last.current;
-    last.current = text;
-    const from = before === null ? 0 : valueOf(before);
+    const before = target.current;
+    target.current = text;
     const to = valueOf(text);
+    const was = before === null ? null : valueOf(before);
+    if (before !== null && before !== text) changes.current += 1;
+    const n = changes.current;
     const flash =
-      before !== null && from !== null && to !== null && from !== to
-        ? to > from
-          ? 'up'
-          : 'down'
-        : undefined;
-    if (to === null || from === null || from === to || reducedMotion())
-      return setShown({ text, flash });
+      was !== null && to !== null && was !== to ? (to > was ? 'up' : 'down') : undefined;
+    const from = onScreen.current;
+    if (to === null || from === to || reducedMotion()) {
+      onScreen.current = to ?? 0;
+      return setShown({ text, flash, n });
+    }
     const start = performance.now();
     let frame = 0;
-    let done = false;
     const step = (now: number) => {
       const t = Math.min(1, (now - start) / ms);
-      done = t >= 1;
-      setShown({
-        text: t < 1 ? withValue(text, from + (to - from) * (1 - (1 - t) ** 3)) : text,
-        flash,
-      });
+      onScreen.current = from + (to - from) * (1 - (1 - t) ** 3);
+      setShown({ text: t < 1 ? withValue(text, onScreen.current) : text, flash, n });
       if (t < 1) frame = requestAnimationFrame(step);
     };
-    setShown({ text: withValue(text, from), flash });
+    setShown({ text: withValue(text, from), flash, n });
     frame = requestAnimationFrame(step);
-    return () => {
-      cancelAnimationFrame(frame);
-      // A tick cut short (React running the effect twice in development) starts again from where it began.
-      if (!done) last.current = before;
-    };
+    return () => cancelAnimationFrame(frame);
   }, [text, ms]);
   return shown;
 }

@@ -79,6 +79,7 @@ export const TREND: TrendData = {
   sub: '12 months · hover any month for its exact hours',
   aria: 'Breakdown hours by month, December to November, rising to 312.4 h in November; PM hours steady near 105 h',
   categoryLabel: 'Month',
+  valueLabel: 'Hours',
   categories: MONTHS,
   series: [
     { name: 'Breakdown', values: BREAKDOWN, tone: 'danger' },

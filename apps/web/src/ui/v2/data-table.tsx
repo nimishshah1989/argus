@@ -134,7 +134,9 @@ export function DataTable<R>(props: TableProps<R>) {
           <TableHead columns={columns} sort={ask.sort} onSort={ask.onSort} />
           <TableRows t={props} rows={view.rows} changes={changes} />
         </table>
-        {view.total === 0 ? <p className="v2-no-results">{words.noResults}</p> : null}
+        <div role="status">
+          {view.total === 0 ? <p className="v2-no-results">{words.noResults}</p> : null}
+        </div>
       </div>
       <TablePager
         showing={fill(words.showing, { from: view.from, to: view.to, total: view.total })}

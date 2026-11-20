@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { LoadState, Loaded } from '../../ui/v2/screen-states.js';
 import type { DashboardModel } from './dashboard/model.js';
 
@@ -37,8 +37,8 @@ export async function load<K extends ScreenKey>(
 }
 
 /**
- * A screen's model and where it stands. `provider` defaults to the registry's; a preview or a test may pass its own.
- * `retry` loads again.
+ * A screen's model and where it stands. `provider` defaults to the registry's; a preview or a test may pass its own,
+ * inline or not: the latest one is used, and only the key, the params or `retry` start a new load.
  */
 export function useScreenModel<K extends ScreenKey>(
   key: K,
@@ -50,13 +50,17 @@ export function useScreenModel<K extends ScreenKey>(
   });
   const [attempt, setAttempt] = useState(0);
   const asked = JSON.stringify(params);
+  const latest = useRef(provider);
+  latest.current = provider;
   useEffect(() => {
     let live = true;
     setResult({ state: 'loading' });
-    void load(provider, JSON.parse(asked) as ScreenParams<K>).then((r) => live && setResult(r));
+    void load(latest.current, JSON.parse(asked) as ScreenParams<K>).then(
+      (r) => live && setResult(r),
+    );
     return () => {
       live = false;
     };
-  }, [key, asked, attempt, provider]);
+  }, [key, asked, attempt]);
   return { ...result, retry: () => setAttempt((a) => a + 1) };
 }

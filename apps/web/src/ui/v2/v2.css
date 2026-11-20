@@ -217,7 +217,7 @@
   gap: 6px;
   min-height: 44px;
   padding: 0 16px;
-  border: 1px solid var(--color-v2-line);
+  border: 1px solid var(--color-v2-control-line);
   border-radius: 10px;
   font: inherit;
   font-size: var(--text-v2-body);
@@ -258,9 +258,16 @@
   color: var(--color-v2-gain);
 }
 .v2-btn-small {
+  position: relative;
   min-height: 36px;
   padding: 0 12px;
   font-size: var(--text-v2-secondary);
+}
+/* 36 px to the eye, 44 px to the finger, as the chips and the Why pill. */
+.v2-btn-small::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
 }
 .v2-icon-btn {
   position: relative;

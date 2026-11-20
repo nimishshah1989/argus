@@ -124,27 +124,40 @@ describe('v2 table', () => {
     );
     expect(view.rows.every((r) => r.code.startsWith('M-1') && r.hours > 3)).toBe(true);
   });
-  it('says so when nothing matches, and never paints more than ten rows', () => {
-    const out = html(
+  const table = (
+    filters: { key: string; label: string; test?: (r: { hours: number }) => boolean }[],
+  ) =>
+    html(
       createElement(DataTable<{ code: string; hours: number }>, {
         rows,
         rowKey: (r) => r.code,
         columns: [{ key: 'code', label: 'Code', cell: (r) => r.code, sortBy: (r) => r.code }],
-        filters: [{ key: 'all', label: 'All' }],
+        filters,
         text: (r) => r.code,
         words: {
           title: 'Machines',
           search: 'Search',
           showing: '{from}–{to} of {total}',
-          noResults: 'None',
+          noResults: 'Nothing matches',
           open: 'Open',
         },
         onOpen: () => {},
       }),
     );
+
+  it('never paints more than ten rows, and sorts from a header button', () => {
+    const out = table([{ key: 'all', label: 'All' }]);
     expect(out.match(/<tr /g)).toHaveLength(10);
     expect(text(out)).toContain('1–10 of 23');
+    expect(text(out)).not.toContain('Nothing matches');
     expect(out).toMatch(/<button type="button" class="v2-sort"/);
+  });
+
+  it('says so, in a live region, when the chosen filter leaves no rows', () => {
+    const out = table([{ key: 'none', label: 'None', test: () => false }]);
+    expect(out.match(/<tbody[^>]*>(.*?)<\/tbody>/)?.[1]).toBe('');
+    expect(out).toMatch(/<div role="status"><p[^>]*>Nothing matches<\/p><\/div>/);
+    expect(text(out)).toContain('0–0 of 0');
   });
 });
 

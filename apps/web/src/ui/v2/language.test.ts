@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { createElement, type ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { ratio, readTokens } from '../contrast.js';
+import { ratio, readTokens, resolve } from '../contrast.js';
 import { withValue } from './motion.js';
 import { Row } from './row.js';
 import { ScreenStates } from './screen-states.js';
@@ -49,6 +49,20 @@ describe('v2 surfaces and motion (UX-RULES.md §1, §8)', () => {
       );
   });
 
+  it('times UI motion at 160–240 ms and data motion at 500–800 ms, on one ease-out curve', () => {
+    const ms = (name: string) =>
+      Number(new RegExp(`--motion-v2-${name}:\\s*(\\d+)ms`).exec(tokensCss)?.[1]);
+    expect([ms('fast'), ms('ui')].every((v) => v >= 160 && v <= 240)).toBe(true);
+    expect(ms('data')).toBeGreaterThanOrEqual(500);
+    expect(ms('data')).toBeLessThanOrEqual(800);
+    expect(tokensCss).toMatch(/--ease-v2: cubic-bezier\(0\.22, 1, 0\.36, 1\);/);
+    // Every duration is a token; the one exception is the slow pulse of a machine that is down (three times, then still).
+    const literal = [...values('animation'), ...values('transition')].filter(
+      (v) => v !== 'none' && /(?:^|,\s*)[\w-]+ (?!0s\b)\d/.test(v) && !v.startsWith('v2-pulse'),
+    );
+    expect(literal).toEqual([]);
+  });
+
   it('never fades a section in on page load', () => {
     expect(kit).not.toMatch(/stagger|v2-rise/);
   });
@@ -58,6 +72,8 @@ describe('v2 surfaces and motion (UX-RULES.md §1, §8)', () => {
     expect(withValue('1,24,000 h', 62000)).toBe('62,000 h');
     expect(withValue('99.36%', 0)).toBe('0.00%');
     expect(withValue('On target', 3)).toBe('On target');
+    expect(withValue('−3.0 h', -12)).toBe('−12.0 h');
+    expect(withValue('-3 pts', 4)).toBe('4 pts');
   });
 
   it('turns every animation and transition off under reduced motion', () => {
@@ -96,6 +112,7 @@ describe('v2 colour (UX-RULES.md §5)', () => {
     'risk-fill',
     'loss-fill',
     'plan-fill',
+    'decide-fill',
     'idle-fill',
     'quiet',
     'cat-1',
@@ -105,10 +122,16 @@ describe('v2 colour (UX-RULES.md §5)', () => {
     'cat-5',
   ];
   for (const [name, tokens] of Object.entries({ light, dark })) {
-    const c = (k: string) => tokens[`color-v2-${k}`]!;
+    /** A token's real colour; an alias or a missing token fails here, never as a silent NaN below. */
+    const c = (k: string) => resolve(tokens, `color-v2-${k}`);
+    const r = (f: string, b: string) => {
+      const value = ratio(c(f), c(b));
+      expect(Number.isFinite(value), `${f} on ${b}`).toBe(true);
+      return value;
+    };
     it(`reads every text at 4.5:1 and shows every fill at 3:1 in ${name}`, () => {
-      expect(pairs.filter(([f, b]) => ratio(c(f), c(b)) < 4.5)).toEqual([]);
-      expect(fills.filter((f) => ratio(c(f), c('panel')) < 3)).toEqual([]);
+      expect(pairs.filter(([f, b]) => r(f, b) < 4.5)).toEqual([]);
+      expect(fills.filter((f) => r(f, 'panel') < 3)).toEqual([]);
     });
   }
 });
