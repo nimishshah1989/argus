@@ -332,7 +332,11 @@ test('a head lands on Today with the live figures, a drill and the data checklis
     .click();
   await expect(page).toHaveURL(/[?&]drawer=figure:/);
   const rows = page.locator('aside.v2-drawer');
-  await expect(rows).toContainText(`${drilled!.drill.ids.length}`);
+  // Exactly the rows the figure counted: the drawer's own count line names how many, by the kind of row.
+  const kind = { machine: 'machines', ticket: 'tickets', move: 'cell moves' }[drilled!.drill.type];
+  await expect(
+    rows.getByText(`${drilled!.drill.ids.length} ${kind} counted`, { exact: true }),
+  ).toBeVisible();
   await page.goBack();
   await expect(page).not.toHaveURL(/drawer=/);
 
@@ -412,6 +416,8 @@ test('a ready figure opens the rows behind it', async ({ page }, testInfo) => {
   await expect(page).toHaveURL(/[?&]drawer=figure:dashboard\.total-machines/);
   const rows = page.locator('aside.v2-drawer');
   await expect(rows.getByRole('button', { name: 'M-1', exact: true })).toBeVisible();
+  await expect(rows.getByText('1 machines counted', { exact: true })).toBeVisible();
+  await expect(rows.getByText(/Cell 4/).first()).toBeVisible();
 });
 
 test('an operator lands on My complaints and has no analytics entry', async ({

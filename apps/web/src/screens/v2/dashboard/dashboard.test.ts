@@ -119,7 +119,7 @@ describe('the Dashboard from the engine’s own reply', () => {
     const drills = [
       ...cards(m).flatMap((k) => (k.drill ? [k.drill] : [])),
       ...(m.costliest?.drill ? [m.costliest.drill] : []),
-      ...m.charts.flatMap((c) => (c.drill ? [c.drill] : [])),
+      ...m.charts.flatMap((c) => ('drill' in c && c.drill ? [c.drill] : [])),
     ];
     expect(drills.map((d) => d.figure).sort()).toEqual(named.map((f) => f.key).sort());
     expect(drills.find((d) => d.figure === 'dashboard.total-downtime-hours')?.label).toBe(
@@ -169,13 +169,29 @@ describe('the Dashboard from the engine’s own reply', () => {
     const held: FiguresReply = {
       ...real,
       figures: real.figures.map((f) =>
-        f.key === 'dashboard.pm-hours' ? { ...f, status: 'pending', value: null } : f,
+        f.key === 'dashboard.pm-hours' ? { ...f, status: 'not_computed', value: null } : f,
       ) as FiguresReply['figures'],
     };
     const pm = cards(model({ reply: held })).find((k) => k.id === 'dashboard.pm-hours')!;
     expect(pm.value).toBe('—');
     expect(pm.meaning).toBe('Not computed yet');
     expect(pm.drill).toBeUndefined();
+  });
+
+  it('prints a dash for a share that is null or missing, and the share with two places when it is there', () => {
+    const shareOf = (share: unknown) => {
+      const rows = [{ problem: 'Spindle', hours: 4, share, breakdowns: 2 }];
+      const reply: FiguresReply = {
+        ...real,
+        figures: real.figures.map((f) =>
+          f.key === 'dashboard.costliest-problems' ? { ...f, value: { rows, totalHours: 4 } } : f,
+        ) as FiguresReply['figures'],
+      };
+      return model({ reply }).costliest!.table!.rows[0]![2]!.text;
+    };
+    expect(shareOf(null)).toBe('—');
+    expect(shareOf(undefined)).toBe('—');
+    expect(shareOf(19.2)).toBe('19.20%');
   });
 
   it('prints a dash, never 0.00%, for a problem share the engine did not send', () => {
@@ -307,8 +323,9 @@ describe('what the engine already knows and the page now says', () => {
 
   it('draws the two pictures with a sentence for those who cannot see them', () => {
     const charts = model().charts;
-    expect(charts.map((c) => c.spec.kind)).toEqual(['scatter', 'mixed']);
-    expect(charts.every((c) => c.aria.length > 20 && c.sub.length > 10)).toBe(true);
+    const drawn = charts.flatMap((c) => ('spec' in c ? [c] : []));
+    expect(drawn.map((c) => c.spec.kind)).toEqual(['scatter', 'mixed']);
+    expect(drawn.every((c) => c.aria.length > 20 && c.sub.length > 10)).toBe(true);
   });
 
   it('names the machines the engine’s own trend test calls worse, the steepest first, and says how many there are', () => {
@@ -364,5 +381,145 @@ describe('the page', () => {
     const many = Array.from({ length: 12 }, () => breached());
     const out = render(model({ open: { tickets: many, now: NOW } }));
     expect(text(out)).toContain('1–10 of 12');
+  });
+});
+
+/**
+ * The answer key's machines have an id equal to their code; the server's have a database id. Re-key the engine's own
+ * reply the way the server sends it: the bubble points and the trend test carry the id, never the code.
+ */
+const ID = (code: string) =>
+  `00000000-0000-4000-8000-${String(machines.findIndex((m) => m.code === code)).padStart(12, '0')}`;
+const keyed = machines.map((m) => ({ ...m, id: ID(m.code) }));
+const asServed: FiguresReply = {
+  ...real,
+  figures: real.figures.map((f) => {
+    const v = f.value as Record<string, unknown> | null;
+    if (f.key === 'dashboard.bubble-chart' && v) {
+      const sets = v.datasets as { data: { id: string }[] }[];
+      return {
+        ...f,
+        value: {
+          ...v,
+          datasets: sets.map((d) => ({ ...d, data: d.data.map((p) => ({ ...p, id: ID(p.id) })) })),
+        },
+        drill: { ...f.drill, ids: f.drill.ids.map(ID) },
+      };
+    }
+    if (f.key === 'reliability' && v) {
+      const by = v.machines as Record<string, unknown>;
+      return {
+        ...f,
+        value: {
+          ...v,
+          machines: Object.fromEntries(Object.entries(by).map(([k, x]) => [ID(k), x])),
+        },
+      };
+    }
+    return f;
+  }) as FiguresReply['figures'],
+};
+
+describe('with the ids the server sends, a database id never reaches the screen', () => {
+  const served = (extra: Partial<DashboardFacts> = {}) =>
+    model({ reply: asServed, machines: keyed, ...extra });
+
+  it('prints each machine by its code in the machines table, with its type colour, and in the chart’s points', () => {
+    const m = served();
+    expect(m.machines!.rows.length).toBe(117);
+    for (const row of m.machines!.rows) {
+      expect(row[0]?.text).toBe(row[0]?.chip?.id);
+      expect(row[0]?.text).not.toMatch(UUID);
+    }
+    expect(m.machines!.rows.some((row) => row[0]?.chip?.cat !== undefined)).toBe(true);
+    expect(printed(withoutLinks(m)).some((text) => UUID.test(text))).toBe(false);
+  });
+
+  it('names a machine the plant no longer lists with a dash, never its id', () => {
+    const m = served({ machines: keyed.slice(5) });
+    expect(printed(withoutLinks(m)).some((text) => UUID.test(text))).toBe(false);
+    expect(m.machines!.rows.some((row) => row[0]?.text === '—' && row[0]?.chip === undefined)).toBe(
+      true,
+    );
+  });
+
+  it('names the machines failing faster, and a ticket’s machine, by code', () => {
+    const open = { tickets: [breached({ machineId: ID(machines[0]!.code) })], now: NOW };
+    const m = served({ open });
+    expect(m.warning!.headline.filter((s) => s.entity).every((s) => !UUID.test(s.entity!.id))).toBe(
+      true,
+    );
+    expect(m.needs.state === 'ready' && m.needs.table!.rows[0]![0]?.chip?.id).toBe(
+      machines[0]!.code,
+    );
+  });
+});
+
+describe('a held or empty figure keeps its place and says why', () => {
+  const swap = (
+    changes: Record<string, Partial<FiguresReply['figures'][number]>>,
+  ): FiguresReply => ({
+    ...real,
+    figures: real.figures.map((f) =>
+      f.key in changes ? { ...f, ...changes[f.key] } : f,
+    ) as FiguresReply['figures'],
+  });
+  const keys = [
+    'dashboard.bubble-chart',
+    'dashboard.expansion-timeline',
+    'dashboard.costliest-problems',
+  ];
+
+  it('keeps both pictures and the problems card for a plant with no history, each with a dash', () => {
+    const reply = swap(
+      Object.fromEntries(
+        keys.map((k) => [k, { value: null, drill: { type: 'machine', ids: [] } }]),
+      ),
+    );
+    const m = model({ reply });
+    expect(m.charts.map((c) => [c.id, 'note' in c && c.note])).toEqual([
+      ['dashboard.bubble-chart', '—'],
+      ['dashboard.expansion-timeline', '—'],
+    ]);
+    expect(m.costliest).toMatchObject({ table: null, empty: '—' });
+    expect(m.machines).toBeNull();
+  });
+
+  it('says "Not computed yet" for a held picture and a held problems card, never "No problems to rank yet"', () => {
+    const reply = swap(
+      Object.fromEntries(keys.map((k) => [k, { status: 'not_computed', value: null }])),
+    );
+    const m = model({ reply });
+    expect(m.charts.map((c) => 'note' in c && c.note)).toEqual([
+      'Not computed yet',
+      'Not computed yet',
+    ]);
+    expect(m.costliest).toMatchObject({ table: null, empty: 'Not computed yet' });
+    expect(m.costliest?.drill).toBeUndefined();
+  });
+
+  it('says there is nothing to rank only when the engine computed an empty list', () => {
+    const reply = swap({ 'dashboard.costliest-problems': { value: { rows: [], totalHours: 0 } } });
+    expect(model({ reply }).costliest).toMatchObject({
+      table: null,
+      empty: 'No problems to rank yet.',
+    });
+  });
+});
+
+describe('the costliest problems’ change over 30 days', () => {
+  it('says what their hours gained, a quiet amount with no verdict, as v1 did under the table', () => {
+    const prior: FiguresReply = {
+      ...real,
+      figures: real.figures.map((f) =>
+        f.key === 'dashboard.costliest-problems'
+          ? { ...f, value: { ...(f.value as object), totalHours: 2960.1 } }
+          : f,
+      ) as FiguresReply['figures'],
+    };
+    expect(model({ prior }).costliest!.sub).toBe(
+      'Total downtime: 3,060.1 hours · +100.0 hrs added in 30 days',
+    );
+    expect(model().costliest!.sub).toBe('Total downtime: 3,060.1 hours');
   });
 });

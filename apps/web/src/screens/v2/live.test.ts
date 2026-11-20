@@ -19,13 +19,19 @@ describe('which v2 screens are live at their v1 address', () => {
     expect(liveScreen('today', null)).not.toBeNull();
     expect(liveScreen('today', 'dashboard')).not.toBeNull();
     expect(liveScreen('today', 'team-focus')).toBeNull();
-    expect(liveScreen('today', null, true)).toBeNull();
+    expect(liveScreen('today', null, 'ticket:t1,t2')).toBeNull();
+  });
+
+  it('sends an unknown ?screen= and a malformed ?drill= on Today to the Dashboard, as v1 did', () => {
+    expect(liveScreen('today', 'no-such-screen')).not.toBeNull();
+    expect(liveScreen('today', null, 'garbage')).not.toBeNull();
+    expect(liveScreen('today', null, 'widget:1')).not.toBeNull();
+    expect(liveScreen('today', null, 'ticket:')).not.toBeNull();
   });
 
   it('leaves every other screen to the v1 page', () => {
     expect(liveScreen('machines', 'compare')).toBeNull();
     expect(liveScreen('breakdowns', null)).toBeNull();
     expect(liveScreen('breakdowns', 'cell-change-log')).toBeNull();
-    expect(liveScreen('today', 'cell-change-log')).toBeNull();
   });
 });

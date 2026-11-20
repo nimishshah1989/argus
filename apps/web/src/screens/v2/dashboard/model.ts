@@ -25,13 +25,18 @@ export type DashboardModel = {
   /** Machines the engine's own trend test calls worse than before; none when the figure is not computed. */
   warning: WarningModel | null;
   /** The bubble chart and the expansion timeline, each with the rows it was drawn from. */
-  charts: { id: string; spec: ChartSpec; sub: string; aria: string; drill?: Drill }[];
+  charts: ChartModel[];
   /** Every machine on the bubble chart, worst first. */
   machines: TableModel | null;
   /** Where the figures came from and the day they are for. */
   source: string;
   words: { why: string };
 };
+
+/** A picture, or the line that stands where it would be (not computed yet, or nothing recorded). */
+export type ChartModel = { id: string; title: string } & (
+  { spec: ChartSpec; sub: string; aria: string; drill?: Drill } | { note: string }
+);
 
 export type NeedsModel =
   | {

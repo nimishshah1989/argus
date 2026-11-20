@@ -3,6 +3,7 @@ import type { Ticket } from '../../../api.js';
 import { formatMinutes, formatTime } from '../../../components/format.js';
 import { fill } from '../../../i18n/fill.js';
 import type { Cell, TableModel } from '../../../ui/v2/domain/engine-table.js';
+import type { KpiData } from '../../../ui/v2/kpi-card.js';
 import { reliabilityOf } from '../../analytics/reliability-values.js';
 import { typeLine, timeLine } from '../../desk/openLists.js';
 import { dayText, machineChip, numberIn, type Translate } from '../figures/read.js';
@@ -29,7 +30,18 @@ const twoDecimals = new Intl.NumberFormat('en-IN', {
   maximumFractionDigits: 2,
 });
 
-export function costliestOf(figure: Figure, t: Translate): CostliestModel {
+/** What the card for the costliest problems says when it has no rows: held, nothing recorded, or nothing to rank. */
+function costliestEmpty(figure: Figure, t: Translate): string {
+  if (figure.status !== 'ready') return t('v2d.notComputed');
+  return figure.value === null ? NO_VALUE : t('v2d.costliest.empty');
+}
+
+/** The problems that cost the most downtime; `change` is what their hours gained in 30 days (a running total: no verdict). */
+export function costliestOf(
+  figure: Figure,
+  change: Pick<KpiData, 'delta' | 'period'>,
+  t: Translate,
+): CostliestModel {
   const value = (figure.value ?? {}) as { rows?: unknown; totalHours?: unknown };
   const rows = Array.isArray(value.rows) ? value.rows : [];
   const cells = rows.flatMap((raw): Cell[][] => {
@@ -60,14 +72,20 @@ export function costliestOf(figure: Figure, t: Translate): CostliestModel {
     { label: t('analytics.content.costliest.share'), numeric: true },
     { label: t('analytics.content.costliest.breakdowns'), numeric: true },
   ];
-  const drill = drillOf(figure, t);
-  const sub = Number.isFinite(total)
-    ? t('analytics.content.costliest.caption', { hours: oneDecimal.format(total) })
-    : '';
+  const drill = figure.status === 'ready' ? drillOf(figure, t) : undefined;
+  const added = change.delta.text === '' ? null : `${change.delta.text} ${change.period}`;
+  const sub = [
+    Number.isFinite(total)
+      ? t('analytics.content.costliest.caption', { hours: oneDecimal.format(total) })
+      : null,
+    added,
+  ]
+    .filter((part) => part !== null)
+    .join(' · ');
   return {
     title,
     sub,
-    empty: t('v2d.costliest.empty'),
+    empty: costliestEmpty(figure, t),
     table:
       cells.length === 0
         ? null
@@ -115,6 +133,17 @@ export function bubblePoints(figure: Figure | undefined): BubblePoint[] {
   );
 }
 
+/** A machine of the plant's list as a chip by its code; one the plant no longer lists is a dash, never its database id. */
+function machineCell(machine: PlantMachine | undefined): Cell {
+  return machine
+    ? {
+        text: machine.code,
+        sort: machine.code,
+        chip: machineChip(machine.code, machine.category ?? undefined),
+      }
+    : { text: NO_VALUE, sort: '' };
+}
+
 export function machinesTable(
   points: BubblePoint[],
   plant: readonly PlantMachine[],
@@ -133,11 +162,7 @@ export function machinesTable(
   const rows = [...points]
     .sort((a, b) => b.x - a.x)
     .map((p): Cell[] => [
-      {
-        text: p.id,
-        sort: p.id,
-        chip: machineChip(p.id, plant.find((m) => m.code === p.id)?.category ?? undefined),
-      },
+      machineCell(plant.find((m) => m.id === p.id)),
       { text: p.model ?? NO_VALUE, sort: p.model ?? '' },
       { text: p.age ?? NO_VALUE, sort: numberIn(p.age ?? '') ?? -1 },
       { text: twoDecimals.format(p.x), sort: p.x },

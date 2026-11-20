@@ -51,21 +51,23 @@ function Warning({ warning }: { warning: WarningModel }) {
   );
 }
 
+/** The Action Center's counts and the way in; nothing when no nudge is open. */
+export function ActionCenter({ note }: { note: DashboardModel['actionCenter'] }) {
+  if (!note) return null;
+  return (
+    <Panel title={note.title} aside={<LinkButton href={note.href}>{note.open}</LinkButton>}>
+      <p>{note.text}</p>
+    </Panel>
+  );
+}
+
 /** The page under the header, top to bottom: the answer, what needs you, the figures, the problems, the pictures. */
 function Body({ model }: { model: DashboardModel }) {
-  const { actionCenter } = model;
   return (
     <>
       <Verdict verdict={model.verdict} whyLabel={model.words.why} />
       <Needs needs={model.needs} />
-      {actionCenter ? (
-        <Panel
-          title={actionCenter.title}
-          aside={<LinkButton href={actionCenter.href}>{actionCenter.open}</LinkButton>}
-        >
-          <p>{actionCenter.text}</p>
-        </Panel>
-      ) : null}
+      <ActionCenter note={model.actionCenter} />
       {model.sections.map((section) => (
         <section key={section.id} className="v2-stack v2-gap-12" aria-label={section.title}>
           <SectionHead title={section.title} sub={section.sub} />
@@ -78,15 +80,21 @@ function Body({ model }: { model: DashboardModel }) {
       ))}
       {model.costliest ? <Costliest costliest={model.costliest} /> : null}
       {model.warning ? <Warning warning={model.warning} /> : null}
-      {model.charts.map((chart) => (
-        <ChartCard
-          key={chart.id}
-          spec={chart.spec}
-          sub={chart.sub}
-          aria={chart.aria}
-          drill={chart.drill}
-        />
-      ))}
+      {model.charts.map((chart) =>
+        'spec' in chart ? (
+          <ChartCard
+            key={chart.id}
+            spec={chart.spec}
+            sub={chart.sub}
+            aria={chart.aria}
+            drill={chart.drill}
+          />
+        ) : (
+          <Panel key={chart.id} title={chart.title}>
+            <p role="status">{chart.note}</p>
+          </Panel>
+        ),
+      )}
       {model.machines ? <EngineTable table={model.machines} /> : null}
       <SourceLine text={model.source} />
     </>

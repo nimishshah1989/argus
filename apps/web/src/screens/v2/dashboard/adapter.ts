@@ -7,8 +7,10 @@ import { ACTION_CENTER_PATH } from '../../analytics/groups.js';
 import { COMPARE_DAYS, priorDate } from '../../analytics/today-change.js';
 import { sentence } from '../figures/point.js';
 import { dayText, sourceLine, type Translate } from '../figures/read.js';
-import { GROUPS, NO_VALUE, dash, drillOf, kpiOf, valueOf } from './cards.js';
-import type { DashboardFacts, DashboardModel } from './model.js';
+import { GROUPS, NO_VALUE, changeOfCard, dash, drillOf, kpiOf, label, valueOf } from './cards.js';
+import { changeOf } from '../../analytics/today-change.js';
+import type { ChartSpec } from '../../../ui/chart/use-chart.js';
+import type { ChartModel, DashboardFacts, DashboardModel, PlantMachine } from './model.js';
 import { bubblePoints, costliestOf, machinesTable, needsOf, warningOf } from './tables.js';
 import { needsNow } from './needs.js';
 
@@ -47,21 +49,71 @@ function verdictOf(
   };
 }
 
-/** The bubble chart and the expansion timeline as the engine drew them in v1, each with its rows behind it. */
-function chartsOf(reply: FiguresReply, t: Translate): DashboardModel['charts'] {
+/** The 30-day change of the costliest problems' total hours, as v1 showed it under the table. */
+function costliestChange(
+  figure: Figure,
+  before: Figure | undefined,
+  ctx: { sameYear: boolean; priorDay: string },
+  t: Translate,
+) {
+  const change = figure.status === 'ready' ? changeOf(figure, before, ctx.sameYear) : undefined;
+  return changeOfCard(change, ctx.priorDay, t);
+}
+
+/** The Action Center's open high and medium counts with the way in; none when no nudge is open. */
+export function actionCenterOf(
+  board: DashboardFacts['board'],
+  t: Translate,
+): DashboardModel['actionCenter'] {
+  const banner = board === null ? null : bannerOf(board);
+  return banner
+    ? {
+        title: t('v2d.ac.title'),
+        text: t('analytics.actionCenter.banner', { high: banner.high, medium: banner.medium }),
+        open: t('analytics.actionCenter.banner.open'),
+        href: ACTION_CENTER_PATH,
+      }
+    : null;
+}
+
+/** A point of the bubble chart is labelled by the machine's code; one the plant no longer lists is a dash, never its id. */
+function relabelled(spec: ChartSpec, plant: readonly PlantMachine[]): ChartSpec {
+  if (spec.kind !== 'scatter') return spec;
+  const codeOf = new Map(plant.map((m) => [m.id, m.code]));
+  return {
+    ...spec,
+    points: spec.points.map((p) => ({ ...p, label: codeOf.get(p.label) ?? NO_VALUE })),
+  };
+}
+
+/**
+ * The bubble chart and the expansion timeline as v1 drew them, each with its rows behind it. A figure the engine has not
+ * computed, or computed as nothing (a plant with no history), keeps its card and says so, as v1's tile did.
+ */
+function chartsOf(reply: FiguresReply, plant: readonly PlantMachine[], t: Translate): ChartModel[] {
   const pictures = [
     ['bubble-chart', 'v2d.bubble.sub', 'v2d.bubble.aria'],
     ['expansion-timeline', 'v2d.timeline.sub', 'v2d.timeline.aria'],
   ] as const;
-  return pictures.flatMap(([name, sub, aria]) => {
+  return pictures.flatMap(([name, sub, aria]): ChartModel[] => {
     const figure = reply.figures.find((f) => f.key === dash(name));
-    const content = figure ? contentOf(figure, t as unknown as TFunction) : null;
-    if (!figure || content?.kind !== 'chart') return [];
+    if (!figure) return [];
+    const title = label(figure.key, t);
+    const content = figure.status === 'ready' ? contentOf(figure, t as unknown as TFunction) : null;
+    if (content?.kind !== 'chart')
+      return [
+        {
+          id: figure.key,
+          title,
+          note: figure.status === 'ready' ? NO_VALUE : t('v2d.notComputed'),
+        },
+      ];
     const drill = drillOf(figure, t);
     return [
       {
         id: figure.key,
-        spec: content.spec,
+        title,
+        spec: relabelled(content.spec, plant),
         sub: t(sub),
         aria: t(aria),
         ...(drill ? { drill } : {}),
@@ -96,7 +148,6 @@ export function dashboardModel(facts: DashboardFacts, translate: Translate): Das
     }),
   }));
   const costliest = figureOf(dash('costliest-problems'));
-  const banner = board === null ? null : bannerOf(board);
   return {
     verdict: verdictOf(
       figureOf(dash('fleet-availability')),
@@ -105,18 +156,17 @@ export function dashboardModel(facts: DashboardFacts, translate: Translate): Das
       t,
     ),
     needs,
-    actionCenter: banner
-      ? {
-          title: t('v2d.ac.title'),
-          text: t('analytics.actionCenter.banner', { high: banner.high, medium: banner.medium }),
-          open: t('analytics.actionCenter.banner.open'),
-          href: ACTION_CENTER_PATH,
-        }
-      : null,
+    actionCenter: actionCenterOf(board, t),
     sections: sections.filter((s) => s.kpis.length > 0),
-    costliest: costliest ? costliestOf(costliest, t) : null,
+    costliest: costliest
+      ? costliestOf(
+          costliest,
+          costliestChange(costliest, earlier(dash('costliest-problems')), ctx, t),
+          t,
+        )
+      : null,
     warning: warningOf(reply, machines, t),
-    charts: chartsOf(reply, t),
+    charts: chartsOf(reply, machines, t),
     machines: machinesTable(bubblePoints(figureOf(dash('bubble-chart'))), machines, t),
     source: sourceLine(t('v2m.source'), reply.asOf),
     words: { why: t('v2m.why') },

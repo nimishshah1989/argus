@@ -138,7 +138,7 @@ function signed(value: number, text: string): string {
  * The change against the figure 30 days earlier: a verdict for a rate, a quiet amount for a running total (it only
  * rises, so it has no good direction), nothing when the engine holds no earlier figure.
  */
-function changeOfCard(
+export function changeOfCard(
   change: Change | undefined,
   prior: string,
   t: Translate,

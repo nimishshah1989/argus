@@ -3,16 +3,20 @@ import type { MessageKey } from '@uptimo/shared/i18n';
 import { useRef, type ReactElement, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import i18n from 'i18next';
 import { useTranslation } from 'react-i18next';
-import { correctMove, getMe } from '../../api.js';
+import { correctMove, getMe, useActionCenterBoard } from '../../api.js';
 import { ApiError, isOffline } from '../../data/index.js';
 import { Segmented } from '../../ui/v2/segmented.js';
 import { ScreenStates } from '../../ui/v2/screen-states.js';
 import { correctionError } from '../analytics/machine-values.js';
-import { SCREEN_LABELS, groupFor, type GroupId } from '../analytics/groups.js';
+import { SCREEN_LABELS, groupFor, parseDrill, type GroupId } from '../analytics/groups.js';
 import { AgeView } from './age/View.js';
 import { CellLogView } from './cell-change-log/View.js';
-import { DashboardView } from './dashboard/View.js';
+import type { DashboardModel } from './dashboard/model.js';
+import { useRefresh } from './dashboard/refresh.js';
+import { actionCenterOf } from './dashboard/adapter.js';
+import { ActionCenter, DashboardView } from './dashboard/View.js';
 import { FixFinderView } from './fix-finder/View.js';
 import { FootprintView } from './footprint/View.js';
 import { RegistersView } from './machines-register/View.js';
@@ -130,8 +134,7 @@ function CellChangeLogPage() {
 
 /** A screen that only draws its model: the model through the shared seam, the states in the shell until it is ready. */
 function ModelPage<
-  K extends
-    'dashboard' | 'machines-register' | 'age' | 'footprint' | 'fix-finder' | 'problem-analysis',
+  K extends 'machines-register' | 'age' | 'footprint' | 'fix-finder' | 'problem-analysis',
 >({
   entry,
   screen,
@@ -161,6 +164,37 @@ function ModelPage<
   );
 }
 
+/**
+ * The Dashboard keeps what it shows while it reads again: what needs you now and the Action Center count are read every
+ * 30 seconds, as v1's were, and a failed refresh leaves the last answer in place rather than blanking the page.
+ */
+function DashboardPage() {
+  const { t } = useTranslation();
+  const loaded = useScreenModel('dashboard', {});
+  useRefresh(loaded.retry);
+  const last = useRef<DashboardModel>(undefined);
+  if (loaded.state === 'ready' && loaded.model) last.current = loaded.model;
+  const model = loaded.model ?? last.current;
+  const title = t('analytics.screen.dashboard');
+  // As in v1, the Action Center's count shows while the figures load or when they fail.
+  const board = useActionCenterBoard().data;
+  const note = actionCenterOf(board ?? null, (key, values) => i18n.t(key, { ...values }) as string);
+  return (
+    <LiveFrame entry={{ group: 'today', section: 'today', screen: 'dashboard' }}>
+      {(nav) =>
+        model ? (
+          <DashboardView model={model} nav={nav} title={title} />
+        ) : (
+          <EntityShell nav={nav} title={title}>
+            <ActionCenter note={note} />
+            <ScreenStates loaded={loaded}>{() => null}</ScreenStates>
+          </EntityShell>
+        )
+      }
+    </LiveFrame>
+  );
+}
+
 const screenOf = (group: GroupId, section: SectionId, screen: string) => ({
   group,
   section,
@@ -172,14 +206,7 @@ const LIVE: readonly Live[] = [
     group: 'today',
     section: 'today',
     screen: 'dashboard',
-    page: () => (
-      <ModelPage
-        entry={screenOf('today', 'today', 'dashboard')}
-        screen="dashboard"
-        title="analytics.screen.dashboard"
-        draw={(model, shell) => <DashboardView model={model} {...shell} />}
-      />
-    ),
+    page: () => <DashboardPage />,
   },
   {
     group: 'machines',
@@ -261,10 +288,15 @@ const LIVE: readonly Live[] = [
 export function liveScreen(
   group: string | undefined,
   screen: string | null,
-  drilled = false,
+  drill: string | null = null,
 ): ReactElement | null {
-  if (drilled && group === 'today') return null;
-  const first = group === 'machines' ? 'registers' : group === 'today' ? 'dashboard' : null;
+  if (group === 'today') {
+    // v1: Team Focus and a well-formed rows link keep their v1 pages; anything else, an unknown ?screen= or a
+    // malformed ?drill=, is the Dashboard.
+    if (screen === 'team-focus' || parseDrill(drill) !== null) return null;
+    return LIVE.find((entry) => entry.group === 'today')?.page() ?? null;
+  }
+  const first = group === 'machines' ? 'registers' : null;
   const named = screen ?? first;
   return LIVE.find((entry) => entry.group === group && entry.screen === named)?.page() ?? null;
 }
