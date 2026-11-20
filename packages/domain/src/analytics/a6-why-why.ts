@@ -62,7 +62,9 @@ function candidateRow(candidate: Candidate, machineCode: string, completed: bool
 /**
  * The A6 figure: the key's page with its one table. A plant with no candidate (no production breakdown over the
  * threshold) has nothing to ask why about, so the value is null rather than a fabricated empty table. The drill
- * names the candidate tickets; the engine sorts and dedupes them.
+ * names the candidate tickets; the engine sorts and dedupes them, so the drill's order is NOT the rows' order. The
+ * table therefore carries `rowTicketIds`, one ticket id per row in row order (a ticket with two over-threshold
+ * reports appears twice), and a screen pairs a row with its ticket from that, never by position in the drill.
  */
 export const a6WhyWhyFigure: Computer = ({ data, asOf, profile }) => {
   const candidates = candidatesOf(data, profile.whyWhyThresholdHours);
@@ -82,7 +84,15 @@ export const a6WhyWhyFigure: Computer = ({ data, asOf, profile }) => {
         page: 'a6',
         title: 'Why-Why Analysis',
         kpis: [],
-        tables: [{ title: TITLE, header: HEADER, rows, rowCount: rows.length }],
+        tables: [
+          {
+            title: TITLE,
+            header: HEADER,
+            rows,
+            rowCount: rows.length,
+            rowTicketIds: candidates.map((candidate) => candidate.row.ticket.id),
+          },
+        ],
         charts: [],
       },
     ],

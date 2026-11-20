@@ -759,6 +759,53 @@ describe('the A6 page', () => {
     expect(content.kpis).toEqual([]);
     expect(content.charts).toEqual([]);
   });
+
+  it("keeps each row's own ticket id, and drops an unprintable row's id with the row", () => {
+    const { t } = translator();
+    const page = (rows: unknown[], ids: unknown) => ({
+      screen: 'a6-why-why',
+      asOf: '2026-11-11',
+      pages: [
+        {
+          page: 'a6',
+          title: 'Why-Why Analysis',
+          kpis: [],
+          charts: [],
+          tables: [
+            {
+              title: 'Why-Why (Root Cause) Analysis',
+              header: ['Machine', 'Down (Hrs)'],
+              rows,
+              rowCount: rows.length,
+              rowTicketIds: ids,
+            },
+          ],
+        },
+      ],
+    });
+    const tableOf = (value: unknown) => {
+      const content = contentOf(figure('a6-why-why', value, 'a6-why-why'), t);
+      if (content?.kind !== 'page') throw new Error('expected the A6 page');
+      return content.tables[0]!;
+    };
+    const rows = [
+      ['TC-1', '9.00'],
+      ['TC-2', 12],
+      ['TC-3', null],
+      ['TC-4', '1.00'],
+    ];
+    expect(tableOf(page(rows, ['t-9', 't-3', 't-bad', 't-1']))).toMatchObject({
+      rows: [
+        ['TC-1', '9.00'],
+        ['TC-2', '12'],
+        ['TC-4', '1.00'],
+      ],
+      rowTicketIds: ['t-9', 't-3', 't-1'],
+    });
+    // Ids that do not line up with the rows are not guessed at: the table names no ticket for any row.
+    expect(tableOf(page(rows, ['t-9', 't-3'])).rowTicketIds).toBeUndefined();
+    expect(tableOf(page(rows, undefined)).rowTicketIds).toBeUndefined();
+  });
 });
 
 describe('the A10 page', () => {

@@ -27,6 +27,8 @@ export type TableWords = {
   open: string;
 };
 
+/** A table with more columns than this scrolls sideways inside its card instead of running past it. */
+
 type TableProps<R> = {
   rows: R[];
   rowKey: (row: R) => string;

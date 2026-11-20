@@ -83,7 +83,6 @@ function A6Body({
       )}
       <Candidates
         table={table}
-        ids={figure.drill.ids}
         write={write}
         onPick={(index, ticketId, completed) => void record.open(ticketId, index, completed)}
       />
