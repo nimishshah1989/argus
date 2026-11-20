@@ -15,7 +15,7 @@ The source of truth for how a v2 screen behaves, adapted for Argus from the rule
 
 5. Every screen opens with the answer: a verdict sentence and 2 to 4 KPI cards saying what changed and whether it is good.
 6. Every KPI card: value · change against a stated period (signed, coloured, with an arrow) · one line on what it means · a sparkline when there is a trend · one more line on hover.
-7. Every card that shows a problem ends in the next action ("Assign a root-cause fix", "Schedule an inspection", "Add to Team Focus"). A number no one can act on is a candidate for deletion.
+7. Every card that shows a problem ends in the next action ("Assign a root-cause fix", "Schedule an inspection", "Add to Team Focus"). A number no one can act on is a candidate for a next action or an explanation, never for deletion (see section 11).
 8. Lead with exceptions: machines down, repeat offenders, PMs overdue, a decision waiting. Normal can be one line.
 
 ## 3. Detail hidden, always reachable
@@ -89,3 +89,10 @@ Motion is a second channel for information, not decoration. It lets a page hold 
 48. **[check]** A screen composes the kit: no colour, font size, font weight or animation in `screens/v2/` (`pnpm ui:check`). No hand-rolled dropdowns, dialogs, toasts or tables.
 49. **[check]** Tokens only: no raw colours or arbitrary sizes in the kit's CSS.
 50. Before review: worst-case data (`break-ui`) and a design critique on every new screen. When Nimish corrects a choice, it becomes a rule here or a check, so it is never corrected twice.
+
+## 11. Scope never shrinks (Nimish, 20 Nov 2026)
+
+57. A redesign changes how information is shown, not how much. Every figure, column, filter, sort, drill, export, explanation, state and link the plant had in v1 and in `SPEC.md` stays, in the same meaning, however it is laid out (a column may move into the drawer; it may not disappear).
+58. Each screen also earns its place with intelligence v1 lacked, built from data we already hold: rank, compare with peers or the fleet, show the trend break, name the repeat cause, forecast, warn early, put a rupee figure on it, say how sure we are. A new insight is computed by the engine and printed by the screen (rule 29), never worked out in the View.
+59. **[check]** A screen PR carries its coverage table (`COVERAGE.md`). A row marked MISSING or DROPPED without "Nimish said yes: <date>" fails review and the milestone gate. The orchestrator checks the table against the v1 file and its e2e spec, not against the builder's own word.
+60. Simplifying means moving detail behind a click or into the drawer (rule 9), never removing it.

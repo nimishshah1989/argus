@@ -33,6 +33,8 @@ shows the commit it serves. Open PRs via `gh api --method POST repos/nimishshah1
 
 ## Rulings (Nimish)
 
+**A redesign never reduces scope (20 Nov): same or more detail, insight and analytics, smarter with our data; coverage table per screen PR (`docs/design/v2/COVERAGE.md`); "not built" needs his written yes.** Batch-1 gate closed until `coverage/batch1.md` is cleared.
+
 Everything is redesigned. Floor phone: new look, Bhavin's step order, button order and words unchanged. Desk, ticket
 and TV: flow may change too. Rupee figures on the dashboard OK. #493 closed. Earlier: Running grey, Waiting amber,
 Transferred blue; Indian grouping; system dark/light; power and air failures count in downtime; real data already in
