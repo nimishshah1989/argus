@@ -1,0 +1,1 @@
+The redesign now has a written rule that no screen may lose detail, figures or analytics the plant already had, and that each screen should say more with the data we hold; every redesigned screen must list what it kept (no change to the product itself).
