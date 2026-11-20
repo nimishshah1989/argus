@@ -3,7 +3,7 @@ import { pathToFileURL } from 'node:url';
 import { prReason } from './pr-reason.js';
 
 const SOFT = 400;
-const HARD = 800;
+export const HARD = 800;
 const SKIP = [/pnpm-lock\.yaml$/, /^docs\//, /\.md$/, /migrations\//, /fixtures\//, /generated\//];
 
 /** A large PR passes with the size:large label (LEAN_ALLOW_LARGE) or a `Large PR: <reason>` body line. */
@@ -19,14 +19,8 @@ function diffStat(): string {
   }
 }
 
-function main(): void {
-  let stat: string;
-  try {
-    stat = diffStat();
-  } catch {
-    console.log('pr-size: no diff base yet, skipping');
-    return;
-  }
+/** Changed lines and files in `git diff --numstat` output, without the lockfile, docs, migrations and fixtures. */
+export function countChanged(stat: string): { changed: number; files: number } {
   let changed = 0;
   let files = 0;
   for (const line of stat.split('\n')) {
@@ -35,6 +29,18 @@ function main(): void {
     changed += Number(added) + Number(deleted);
     files += 1;
   }
+  return { changed, files };
+}
+
+function main(): void {
+  let stat: string;
+  try {
+    stat = diffStat();
+  } catch {
+    console.log('pr-size: no diff base yet, skipping');
+    return;
+  }
+  const { changed, files } = countChanged(stat);
   console.log(`pr-size: ${changed} changed lines across ${files} code files`);
   if (changed > HARD && !largePrAllowed(process.env)) {
     console.error(

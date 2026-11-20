@@ -6,8 +6,8 @@ Written 20 Nov 2026 when Nimish paused the cloud session to continue locally on 
 
 1. **Clear batch-1 coverage debt** (`docs/design/v2/scope/batch1.md`): put back every MISSING item and add the cheap
    intelligence wins the audit lists. Start with Compare (health score, longest breakdowns, by shift, cells and periods).
-2. **Plumbing** (brief A below): screens and gallery views register themselves, gallery CI in two shards, a PR-body
-   generator. Do this BEFORE more screens, or every parallel PR conflicts again.
+2. **Plumbing** (brief A below): done in the plumbing PR. Screens and gallery views register themselves, the gallery CI job
+   runs in four shards, `pnpm pr:body` prints the PR body. Merge it BEFORE more screens, or every parallel PR conflicts again.
 3. **Coverage gate** (brief B): `pnpm quality:pr` fails a screen PR without a clean coverage table.
 4. **Prototype** (brief C): can a v2 screen be fed from the API the v1 screens already use instead of invented fixtures?
    Measure before deciding; it could remove most of the code in a screen PR, and it makes "nothing dropped" checkable.
@@ -22,13 +22,16 @@ Written 20 Nov 2026 when Nimish paused the cloud session to continue locally on 
 3. Files: `model.ts` (everything printed arrives ready to print), `fixture*.ts` (computes every figure from invented rows;
    a test checks totals add up), `View.tsx` (`EntityShell`, kit parts only), `<name>.test.ts`, a gallery view
    `gallery/v2-<name>-view.tsx`, one e2e `apps/web/e2e/gallery/v2-<name>.spec.ts` (loads, one drawer opens, Back closes it,
-   axe light and dark). Add the key to `Screens` and `PROVIDERS` in `screens/v2/data.ts` and the view in `Gallery.tsx`.
+   axe light and dark), and `screens/v2/<name>/register.ts` (copy the nearest one: it adds the key to `Screens` and the provider).
+   Edit no shared file: `data.ts`, `Gallery.tsx` and the style sheet list find the new files by themselves.
 4. Every machine, cell, person, decision: an `EntityChip` (in text `{{kind:id|label}}`). No colours, sizes, weights or motion
    in screen files (`pnpm ui:check`).
 5. Light checks before a push (web and docs only): `pnpm format:check`, `lint`, `typecheck`, `ui:check`, `pii:scan`,
    `changelog:check`, the tests you touched. **Run Prettier on every file you edit with a script** (the format-on-edit hook skips
    them). Anything outside `apps/web`, `docs`, `changes` gets the full `pnpm precheck`.
-6. PR body must carry (CI `pr-meta` fails otherwise): the template headings; `Q1` to `Q15` each `pass`, `n/a — reason` or
+6. Print the PR body with `pnpm pr:body --what "..." --try "..." --session <url>` (add `--q Q<n>=<verdict>` to rule a line it
+   marks `fail`, `--ran "pnpm precheck, ..."` to tick the boxes); then check it by hand. It must carry (CI `pr-meta` fails
+   otherwise): the template headings; `Q1` to `Q15` each `pass`, `n/a — reason` or
    `fail — finding` (**never `pending`**); `Large PR: <reason>` over 800 lines; `Tests removed: none`; for gallery-only PRs
    `No parity: <10+ characters>`; a `changes/<n>-<slug>.md` fragment. CI skips draft PRs: mark ready to run it. Check the
    body is YOURS (one run overwrote a PR body with another PR's text).
@@ -46,7 +49,7 @@ Written 20 Nov 2026 when Nimish paused the cloud session to continue locally on 
 
 ## 4. Ready-to-paste briefs for the work that was stopped before it started
 
-**A. Plumbing.** Make a new v2 screen a folder with no shared-file edit: `Screens` becomes an interface that each screen extends by
+**A. Plumbing (done; kept as the record of what was asked).** Make a new v2 screen a folder with no shared-file edit: `Screens` becomes an interface that each screen extends by
 declaration merging from `screens/v2/<name>/register.ts`; `PROVIDERS` built from `import.meta.glob('./*/register.ts')`; gallery
 views discovered from `gallery/v2-<name>-view.tsx` (`?view=v2-<name>`, same URLs as today); the v2 style sheet list in
 `style.css` and `ui/v2/language.test.ts` derived from a folder or glob. Split the CI `gallery` job into a 2-shard matrix

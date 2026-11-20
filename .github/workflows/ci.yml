@@ -94,13 +94,13 @@ jobs:
   api:
     needs: changes
     if: ${{ !github.event.pull_request.draft && needs.changes.outputs.server == 'true' }}
-    name: api (${{ matrix.shard }}/3)
+    name: api (${{ matrix.shard }}/5)
     runs-on: ubuntu-latest
     timeout-minutes: 12
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4, 5]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -128,19 +128,19 @@ jobs:
       - name: Install Chromium
         if: steps.paths.outputs.run == 'true'
         run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm exec vitest run --shard=${{ matrix.shard }}/3
+      - run: pnpm exec vitest run --shard=${{ matrix.shard }}/5
         if: steps.paths.outputs.run == 'true'
 
   browser:
     needs: changes
     if: ${{ !github.event.pull_request.draft && needs.changes.outputs.web == 'true' }}
-    name: browser (${{ matrix.shard }}/3)
+    name: browser (${{ matrix.shard }}/5)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4, 5]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -168,18 +168,25 @@ jobs:
       - name: Install Chromium
         if: steps.paths.outputs.run == 'true'
         run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm exec playwright test --shard=${{ matrix.shard }}/3
+      - run: pnpm exec playwright test --shard=${{ matrix.shard }}/5
         if: steps.paths.outputs.run == 'true'
 
   gallery:
     needs: changes
     if: ${{ !github.event.pull_request.draft && needs.changes.outputs.gallery == 'true' }}
+    name: gallery (${{ matrix.shard }}/4)
     runs-on: ubuntu-24.04
+    # Four quarters of the gallery specs in parallel (Playwright splits by test; the config runs fully parallel).
+    # GALLERY_PROD=off: no production build here; gallery-prod below owns the one spec that needs it.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     container:
       image: mcr.microsoft.com/playwright:v1.65.0-noble
       options: --ipc=host
-    # 15, not 8: the gallery runs every v2 screen's specs in one job (about 7 minutes at 223 tests, and each screen
-    # adds more), and a run cancelled at the limit hides real failures.
+    # 15 per shard: one job took 7 to 12 minutes for every v2 screen's specs; a run cancelled at the limit hides
+    # real failures. Baselines are the same files for every shard.
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -191,19 +198,56 @@ jobs:
           run=true
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             run=false
-            if git diff --name-only "origin/${{ github.base_ref }}...HEAD" | grep -Eq '^(apps/web/|playwright\.gallery\.config\.ts$|tools/check-ui\.ts$|tools/gallery-baselines\.sh$|package\.json$|package-lock\.json$|pnpm-lock\.yaml$|tsconfig[^/]*\.json$|[^/]+\.config\.ts$)'; then run=true; fi
+            if git diff --name-only "origin/${{ github.base_ref }}...HEAD" | grep -Eq '^(apps/web/|playwright\.gallery\.config\.ts$|tools/check-ui\.ts$|tools/gallery-baselines\.sh$|tools/install-fonts\.sh$|package\.json$|package-lock\.json$|pnpm-lock\.yaml$|tsconfig[^/]*\.json$|[^/]+\.config\.ts$)'; then run=true; fi
           fi
           echo "run=$run" >> "$GITHUB_OUTPUT"
-      - run: apt-get update && apt-get install -y fonts-noto-core
+      # The pinned fonts-noto-core 20201225-2 from two checksummed files, not `apt-get update` (234 s of 705).
+      - run: bash tools/install-fonts.sh
         if: steps.paths.outputs.run == 'true'
+      - run: npm i -g pnpm@10.30.3 && pnpm install --frozen-lockfile
+        if: steps.paths.outputs.run == 'true'
+      - run: pnpm gallery:test --shard=${{ matrix.shard }}/4
+        if: steps.paths.outputs.run == 'true'
+        env:
+          GALLERY_PROD: 'off'
+      - uses: actions/upload-artifact@v4
+        if: failure() && steps.paths.outputs.run == 'true'
+        with:
+          name: gallery-diffs-${{ matrix.shard }}
+          path: test-results/gallery
+
+  # The one gallery spec that needs the production build and its preview server; the shards above never build it.
+  gallery-prod:
+    needs: changes
+    if: ${{ !github.event.pull_request.draft && needs.changes.outputs.gallery == 'true' }}
+    runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.0-noble
+      options: --ipc=host
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - id: paths
+        run: |
+          run=true
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            run=false
+            if git diff --name-only "origin/${{ github.base_ref }}...HEAD" | grep -Eq '^(apps/web/|playwright\.gallery\.config\.ts$|tools/check-ui\.ts$|package\.json$|package-lock\.json$|pnpm-lock\.yaml$|tsconfig[^/]*\.json$|[^/]+\.config\.ts$)'; then run=true; fi
+          fi
+          echo "run=$run" >> "$GITHUB_OUTPUT"
       - run: npm i -g pnpm@10.30.3 && pnpm install --frozen-lockfile
         if: steps.paths.outputs.run == 'true'
       - run: pnpm gallery:test
         if: steps.paths.outputs.run == 'true'
+        env:
+          GALLERY_PROD: only
       - uses: actions/upload-artifact@v4
         if: failure() && steps.paths.outputs.run == 'true'
         with:
-          name: gallery-diffs
+          name: gallery-prod-diffs
           path: test-results/gallery
 
   secrets:

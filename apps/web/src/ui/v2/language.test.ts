@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { createElement, type ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
@@ -9,17 +9,10 @@ import { Row } from './row.js';
 import { ScreenStates } from './screen-states.js';
 
 const html = (el: ReactElement) => renderToStaticMarkup(el);
-const SHEETS = [
-  'v2.css',
-  'cards.css',
-  'shell.css',
-  'table.css',
-  'domain.css',
-  'compare-box.css',
-  'entity-chip.css',
-  'rows-behind.css',
-  'motion.css',
-];
+// Every sheet in this folder, v2.css first: a new kit sheet joins the checks with no list to edit.
+const SHEETS = readdirSync(new URL('.', import.meta.url))
+  .filter((name) => name.endsWith('.css'))
+  .sort((a, b) => Number(b === 'v2.css') - Number(a === 'v2.css') || a.localeCompare(b));
 const css = (name: string) =>
   readFileSync(new URL(name, import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
 const kit = SHEETS.map(css).join('\n');

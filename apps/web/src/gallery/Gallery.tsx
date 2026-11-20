@@ -22,6 +22,7 @@ import { StatusSection } from './status-section.js';
 import { ShellSection } from './shell-section.js';
 import { registerGalleryStrings } from './strings.js';
 import { TokensSection } from './tokens-section.js';
+import { V2_VIEWS } from './v2-views.js';
 import { WizardSection } from './wizard-section.js';
 
 registerGalleryStrings();
@@ -66,59 +67,6 @@ const NavMapView = () => (
   </Suspense>
 );
 
-// The v2 Dashboard on its fixture (step 0 of the v2 front end): its own chunk too.
-const V2Dashboard = lazy(() => import('./v2-dashboard-view.js'));
-const V2DashboardView = () => (
-  <Suspense fallback={null}>
-    <V2Dashboard />
-  </Suspense>
-);
-
-// The v2 Team Focus and Compare on their fixtures (batch 1): each its own chunk.
-const V2TeamFocus = lazy(() => import('./v2-team-focus-view.js'));
-const V2TeamFocusView = () => (
-  <Suspense fallback={null}>
-    <V2TeamFocus />
-  </Suspense>
-);
-
-const V2Compare = lazy(() => import('./v2-compare-view.js'));
-const V2CompareView = () => (
-  <Suspense fallback={null}>
-    <V2Compare />
-  </Suspense>
-);
-
-// The v2 Machine page on its fixture: `&id=VC-67` picks the machine; its own chunk too.
-const V2Machine = lazy(() => import('./v2-machine-view.js'));
-const V2MachineView = () => (
-  <Suspense fallback={null}>
-    <V2Machine />
-  </Suspense>
-);
-
-// The v2 Action Center and Data Checklist on their fixtures: one chunk each.
-const V2ActionCenter = lazy(() => import('./v2-action-center-view.js'));
-const V2ActionCenterView = () => (
-  <Suspense fallback={null}>
-    <V2ActionCenter />
-  </Suspense>
-);
-const V2DataChecklist = lazy(() => import('./v2-data-checklist-view.js'));
-const V2DataChecklistView = () => (
-  <Suspense fallback={null}>
-    <V2DataChecklist />
-  </Suspense>
-);
-
-// The v2 rows-behind panel on real drill replies: its own chunk too.
-const V2RowsBehind = lazy(() => import('./v2-rows-behind-view.js'));
-const V2RowsBehindView = () => (
-  <Suspense fallback={null}>
-    <V2RowsBehind />
-  </Suspense>
-);
-
 /** The gallery's whole-page views, picked by `?view=`; anything else is the section list. */
 const VIEWS: Record<string, () => React.JSX.Element> = {
   desktop: DesktopView,
@@ -127,13 +75,7 @@ const VIEWS: Record<string, () => React.JSX.Element> = {
   navmap: NavMapView,
   charts: ChartDoorView,
   templates: TemplatesView,
-  'v2-dashboard': V2DashboardView,
-  'v2-team-focus': V2TeamFocusView,
-  'v2-compare': V2CompareView,
-  'v2-machine': V2MachineView,
-  'v2-action-center': V2ActionCenterView,
-  'v2-data-checklist': V2DataChecklistView,
-  'v2-rows-behind': V2RowsBehindView,
+  ...V2_VIEWS,
 };
 
 /** Own keys only, so `?view=constructor` is not a view. */
