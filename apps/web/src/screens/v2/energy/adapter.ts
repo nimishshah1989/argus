@@ -19,7 +19,8 @@ import { say, strong } from '../printed-page/segs.js';
 import { verdictOf } from '../printed-page/verdict.js';
 import type { EnergyGridModel, EnergyModel } from './model.js';
 
-const KEY = 'a5-energy';
+/** The engine's figure this screen is built from. */
+export const FIGURE = 'a5-energy';
 const oneDecimal = (n: number) =>
   n.toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 /** The value as its tile prints it, so the chart's numbers never carry a float sum's tail. */
@@ -111,7 +112,7 @@ function tileOf(tile: EnergyTile, level: HeatLevel | null, ctx: TileCtx): HeatTi
   const drill: Drill | undefined =
     ctx.open && tile.machineIds.length > 0
       ? {
-          figure: tileAddress({ figure: KEY, axis: ctx.open.axis, tile: tile.key }),
+          figure: tileAddress({ figure: FIGURE, axis: ctx.open.axis, tile: tile.key }),
           label: fill(t('v2e.tile.open'), { name }),
         }
       : undefined;
@@ -284,7 +285,7 @@ function gridsFor(content: EnergyContent, names: Names3, t: TFunction): EnergyGr
  * not computed it.
  */
 export function energyModel(reply: FiguresPart, t: TFunction): EnergyModel | null {
-  const figure = figureOf(reply, KEY);
+  const figure = figureOf(reply, FIGURE);
   const content = figure?.status === 'ready' ? contentOf(figure, t) : null;
   if (content?.kind !== 'energy') return null;
   const names: Names3 = {
@@ -304,7 +305,7 @@ export function energyModel(reply: FiguresPart, t: TFunction): EnergyModel | nul
     verdict: verdictFor({ picks, total, pct, source }, names.cell, t),
     figures: figuresFor({ picks, total, pct }, names.cell, t),
     grids: gridsFor(content, names, t),
-    drill: drillFor(reply, KEY, say_),
+    drill: drillFor(reply, FIGURE, say_),
     source,
     words: { why: t('v2p.why'), heat: { low: t('v2e.heat.low'), high: t('v2e.heat.high') } },
   };

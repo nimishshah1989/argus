@@ -12,7 +12,8 @@ import { verdictOf } from '../printed-page/verdict.js';
 import { pageWords } from '../printed-page/words.js';
 import { drillFor } from '../rows-behind/drill.js';
 
-const KEY = 'forecast-lab';
+/** The engine's figure this screen is built from. */
+export const FIGURE = 'forecast-lab';
 const METHODS = 'How each method did';
 const DETAIL = 'Month detail';
 /** The words the engine glues to the front of the method cell and of the verdict cell; the rest is the explanation. */
@@ -113,7 +114,7 @@ function trackLine(page: Page, t: TFunction): Point | null {
  * said apart. Null when the engine has no page.
  */
 export function forecastLabModel(reply: FiguresPart, t: TFunction): PrintedPageModel | null {
-  const page = pageOf(figureOf(reply, KEY), t);
+  const page = pageOf(figureOf(reply, FIGURE), t);
   if (page === null) return null;
   const words = pageWords(t, 'v2l.source');
   const say_: Translate = (key, values) => t(key, { ...values }) as string;
@@ -123,7 +124,7 @@ export function forecastLabModel(reply: FiguresPart, t: TFunction): PrintedPageM
     figures: figuresOf(page.kpis),
     charts: page.charts.map((spec) => chartOf(spec, words)),
     tables: tablesOf(page.tables.map(tidied), words),
-    drill: drillFor(reply, KEY, say_),
+    drill: drillFor(reply, FIGURE, say_),
     source,
     words,
   };

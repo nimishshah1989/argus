@@ -21,7 +21,8 @@ import { drillFor } from '../rows-behind/drill.js';
 /** A machine's code from its id, by the plant's own list; null for a machine the plant does not list. */
 export type CodeOf = (machineId: string) => string | null;
 
-const KEY = 'a9-bottleneck-forecast';
+/** The engine's figure this screen is built from. */
+export const FIGURE = 'a9-bottleneck-forecast';
 const RISK_TABLE = 'Highest-risk machines';
 /** The columns whose most common words narrow a long table: how bad, how hot, whether it is getting worse. */
 const BAND_COLUMNS = ['Rating', 'Band', 'Verdict', 'Type'];
@@ -122,7 +123,7 @@ export function bottleneckModel(
   t: TFunction,
   codeOf: CodeOf,
 ): PrintedPageModel | null {
-  const page = pageOf(figureOf(reply, KEY), t);
+  const page = pageOf(figureOf(reply, FIGURE), t);
   if (page === null) return null;
   const words = pageWords(t, 'v2b.source');
   const say_: Translate = (key, values) => t(key, { ...values }) as string;
@@ -139,7 +140,7 @@ export function bottleneckModel(
         return column === undefined ? [] : chipsOf(table, column, 4, words.all);
       },
     ),
-    drill: drillFor(reply, KEY, say_),
+    drill: drillFor(reply, FIGURE, say_),
     source,
     words,
   };

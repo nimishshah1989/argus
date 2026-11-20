@@ -2,9 +2,9 @@
 import { describe, expect, it } from 'vitest';
 import { realReply } from '../figures/real-reply.js';
 import { answerKey, keyPage, realT } from '../printed-page/test-support.js';
-import { forecastLabModel } from './adapter.js';
+import { forecastLabModel, FIGURE } from './adapter.js';
 
-const reply = answerKey('forecast-lab', 'forecast-lab', 42);
+const reply = answerKey('forecast-lab', FIGURE, 42);
 const model = forecastLabModel(reply, realT)!;
 const page = keyPage(reply);
 const says = (point: { text: string }[]) => point.map((s) => s.text).join('');
@@ -53,7 +53,7 @@ describe('Forecast Lab from the engine reply', () => {
   it('opens the machines behind the figure from the real engine reply', () => {
     const real = forecastLabModel(realReply(), realT)!;
     expect(real.drill).toEqual({
-      figure: 'forecast-lab',
+      figure: FIGURE,
       label: 'Show the rows behind Forecast Lab',
     });
   });

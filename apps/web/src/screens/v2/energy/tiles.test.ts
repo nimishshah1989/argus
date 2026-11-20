@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { realReply } from '../figures/real-reply.js';
 import { realT } from '../printed-page/test-support.js';
-import { energyModel } from './adapter.js';
+import { energyModel, FIGURE } from './adapter.js';
 
 type Bucket = {
   key: string;
@@ -21,7 +21,7 @@ function withCells(byCell: Bucket[]) {
   return {
     ...reply,
     figures: reply.figures.map((figure): FiguresReply['figures'][number] => {
-      if (figure.key !== 'a5-energy') return figure;
+      if (figure.key !== FIGURE) return figure;
       const value = figure.value as { extra: Record<string, unknown> };
       return { ...figure, value: { ...value, extra: { ...value.extra, byCell } } };
     }),

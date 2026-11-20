@@ -4,10 +4,10 @@ import { contentOf } from '../../analytics/figure-content.js';
 import { printed, realReply, UUID } from '../figures/real-reply.js';
 import { realT } from '../printed-page/test-support.js';
 import { parseTile, tileMachines } from '../rows-behind/tile.js';
-import { energyModel } from './adapter.js';
+import { energyModel, FIGURE } from './adapter.js';
 
 const reply = realReply();
-const figure = reply.figures.find((f) => f.key === 'a5-energy')!;
+const figure = reply.figures.find((f) => f.key === FIGURE)!;
 const engine = contentOf(figure, realT);
 if (engine?.kind !== 'energy') throw new Error('the engine did not compute the energy figure');
 const model = energyModel(reply, realT)!;
@@ -58,7 +58,7 @@ describe('Energy from the engine reply', () => {
     const counted = engine.byCell.tiles.reduce((sum, tile) => sum + tile.machines, 0);
     expect(counted).toBe(figure.drill.ids.length);
     expect(model.figures[0]!.sub).toContain(`${counted} machines`);
-    expect(model.drill?.figure).toBe('a5-energy');
+    expect(model.drill?.figure).toBe(FIGURE);
   });
 
   it('tints a tile by its weight against its own map, and never a tile with no machines', () => {
@@ -85,7 +85,7 @@ describe('Energy from the engine reply', () => {
     const none = {
       ...reply,
       figures: reply.figures.map((f) =>
-        f.key === 'a5-energy' ? { ...f, status: 'not_computed' as const, value: null } : f,
+        f.key === FIGURE ? { ...f, status: 'not_computed' as const, value: null } : f,
       ),
     };
     expect(energyModel(none, realT)).toBeNull();

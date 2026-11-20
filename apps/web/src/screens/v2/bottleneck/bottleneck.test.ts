@@ -10,9 +10,9 @@ import {
   shownCells,
 } from '../printed-page/test-support.js';
 import { shortDate } from '../printed-page/printed.js';
-import { bottleneckModel } from './adapter.js';
+import { bottleneckModel, FIGURE } from './adapter.js';
 
-const reply = answerKey('a9-bottleneck-forecast', 'a9-bottleneck-forecast', 42);
+const reply = answerKey('a9-bottleneck-forecast', FIGURE, 42);
 const model = bottleneckModel(reply, realT, (id) => id)!;
 const page = keyPage(reply);
 const says = (point: { text: string }[]) => point.map((s) => s.text).join('');
@@ -68,11 +68,11 @@ describe('Bottleneck from the engine reply', () => {
 
   it('opens the machines behind the whole page from the engine’s real figure, one row per machine it counted', () => {
     const real = realReply();
-    const figure = real.figures.find((f) => f.key === 'a9-bottleneck-forecast')!;
+    const figure = real.figures.find((f) => f.key === FIGURE)!;
     const live = bottleneckModel(real, realT, (id) => id)!;
     expect(figure.drill.ids.length).toBeGreaterThan(0);
     expect(live.drill).toEqual({
-      figure: 'a9-bottleneck-forecast',
+      figure: FIGURE,
       label: 'Show the rows behind A9 bottleneck and forecast',
     });
   });
