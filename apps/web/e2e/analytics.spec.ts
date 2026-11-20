@@ -204,6 +204,15 @@ const firstHeld = (reply: FiguresReply) =>
  * is a tab of Today, not a rail entry. On a phone the rail is behind the Menu button.
  */
 async function expectShellMenu(page: Page, wide: boolean) {
+  // The page swaps its loading frame for the loaded one when the figures arrive, which closes a menu opened before then:
+  // open the menu only once the Dashboard has loaded.
+  await expect(page.getByRole('heading', { name: 'What needs you now' })).toBeVisible();
+  // The tabs are on the page, which a phone's open menu makes inert: read them first.
+  await expect(
+    page
+      .getByRole('group', { name: 'Screens in Today', exact: true })
+      .getByRole('button', { name: 'Data checklist', exact: true }),
+  ).toBeVisible();
   if (!wide) await page.getByRole('button', { name: 'Menu', exact: true }).click();
   const rail = page.locator('nav.v2-rail');
   for (const name of [
@@ -220,11 +229,6 @@ async function expectShellMenu(page: Page, wide: boolean) {
     'aria-current',
     'page',
   );
-  await expect(
-    page
-      .getByRole('group', { name: 'Screens in Today', exact: true })
-      .getByRole('button', { name: 'Data checklist', exact: true }),
-  ).toBeVisible();
   return rail;
 }
 
@@ -250,14 +254,15 @@ test('a head opens the analytics face, its Guide, and edits the plant profile', 
   await expect(page).toHaveURL(/\/analytics\/today$/);
   const reply = (await (await response).json()) as FiguresReply;
 
-  const menu = await expectShellMenu(page, wide);
-
   // The honest state: a held figure claims no value it does not have.
   const held = firstHeld(reply);
   if (held) await expect(tile(page, held.key)).toContainText('Not computed yet');
   await expect(
     page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true }),
   ).toBeVisible();
+
+  // The rail comes last: on a phone its open menu makes the page inert.
+  const menu = await expectShellMenu(page, wide);
 
   // The Guide lists the screens and figures with their labels.
   await menu.getByRole('link', { name: 'Guide', exact: true }).click();
