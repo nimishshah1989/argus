@@ -32,6 +32,7 @@ Every dependency is listed here with its licence. CI checks the allowlist; an ad
 | react-grid-layout                                                                               | dashboard layout    | MIT              |
 | Playwright                                                                                      | E2E and PDF         | Apache-2.0       |
 | Noto Sans Gujarati / Devanagari                                                                 | PDF/UI fonts        | OFL-1.1          |
+| Inter, Geist, Geist Mono (woff2 files in apps/web/src/ui/v2/fonts, no package)                  | v2 UI fonts         | OFL-1.1          |
 | whatsapp-api-js                                                                                 | WhatsApp adapter    | MIT              |
 | fastify-raw-body                                                                                | webhook signature   | MIT              |
 | SheetJS Community Edition 0.20.x                                                                | import              | Apache-2.0       |

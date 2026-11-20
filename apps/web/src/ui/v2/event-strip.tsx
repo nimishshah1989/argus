@@ -1,3 +1,5 @@
+import { MOTION } from './motion.js';
+
 const DAYS = 90;
 const PER_BAR = 3;
 
@@ -22,12 +24,12 @@ export function EventStrip({
         {bars.map((n, i) => (
           <span
             key={i}
-            className={n ? 'v2-strip-bar v2-strip-hit' : 'v2-strip-bar'}
+            className={n ? `v2-strip-bar v2-strip-hit ${MOTION.growY}` : 'v2-strip-bar'}
             style={{ height: n ? Math.min(22, 8 + n * 7) : 4 }}
           />
         ))}
       </div>
-      <span className="v2-note">{caption}</span>
+      <span className="v2-sub">{caption}</span>
     </div>
   );
 }

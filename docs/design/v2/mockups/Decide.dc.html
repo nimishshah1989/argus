@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Argus — Dashboard, decision first</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&amp;family=JetBrains+Mono:wght@500;600&amp;display=swap">
+<style>
+body{margin:0;background:#F6F6F4}
+::selection{background:#1F2937;color:#fff}
+a{color:#1F2937;text-underline-offset:3px}
+.num{font-variant-numeric:tabular-nums}
+.code{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;font-weight:600}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 16px;border-radius:10px;border:1px solid transparent;font:inherit;font-size:15px;font-weight:600;cursor:pointer;transition:background .18s,box-shadow .18s,transform .18s}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:#111827;color:#fff}.btn-primary:hover{background:#000;box-shadow:0 4px 14px rgba(17,24,39,.22)}
+.btn-ghost{background:#fff;border-color:#DCDDD8;color:#1F2937}.btn-ghost:hover{background:#F3F3F0}
+.btn-done{background:#E8F5EE;color:#11673F;border-color:#BFE3CF}
+.why{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 12px;border-radius:999px;border:1px solid #DCDDD8;background:#fff;font:inherit;font-size:13px;font-weight:600;color:#1F2937;cursor:pointer;transition:background .18s,border-color .18s}
+.why:hover{background:#111827;color:#fff;border-color:#111827}
+.why[aria-expanded="true"]{background:#111827;color:#fff;border-color:#111827}
+.chev{transition:transform .2s cubic-bezier(.2,.8,.2,1)}
+.why[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.open{animation:open .22s cubic-bezier(.2,.8,.2,1)}
+@keyframes open{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.tile{width:22px;height:22px;border-radius:5px;border:0;padding:0;cursor:pointer;transition:transform .18s cubic-bezier(.2,.8,.2,1)}
+.tile:hover{transform:scale(1.35);box-shadow:0 4px 10px rgba(0,0,0,.18);position:relative;z-index:2}
+.down{animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.45)}50%{box-shadow:0 0 0 5px rgba(220,38,38,0)}}
+.rowbtn{all:unset;display:grid;cursor:pointer;border-radius:10px}
+.rowbtn:hover{background:#FAFAF8}
+button:focus-visible,a:focus-visible,.rowbtn:focus-visible{outline:2px solid #2563EB;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.down,.open{animation:none}.tile,.btn,.chev,.why{transition:none}}
+</style>
+</helmet>
+<div style="font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.5;color:#111827;max-width:1360px;margin:0 auto;padding:32px 40px 56px;box-sizing:border-box;display:flex;flex-direction:column;gap:32px;">
+
+  <!-- Verdict -->
+  <header style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;justify-content:space-between;">
+    <div style="display:flex;flex-direction:column;gap:12px;max-width:760px;">
+      <span style="font-size:13px;color:#4B5563;">Friday 20 November · whole plant</span>
+      <h1 style="margin:0;font-size:28px;line-height:1.25;font-weight:700;letter-spacing:-.02em;">November is <span style="color:#B91C1C;">9% worse</span> than October. Four decisions win most of it back.</h1>
+      <div><button type="button" class="why" aria-expanded="{{verdict.open}}" onClick="{{verdict.toggle}}">Why? <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button></div>
+      <sc-if value="{{verdict.isOpen}}" hint-placeholder-val="{{false}}">
+        <ul class="open" style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;">
+          <sc-for list="{{verdict.points}}" as="pt" hint-placeholder-count="4"><li><sc-for list="{{pt}}" as="sg" hint-placeholder-count="3"><span style="{{sg.s}}">{{sg.t}}</span></sc-for></li></sc-for>
+        </ul>
+      </sc-if>
+    </div>
+    <div style="display:flex;gap:32px;">
+      <div><div style="font-size:13px;color:#4B5563;">Lost this month</div><div class="num" style="font-size:28px;font-weight:700;letter-spacing:-.02em;">₹ 10.4 lakh</div><div class="num" style="font-size:13px;color:#4B5563;">312.4 breakdown hours</div></div>
+      <div><div style="font-size:13px;color:#4B5563;">You can win back</div><div class="num" style="font-size:28px;font-weight:700;letter-spacing:-.02em;color:#11673F;">₹ 5.9 lakh</div><div class="num" style="font-size:13px;color:#4B5563;">about 178 h a month</div></div>
+    </div>
+  </header>
+
+  <!-- Decide today -->
+  <section aria-labelledby="h-decide" style="background:#fff;border:1px solid #E5E5E0;border-radius:18px;overflow:hidden;box-shadow:0 1px 2px rgba(17,24,39,.04),0 8px 24px rgba(17,24,39,.05);">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;padding:20px 28px 12px;">
+      <h2 id="h-decide" style="margin:0;font-size:15px;font-weight:700;">Decide today</h2>
+      <span class="num" style="font-size:13px;color:#4B5563;">{{decidedText}}</span>
+    </div>
+    <sc-for list="{{decisions}}" as="d" hint-placeholder-count="4">
+      <article style="border-top:1px solid #EFEFEB;padding:18px 28px;display:flex;flex-direction:column;gap:12px;">
+        <div style="display:grid;grid-template-columns:minmax(0,1.6fr) minmax(200px,1fr) auto;gap:24px;align-items:center;">
+          <div style="display:flex;flex-direction:column;gap:8px;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span style="{{d.kindStyle}}">{{d.kind}}</span>
+              <sc-for list="{{d.codes}}" as="c" hint-placeholder-count="2"><span class="code" style="padding:2px 7px;border-radius:6px;background:#F1F1EE;">{{c}}</span></sc-for>
+            </div>
+            <h3 style="margin:0;font-size:15px;font-weight:700;">{{d.title}}</h3>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+              <sc-for list="{{d.keys}}" as="k" hint-placeholder-count="3"><span class="num" style="{{k.s}}">{{k.t}}</span></sc-for>
+              <button type="button" class="why" aria-expanded="{{d.open}}" onClick="{{d.toggle}}">Why? <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div class="num"><b>{{d.hours}}</b> <span style="font-size:13px;color:#4B5563;">a month · {{d.money}}</span></div>
+            <div role="img" aria-label="{{d.stripLabel}}" style="display:flex;gap:2px;align-items:flex-end;height:22px;">
+              <sc-for list="{{d.strip}}" as="s" hint-placeholder-count="30"><span style="{{s}}"></span></sc-for>
+            </div>
+            <span style="font-size:13px;color:#4B5563;">Breakdowns, last 90 days</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;min-width:200px;">
+            <button type="button" class="{{d.btnClass}}" onClick="{{d.act}}">{{d.btnText}}</button>
+            <span style="font-size:13px;color:#4B5563;text-align:center;">{{d.owner}}</span>
+          </div>
+        </div>
+        <sc-if value="{{d.isOpen}}" hint-placeholder-val="{{false}}">
+          <ul class="open" style="margin:0;padding:14px 18px 14px 36px;background:#FAFAF8;border-radius:12px;display:flex;flex-direction:column;gap:6px;">
+            <sc-for list="{{d.points}}" as="pt" hint-placeholder-count="4"><li><sc-for list="{{pt}}" as="sg" hint-placeholder-count="3"><span style="{{sg.s}}">{{sg.t}}</span></sc-for></li></sc-for>
+          </ul>
+        </sc-if>
+      </article>
+    </sc-for>
+  </section>
+
+  <!-- Plant map + targets -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(520px,1fr));gap:32px;align-items:start;">
+
+    <section aria-labelledby="h-plant" style="display:flex;flex-direction:column;gap:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <h2 id="h-plant" style="margin:0;font-size:15px;font-weight:700;">The plant right now</h2>
+        <div role="group" aria-label="Show machines" style="display:flex;gap:2px;background:#EAEAE6;border-radius:11px;padding:3px;">
+          <sc-for list="{{filters}}" as="f" hint-placeholder-count="4"><button type="button" aria-pressed="{{f.on}}" onClick="{{f.pick}}" style="{{f.style}}">{{f.label}}</button></sc-for>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid #E5E5E0;border-radius:18px;padding:20px 24px;display:flex;flex-direction:column;gap:12px;">
+        <sc-for list="{{cells}}" as="c" hint-placeholder-count="9">
+          <div style="display:grid;grid-template-columns:60px minmax(0,1fr) 80px;gap:14px;align-items:center;">
+            <span style="font-size:13px;font-weight:600;">{{c.name}}</span>
+            <div style="display:flex;flex-wrap:wrap;gap:5px;">
+              <sc-for list="{{c.tiles}}" as="t" hint-placeholder-count="14"><button type="button" class="{{t.cls}}" aria-label="{{t.tip}}" title="{{t.tip}}" onClick="{{t.pick}}" style="{{t.style}}"></button></sc-for>
+            </div>
+            <span class="num" style="{{c.noteStyle}}">{{c.note}}</span>
+          </div>
+        </sc-for>
+        <sc-if value="{{picked.has}}" hint-placeholder-val="{{false}}">
+          <div class="open" style="display:flex;flex-direction:column;gap:6px;padding:14px 18px;background:#FAFAF8;border-radius:12px;">
+            <div style="display:flex;align-items:center;gap:8px;"><span class="code">{{picked.code}}</span><span style="{{picked.chip}}">{{picked.state}}</span></div>
+            <ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;">
+              <sc-for list="{{picked.points}}" as="pt" hint-placeholder-count="3"><li><sc-for list="{{pt}}" as="sg" hint-placeholder-count="3"><span style="{{sg.s}}">{{sg.t}}</span></sc-for></li></sc-for>
+            </ul>
+          </div>
+        </sc-if>
+        <sc-if value="{{picked.none}}" hint-placeholder-val="{{true}}"><span style="font-size:13px;color:#4B5563;">Tap any square to see why that machine is in its state.</span></sc-if>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;padding-top:10px;border-top:1px solid #EFEFEB;font-size:13px;">
+          <sc-for list="{{legend}}" as="l" hint-placeholder-count="5"><span style="display:flex;align-items:center;gap:6px;"><span style="{{l.sw}}"></span>{{l.label}} <b class="num">{{l.n}}</b></span></sc-for>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-target" style="display:flex;flex-direction:column;gap:12px;">
+      <h2 id="h-target" style="margin:0;font-size:15px;font-weight:700;min-height:40px;display:flex;align-items:center;">Against target</h2>
+      <div style="background:#fff;border:1px solid #E5E5E0;border-radius:18px;padding:8px 16px;">
+        <sc-for list="{{bullets}}" as="b" hint-placeholder-count="5">
+          <div style="border-bottom:1px solid #EFEFEB;">
+            <button type="button" class="rowbtn" aria-expanded="{{b.open}}" onClick="{{b.toggle}}" style="grid-template-columns:minmax(140px,180px) minmax(0,1fr) 20px;gap:16px;align-items:center;padding:14px 8px;width:100%;box-sizing:border-box;">
+              <span><span style="display:block;font-size:13px;color:#4B5563;">{{b.label}}</span><span class="num" style="font-weight:700;">{{b.value}}{{b.unit}}</span></span>
+              <span style="display:flex;flex-direction:column;gap:6px;">
+                <span role="img" aria-label="{{b.aria}}" style="position:relative;height:22px;border-radius:6px;background:#F1F1EE;display:block;">
+                  <span style="{{b.band}}"></span><span style="{{b.bar}}"></span><span style="{{b.target}}"></span><span style="{{b.last}}"></span>
+                </span>
+                <span style="{{b.verdictStyle}}">{{b.verdict}}</span>
+              </span>
+              <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4B5563" stroke-width="2.5" aria-hidden="true" style="{{b.chev}}"><path d="M6 9l6 6 6-6"></path></svg>
+            </button>
+            <sc-if value="{{b.isOpen}}" hint-placeholder-val="{{false}}">
+              <ul class="open" style="margin:0 8px 14px;padding:12px 16px 12px 32px;background:#FAFAF8;border-radius:12px;display:flex;flex-direction:column;gap:4px;">
+                <sc-for list="{{b.points}}" as="pt" hint-placeholder-count="3"><li><sc-for list="{{pt}}" as="sg" hint-placeholder-count="3"><span style="{{sg.s}}">{{sg.t}}</span></sc-for></li></sc-for>
+              </ul>
+            </sc-if>
+          </div>
+        </sc-for>
+        <div style="display:flex;gap:16px;padding:12px 8px 10px;font-size:13px;color:#4B5563;flex-wrap:wrap;">
+          <span style="display:flex;align-items:center;gap:6px;"><span style="width:14px;height:8px;border-radius:2px;background:#111827;"></span>This month</span>
+          <span style="display:flex;align-items:center;gap:6px;"><span style="width:2px;height:14px;background:#111827;"></span>Target</span>
+          <span style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;border:2px solid #6B7280;background:#fff;"></span>Last month</span>
+          <span style="display:flex;align-items:center;gap:6px;"><span style="width:14px;height:8px;border-radius:2px;background:#E3F1E8;"></span>Good zone</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Where the hours go -->
+  <section aria-labelledby="h-pareto" style="display:flex;flex-direction:column;gap:12px;">
+    <h2 id="h-pareto" style="margin:0;font-size:15px;font-weight:700;">Where the hours go</h2>
+    <div style="background:#fff;border:1px solid #E5E5E0;border-radius:18px;padding:24px 28px;display:grid;grid-template-columns:minmax(0,2fr) minmax(240px,1fr);gap:32px;align-items:center;">
+      <svg viewBox="0 0 760 250" width="100%" height="250" role="img" aria-label="Breakdown hours by problem with running total; the top three problems are 34% of all hours">
+        <sc-for list="{{pareto.bars}}" as="p" hint-placeholder-count="8">
+          <rect x="{{p.x}}" y="{{p.y}}" width="{{p.w}}" height="{{p.h}}" rx="5" fill="{{p.fill}}"><title>{{p.tip}}</title></rect>
+          <text x="{{p.cx}}" y="{{p.ty}}" text-anchor="middle" font-size="13" font-weight="600" fill="#111827">{{p.hrs}}</text>
+          <text x="{{p.cx}}" y="242" text-anchor="middle" font-size="13" fill="#4B5563">{{p.short}}</text>
+        </sc-for>
+        <polyline points="{{pareto.cum}}" fill="none" stroke="#6B7280" stroke-width="1.5" stroke-dasharray="4 4"></polyline>
+        <sc-for list="{{pareto.dots}}" as="q" hint-placeholder-count="8"><circle cx="{{q.x}}" cy="{{q.y}}" r="3" fill="#fff" stroke="#6B7280" stroke-width="1.5"><title>{{q.tip}}</title></circle></sc-for>
+        <line x1="{{pareto.split}}" x2="{{pareto.split}}" y1="8" y2="222" stroke="#11673F" stroke-width="1.5"></line>
+      </svg>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <p style="margin:0;font-size:28px;line-height:1.2;font-weight:700;letter-spacing:-.02em;">Fix 3 problems, win back <span style="color:#11673F;">~102 h</span> a month</p>
+        <div><button type="button" class="why" aria-expanded="{{pw.open}}" onClick="{{pw.toggle}}">Why these 3? <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button></div>
+        <sc-if value="{{pw.isOpen}}" hint-placeholder-val="{{false}}">
+          <ul class="open" style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;">
+            <sc-for list="{{pw.points}}" as="pt" hint-placeholder-count="3"><li><sc-for list="{{pt}}" as="sg" hint-placeholder-count="3"><span style="{{sg.s}}">{{sg.t}}</span></sc-for></li></sc-for>
+          </ul>
+        </sc-if>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" class="btn btn-primary">Add to Team Focus</button><button type="button" class="btn btn-ghost">See the fixes</button></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2160}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { done: {}, open: {}, filter: 'all', pick: null }; }
+  renderVals() {
+    const S = this.state;
+    const RED = 'font-weight:700;color:#B91C1C;', GRN = 'font-weight:700;color:#11673F;', AMB = 'font-weight:700;color:#B45309;', BLD = 'font-weight:700;', TXT = '';
+    // "**text**" = bold, "!!text!!" = red, "++text++" = green, "~~text~~" = amber
+    const rich = (s) => s.split(/(\*\*[^*]+\*\*|!![^!]+!!|\+\+[^+]+\+\+|~~[^~]+~~)/).filter(Boolean).map((t) => {
+      if (t.startsWith('**')) return { t: t.slice(2, -2), s: BLD };
+      if (t.startsWith('!!')) return { t: t.slice(2, -2), s: RED };
+      if (t.startsWith('++')) return { t: t.slice(2, -2), s: GRN };
+      if (t.startsWith('~~')) return { t: t.slice(2, -2), s: AMB };
+      return { t, s: TXT };
+    });
+    const isOpen = (id) => !!S.open[id];
+    const toggle = (id) => () => this.setState({ open: { ...S.open, [id]: !S.open[id] } });
+    const chipS = (c, bg) => `font-size:13px;font-weight:700;padding:2px 10px;border-radius:999px;background:${bg};color:${c};`;
+
+    const verdict = {
+      open: isOpen('v') ? 'true' : 'false', isOpen: isOpen('v'), toggle: toggle('v'),
+      points: [
+        'Breakdown hours: !!312 h!! this month vs **286 h** in October',
+        '**3 machines** (HMC-2, TC-10, VC-22) caused !!31%!! of the hours',
+        'Biggest jump: **Cell 8**, !!+14 h!!',
+        'The 4 decisions below win back ++~178 h a month++ (++₹ 5.9 lakh++)',
+      ].map(rich),
+    };
+
+    const kinds = { decide: ['Decide', '#F3E8FF', '#6B21A8'], fix: ['Fix for good', '#FEE2E2', '#991B1B'], inspect: ['Inspect', '#FEF3C7', '#92400E'], plan: ['Plan', '#DBEAFE', '#1E40AF'] };
+    const strip = (days) => Array.from({ length: 30 }, (_, i) => {
+      const n = days.filter((d) => Math.floor(d / 3) === i).length;
+      return `display:block;width:6px;height:${n ? 8 + n * 7 : 4}px;border-radius:2px;background:${n ? '#DC2626' : '#E5E5E0'};`;
+    });
+    const raw = [
+      { id: 'tmc2', kind: 'decide', codes: ['TMC-2'], title: 'Overhaul or replace the turnmill',
+        keys: [['Health 4.1 / 10', '#B91C1C', '#FEECEC'], ['2.6× expected loss', '#B91C1C', '#FEECEC']],
+        points: ['Lost !!308 h!! — a machine its age and type loses about **119 h**', '**20 breakdowns** this year, mostly **spindle** and **ball screws**', 'Each month waiting costs about !!18.8 h!!', 'Next step: get an **overhaul quote** and compare with ++replacement++'],
+        hours: '18.8 h', money: '₹ 4.07 lakh a year', days: [3, 9, 15, 22, 31, 38, 44, 52, 60, 61, 70, 78, 84, 88], act: 'Get an overhaul quote', did: 'Quote requested', owner: 'Owner: not assigned' },
+      { id: 'axis', kind: 'fix', codes: ['VC-8', 'VC-9', 'TC-5'], title: 'Stop axis motor and encoder failures',
+        keys: [['16% of all hours', '#B91C1C', '#FEECEC'], ['Fix exists', '#11673F', '#E8F5EE']],
+        points: ['!!478 h!! in **98 breakdowns** on 44 machines', 'Worst on **VC-8 (13)**, **VC-9 (10)**, **TC-5 (5)**', 'Causes: ~~cable bends~~ and ~~coolant in encoders~~', '++Arjun V++ fixed the same fault on **VC-14**; it has not come back in 5 months'],
+        hours: '48.1 h', money: '₹ 10.38 lakh a year', days: [2, 5, 11, 14, 19, 25, 27, 33, 36, 41, 47, 50, 55, 58, 63, 66, 72, 75, 81, 86, 89], act: 'Assign a root-cause fix', did: 'Assigned to Arjun V', owner: 'Suggested: Arjun V' },
+      { id: 'wj01', kind: 'inspect', codes: ['WJ-01'], title: 'Inspect the waterjet before December',
+        keys: [['Rising', '#B45309', '#FEF3C7'], ['11 in 90 days', '#B45309', '#FEF3C7']],
+        points: ['Forecast **5.3 h** next month, worst case !!18 h!!', '~~Coolant leakage~~ **20 times** this year', 'Last fix: **pump seal** on 13 Oct — the leaks came back', 'A PM slot is ++free on 24 Nov++'],
+        hours: '5.3 h', money: '₹ 1.14 lakh a year', days: [40, 52, 58, 63, 67, 71, 74, 79, 83, 86, 89], act: 'Schedule an inspection', did: 'Inspection on 24 Nov', owner: 'Free slot: 24 Nov' },
+      { id: 'dcmc', kind: 'plan', codes: ['DCMC-02'], title: 'Move a warranty PM to keep Cell 3 running',
+        keys: [['3 PMs on 26 Nov', '#1E40AF', '#DBEAFE'], ['Warranty safe', '#11673F', '#E8F5EE']],
+        points: ['**3 PM jobs** fall on **26 Nov** in Cell 3', 'Moving DCMC-02 to **24 Nov** leaves ++2 machines down instead of 3++', 'The ++warranty date still holds++'],
+        hours: '7.5 h', money: 'one shift kept', days: [], act: 'Move to 24 Nov', did: 'Moved to 24 Nov', owner: 'Warranty date holds' },
+    ];
+    const decisions = raw.map((d) => {
+      const k = kinds[d.kind], done = !!S.done[d.id];
+      return {
+        ...d, kind: k[0], strip: strip(d.days), points: d.points.map(rich),
+        keys: d.keys.map(([t, c, bg]) => ({ t, s: chipS(c, bg) })),
+        open: isOpen(d.id) ? 'true' : 'false', isOpen: isOpen(d.id), toggle: toggle(d.id),
+        stripLabel: d.days.length ? `${d.days.length} breakdowns in the last 90 days` : 'No breakdowns in the last 90 days',
+        kindStyle: `font-size:13px;font-weight:700;padding:2px 10px;border-radius:999px;background:${k[1]};color:${k[2]};`,
+        btnClass: done ? 'btn btn-done' : 'btn btn-primary', btnText: done ? `✓ ${d.did}` : d.act,
+        act: () => this.setState({ done: { ...S.done, [d.id]: !done } }),
+      };
+    });
+    const nDone = Object.values(S.done).filter(Boolean).length;
+    const decidedText = nDone ? `${nDone} of 4 decided` : '4 waiting · biggest first';
+
+    const st = { run: ['Running', '#CFE9DA', '#11673F'], risk: ['At risk', '#F59E0B', '#B45309'], down: ['Broken down', '#DC2626', '#B91C1C'], pm: ['In PM', '#3B82F6', '#1E40AF'], idle: ['Idle or out', '#E5E5E0', '#4B5563'] };
+    const why = {
+      run: ['Running since **6:10 today**', '**0 breakdowns** in 30 days'],
+      risk: ['~~3 breakdowns~~ in 30 days, up from **1**', 'Repairs taking ~~2× longer~~ than its type'],
+      down: ['Down for !!2 h 40 min!!', 'Problem: **spindle alarm**', 'Assigned to ++Neel S++'],
+      pm: ['Quarterly PM, **started 9:30**', 'Back by ++14:00++ (plan)'],
+      idle: ['No job loaded since **yesterday**'],
+    };
+    const special = { '1-3': 'down', '2-1': 'pm', '3-4': 'pm', '3-9': 'risk', '4-2': 'risk', '5-6': 'down', '5-11': 'risk', '6-0': 'pm', '6-7': 'risk', '7-3': 'down', '7-12': 'idle', '8-0': 'risk', '8-5': 'down', '8-9': 'risk', '8-13': 'idle', '9-2': 'pm', '2-8': 'risk', '4-10': 'down', '9-6': 'risk', '1-12': 'idle' };
+    const counts = [14, 14, 15, 13, 15, 14, 14, 15, 12], pref = ['TC', 'VC', 'VC', 'TC', 'VC', 'VTL', 'VC', 'TC', 'GRD'];
+    const tally = { run: 0, risk: 0, down: 0, pm: 0, idle: 0 };
+    let picked = { has: false, none: true };
+    const cells = counts.map((n, ci) => {
+      let down = 0;
+      const tiles = Array.from({ length: n }, (_, i) => {
+        const s = special[`${ci + 1}-${i}`] || 'run'; tally[s]++; if (s === 'down') down++;
+        const code = `${pref[ci]}-${ci * 6 + i + 1}`, id = `${ci}-${i}`;
+        const dim = S.filter !== 'all' && S.filter !== s, sel = S.pick === id;
+        if (sel) picked = { has: true, none: false, code, state: st[s][0], chip: `font-size:13px;font-weight:700;padding:2px 10px;border-radius:999px;background:${st[s][1]}33;color:${st[s][2]};`, points: why[s].map(rich) };
+        return { cls: s === 'down' && !dim ? 'tile down' : 'tile', tip: `${code}, Cell ${ci + 1}: ${st[s][0]}`, pick: () => this.setState({ pick: sel ? null : id }), style: `display:block;background:${st[s][1]};opacity:${dim ? 0.18 : 1};${sel ? 'outline:2px solid #111827;outline-offset:2px;' : ''}` };
+      });
+      return { name: `Cell ${ci + 1}`, tiles, note: down ? `${down} down` : 'all running', noteStyle: `font-size:13px;text-align:right;${down ? 'font-weight:700;color:#B91C1C;' : 'color:#4B5563;'}` };
+    });
+    const legend = Object.entries(st).map(([k, [label, c]]) => ({ label, n: tally[k], sw: `width:12px;height:12px;border-radius:3px;background:${c};` }));
+    const filters = [['all', 'All'], ['down', 'Down'], ['risk', 'At risk'], ['pm', 'In PM']].map(([key, label]) => {
+      const on = S.filter === key;
+      return { label, on: on ? 'true' : 'false', pick: () => this.setState({ filter: key }), style: `border:0;font:inherit;font-size:13px;font-weight:600;min-height:34px;padding:0 13px;border-radius:8px;cursor:pointer;${on ? 'background:#fff;color:#111827;box-shadow:0 1px 3px rgba(17,24,39,.14);' : 'background:transparent;color:#4B5563;'}` };
+    });
+
+    const B = (id, label, value, unit, lo, hi, actual, target, last, higherBetter, verdict, points) => {
+      const p = (v) => `${((v - lo) / (hi - lo) * 100).toFixed(1)}%`;
+      const ok = higherBetter ? actual >= target : actual <= target;
+      return {
+        label, value, unit, verdict, points: points.map(rich),
+        open: isOpen(id) ? 'true' : 'false', isOpen: isOpen(id), toggle: toggle(id), chev: isOpen(id) ? 'transform:rotate(180deg);' : '',
+        aria: `${label} ${value}${unit}, target ${target}, last month ${last}`,
+        band: `position:absolute;top:0;bottom:0;left:${higherBetter ? p(target) : '0%'};width:${higherBetter ? `calc(100% - ${p(target)})` : p(target)};background:#E3F1E8;border-radius:6px;`,
+        bar: `position:absolute;left:0;top:7px;height:8px;width:${p(actual)};background:#111827;border-radius:4px;`,
+        target: `position:absolute;top:2px;bottom:2px;left:${p(target)};width:2px;background:#111827;`,
+        last: `position:absolute;top:7px;left:calc(${p(last)} - 4px);width:8px;height:8px;border-radius:50%;border:2px solid #6B7280;background:#fff;box-sizing:border-box;`,
+        verdictStyle: `font-size:13px;font-weight:700;color:${ok ? '#11673F' : '#B91C1C'};`,
+      };
+    };
+    const bullets = [
+      B('b1', 'Fleet availability', '99.36', '%', 98.5, 100, 99.36, 99.5, 99.18, true, 'Below target · better than Oct', ['Target **99.5%**, now **99.36%**: !!0.14 pts short!!', 'Up ++0.18 pts++ from October', 'Gap = about !!42 machine-hours!! this month']),
+      B('b2', 'Breakdown share', '0.51', '%', 0, 1, 0.51, 0.45, 0.57, false, 'Above limit · improving', ['Limit **0.45%**, now **0.51%**', 'Down ++0.06 pts++ from October', 'Cell 8 alone adds !!0.08 pts!!']),
+      B('b3', 'Time to repair', '3.6', ' h', 0, 6, 3.6, 3.0, 4.0, false, '0.6 h slow · faster than Oct', ['Target **3 h**, now **3.6 h**', '++0.4 h faster++ than October', 'Slowest: ~~waiting for spares~~ on 9 jobs']),
+      B('b4', 'Time between failures', '212', ' h', 0, 300, 212, 250, 198, true, '38 h short', ['Target **250 h**, now **212 h**', 'Up ++14 h++ from October', 'Dragged down by **TMC-2** and **WJ-01**']),
+      B('b5', 'PM done on time', '92', '%', 70, 100, 92, 90, 88, true, 'On target', ['**11 of 12** PMs done on the day', 'Up ++4 pts++ from October', 'Missed: **VC-31**, spare not in stock']),
+    ];
+
+    const pr = [['Axis drives', 48.1], ['Coolant', 29.6], ['Tool clamp', 24.2], ['ATC arm', 18.9], ['Spindle', 16.4], ['PLC alarm', 14.8], ['Conveyor', 12.1], ['Other', 31.2]];
+    const total = 302.6; let cum = 0; const bw = 70, gap = 22, x0 = 20;
+    const bars = pr.map(([name, h], i) => { const x = x0 + i * (bw + gap), hh = h / 50 * 190, y = 222 - hh; return { x, y: y.toFixed(1), w: bw, h: hh.toFixed(1), cx: x + bw / 2, ty: (y - 6).toFixed(1), hrs: h.toFixed(1), short: name, fill: i < 3 ? '#B91C1C' : '#D6D3CD', tip: `${name}: ${h} h` }; });
+    const dots = pr.map(([, h], i) => { cum += h; const x = x0 + i * (bw + gap) + bw / 2; return { x, y: (222 - cum / total * 210).toFixed(1), tip: `Top ${i + 1}: ${Math.round(cum / total * 100)}% of hours` }; });
+    const pareto = { bars, dots, cum: dots.map((d) => `${d.x},${d.y}`).join(' '), split: x0 + 3 * (bw + gap) - gap / 2 };
+    const pw = { open: isOpen('p') ? 'true' : 'false', isOpen: isOpen('p'), toggle: toggle('p'), points: ['These 3 are !!34%!! of all breakdown hours', 'Each has a ++fix that worked before++ on at least one machine', 'The other 5 together are **smaller than axis drives alone**'].map(rich) };
+
+    return { verdict, decisions, decidedText, cells, legend, filters, picked, bullets, pareto, pw };
+  }
+}
+</script>
+</body>
+</html>

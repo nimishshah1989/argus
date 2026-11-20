@@ -1,11 +1,11 @@
 import { useRef, useState, type KeyboardEvent } from 'react';
-import { Pause, TriangleAlert, Wrench, X } from '../../icon.js';
+import { Icon } from '../icons.js';
 import { Panel } from '../panel.js';
-import { Points } from '../points.js';
 import { Segmented } from '../segmented.js';
 import {
   cellNote,
   nextTile,
+  STATE_ICON,
   type CellData,
   type MachineData,
   type MachineState,
@@ -16,11 +16,9 @@ import {
 const STATES: MachineState[] = ['run', 'risk', 'down', 'pm', 'idle'];
 const FILTERS: PlantFilter[] = ['all', 'down', 'risk', 'pm'];
 /** A glyph on every state but running, so colour is never the only sign. */
-const GLYPH = { run: null, risk: TriangleAlert, down: X, pm: Wrench, idle: Pause };
-
 function Glyph({ state }: { state: MachineState }) {
-  const Icon = GLYPH[state];
-  return Icon ? <Icon size={12} strokeWidth={3} aria-hidden="true" /> : null;
+  const name = STATE_ICON[state];
+  return name ? <Icon name={name} size={12} /> : null;
 }
 
 type Tiles = {
@@ -62,26 +60,40 @@ function CellRow({ cell, words, t }: { cell: CellData; words: PlantWords; t: Til
   );
 }
 
-function Picked({ machine, words }: { machine: MachineData | undefined; words: PlantWords }) {
-  if (!machine) return <span className="v2-note">{words.hint}</span>;
+/** The five states, each with its glyph and how many machines are in it now. */
+function PlantLegend({ machines, words }: { machines: MachineData[]; words: PlantWords }) {
+  const all = machines;
   return (
-    <div className="v2-open v2-well v2-stack v2-gap-6">
-      <div className="v2-row v2-gap-8">
-        <span className="v2-code">{machine.code}</span>
-        <span className="v2-tile-chip" data-state={machine.state}>
-          <Glyph state={machine.state} />
-          {words.states[machine.state]}
+    <div className="v2-legend">
+      {STATES.map((s) => (
+        <span key={s} className="v2-row v2-gap-6">
+          <span className="v2-tile v2-swatch" data-state={s} aria-hidden="true">
+            <Glyph state={s} />
+          </span>
+          {words.states[s]}{' '}
+          <span className="v2-num">{all.filter((m) => m.state === s).length}</span>
         </span>
-      </div>
-      <Points points={machine.why} />
+      ))}
     </div>
   );
 }
 
-/** Every machine as a square in its cell's row: one tab stop, arrow keys inside, a filter, a tap opens its why. */
-export function PlantMap({ cells, words }: { cells: CellData[]; words: PlantWords }) {
+/**
+ * Every machine as a square in its cell's row: one tab stop, arrow keys inside, a filter that dims the rest. A tap
+ * opens the machine in the drawer (`onOpen`); `selected` is the machine the drawer shows.
+ */
+export function PlantMap({
+  cells,
+  words,
+  selected,
+  onOpen,
+}: {
+  cells: CellData[];
+  words: PlantWords;
+  selected?: string;
+  onOpen: (code: string) => void;
+}) {
   const [filter, setFilter] = useState<PlantFilter>('all');
-  const [picked, setPicked] = useState<string | null>(null);
   const [active, setActive] = useState<string | null>(null);
   const map = useRef<HTMLDivElement>(null);
   const shown = (m: MachineData) => filter === 'all' || filter === m.state;
@@ -97,11 +109,11 @@ export function PlantMap({ cells, words }: { cells: CellData[]; words: PlantWord
   const all = cells.flatMap((c) => c.machines);
   const t: Tiles = {
     shown,
-    picked,
+    picked: selected ?? null,
     focus,
     onPick: (code) => {
       setActive(code);
-      setPicked(picked === code ? null : code);
+      onOpen(code);
     },
     onFocus: setActive,
   };
@@ -122,19 +134,8 @@ export function PlantMap({ cells, words }: { cells: CellData[]; words: PlantWord
           <CellRow key={cell.name} cell={cell} words={words} t={t} />
         ))}
       </div>
-      <div aria-live="polite">
-        <Picked machine={all.find((m) => m.code === picked)} words={words} />
-      </div>
-      <div className="v2-legend">
-        {STATES.map((s) => (
-          <span key={s} className="v2-row v2-gap-6">
-            <span className="v2-tile v2-swatch" data-state={s} aria-hidden="true">
-              <Glyph state={s} />
-            </span>
-            {words.states[s]} <b className="v2-num">{all.filter((m) => m.state === s).length}</b>
-          </span>
-        ))}
-      </div>
+      <p className="v2-sub">{words.hint}</p>
+      <PlantLegend machines={all} words={words} />
     </Panel>
   );
 }

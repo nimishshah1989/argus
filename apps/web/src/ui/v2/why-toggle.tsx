@@ -1,5 +1,6 @@
+/* eslint-disable i18next/no-literal-string -- icon names and typed unions only; every visible word comes in as a prop or t() */
 import { useId, useState } from 'react';
-import { ChevronDown } from '../icon.js';
+import { Icon } from './icons.js';
 import { Points, type Point } from './points.js';
 
 /** Open state and the id that ties a Why button to its region. */
@@ -22,7 +23,9 @@ export function WhyButton({ why, label }: { why: Why; label: string }) {
       onClick={why.toggle}
     >
       {label}
-      <ChevronDown className="v2-chev" size={12} strokeWidth={2.5} aria-hidden="true" />
+      <span className="v2-chev">
+        <Icon name="chevronDown" size={12} />
+      </span>
     </button>
   );
 }

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Argus — Machine TMC-2</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&amp;family=JetBrains+Mono:wght@600&amp;display=swap">
+<style>
+body{margin:0;background:#F6F6F4}
+.num{font-variant-numeric:tabular-nums}
+.code{font-family:'JetBrains Mono',ui-monospace,monospace;font-weight:600}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 14px;border-radius:10px;border:1px solid #DCDDD8;background:#fff;font:inherit;font-size:15px;font-weight:600;color:#1F2937;cursor:pointer}
+.btn:hover{background:#F3F3F0}.btn-primary{background:#111827;color:#fff;border-color:#111827}.btn-primary:hover{background:#000}
+.why{display:inline-flex;align-items:center;min-height:32px;padding:0 12px;border-radius:999px;border:1px solid #DCDDD8;background:#fff;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.why:hover,.why[aria-expanded="true"]{background:#111827;color:#fff;border-color:#111827}
+.open{animation:open .22s cubic-bezier(.2,.8,.2,1)}@keyframes open{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.mbar:hover{filter:brightness(1.1)}
+button:focus-visible{outline:2px solid #2563EB;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.open{animation:none}}
+</style>
+</helmet>
+<div style="font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.5;color:#111827;max-width:1360px;margin:0 auto;padding:32px 40px 56px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px;">
+
+  <header style="display:flex;flex-wrap:wrap;gap:24px;justify-content:space-between;align-items:flex-start;">
+    <div style="display:flex;flex-direction:column;gap:10px;max-width:780px;">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px;color:#4B5563;">
+        <span class="code" style="font-size:15px;color:#DB2777;padding:2px 8px;border-radius:6px;background:#FCE7F3;">TMC-2</span><span>Turnmill · Cell 6 · 9 years old</span>
+        <span style="font-size:13px;font-weight:700;padding:2px 10px;border-radius:999px;background:#E8F5EE;color:#11673F;">● Running since 6:10</span>
+      </div>
+      <h1 style="margin:0;font-size:28px;line-height:1.25;font-weight:700;letter-spacing:-.02em;">This machine loses <span style="color:#B91C1C;">2.6×</span> what a turnmill its age should. Decide: overhaul or replace.</h1>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button type="button" class="why" aria-expanded="{{verdict.open}}" onClick="{{verdict.toggle}}">Why?</button>
+        <button type="button" class="btn btn-primary">Get an overhaul quote</button><button type="button" class="btn">Compare with another</button><button type="button" class="btn">Report a breakdown</button>
+      </div>
+      <sc-if value="{{verdict.isOpen}}" hint-placeholder-val="{{false}}">
+        <ul class="open" style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;"><sc-for list="{{verdict.points}}" as="pt" hint-placeholder-count="4"><li><sc-for list="{{pt}}" as="sg" hint-placeholder-count="2"><span style="{{sg.s}}">{{sg.t}}</span></sc-for></li></sc-for></ul>
+      </sc-if>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+      <span style="font-size:13px;color:#4B5563;">Health score</span>
+      <span class="num" style="font-size:28px;font-weight:700;color:#B91C1C;">4.1<span style="font-size:15px;color:#4B5563;"> / 10</span></span>
+      <span style="font-size:13px;font-weight:700;color:#B91C1C;">Poor · lowest 5 in the plant</span>
+    </div>
+  </header>
+
+  <section aria-labelledby="h-vs" style="display:flex;flex-direction:column;gap:12px;">
+    <h2 id="h-vs" style="margin:0;font-size:15px;font-weight:700;">Against other turnmills its age</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;">
+      <sc-for list="{{figs}}" as="f" hint-placeholder-count="4">
+        <div style="background:#fff;border:1px solid #E5E5E0;border-radius:18px;padding:16px 18px;display:flex;flex-direction:column;gap:8px;">
+          <span style="font-size:13px;color:#4B5563;">{{f.label}}</span>
+          <span class="num" style="font-weight:700;">{{f.value}}</span>
+          <span role="img" aria-label="{{f.aria}}" style="position:relative;display:block;height:18px;border-radius:5px;background:#F1F1EE;"><span style="{{f.bar}}"></span><span style="{{f.mark}}"></span></span>
+          <span style="{{f.verdictStyle}}">{{f.verdict}}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(520px,1fr));gap:28px;align-items:start;">
+    <section aria-labelledby="h-months" style="display:flex;flex-direction:column;gap:12px;">
+      <h2 id="h-months" style="margin:0;font-size:15px;font-weight:700;">Breakdown hours, last 12 months</h2>
+      <div style="background:#fff;border:1px solid #E5E5E0;border-radius:18px;padding:20px 24px;display:flex;flex-direction:column;gap:10px;">
+        <div role="img" aria-label="Breakdown hours by month; worst month September, 41 hours" style="display:flex;gap:8px;align-items:flex-end;height:170px;border-bottom:1px solid #E5E5E0;">
+          <sc-for list="{{months}}" as="m" hint-placeholder-count="12"><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;"><span class="num" style="font-size:13px;color:#4B5563;">{{m.v}}</span><div class="mbar" title="{{m.tip}}" style="{{m.style}}"></div></div></sc-for>
+        </div>
+        <div style="display:flex;gap:8px;"><sc-for list="{{months}}" as="m" hint-placeholder-count="12"><span style="flex:1;text-align:center;font-size:13px;color:#4B5563;">{{m.m}}</span></sc-for></div>
+        <div style="display:flex;gap:16px;font-size:13px;color:#4B5563;"><span><b style="color:#DC2626;">■</b> Breakdown hours</span><span>— dashed: what a turnmill its age loses (~10 h a month)</span></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-problems" style="display:flex;flex-direction:column;gap:12px;">
+      <h2 id="h-problems" style="margin:0;font-size:15px;font-weight:700;">What keeps breaking, and what fixed it before</h2>
+      <div style="background:#fff;border:1px solid #E5E5E0;border-radius:18px;padding:6px 20px;">
+        <sc-for list="{{problems}}" as="p" hint-placeholder-count="4">
+          <div style="border-bottom:1px solid #EFEFEB;padding:12px 0;display:flex;flex-direction:column;gap:8px;">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 140px auto;gap:12px;align-items:center;">
+              <b>{{p.name}}</b>
+              <div style="height:8px;border-radius:4px;background:#F1F1EE;overflow:hidden;"><div style="{{p.bar}}"></div></div>
+              <button type="button" class="why" aria-expanded="{{p.open}}" onClick="{{p.toggle}}"><span class="num">{{p.hrs}}</span>&#160;· fixes</button>
+            </div>
+            <sc-if value="{{p.isOpen}}" hint-placeholder-val="{{false}}">
+              <ul class="open" style="margin:0;padding:10px 14px 10px 30px;background:#FAFAF8;border-radius:12px;display:flex;flex-direction:column;gap:4px;"><sc-for list="{{p.points}}" as="pt" hint-placeholder-count="2"><li><sc-for list="{{pt}}" as="sg" hint-placeholder-count="2"><span style="{{sg.s}}">{{sg.t}}</span></sc-for></li></sc-for></ul>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(520px,1fr));gap:28px;align-items:start;">
+    <section aria-labelledby="h-recent" style="display:flex;flex-direction:column;gap:12px;">
+      <h2 id="h-recent" style="margin:0;font-size:15px;font-weight:700;">Last 6 breakdowns</h2>
+      <ol style="list-style:none;margin:0;padding:6px 20px;background:#fff;border:1px solid #E5E5E0;border-radius:18px;">
+        <sc-for list="{{recent}}" as="r" hint-placeholder-count="6">
+          <li style="display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #EFEFEB;">
+            <span class="num" style="font-size:13px;color:#4B5563;">{{r.date}}</span>
+            <span><b>{{r.problem}}</b> <span style="font-size:13px;color:#4B5563;">· {{r.who}}</span></span>
+            <span class="num" style="{{r.hStyle}}">{{r.hrs}}</span>
+          </li>
+        </sc-for>
+      </ol>
+    </section>
+    <section aria-labelledby="h-pm" style="display:flex;flex-direction:column;gap:12px;">
+      <h2 id="h-pm" style="margin:0;font-size:15px;font-weight:700;">PM and spares</h2>
+      <div style="background:#fff;border:1px solid #E5E5E0;border-radius:18px;padding:16px 20px;display:flex;flex-direction:column;gap:12px;">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;"><span>Next PM <b>2 Dec</b> · quarterly</span><span style="font-size:13px;font-weight:700;color:#11673F;">Last 4 done on the day</span></div>
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;"><span>Spares used this year <b class="num">₹ 1.84 lakh</b></span><span style="font-size:13px;font-weight:700;color:#B91C1C;">Ball screw kit: 0 in stock</span></div>
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;"><span>Warranty</span><span style="font-size:13px;color:#4B5563;">Ended 2019</span></div>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2100}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { open: {} }; }
+  renderVals() {
+    const S = this.state;
+    const RED = 'font-weight:700;color:#B91C1C;', GRN = 'font-weight:700;color:#11673F;', AMB = 'font-weight:700;color:#B45309;', BLD = 'font-weight:700;';
+    const rich = (s) => s.split(/(\*\*[^*]+\*\*|!![^!]+!!|\+\+[^+]+\+\+|~~[^~]+~~)/).filter(Boolean).map((t) => t.startsWith('**') ? { t: t.slice(2, -2), s: BLD } : t.startsWith('!!') ? { t: t.slice(2, -2), s: RED } : t.startsWith('++') ? { t: t.slice(2, -2), s: GRN } : t.startsWith('~~') ? { t: t.slice(2, -2), s: AMB } : { t, s: '' });
+    const tog = (id) => ({ open: S.open[id] ? 'true' : 'false', isOpen: !!S.open[id], toggle: () => this.setState({ open: { ...S.open, [id]: !S.open[id] } }) });
+    const verdict = { ...tog('v'), points: ['Lost !!308 h!! this year; a turnmill its age loses about **119 h**', '**20 breakdowns**, 12 of them ~~spindle~~ or ~~ball screw~~', 'Repairs cost ₹ **1.84 lakh** in spares and !!₹ 6.6 lakh!! in lost hours', 'A new turnmill costs about **₹ 48 lakh**; an overhaul quote decides it'].map(rich) };
+    const F = (label, value, actual, typical, max, worseHigh, verdict) => {
+      const p = (v) => `${Math.min(100, v / max * 100).toFixed(1)}%`, bad = worseHigh ? actual > typical : actual < typical;
+      return { label, value, verdict, aria: `${label}: ${value}, typical ${typical}`, bar: `position:absolute;left:0;top:5px;height:8px;width:${p(actual)};border-radius:4px;background:${bad ? '#B91C1C' : '#11673F'};`, mark: `position:absolute;top:1px;bottom:1px;left:${p(typical)};width:2px;background:#111827;`, verdictStyle: `font-size:13px;font-weight:700;color:${bad ? '#B91C1C' : '#11673F'};` };
+    };
+    const figs = [F('Breakdown hours this year', '308 h', 308, 119, 350, true, '2.6× its type · | = typical'), F('Breakdowns', '20', 20, 9, 25, true, '2.2× its type'), F('Time to repair', '15.4 h', 15.4, 8, 20, true, '1.9× slower'), F('Time between failures', '219 h', 219, 480, 600, false, 'Fails twice as often')];
+    const mv = [12, 18, 9, 31, 22, 15, 27, 34, 41, 38, 33, 28], ms = ['Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'];
+    const months = mv.map((v, i) => ({ v, m: ms[i], tip: `${ms[i]}: ${v} h`, style: `width:100%;max-width:34px;height:${Math.round(v / 45 * 140)}px;border-radius:5px 5px 2px 2px;background:${v > 10 ? '#DC2626' : '#F87171'};background-image:linear-gradient(to top,transparent ${Math.round(10 / v * 100)}%,rgba(255,255,255,.18) 0);` }));
+    const problems = [['Spindle', 96, ['**7 times**, !!96 h!!', 'Bearing replaced twice; came back after ~~60 days~~', '++Fixed for 8 months++ on TMC-4 by changing the **lubrication interval**']], ['Ball screw', 71, ['**5 times**, !!71 h!!', 'Kit **not in stock** each time: !!19 h!! waited for parts']], ['Turret indexing', 48, ['**4 times**, 48 h', 'Sensor cleaning fixed it **3 of 4** times']], ['Coolant', 22, ['**4 times**, 22 h', 'Hose clamps; ++2 h++ each']]].map(([name, h, pts], i) => ({ name, hrs: `${h} h`, ...tog(`p${i}`), points: pts.map(rich), bar: `height:100%;width:${h / 96 * 100}%;background:${i < 2 ? '#B91C1C' : '#8A857C'};border-radius:4px;` }));
+    const recent = [['18 Nov', 'Spindle overload', 'Arjun V', 6.5], ['9 Nov', 'Ball screw noise', 'Neel S', 19.0], ['31 Oct', 'Coolant hose', 'Ravi K', 1.5], ['22 Oct', 'Turret not indexing', 'Arjun V', 9.0], ['11 Oct', 'Spindle overload', 'Neel S', 7.5], ['2 Oct', 'Alarm 1043 reset', 'Ravi K', 0.5]].map(([date, problem, who, h]) => ({ date, problem, who, hrs: `${h.toFixed(1)} h`, hStyle: `font-weight:700;color:${h >= 12 ? '#B91C1C' : '#111827'};` }));
+    return { verdict, figs, months, problems, recent };
+  }
+}
+</script>
+</body>
+</html>

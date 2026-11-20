@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Argus — Data Checklist</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&amp;display=swap">
+<style>
+body{margin:0;background:#F6F6F4}
+.num{font-variant-numeric:tabular-nums}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 14px;border-radius:10px;border:1px solid #DCDDD8;background:#fff;font:inherit;font-size:15px;font-weight:600;color:#1F2937;cursor:pointer}
+.btn:hover{background:#F3F3F0}.btn-primary{background:#111827;color:#fff;border-color:#111827}.btn-primary:hover{background:#000}
+.rowbtn{all:unset;box-sizing:border-box;display:grid;grid-template-columns:28px minmax(0,1fr) auto 20px;gap:14px;align-items:center;width:100%;padding:14px 20px;cursor:pointer}
+.rowbtn:hover{background:#FAFAF8}
+.chev{transition:transform .2s}.rowbtn[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.open{animation:open .22s cubic-bezier(.2,.8,.2,1)}@keyframes open{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+button:focus-visible,.rowbtn:focus-visible{outline:2px solid #2563EB;outline-offset:-2px}
+@media (prefers-reduced-motion:reduce){.open{animation:none}.chev{transition:none}}
+</style>
+</helmet>
+<div style="font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.5;color:#111827;max-width:1200px;margin:0 auto;padding:32px 40px 56px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px;">
+
+  <header style="display:flex;flex-wrap:wrap;gap:24px;justify-content:space-between;align-items:flex-start;">
+    <div style="display:flex;flex-direction:column;gap:10px;max-width:720px;">
+      <span style="font-size:13px;color:#4B5563;">Data Checklist · what the figures can trust</span>
+      <h1 style="margin:0;font-size:28px;line-height:1.25;font-weight:700;letter-spacing:-.02em;">The data is <span style="color:#11673F;">94% ready</span>. 3 gaps change figures you see today.</h1>
+    </div>
+    <div role="img" aria-label="{{ring.aria}}" style="display:flex;gap:24px;align-items:center;">
+      <sc-for list="{{tally}}" as="t" hint-placeholder-count="3"><div><div class="num" style="{{t.style}}">{{t.n}}</div><div style="font-size:13px;color:#4B5563;">{{t.label}}</div></div></sc-for>
+    </div>
+  </header>
+
+  <sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+    <section style="display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;"><h2 style="margin:0;font-size:15px;font-weight:700;">{{g.name}}</h2><span style="font-size:13px;color:#4B5563;">{{g.summary}}</span></div>
+      <div style="background:#fff;border:1px solid #E5E5E0;border-radius:18px;overflow:hidden;">
+        <sc-for list="{{g.items}}" as="it" hint-placeholder-count="3">
+          <div style="border-bottom:1px solid #EFEFEB;">
+            <button type="button" class="rowbtn" aria-expanded="{{it.open}}" onClick="{{it.toggle}}">
+              <span aria-hidden="true" style="{{it.icon}}">{{it.glyph}}</span>
+              <span style="display:flex;flex-direction:column;gap:2px;min-width:0;"><b style="font-weight:700;">{{it.title}}</b><span style="font-size:13px;color:#4B5563;">{{it.state}}</span></span>
+              <span class="num" style="{{it.impactStyle}}">{{it.impact}}</span>
+              <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4B5563" stroke-width="2.5" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+            </button>
+            <sc-if value="{{it.isOpen}}" hint-placeholder-val="{{false}}">
+              <div class="open" style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;padding:0 20px 16px 62px;">
+                <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;"><sc-for list="{{it.points}}" as="pt" hint-placeholder-count="2"><li><sc-for list="{{pt}}" as="sg" hint-placeholder-count="2"><span style="{{sg.s}}">{{sg.t}}</span></sc-for></li></sc-for></ul>
+                <sc-if value="{{it.hasFix}}" hint-placeholder-val="{{true}}"><button type="button" class="btn btn-primary">{{it.fix}}</button></sc-if>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { open: {} }; }
+  renderVals() {
+    const S = this.state;
+    const RED = 'font-weight:700;color:#B91C1C;', GRN = 'font-weight:700;color:#11673F;', AMB = 'font-weight:700;color:#B45309;', BLD = 'font-weight:700;';
+    const rich = (s) => s.split(/(\*\*[^*]+\*\*|!![^!]+!!|\+\+[^+]+\+\+|~~[^~]+~~)/).filter(Boolean).map((t) => t.startsWith('**') ? { t: t.slice(2, -2), s: BLD } : t.startsWith('!!') ? { t: t.slice(2, -2), s: RED } : t.startsWith('++') ? { t: t.slice(2, -2), s: GRN } : t.startsWith('~~') ? { t: t.slice(2, -2), s: AMB } : { t, s: '' });
+    const ST = { ok: ['✓', '#11673F', '#E8F5EE'], warn: ['!', '#B45309', '#FEF3C7'], gap: ['×', '#B91C1C', '#FEECEC'] };
+    const data = [
+      ['Machines', [
+        ['m1', 'gap', 'Purchase date missing on 4 machines', '4 of 126 machines', 'Changes average age', ['Age shows **—** for these 4, so age analysis skips them', 'Machines: **VC-58, VC-59, TC-40, GRD-9**'], 'Add the dates'],
+        ['m2', 'ok', 'Every machine has a cell', '126 of 126', '', ['Cell moves are logged, so hours split correctly'], ''],
+        ['m3', 'warn', '1 machine marked "not in production data"', 'Robot R-1', 'Left out on purpose', ['It does not count in BD %, MTTR or MTBF', 'Change it in **Settings** if that is wrong'], 'Open Settings'],
+      ]],
+      ['Breakdown log', [
+        ['b1', 'gap', '12 breakdowns have no problem code', '12 of 1,343 this year', 'Changes Pareto', ['These **12 (31.4 h)** fall into ~~Other~~ in the Pareto', 'Most are from **Cell 8**, night shift'], 'Code them now'],
+        ['b2', 'gap', '3 breakdowns have no end time', 'Still open since October', 'Changes MTTR', ['MTTR leaves them out until closed', 'Oldest: **TC-22, 14 Oct**'], 'Close them'],
+        ['b3', 'ok', 'Downtime recorded on every closed breakdown', '1,328 of 1,328', '', ['Hours are from the log, or minutes ÷ 60'], ''],
+      ]],
+      ['PM', [
+        ['p1', 'ok', 'Every CNC machine has a PM plan', '126 of 126', '', ['Next 10 days: **5 PMs** due'], ''],
+        ['p2', 'warn', '2 PM visits logged without readings', 'VC-31, HMC-4', 'PM still counts', ['Readings help forecast wear, nothing else changes'], 'Add readings'],
+      ]],
+      ['People', [
+        ['h1', 'ok', 'Every technician has a shift', '18 of 18', '', ['Manpower hours split by shift correctly'], ''],
+      ]],
+    ];
+    const tally = [['Ready', 7, '#11673F'], ['Check', 2, '#B45309'], ['Gaps', 3, '#B91C1C']].map(([label, n, c]) => ({ label, n, style: `font-size:28px;font-weight:700;color:${c};` }));
+    const groups = data.map(([name, items]) => {
+      const gaps = items.filter((i) => i[1] === 'gap').length;
+      return {
+        name, summary: gaps ? `${gaps} gap${gaps > 1 ? 's' : ''}` : 'all ready',
+        items: items.map(([id, st, title, state, impact, pts, fix]) => ({
+          title, state, impact, fix, hasFix: !!fix, points: pts.map(rich), glyph: ST[st][0],
+          icon: `width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;background:${ST[st][2]};color:${ST[st][1]};`,
+          impactStyle: impact ? `font-size:13px;font-weight:700;padding:2px 10px;border-radius:999px;background:${ST[st][2]};color:${ST[st][1]};` : 'display:none;',
+          open: S.open[id] ? 'true' : 'false', isOpen: !!S.open[id], toggle: () => this.setState({ open: { ...S.open, [id]: !S.open[id] } }),
+        })),
+      };
+    });
+    return { tally, groups, ring: { aria: '7 ready, 2 to check, 3 gaps' } };
+  }
+}
+</script>
+</body>
+</html>

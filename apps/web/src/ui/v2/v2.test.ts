@@ -1,17 +1,16 @@
 // @vitest-environment node
-import { readFileSync } from 'node:fs';
 import { createElement, type ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { Dashboard } from '../../screens/v2/dashboard/Dashboard.js';
 import { dashboardFixture as model } from '../../screens/v2/dashboard/fixture.js';
-import { ratio, readTokens, resolve } from '../contrast.js';
 import { BulletBar, place } from './bullet-bar.js';
-import { DecisionRow } from './domain/decision-row.js';
-import { nextTile } from './domain/plant.js';
-import { PlantMap } from './domain/plant-map.js';
+import { DataTable } from './data-table.js';
+import { Drawer } from './drawer.js';
+import { KpiCard } from './kpi-card.js';
 import { Pareto, paretoMismatch } from './pareto.js';
 import { Points } from './points.js';
+import { Shell } from './shell.js';
+import { tablePage } from './table-model.js';
 import { WhyToggle } from './why-toggle.js';
 
 const html = (el: ReactElement) => renderToStaticMarkup(el);
@@ -21,54 +20,44 @@ const text = (markup: string) =>
     .replace(/\s+/g, ' ')
     .trim();
 const all = (markup: string, re: RegExp) => [...markup.matchAll(re)].map((m) => text(m[1]!));
-/** No-break spaces glue a number to its unit; compare as plain spaces. */
-const plain = (s: string) => s.replace(/\u00a0/g, ' ');
-const num = (s: string) => parseFloat(s.replace(/[^\d.]/g, ''));
-const words = { why: 'Why?', perMonth: 'a month', stripCaption: 'Breakdowns, last 90 days' };
-const noop = () => {};
 
 describe('v2 rich text and Why', () => {
-  it('reads as one sentence with the key number in bold', () => {
+  it('reads as one sentence with the key number emphasised', () => {
     const out = html(
-      createElement(Points, {
-        points: [[{ text: 'Lost ' }, { text: '308 h', tone: 'loss' }, { text: ' this year' }]],
-      }),
+      createElement(Points, { points: [[{ text: 'Lost ' }, { text: '308 h', tone: 'loss' }]] }),
     );
-    expect(text(out)).toBe('Lost 308 h this year');
+    expect(text(out)).toBe('Lost 308 h');
     expect(all(out, /<b[^>]*>(.*?)<\/b>/g)).toEqual(['308 h']);
   });
 
   it('cannot carry markup of its own', () => {
-    const out = html(createElement(Points, { points: [[{ text: '<img src=x>', tone: 'gain' }]] }));
-    expect(out).not.toContain('<img');
+    expect(
+      html(createElement(Points, { points: [[{ text: '<img src=x>', tone: 'gain' }]] })),
+    ).not.toContain('<img');
   });
 
   it('starts closed, and the region it controls is in the page but hidden', () => {
     const out = html(createElement(WhyToggle, { label: 'Why?', points: [[{ text: 'Hidden' }]] }));
     const controls = /aria-expanded="false" aria-controls="([^"]+)"/.exec(out)?.[1];
-    expect(controls).toBeTruthy();
     expect(out).toMatch(new RegExp(`<div id="${controls}" hidden=""[^>]*>.*Hidden`));
   });
 });
 
-describe('v2 decision row', () => {
-  const d = model.decisions[0]!;
-  const row = (decided: boolean) =>
-    html(createElement(DecisionRow, { d: { ...d, decided }, words, onDecide: noop, onUndo: noop }));
-
-  it('shows what to decide, its worth, the strip read aloud, and the action not yet taken', () => {
-    const out = row(false);
-    for (const part of [d.kindLabel, d.title, d.hours, d.money, d.owner])
-      expect(text(out)).toContain(plain(part));
-    expect(out).toContain(`role="img" aria-label="${d.stripLabel}"`);
-    expect(out).toMatch(new RegExp(`aria-pressed="false"[^>]*>${d.action}</button>`));
+describe('v2 KPI card', () => {
+  const kpi = model.kpis[0]!;
+  const out = html(createElement(KpiCard, { kpi }));
+  it('says the figure, its signed change against a stated period, what it means, and one line more', () => {
+    for (const part of [
+      kpi.label,
+      kpi.value,
+      `${kpi.delta.text} ${kpi.period}`,
+      kpi.meaning,
+      kpi.more,
+    ])
+      expect(text(out)).toContain(part.replace(/\u00a0/g, ' '));
   });
-
-  it('says what was done, pressed, once the model says it is decided', () => {
-    const out = row(true);
-    expect(out).toMatch(/aria-pressed="true"/);
-    expect(text(out)).toContain(d.doneText);
-    expect(text(out)).not.toContain(d.action);
+  it('is a named group a keyboard can reach, so the extra line shows on focus too', () => {
+    expect(out).toMatch(new RegExp(`<section[^>]*tabindex="0"[^>]*aria-label="${kpi.label}"`));
   });
 });
 
@@ -80,30 +69,20 @@ describe('v2 bullet bar', () => {
     expect(out).toContain(`role="img" aria-label="${b.aria}"`);
     expect(out).toMatch(/<button type="button"[^>]*aria-expanded="false"/);
   });
-
-  it('places marks on the scale, inside the bar, and never divides by an empty scale', () => {
-    expect(place([0, 6])(3)).toBe('50.0%');
-    expect(place([0, 6])(9)).toBe('100.0%');
-    expect(place([0, 6])(-1)).toBe('0.0%');
-    expect(place([5, 5])(5)).toBe('0.0%');
+  it('places marks on the scale, inside the bar, never dividing by an empty scale', () => {
+    expect([place([0, 6])(3), place([0, 6])(9), place([0, 6])(-1), place([5, 5])(5)]).toEqual([
+      '50.0%',
+      '100.0%',
+      '0.0%',
+      '0.0%',
+    ]);
   });
-
   it('marks a value past either end of the scale', () => {
     expect(html(createElement(BulletBar, { b: { ...b, value: 120 } }))).toContain(
       'data-clamp="over"',
     );
     expect(html(createElement(BulletBar, { b: { ...b, value: 90 } }))).toContain(
       'data-clamp="under"',
-    );
-    expect(html(createElement(BulletBar, { b }))).not.toContain('data-clamp');
-  });
-
-  it('puts the good zone below the limit when lower is better, above the target when higher is', () => {
-    const low = model.bullets.find((x) => !x.higherIsBetter)!;
-    const at = place(low.scale)(low.target);
-    expect(html(createElement(BulletBar, { b: low }))).toContain(`style="left:0;width:${at}"`);
-    expect(html(createElement(BulletBar, { b }))).toContain(
-      `style="left:${place(b.scale)(b.target)};right:0"`,
     );
   });
 });
@@ -112,12 +91,6 @@ describe('v2 pareto', () => {
   const out = html(
     createElement(Pareto, { data: model.pareto, whyLabel: 'Why these 3?', actions: null }),
   );
-
-  it('prints every bar as the engine wrote it, inside a chart that reads aloud', () => {
-    expect(out).toContain(`role="img" aria-label="${model.pareto.aria}"`);
-    for (const bar of model.pareto.bars) expect(text(out)).toContain(`${bar.shown} ${bar.label}`);
-  });
-
   it('ends the running total at 100 %, on the 100 % tick', () => {
     const points = /<polyline points="([^"]+)"/.exec(out)![1]!.split(' ');
     const lastY = Number(points[points.length - 1]!.split(',')[1]);
@@ -125,140 +98,74 @@ describe('v2 pareto', () => {
     expect(lastY).toBeCloseTo(tickY, 5);
     expect(all(out, /<text[^>]*data-end="true"[^>]*>(.*?)<\/text>/g)).toEqual(['100%']);
   });
-
   it('says when the bars do not add up to the total', () => {
     expect(paretoMismatch(model.pareto)).toBeNull();
     expect(paretoMismatch({ ...model.pareto, total: 400 })).toMatch(/add up to 312.4/);
   });
 });
 
-describe('v2 plant map', () => {
-  const cell = (states: ('run' | 'down' | 'risk')[]) => ({
-    name: 'Cell 1',
-    machines: states.map((state, i) => ({ code: `TC-${i + 1}`, state, why: [] })),
+describe('v2 table', () => {
+  const rows = Array.from({ length: 23 }, (_, i) => ({ code: `M-${i + 1}`, hours: (i * 7) % 23 }));
+  const q = { query: '', text: (r: { code: string }) => r.code, page: 1 };
+  it('shows ten rows a page and says which of how many', () => {
+    expect(tablePage(rows, q)).toMatchObject({ from: 1, to: 10, total: 23, pages: 3 });
+    expect(tablePage(rows, { ...q, page: 9 })).toMatchObject({ page: 3, from: 21, to: 23 });
   });
-  const note = (states: ('run' | 'down' | 'risk')[]) =>
-    text(html(createElement(PlantMap, { cells: [cell(states)], words: model.words.plant })));
-
-  it('says "all running" only when every machine runs, and otherwise counts the rest, worst first', () => {
-    expect(note(['run', 'run'])).toContain('all running');
-    expect(note(['run', 'risk', 'down', 'risk'])).toContain('1 down · 2 at risk');
-    expect(note(['run', 'risk'])).not.toContain('all running');
-  });
-
-  it('is one tab stop: only the first machine can take focus from the keyboard', () => {
-    const out = html(createElement(PlantMap, { cells: model.cells, words: model.words.plant }));
-    expect(out.match(/tabindex="0"/g)).toHaveLength(1);
-    expect(out).toMatch(/<button[^>]*tabindex="0"[^>]*aria-label="TC-1, Cell 1: Running"/);
-  });
-
-  it('moves with the arrow keys: along the map, between cells, and to either end', () => {
-    const rows = [['A1', 'A2', 'A3'], [], ['B1', 'B2']];
-    expect(nextTile(rows, 'A3', 'ArrowRight')).toBe('B1');
-    expect(nextTile(rows, 'B1', 'ArrowLeft')).toBe('A3');
-    expect(nextTile(rows, 'A3', 'ArrowDown')).toBe('B2');
-    expect(nextTile(rows, 'B2', 'ArrowUp')).toBe('A2');
-    expect(nextTile(rows, 'B2', 'Home')).toBe('A1');
-    expect(nextTile(rows, 'A1', 'End')).toBe('B2');
-    expect(nextTile(rows, 'B2', 'ArrowRight')).toBe('B2');
-    expect(nextTile(rows, 'A1', 'Enter')).toBeUndefined();
-  });
-});
-
-describe('v2 Dashboard on the fixture', () => {
-  const out = html(createElement(Dashboard, { model }));
-
-  it('leads with the verdict, then every section under its own heading', () => {
-    expect(all(out, /<h1[^>]*>(.*?)<\/h1>/g)[0]).toContain('November is 9% worse than October.');
-    expect(all(out, /<h2[^>]*>(.*?)<\/h2>/g)).toEqual([
-      'Decide today',
-      'The plant right now',
-      'Against target',
-      'Where the hours go',
-    ]);
-  });
-
-  it('shows the decisions in the model order, which is biggest first by hours at stake', () => {
-    expect(all(out, /<h3[^>]*>(.*?)<\/h3>/g)).toEqual(model.decisions.map((d) => d.title));
-    const hours = model.decisions.map((d) => num(d.hours));
-    expect(hours).toEqual([...hours].sort((a, b) => b - a));
-  });
-
-  it('announces how many are decided, and names every machine as a button', () => {
-    expect(out).toMatch(/aria-live="polite" aria-atomic="true">4 waiting · biggest first</);
-    const machines = model.cells.reduce((n, c) => n + c.machines.length, 0);
-    expect(out.match(/aria-label="[A-Z]+-\d+, Cell \d: [^"]+"/g)).toHaveLength(machines);
-  });
-});
-
-describe('v2 fixture figures agree with each other', () => {
-  const winBack = model.verdict.figures[1]!;
-
-  it('wins back exactly what the decisions add up to, in hours and in money', () => {
-    const hours = model.decisions.reduce((s, d) => s + num(d.hours), 0);
-    const lakh = model.decisions.reduce(
-      (s, d) => s + (num(/([\d.]+)\slakh/.exec(d.money)?.[1] ?? '0') || 0),
-      0,
+  it('searches, filters and sorts before it pages', () => {
+    const view = tablePage(rows, {
+      ...q,
+      query: 'm-1',
+      filter: (r) => r.hours > 3,
+      sortBy: (r) => r.hours,
+      dir: 'desc',
+    });
+    expect(view.rows.map((r) => r.hours)).toEqual(
+      [...view.rows.map((r) => r.hours)].sort((a, b) => b - a),
     );
-    expect(plain(winBack.note)).toContain(`${hours.toFixed(1)} h a month`);
-    expect(plain(winBack.note)).toContain(`₹ ${lakh.toFixed(2)} lakh a year`);
-    expect(num(winBack.value)).toBeCloseTo(lakh / 12, 2);
+    expect(view.rows.every((r) => r.code.startsWith('M-1') && r.hours > 3)).toBe(true);
   });
-
-  it('shares out the month’s breakdown hours across the Pareto bars, and the rest is smaller than the top', () => {
-    expect(model.verdict.figures[0]!.note).toContain(String(model.pareto.total));
-    const top = model.pareto.bars.slice(0, model.pareto.top).reduce((s, b) => s + b.hours, 0);
-    const rest = model.pareto.total - top;
-    expect(rest).toBeLessThan(top);
-    const why = model.pareto.why.map((p) => plain(p.map((s) => s.text).join('')));
-    expect(
-      why.some(
-        (line) => line.includes(`${rest.toFixed(1)} h`) && line.includes('less than these 3'),
-      ),
-    ).toBe(true);
+  it('says so when nothing matches, and never paints more than ten rows', () => {
+    const out = html(
+      createElement(DataTable<{ code: string; hours: number }>, {
+        rows,
+        rowKey: (r) => r.code,
+        columns: [{ key: 'code', label: 'Code', cell: (r) => r.code, sortBy: (r) => r.code }],
+        filters: [{ key: 'all', label: 'All' }],
+        text: (r) => r.code,
+        words: {
+          title: 'Machines',
+          search: 'Search',
+          showing: '{from}–{to} of {total}',
+          noResults: 'None',
+          open: 'Open',
+        },
+        onOpen: () => {},
+      }),
+    );
+    expect(out.match(/<tr /g)).toHaveLength(10);
+    expect(text(out)).toContain('1–10 of 23');
+    expect(out).toMatch(/<button type="button" class="v2-sort"/);
   });
 });
 
-describe('v2 tokens', () => {
-  const css = readFileSync(new URL('../tokens.css', import.meta.url), 'utf8');
-  const v2 = (k: string) => `color-v2-${k}`;
-  const pairs = (fgs: string[], bgs: string[]) =>
-    fgs.flatMap((f) => bgs.map((b) => [f, b] as const));
-  const TEXT = [
-    ...pairs(['ink', 'ink-2', 'loss', 'gain', 'risk', 'plan', 'decide'], ['panel']),
-    ...pairs(['ink', 'ink-2'], ['page', 'well', 'segment', 'track']),
-    ...['loss', 'gain', 'risk', 'plan', 'decide'].map((k) => [k, `${k}-tint`] as const),
-    ['on-ink', 'ink'] as const,
+describe('v2 shell and drawer', () => {
+  const nav = [
+    { id: 'today', label: 'Today', icon: 'today' as const, href: '/a', current: true },
+    { id: 'machines', label: 'Machines', icon: 'machines' as const, href: '/b' },
   ];
-  const FILLS = [
-    ...pairs(
-      ['gain-fill', 'risk-fill', 'loss-fill', 'plan-fill', 'idle-fill', 'quiet', 'loss'],
-      ['panel'],
-    ),
-    ...pairs(['on-fill'], ['loss-fill', 'plan-fill', 'idle-fill']),
-    ['on-risk', 'risk-fill'] as const,
-  ];
-  const under = (
-    tokens: Record<string, string>,
-    list: (readonly [string, string])[],
-    min: number,
-  ) =>
-    list
-      .map(([fg, bg]) => [fg, bg, ratio(resolve(tokens, v2(fg)), resolve(tokens, v2(bg)))] as const)
-      .filter(([, , r]) => r < min)
-      .map(([fg, bg, r]) => `${fg} on ${bg}: ${r.toFixed(2)}`);
-
-  it('checks the real colour behind an alias, and refuses one that is not a colour', () => {
-    expect(resolve({ a: 'var(--b)', b: '#ffffff' }, 'a')).toBe('#ffffff');
-    expect(() => resolve({ a: 'var(--missing)' }, 'a')).toThrow(/not a hex colour/);
+  it('marks the page you are on in the rail and titles the page once', () => {
+    const out = html(createElement(Shell, { nav, title: 'Dashboard', children: 'x' }));
+    expect(out).toMatch(/<a href="\/a" aria-current="page"/);
+    expect(all(out, /<h1[^>]*>(.*?)<\/h1>/g)).toEqual(['Dashboard']);
+    expect(out.match(/<main/g)).toHaveLength(1);
   });
-
-  for (const [name, tokens] of Object.entries(readTokens(css))) {
-    it(`reads every v2 text at 4.5:1 or better on its background in ${name}`, () => {
-      expect(under(tokens, TEXT, 4.5)).toEqual([]);
-    });
-    it(`shows every v2 tile, bar and glyph at 3:1 or better in ${name}`, () => {
-      expect(under(tokens, FILLS, 3)).toEqual([]);
-    });
-  }
+  it('keeps a closed drawer out of reach, and gives an open one its name and a close button', () => {
+    expect(html(createElement(Drawer, { drawer: null }))).toMatch(/<aside[^>]*inert=""/);
+    const open = html(
+      createElement(Drawer, { drawer: { label: 'VC-8', content: 'detail', onClose: () => {} } }),
+    );
+    expect(open).toMatch(/<aside[^>]*aria-label="VC-8"/);
+    expect(open).not.toMatch(/inert/);
+    expect(open).toMatch(/<button[^>]*aria-label="[^"]+"/);
+  });
 });

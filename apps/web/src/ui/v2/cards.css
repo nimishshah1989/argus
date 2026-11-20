@@ -1,0 +1,250 @@
+/* v2 cards and what sits in them: the card itself, the alignment grid, the verdict, KPI cards, the drawer's detail,
+   load states, the trend chart and its glass tooltip, sparklines. Tokens only. */
+
+.v2-card {
+  min-width: 0;
+  border: 1px solid var(--color-v2-line);
+  border-radius: 14px;
+  background: var(--color-v2-panel);
+  box-shadow: var(--shadow-v2-rest);
+}
+.v2-pad {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-v2-inner);
+  padding: var(--space-v2-pad);
+}
+.v2-flush {
+  overflow: hidden;
+}
+.v2-flush > .v2-card-head {
+  padding: var(--space-v2-pad) var(--space-v2-pad) var(--space-v2-inner);
+}
+.v2-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-v2-inner);
+  min-height: 44px;
+}
+
+/* One grid for cards side by side: one top edge, equal heights, 16 px apart. Stacked on a phone. */
+.v2-grid {
+  display: grid;
+  align-items: stretch;
+  gap: var(--space-v2-gap);
+}
+.v2-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.v2-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.v2-grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.v2-grid-wide {
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+}
+
+.v2-verdict {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px var(--space-v2-inner);
+}
+.v2-verdict > .v2-sub {
+  flex-basis: 100%;
+}
+
+/* A KPI card: the value in the number face at 24 px, the delta chip, the meaning; one line more on hover or focus. */
+.v2-kpi {
+  padding: 14px var(--space-v2-pad);
+  transition:
+    box-shadow var(--motion-v2-fast) var(--ease-v2),
+    transform var(--motion-v2-fast) var(--ease-v2);
+}
+.v2-kpi:hover,
+.v2-kpi:focus-visible {
+  box-shadow: var(--shadow-v2-raised);
+}
+.v2-kpi-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-v2-ink-2);
+  font-size: var(--text-v2-secondary);
+}
+.v2-kpi-icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--color-v2-track);
+  color: var(--color-v2-ink-2);
+}
+.v2-kpi-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+}
+.v2-kpi-value {
+  margin-bottom: 4px;
+  font-family: var(--font-v2-num);
+  font-size: var(--text-v2-kpi);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+.v2-kpi-meaning,
+.v2-kpi-more {
+  margin: 6px 0 0;
+  color: var(--color-v2-ink-3);
+  font-size: var(--text-v2-label);
+}
+.v2-kpi-more {
+  max-height: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-v2-ink-2);
+  opacity: 0;
+  transition:
+    max-height var(--motion-v2-ui) var(--ease-v2),
+    opacity var(--motion-v2-ui) var(--ease-v2),
+    margin var(--motion-v2-ui) var(--ease-v2);
+}
+.v2-kpi:hover .v2-kpi-more,
+.v2-kpi:focus-within .v2-kpi-more {
+  max-height: 60px;
+  margin-top: 8px;
+  opacity: 1;
+}
+.v2-spark {
+  flex: none;
+  fill: none;
+  stroke-linecap: round;
+  stroke-width: 1.6;
+}
+.v2-spark-gain {
+  stroke: var(--color-v2-gain-fill);
+}
+.v2-spark-loss {
+  stroke: var(--color-v2-loss-fill);
+}
+.v2-spark-neutral {
+  stroke: var(--color-v2-mark);
+}
+
+/* The trend chart; its tooltip floats, so it is glass. */
+.v2-trend {
+  flex: 1;
+  width: 100%;
+  min-height: 220px;
+}
+/* ECharts builds the tooltip box before it first shows it; until then it has no style of its own, and stays hidden. */
+.v2-glass-tip:not([style]) {
+  display: none;
+}
+.v2-glass-tip {
+  padding: 8px 10px !important;
+  border: 1px solid var(--color-v2-line) !important;
+  border-radius: 10px !important;
+  background: var(--color-v2-glass) !important;
+  box-shadow: var(--shadow-v2-raised) !important;
+  color: var(--color-v2-ink) !important;
+  font-family: var(--font-v2-num) !important;
+  font-size: var(--text-v2-label) !important;
+  backdrop-filter: blur(10px);
+}
+
+/* The drawer's detail. */
+.v2-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-v2-inner);
+}
+.v2-drawer-title {
+  margin: 4px 0 0;
+  font-size: var(--text-v2-title);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.v2-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+.v2-detail-label {
+  margin: 0;
+  color: var(--color-v2-ink-3);
+  font-size: var(--text-v2-label);
+  font-weight: 600;
+}
+.v2-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+.v2-source {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  color: var(--color-v2-ink-3);
+  font-size: var(--text-v2-label);
+}
+
+/* Loading, error, empty. */
+.v2-states {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-v2-inner);
+}
+.v2-state-box {
+  align-items: center;
+  padding: 32px var(--space-v2-pad);
+  border: 1px solid var(--color-v2-line);
+  border-radius: 14px;
+  background: var(--color-v2-panel);
+  text-align: center;
+}
+.v2-state-box > p {
+  margin: 0;
+}
+.v2-skeleton {
+  display: block;
+  height: 120px;
+  border-radius: 14px;
+  background: var(--color-v2-track);
+}
+
+@media (max-width: 1180px) {
+  .v2-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 960px) {
+  .v2-grid-2,
+  .v2-grid-3,
+  .v2-grid-wide {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 560px) {
+  .v2-grid-4 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* In a narrow card the sparkline gives way first, so the figure and its delta always fit. */
+.v2-kpi-row > .v2-spark {
+  width: 40%;
+  max-width: 88px;
+  min-width: 40px;
+}

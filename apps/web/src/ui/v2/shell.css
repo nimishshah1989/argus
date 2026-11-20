@@ -1,0 +1,256 @@
+/* The v2 app frame (shell.tsx, drawer.tsx): rail, glass header, full-width page, the drawer that reflows it. */
+
+.v2-app {
+  display: grid;
+  grid-template-columns: var(--size-v2-rail) minmax(0, 1fr) 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  transition: grid-template-columns var(--motion-v2-ui) var(--ease-v2);
+}
+.v2-app[data-drawer='true'] {
+  grid-template-columns: var(--size-v2-rail) minmax(0, 1fr) var(--size-v2-drawer);
+}
+
+/* The rail: 60 px of icons that opens over the page to 212 px with the section names. */
+.v2-rail {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: var(--size-v2-rail);
+  height: 100vh;
+  height: 100dvh;
+  padding: 12px 8px;
+  overflow: hidden;
+  border-right: 1px solid var(--color-v2-line);
+  background: var(--color-v2-subtle);
+  transition:
+    width var(--motion-v2-ui) var(--ease-v2),
+    box-shadow var(--motion-v2-ui) var(--ease-v2);
+}
+.v2-rail:hover,
+.v2-rail:focus-within {
+  width: var(--size-v2-rail-open);
+  box-shadow: var(--shadow-v2-raised);
+}
+.v2-rail > a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  color: var(--color-v2-ink-2);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.v2-rail > a:hover {
+  color: var(--color-v2-ink);
+}
+.v2-rail > a[aria-current='page'] {
+  background: var(--color-v2-panel);
+  color: var(--color-v2-ink);
+  font-weight: 600;
+  box-shadow: var(--shadow-v2-rest);
+}
+.v2-rail-label {
+  opacity: 0;
+  transition: opacity var(--motion-v2-fast) var(--ease-v2);
+}
+.v2-rail:hover .v2-rail-label,
+.v2-rail:focus-within .v2-rail-label {
+  opacity: 1;
+}
+
+.v2-main {
+  grid-column: 2;
+  min-width: 0;
+}
+/* Each part keeps its own column, so the page stays in the middle one when the rail leaves the grid on a phone. */
+.v2-rail {
+  grid-column: 1;
+}
+.v2-drawer {
+  grid-column: 3;
+}
+/* The header floats over the page as it scrolls, so it is glass. It holds the title, search and alerts only. */
+.v2-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-v2-gap);
+  min-height: 60px;
+  padding: 8px 28px;
+  border-bottom: 1px solid var(--color-v2-line);
+  background: var(--color-v2-glass);
+  backdrop-filter: blur(16px) saturate(1.4);
+}
+.v2-title {
+  margin: 0;
+  font-size: var(--text-v2-title);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.v2-menu {
+  display: none;
+}
+.v2-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 300px;
+  min-height: 40px;
+  margin-left: auto;
+  padding: 0 10px;
+  border: 1px solid var(--color-v2-line);
+  border-radius: 10px;
+  background: var(--color-v2-panel);
+  color: var(--color-v2-ink-3);
+  box-shadow: var(--shadow-v2-rest);
+}
+.v2-search > input,
+.v2-table-search > input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-v2-ink);
+  font: inherit;
+  font-size: var(--text-v2-secondary);
+}
+.v2-search:focus-within,
+.v2-table-search:focus-within {
+  outline: 2px solid var(--color-v2-focus);
+  outline-offset: 1px;
+}
+.v2-search kbd {
+  padding: 0 5px;
+  border: 1px solid var(--color-v2-line);
+  border-radius: 5px;
+  font-family: var(--font-v2-mono);
+  font-size: var(--text-v2-label);
+  white-space: nowrap;
+}
+.v2-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--color-v2-loss-fill);
+  color: var(--color-v2-on-fill);
+  font-family: var(--font-v2-num);
+  font-size: var(--text-v2-label);
+  line-height: 16px;
+}
+.v2-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-v2-gap);
+  padding: 20px 28px 40px;
+}
+
+/* The drawer: an overlay-level surface that floats, so glass; its content slides in from the right. */
+.v2-drawer {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden auto;
+  border-left: 1px solid var(--color-v2-line);
+  background: var(--color-v2-glass);
+  box-shadow: var(--shadow-v2-overlay);
+  backdrop-filter: blur(20px);
+}
+.v2-app[data-drawer='false'] > .v2-drawer {
+  border: 0;
+  box-shadow: none;
+}
+.v2-drawer-body {
+  position: relative;
+  width: var(--size-v2-drawer);
+  padding: 20px;
+  animation: v2-slide-in var(--motion-v2-ui) var(--ease-v2);
+}
+.v2-drawer-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+/* A phone: the rail is a menu, the drawer covers the page, the header keeps a 16 px gutter. */
+@media (max-width: 760px) {
+  .v2-app,
+  .v2-app[data-drawer='true'] {
+    grid-template-columns: 0 minmax(0, 1fr) 0;
+  }
+  .v2-rail {
+    position: fixed;
+    left: 0;
+    width: var(--size-v2-rail-open);
+    transform: translateX(-100%);
+    transition: transform var(--motion-v2-ui) var(--ease-v2);
+  }
+  .v2-rail .v2-rail-label {
+    opacity: 1;
+  }
+  .v2-app[data-menu='true'] .v2-rail {
+    transform: none;
+    box-shadow: var(--shadow-v2-overlay);
+  }
+  .v2-menu {
+    display: inline-grid;
+  }
+  .v2-header {
+    gap: 8px;
+    padding: 8px 16px;
+  }
+  .v2-search {
+    width: auto;
+    min-width: 0;
+    flex: 1;
+  }
+  .v2-search kbd {
+    display: none;
+  }
+  .v2-content {
+    padding: 16px 16px 40px;
+  }
+  .v2-app[data-drawer='true'] > .v2-drawer {
+    position: fixed;
+    inset: 0;
+    z-index: 4;
+  }
+  .v2-drawer-body {
+    width: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v2-app,
+  .v2-rail,
+  .v2-rail-label,
+  .v2-kpi,
+  .v2-kpi-more,
+  .v2-why,
+  .v2-chev,
+  .v2-btn,
+  .v2-icon-btn {
+    transition: none;
+  }
+  .v2-drawer-body,
+  .v2-open {
+    animation: none;
+  }
+  .v2-btn:active,
+  .v2-icon-btn:active,
+  .v2-chip:active {
+    transform: none;
+  }
+}

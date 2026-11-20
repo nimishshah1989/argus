@@ -1,4 +1,6 @@
-import { ChevronDown } from '../icon.js';
+/* eslint-disable i18next/no-literal-string -- icon names and typed unions only; every visible word comes in as a prop or t() */
+import { Icon } from './icons.js';
+import { MOTION, useTick } from './motion.js';
 import type { Point } from './points.js';
 import { useWhy, WhyPanel } from './why-toggle.js';
 
@@ -35,6 +37,7 @@ export function place([lo, hi]: [number, number]) {
 /** Actual against target and last month, with the good zone; the whole row opens its Why. */
 export function BulletBar({ b }: { b: BulletData }) {
   const why = useWhy();
+  const shown = useTick(b.shown);
   const at = place(b.scale);
   const zone = b.higherIsBetter
     ? { left: at(b.target), right: 0 }
@@ -51,16 +54,20 @@ export function BulletBar({ b }: { b: BulletData }) {
         onClick={why.toggle}
       >
         <span>
-          <span className="v2-note v2-block">{b.label}</span>
-          <b className="v2-num">
-            {b.shown}
+          <span className="v2-sub v2-block">{b.label}</span>
+          <span className="v2-num v2-block" data-flash={shown.flash}>
+            {shown.text}
             {b.unit}
-          </b>
+          </span>
         </span>
         <span className="v2-stack v2-gap-6">
           <span role="img" aria-label={b.aria} className="v2-bullet-track">
             <span className="v2-bullet-zone" style={zone} />
-            <span className="v2-bullet-bar" data-clamp={clamp} style={{ width: at(b.value) }} />
+            <span
+              className={`v2-bullet-bar ${MOTION.growX}`}
+              data-clamp={clamp}
+              style={{ width: at(b.value) }}
+            />
             <span className="v2-bullet-target" style={{ left: at(b.target) }} />
             <span className="v2-bullet-last" style={{ left: `calc(${at(b.lastMonth)} - 4px)` }} />
           </span>
@@ -68,9 +75,33 @@ export function BulletBar({ b }: { b: BulletData }) {
             {b.verdict}
           </span>
         </span>
-        <ChevronDown className="v2-chev" size={14} strokeWidth={2.5} aria-hidden="true" />
+        <span className="v2-chev">
+          <Icon name="chevronDown" size={14} />
+        </span>
       </button>
       <WhyPanel why={why} points={b.why} well />
+    </div>
+  );
+}
+
+export type BulletLegendWords = { actual: string; target: string; last: string; zone: string };
+
+/** The key under a set of bullet bars: this month, target, last month, good zone. */
+export function BulletLegend({ words }: { words: BulletLegendWords }) {
+  const keys = [
+    ['v2-key-actual', words.actual],
+    ['v2-key-target', words.target],
+    ['v2-key-last', words.last],
+    ['v2-key-zone', words.zone],
+  ];
+  return (
+    <div className="v2-legend v2-legend-bullet">
+      {keys.map(([mark, word]) => (
+        <span key={mark} className="v2-row v2-gap-6">
+          <span className={mark} aria-hidden="true" />
+          {word}
+        </span>
+      ))}
     </div>
   );
 }

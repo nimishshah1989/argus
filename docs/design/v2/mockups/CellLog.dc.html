@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Argus — Cell change log</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&amp;family=JetBrains+Mono:wght@600&amp;display=swap">
+<style>
+body{margin:0;background:#F6F6F4}
+.num{font-variant-numeric:tabular-nums}
+.code{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;font-weight:600;padding:2px 7px;border-radius:6px;background:#F1F1EE}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 14px;border-radius:10px;border:1px solid #DCDDD8;background:#fff;font:inherit;font-size:15px;font-weight:600;color:#1F2937;cursor:pointer}
+.btn:hover{background:#F3F3F0}.btn-primary{background:#111827;color:#fff;border-color:#111827}.btn-done{background:#E8F5EE;color:#11673F;border-color:#BFE3CF}
+input[type=date]{font:inherit;font-size:15px;min-height:40px;padding:0 10px;border-radius:10px;border:1px solid #DCDDD8}
+tbody tr:hover{background:#FAFAF8}
+button:focus-visible,input:focus-visible{outline:2px solid #2563EB;outline-offset:2px}
+</style>
+</helmet>
+<div style="font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.5;color:#111827;max-width:1200px;margin:0 auto;padding:32px 40px 56px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px;">
+  <header style="display:flex;flex-wrap:wrap;gap:20px;justify-content:space-between;align-items:flex-start;">
+    <div style="display:flex;flex-direction:column;gap:10px;max-width:720px;">
+      <span style="font-size:13px;color:#4B5563;">Cell change log · machines that moved between cells</span>
+      <h1 style="margin:0;font-size:28px;line-height:1.25;font-weight:700;letter-spacing:-.02em;">14 moves this year. <span style="color:#B45309;">{{flagged}}</span> look wrong and shift hours between cells.</h1>
+      <p style="margin:0;font-size:13px;color:#4B5563;">Hours count in a cell only for the days the machine was there. A wrong date moves hours to the wrong cell.</p>
+    </div>
+    <button type="button" class="btn">Export to Excel</button>
+  </header>
+
+  <div style="overflow-x:auto;background:#fff;border:1px solid #E5E5E0;border-radius:18px;">
+    <table style="width:100%;border-collapse:collapse;min-width:860px;">
+      <thead><tr style="text-align:left;font-size:13px;color:#4B5563;"><th scope="col" style="padding:12px 20px;font-weight:600;">Machine</th><th scope="col" style="padding:12px;font-weight:600;">Move</th><th scope="col" style="padding:12px;font-weight:600;">Date</th><th scope="col" style="padding:12px;font-weight:600;">Check</th><th scope="col" style="padding:12px 20px 12px 12px;font-weight:600;text-align:right;">Head only</th></tr></thead>
+      <tbody>
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+          <tr style="border-top:1px solid #EFEFEB;">
+            <td style="padding:12px 20px;"><span class="code">{{r.code}}</span></td>
+            <td style="padding:12px;"><span style="display:inline-flex;align-items:center;gap:8px;"><span style="font-weight:600;">{{r.from}}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4B5563" stroke-width="2" aria-label="to"><path d="M5 12h14M13 6l6 6-6 6"></path></svg><span style="font-weight:600;">{{r.to}}</span></span></td>
+            <td class="num" style="padding:12px;">
+              <sc-if value="{{r.editing}}" hint-placeholder-val="{{false}}"><input type="date" value="{{r.iso}}" aria-label="Correct date"></sc-if>
+              <sc-if value="{{r.notEditing}}" hint-placeholder-val="{{true}}"><span>{{r.date}}</span></sc-if>
+            </td>
+            <td style="padding:12px;"><span style="{{r.chkStyle}}">{{r.chk}}</span><div style="font-size:13px;color:#4B5563;">{{r.chkWhy}}</div></td>
+            <td style="padding:12px 20px 12px 12px;text-align:right;"><button type="button" class="{{r.btnClass}}" onClick="{{r.act}}">{{r.btnText}}</button></td>
+          </tr>
+        </sc-for>
+      </tbody>
+    </table>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1400}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { edit: null, fixed: {} }; }
+  renderVals() {
+    const S = this.state;
+    const data = [['r1', 'VC-31', 'Cell 4', 'Cell 5', '2026-10-03', 'warn', '2 breakdowns logged in Cell 4 after this date'], ['r2', 'TC-22', 'Cell 1', 'Cell 4', '2026-09-14', 'ok', ''], ['r3', 'HMC-4', 'No cell', 'Cell 3', '2026-08-30', 'warn', 'Date is before the machine was bought'], ['r4', 'VC-54', 'No cell', 'Cell 7', '2026-10-06', 'ok', 'New machine'], ['r5', 'TC-40', 'Cell 8', 'Cell 2', '2026-07-21', 'ok', ''], ['r6', 'GRD-5', 'Cell 3', 'Cell 9', '2026-06-02', 'ok', ''], ['r7', 'VC-11', 'Cell 5', 'Cell 2', '2026-05-18', 'ok', ''], ['r8', 'TC-3', 'Cell 4', 'Cell 1', '2026-04-09', 'ok', '']];
+    const fmt = (iso) => { const [y, m, d] = iso.split('-'); return `${d}-${m}-${y}`; };
+    const rows = data.map(([id, code, from, to, iso, chk, why]) => {
+      const editing = S.edit === id, fixed = !!S.fixed[id], warn = chk === 'warn' && !fixed;
+      return {
+        code, from, to, iso, date: fmt(iso), editing, notEditing: !editing,
+        chk: warn ? 'Looks wrong' : fixed ? 'Corrected' : 'OK', chkWhy: warn ? why : fixed ? 'Hours re-split by cell' : why,
+        chkStyle: `font-size:13px;font-weight:700;padding:2px 10px;border-radius:999px;background:${warn ? '#FEF3C7' : '#E8F5EE'};color:${warn ? '#92400E' : '#11673F'};`,
+        btnClass: editing ? 'btn btn-primary' : fixed ? 'btn btn-done' : 'btn', btnText: editing ? 'Save date' : fixed ? '✓ Saved' : 'Correct date',
+        act: () => editing ? this.setState({ edit: null, fixed: { ...S.fixed, [id]: true } }) : this.setState({ edit: id }),
+      };
+    });
+    const flagged = data.filter(([id, , , , , c]) => c === 'warn' && !S.fixed[id]).length;
+    return { rows, flagged: `${flagged} dates` };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Argus — OEM Analytics</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&amp;family=JetBrains+Mono:wght@600&amp;display=swap">
+<style>
+body{margin:0;background:#F6F6F4}
+.num{font-variant-numeric:tabular-nums}
+.code{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;font-weight:600;padding:2px 7px;border-radius:6px;background:#F1F1EE}
+.rowbtn{all:unset;box-sizing:border-box;display:grid;grid-template-columns:180px minmax(0,1fr) 120px 110px 20px;gap:16px;align-items:center;width:100%;padding:14px 20px;cursor:pointer}
+.rowbtn:hover{background:#FAFAF8}
+.chev{transition:transform .2s}.rowbtn[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.why{display:inline-flex;align-items:center;min-height:32px;padding:0 12px;border-radius:999px;border:1px solid #DCDDD8;background:#fff;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.why:hover,.why[aria-expanded="true"]{background:#111827;color:#fff;border-color:#111827}
+.open{animation:open .22s cubic-bezier(.2,.8,.2,1)}@keyframes open{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+button:focus-visible,.rowbtn:focus-visible{outline:2px solid #2563EB;outline-offset:-2px}
+@media (prefers-reduced-motion:reduce){.open{animation:none}.chev{transition:none}}
+</style>
+</helmet>
+<div style="font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.5;color:#111827;max-width:1360px;margin:0 auto;padding:32px 40px 56px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px;">
+  <header style="display:flex;flex-direction:column;gap:10px;max-width:860px;">
+    <span style="font-size:13px;color:#4B5563;">OEM Analytics · which makers and controls cost you most</span>
+    <h1 style="margin:0;font-size:28px;line-height:1.25;font-weight:700;letter-spacing:-.02em;">{{head}}</h1>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <button type="button" class="why" aria-expanded="{{verdict.open}}" onClick="{{verdict.toggle}}">Why?</button>
+      <div role="group" aria-label="Group by" style="display:flex;gap:2px;background:#EAEAE6;border-radius:11px;padding:3px;"><sc-for list="{{modes}}" as="m" hint-placeholder-count="2"><button type="button" aria-pressed="{{m.on}}" onClick="{{m.pick}}" style="{{m.style}}">{{m.label}}</button></sc-for></div>
+    </div>
+    <sc-if value="{{verdict.isOpen}}" hint-placeholder-val="{{false}}"><ul class="open" style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;"><sc-for list="{{verdict.points}}" as="pt" hint-placeholder-count="3"><li><sc-for list="{{pt}}" as="sg" hint-placeholder-count="2"><span style="{{sg.s}}">{{sg.t}}</span></sc-for></li></sc-for></ul></sc-if>
+  </header>
+
+  <section aria-label="Makers" style="background:#fff;border:1px solid #E5E5E0;border-radius:18px;overflow:hidden;">
+    <div style="display:grid;grid-template-columns:180px minmax(0,1fr) 120px 110px 20px;gap:16px;padding:12px 20px;font-size:13px;color:#4B5563;font-weight:600;border-bottom:1px solid #EFEFEB;">
+      <span>{{colName}}</span><span>Breakdown hours per machine (plant average |)</span><span>Machines</span><span>Repair time</span><span></span>
+    </div>
+    <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+      <div style="border-bottom:1px solid #EFEFEB;">
+        <button type="button" class="rowbtn" aria-expanded="{{r.open}}" onClick="{{r.toggle}}">
+          <b>{{r.name}}</b>
+          <span style="display:flex;align-items:center;gap:10px;"><span style="position:relative;flex:1;height:12px;border-radius:6px;background:#F1F1EE;display:block;"><span style="{{r.bar}}"></span><span style="{{r.avg}}"></span></span><b class="num" style="{{r.vStyle}}">{{r.v}}</b></span>
+          <span class="num">{{r.n}}</span>
+          <span class="num" style="{{r.mttrStyle}}">{{r.mttr}}</span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4B5563" stroke-width="2.5" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+        </button>
+        <sc-if value="{{r.isOpen}}" hint-placeholder-val="{{false}}">
+          <div class="open" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;padding:0 20px 16px 216px;">
+            <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;"><sc-for list="{{r.points}}" as="pt" hint-placeholder-count="2"><li><sc-for list="{{pt}}" as="sg" hint-placeholder-count="2"><span style="{{sg.s}}">{{sg.t}}</span></sc-for></li></sc-for></ul>
+            <div style="display:flex;flex-direction:column;gap:6px;"><span style="font-size:13px;color:#4B5563;">Worst machines</span><div style="display:flex;gap:6px;flex-wrap:wrap;"><sc-for list="{{r.worst}}" as="w" hint-placeholder-count="3"><a href="#" class="code" style="text-decoration:none;color:#1F2937;">{{w}}</a></sc-for></div></div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-for>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { mode: 'control', open: {} }; }
+  renderVals() {
+    const S = this.state;
+    const RED = 'font-weight:700;color:#B91C1C;', GRN = 'font-weight:700;color:#11673F;', AMB = 'font-weight:700;color:#B45309;', BLD = 'font-weight:700;';
+    const rich = (s) => s.split(/(\*\*[^*]+\*\*|!![^!]+!!|\+\+[^+]+\+\+|~~[^~]+~~)/).filter(Boolean).map((t) => t.startsWith('**') ? { t: t.slice(2, -2), s: BLD } : t.startsWith('!!') ? { t: t.slice(2, -2), s: RED } : t.startsWith('++') ? { t: t.slice(2, -2), s: GRN } : t.startsWith('~~') ? { t: t.slice(2, -2), s: AMB } : { t, s: '' });
+    const tog = (id) => ({ open: S.open[id] ? 'true' : 'false', isOpen: !!S.open[id], toggle: () => this.setState({ open: { ...S.open, [id]: !S.open[id] } }) });
+    const D = {
+      control: { col: 'Control', head: 'Mitsubishi-controlled machines lose 1.7× more per machine than Fanuc ones.', rows: [['Mitsubishi', 41.2, 45, 4.6, ['M80 series: !!48 h!! per machine', '~~Parameter loss~~ after power cuts, **19 times**'], ['TC-10', 'TC-13', 'TC-31']], ['Fanuc', 24.1, 76, 3.4, ['Oi-TF: **22 h** per machine', '++Fastest repairs++ in the plant'], ['VC-8', 'VC-9']], ['Siemens', 18.0, 1, 2.9, ['Only **1 machine**: too few to judge'], ['VC-40']], ['Other (PC based)', 52.0, 1, 6.1, ['Only **1 machine**, waterjet'], ['WJ-01']], ['Not recorded', 30.5, 2, 4.0, ['**2 machines** have no control recorded', 'Add it in **Machines** to place them'], ['VC-58', 'TC-40']]] },
+      maker: { col: 'Maker', head: 'Feeler machines lose the most per machine; Cosmos-built ones the least.', rows: [['Feeler Taiwan', 44.0, 17, 4.9, ['Vertical machining centres from 2016–2018', '~~Axis encoder~~ faults on **9 of 17**'], ['VC-8', 'VC-9', 'VC-22']], ['LMW', 36.2, 17, 4.2, ['Turning centres; ~~turret clamp~~ wear'], ['TC-10', 'TC-31']], ['Cosmos', 19.4, 53, 3.3, ['Own-built, **53 machines**', '++Spares on site++, fastest repairs'], ['VC-54']], ['Hi-Life', 28.0, 6, 3.8, ['Grinding; coolant pressure'], ['GRD-2']], ['Star Micronics', 12.0, 2, 2.5, ['Sliding head lathes, ++few faults++'], ['S-1']]] },
+    }[S.mode];
+    const avg = 29.8, max = Math.max(...D.rows.map((r) => r[1]));
+    const rows = D.rows.map(([name, v, n, mttr, pts, worst], i) => ({
+      name, v: `${v.toFixed(1)} h`, n: `${n} machines`, mttr: `${mttr.toFixed(1)} h`, points: pts.map(rich), worst, ...tog(`${S.mode}${i}`),
+      bar: `position:absolute;left:0;top:0;bottom:0;width:${(v / max * 100).toFixed(1)}%;border-radius:6px;background:${v > avg * 1.2 ? '#B91C1C' : v < avg * 0.8 ? '#11673F' : '#8A857C'};`,
+      avg: `position:absolute;top:-3px;bottom:-3px;left:${(avg / max * 100).toFixed(1)}%;width:2px;background:#111827;`,
+      vStyle: `width:64px;text-align:right;color:${v > avg * 1.2 ? '#B91C1C' : v < avg * 0.8 ? '#11673F' : '#111827'};`, mttrStyle: `font-weight:600;color:${mttr > 4.5 ? '#B91C1C' : '#111827'};`,
+    }));
+    const seg = (on) => `border:0;font:inherit;font-size:13px;font-weight:600;min-height:36px;padding:0 14px;border-radius:8px;cursor:pointer;${on ? 'background:#fff;color:#111827;box-shadow:0 1px 3px rgba(17,24,39,.14);' : 'background:transparent;color:#4B5563;'}`;
+    const modes = [['control', 'By control'], ['maker', 'By maker']].map(([k, label]) => ({ label, on: S.mode === k ? 'true' : 'false', pick: () => this.setState({ mode: k, open: {} }), style: seg(S.mode === k) }));
+    const verdict = { ...tog('v'), points: ['Hours per machine is **fair** across big and small groups', 'Plant average: **29.8 h** per machine this year', 'Groups of **1–2 machines** are shown but are too small to judge'].map(rich) };
+    return { head: D.head, colName: D.col, rows, modes, verdict };
+  }
+}
+</script>
+</body>
+</html>

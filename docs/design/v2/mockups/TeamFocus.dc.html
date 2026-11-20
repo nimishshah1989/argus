@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Argus — Team Focus</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&amp;family=JetBrains+Mono:wght@600&amp;display=swap">
+<style>
+body{margin:0;background:#F6F6F4}
+.num{font-variant-numeric:tabular-nums}
+.code{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;font-weight:600;padding:2px 7px;border-radius:6px;background:#F1F1EE}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 14px;border-radius:10px;border:1px solid #DCDDD8;background:#fff;font:inherit;font-size:15px;font-weight:600;color:#1F2937;cursor:pointer}
+.btn:hover{background:#F3F3F0}.btn-primary{background:#111827;color:#fff;border-color:#111827}.btn-primary:hover{background:#000}
+.why{display:inline-flex;align-items:center;min-height:32px;padding:0 12px;border-radius:999px;border:1px solid #DCDDD8;background:#fff;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.why:hover,.why[aria-expanded="true"]{background:#111827;color:#fff;border-color:#111827}
+.open{animation:open .22s cubic-bezier(.2,.8,.2,1)}@keyframes open{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+select{font:inherit;font-size:15px;min-height:40px;padding:0 10px;border-radius:10px;border:1px solid #DCDDD8;background:#fff;color:#111827}
+button:focus-visible,select:focus-visible{outline:2px solid #2563EB;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.open{animation:none}}
+</style>
+</helmet>
+<div style="font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.5;color:#111827;max-width:1360px;margin:0 auto;padding:32px 40px 56px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px;">
+
+  <header style="display:flex;flex-wrap:wrap;gap:24px;justify-content:space-between;align-items:flex-start;">
+    <div style="display:flex;flex-direction:column;gap:10px;max-width:760px;">
+      <span style="font-size:13px;color:#4B5563;">Team Focus · November 2026 · the planned work for the month</span>
+      <h1 style="margin:0;font-size:28px;line-height:1.25;font-weight:700;letter-spacing:-.02em;">31 actions put <span style="color:#B91C1C;">₹ 54.85 lakh a year</span> at stake. Start with these 6.</h1>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" class="btn">Copy briefing for WhatsApp</button><button type="button" class="btn">Download Excel</button></div>
+    </div>
+    <div style="min-width:320px;display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;justify-content:space-between;font-size:13px;color:#4B5563;"><span>Progress this month</span><b class="num" style="color:#111827;">{{progress.text}}</b></div>
+      <div role="img" aria-label="{{progress.aria}}" style="display:flex;height:14px;border-radius:7px;overflow:hidden;background:#EAEAE6;">
+        <span style="{{progress.done}}"></span><span style="{{progress.doing}}"></span>
+      </div>
+      <div style="display:flex;gap:16px;font-size:13px;color:#4B5563;"><span><b style="color:#11673F;">■</b> Done {{progress.nDone}}</span><span><b style="color:#2563EB;">■</b> In progress {{progress.nDoing}}</span><span>Not started {{progress.nTodo}}</span></div>
+    </div>
+  </header>
+
+  <section aria-labelledby="h-start" style="display:flex;flex-direction:column;gap:12px;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;">
+      <h2 id="h-start" style="margin:0;font-size:15px;font-weight:700;">Start with these 6 · the most valuable of each kind</h2>
+      <span style="font-size:13px;color:#4B5563;">Set an owner and a status. A note when done.</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:14px;">
+      <sc-for list="{{actions}}" as="a" hint-placeholder-count="6">
+        <article style="background:#fff;border:1px solid #E5E5E0;border-radius:18px;padding:18px 20px;display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><span style="{{a.kindStyle}}">{{a.kind}}</span><sc-for list="{{a.codes}}" as="c" hint-placeholder-count="2"><span class="code">{{c}}</span></sc-for></div>
+            <div class="num" style="text-align:right;"><b>{{a.hours}}</b><div style="font-size:13px;color:#4B5563;">{{a.money}}</div></div>
+          </div>
+          <h3 style="margin:0;font-size:15px;font-weight:700;">{{a.title}}</h3>
+          <div><button type="button" class="why" aria-expanded="{{a.open}}" onClick="{{a.toggle}}">Why and what to do</button></div>
+          <sc-if value="{{a.isOpen}}" hint-placeholder-val="{{false}}">
+            <ul class="open" style="margin:0;padding:12px 16px 12px 32px;background:#FAFAF8;border-radius:12px;display:flex;flex-direction:column;gap:4px;"><sc-for list="{{a.points}}" as="pt" hint-placeholder-count="3"><li><sc-for list="{{pt}}" as="sg" hint-placeholder-count="2"><span style="{{sg.s}}">{{sg.t}}</span></sc-for></li></sc-for></ul>
+          </sc-if>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding-top:6px;border-top:1px solid #EFEFEB;">
+            <label style="display:flex;gap:6px;align-items:center;font-size:13px;color:#4B5563;">Owner <select><option>Not assigned</option><option>Arjun V</option><option>Neel S</option><option>Ravi K</option></select></label>
+            <div role="group" aria-label="Status" style="display:flex;gap:2px;background:#EAEAE6;border-radius:10px;padding:3px;">
+              <sc-for list="{{a.status}}" as="s" hint-placeholder-count="3"><button type="button" aria-pressed="{{s.on}}" onClick="{{s.pick}}" style="{{s.style}}">{{s.label}}</button></sc-for>
+            </div>
+          </div>
+        </article>
+      </sc-for>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-rest" style="display:flex;flex-direction:column;gap:12px;">
+    <h2 id="h-rest" style="margin:0;font-size:15px;font-weight:700;">The other 25, by kind</h2>
+    <div style="background:#fff;border:1px solid #E5E5E0;border-radius:18px;padding:8px 20px;">
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+        <div style="display:grid;grid-template-columns:200px minmax(0,1fr) 140px;gap:16px;align-items:center;padding:12px 0;border-bottom:1px solid #EFEFEB;">
+          <span style="{{g.kindStyle}}">{{g.kind}}</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;"><sc-for list="{{g.codes}}" as="c" hint-placeholder-count="5"><span class="code">{{c}}</span></sc-for></div>
+          <span class="num" style="text-align:right;"><b>{{g.n}}</b> <span style="font-size:13px;color:#4B5563;">· {{g.hours}}</span></span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2000}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { open: {}, st: {} }; }
+  renderVals() {
+    const S = this.state;
+    const RED = 'font-weight:700;color:#B91C1C;', GRN = 'font-weight:700;color:#11673F;', AMB = 'font-weight:700;color:#B45309;', BLD = 'font-weight:700;';
+    const rich = (s) => s.split(/(\*\*[^*]+\*\*|!![^!]+!!|\+\+[^+]+\+\+|~~[^~]+~~)/).filter(Boolean).map((t) => t.startsWith('**') ? { t: t.slice(2, -2), s: BLD } : t.startsWith('!!') ? { t: t.slice(2, -2), s: RED } : t.startsWith('++') ? { t: t.slice(2, -2), s: GRN } : t.startsWith('~~') ? { t: t.slice(2, -2), s: AMB } : { t, s: '' });
+    const pill = (c, bg) => `font-size:13px;font-weight:700;padding:2px 10px;border-radius:999px;background:${bg};color:${c};justify-self:start;`;
+    const K = { fix: ['Fix for good', '#991B1B', '#FEE2E2'], over: ['Overhaul or replace', '#6B21A8', '#F3E8FF'], before: ['Before next month', '#92400E', '#FEF3C7'], stock: ['Stock spares', '#1E40AF', '#DBEAFE'], skill: ['Teach the fix', '#11673F', '#E8F5EE'], pm: ['Change the PM', '#374151', '#F1F1EE'] };
+    const raw = [
+      ['a1', 'fix', ['VC-8', 'VC-9'], 'Axis motor and encoder: one of the biggest losses', '48.1 h', '₹ 10.38 lakh a year', ['!!478 h!! in **98 breakdowns** on 44 machines', 'Agree **one standard fix** and add a check to the PM', 'Record the **alarm number** every time']],
+      ['a2', 'over', ['TMC-2'], 'Decide on overhaul or replacement', '18.8 h', '₹ 4.07 lakh a year', ['Health **4.1 of 10**', 'Lost !!308 h!! against **119 h** expected', 'Get a **condition report** and an overhaul quote']],
+      ['a3', 'before', ['WJ-01'], 'Inspect before December', '5.3 h', '₹ 1.14 lakh a year', ['~~Coolant leaks~~ **20 times**, rising', 'Check the **pump seal** first; it was changed on 13 Oct']],
+      ['a4', 'stock', ['TC-10', 'TC-31'], 'Keep one turret clamp kit in stock', '9.6 h', '₹ 2.07 lakh a year', ['**5 repairs** waited for this part', 'Average wait !!1.9 h!! each']],
+      ['a5', 'skill', ['VC-14'], 'Teach the VC-14 axis fix to the night shift', '6.0 h', '₹ 1.30 lakh a year', ['VC-14 has had ++0 breakdowns in 90 days++ since the fix', 'Night shift repairs take **1.6×** day shift']],
+      ['a6', 'pm', ['HMC-2'], 'Add an ATC check to the HMC PM', '4.2 h', '₹ 0.91 lakh a year', ['ATC caused **3 of 6** breakdowns on HMC-2', 'A 10-minute check at PM catches the wear']],
+    ];
+    const stOf = (id) => S.st[id] || 'todo';
+    const seg = (on, c) => `border:0;font:inherit;font-size:13px;font-weight:600;min-height:34px;padding:0 10px;border-radius:7px;cursor:pointer;${on ? `background:#fff;color:${c};box-shadow:0 1px 3px rgba(17,24,39,.14);` : 'background:transparent;color:#4B5563;'}`;
+    const actions = raw.map(([id, k, codes, title, hours, money, pts]) => ({
+      kind: K[k][0], kindStyle: pill(K[k][1], K[k][2]), codes, title, hours, money, points: pts.map(rich),
+      open: S.open[id] ? 'true' : 'false', isOpen: !!S.open[id], toggle: () => this.setState({ open: { ...S.open, [id]: !S.open[id] } }),
+      status: [['todo', 'Not started', '#111827'], ['doing', 'In progress', '#1D4ED8'], ['done', 'Done', '#11673F']].map(([v, label, c]) => ({ label, on: stOf(id) === v ? 'true' : 'false', pick: () => this.setState({ st: { ...S.st, [id]: v } }), style: seg(stOf(id) === v, c) })),
+    }));
+    const nDone = raw.filter(([id]) => stOf(id) === 'done').length, nDoing = raw.filter(([id]) => stOf(id) === 'doing').length, total = 31;
+    const progress = { nDone, nDoing, nTodo: total - nDone - nDoing, text: `${Math.round(nDone / total * 100)}% done`, aria: `${nDone} done, ${nDoing} in progress, of ${total}`,
+      done: `display:block;width:${nDone / total * 100}%;background:#11673F;transition:width .3s;`, doing: `display:block;width:${nDoing / total * 100}%;background:#2563EB;transition:width .3s;` };
+    const groups = [['fix', ['TC-5', 'VC-31', 'HMC-4', 'TC-13'], 9, '96 h a month'], ['before', ['VC-19', 'TC-22', 'VTL-3'], 7, '31 h a month'], ['stock', ['VC-11', 'TC-8'], 5, '18 h a month'], ['pm', ['VC-40', 'HMC-1'], 4, '9 h a month']].map(([k, codes, n, hours]) => ({ kind: K[k][0], kindStyle: pill(K[k][1], K[k][2]), codes, n: `${n} actions`, hours }));
+    return { actions, progress, groups };
+  }
+}
+</script>
+</body>
+</html>

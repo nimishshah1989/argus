@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Argus — Machines</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&amp;family=JetBrains+Mono:wght@600&amp;display=swap">
+<style>
+body{margin:0;background:#F6F6F4}
+.num{font-variant-numeric:tabular-nums}
+.code{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;font-weight:600;padding:2px 7px;border-radius:6px}
+.btn{display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border-radius:10px;border:1px solid #DCDDD8;background:#fff;font:inherit;font-size:15px;font-weight:600;color:#1F2937;cursor:pointer}
+.btn-primary{background:#111827;color:#fff;border-color:#111827}
+.sort{all:unset;cursor:pointer;display:inline-flex;gap:4px;align-items:center;min-height:32px}
+.sort:hover{color:#111827}
+tbody tr:hover{background:#FAFAF8}
+input{font:inherit;font-size:15px;min-height:40px;padding:0 12px;border-radius:10px;border:1px solid #DCDDD8;background:#fff;min-width:240px}
+button:focus-visible,input:focus-visible,.sort:focus-visible{outline:2px solid #2563EB;outline-offset:2px}
+</style>
+</helmet>
+<div style="font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.5;color:#111827;max-width:1360px;margin:0 auto;padding:32px 40px 56px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px;">
+
+  <header style="display:flex;flex-wrap:wrap;gap:20px;justify-content:space-between;align-items:flex-start;">
+    <div style="display:flex;flex-direction:column;gap:10px;max-width:760px;">
+      <span style="font-size:13px;color:#4B5563;">Machines · every machine in the plant</span>
+      <h1 style="margin:0;font-size:28px;line-height:1.25;font-weight:700;letter-spacing:-.02em;">{{head}}</h1>
+    </div>
+    <button type="button" class="btn btn-primary">Add a machine</button>
+  </header>
+
+  <div role="tablist" aria-label="Kind of machine" style="display:flex;gap:8px;flex-wrap:wrap;">
+    <sc-for list="{{segs}}" as="s" hint-placeholder-count="6"><button type="button" role="tab" aria-selected="{{s.on}}" onClick="{{s.pick}}" style="{{s.style}}">{{s.label}} <span class="num" style="font-weight:700;">{{s.n}}</span></button></sc-for>
+  </div>
+
+  <section aria-label="By category" style="background:#fff;border:1px solid #E5E5E0;border-radius:18px;padding:18px 20px;display:flex;flex-direction:column;gap:12px;">
+    <div role="img" aria-label="{{mixAria}}" style="display:flex;height:16px;border-radius:8px;overflow:hidden;gap:2px;">
+      <sc-for list="{{cats}}" as="c" hint-placeholder-count="7"><span title="{{c.tip}}" style="{{c.bar}}"></span></sc-for>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <sc-for list="{{cats}}" as="c" hint-placeholder-count="7"><button type="button" aria-pressed="{{c.on}}" onClick="{{c.pick}}" style="{{c.chip}}"><span style="{{c.dot}}"></span>{{c.name}} <b class="num">{{c.n}}</b></button></sc-for>
+    </div>
+  </section>
+
+  <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between;align-items:center;">
+    <label style="display:flex;gap:8px;align-items:center;font-size:13px;color:#4B5563;">Find <input type="search" placeholder="Code, model or cell"></label>
+    <span style="font-size:13px;color:#4B5563;">{{shownText}}</span>
+  </div>
+
+  <div style="overflow-x:auto;background:#fff;border:1px solid #E5E5E0;border-radius:18px;">
+    <table style="width:100%;border-collapse:collapse;min-width:980px;">
+      <thead><tr style="text-align:left;font-size:13px;color:#4B5563;">
+        <sc-for list="{{heads}}" as="h" hint-placeholder-count="8"><th scope="col" aria-sort="{{h.aria}}" style="{{h.style}}"><button type="button" class="sort" onClick="{{h.pick}}">{{h.label}} <span aria-hidden="true">{{h.arrow}}</span></button></th></sc-for>
+      </tr></thead>
+      <tbody>
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="12">
+          <tr style="border-top:1px solid #EFEFEB;">
+            <td style="padding:10px 20px;"><a href="#" class="code" style="{{r.pill}}">{{r.code}}</a></td>
+            <td style="padding:10px 12px;">{{r.model}}<div style="font-size:13px;color:#4B5563;">{{r.cat}}</div></td>
+            <td class="num" style="padding:10px 12px;">{{r.cell}}</td>
+            <td class="num" style="padding:10px 12px;">{{r.age}}</td>
+            <td style="padding:10px 12px;"><span style="display:flex;align-items:center;gap:8px;"><span style="width:80px;height:6px;border-radius:3px;background:#F1F1EE;overflow:hidden;display:block;"><span style="{{r.hBar}}"></span></span><b class="num" style="{{r.hStyle}}">{{r.health}}</b></span></td>
+            <td style="padding:10px 12px;"><span style="display:flex;align-items:center;gap:8px;"><span style="width:80px;height:6px;border-radius:3px;background:#F1F1EE;overflow:hidden;display:block;"><span style="{{r.bBar}}"></span></span><span class="num">{{r.bd}}</span></span></td>
+            <td class="num" style="padding:10px 12px;">{{r.kva}}</td>
+            <td style="padding:10px 20px 10px 12px;"><span style="{{r.stStyle}}">{{r.st}}</span></td>
+          </tr>
+        </sc-for>
+      </tbody>
+    </table>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1700}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { seg: 'cnc', cat: 'all', sort: 'health', dir: 1 }; }
+  renderVals() {
+    const S = this.state;
+    const T = { TC: ['Turning centre', '#2563EB'], VC: ['Vertical machining centre', '#059669'], VTL: ['Vertical turning lathe', '#7C3AED'], HMC: ['Horizontal machining centre', '#0D9488'], TMC: ['Turnmill', '#DB2777'], GRD: ['Grinding', '#A16207'], OTH: ['Other CNC', '#64748B'] };
+    const counts = { TC: 38, VC: 52, VTL: 12, GRD: 9, OTH: 7, TMC: 5, HMC: 3 };
+    const seg = (on) => `font:inherit;font-size:15px;font-weight:600;min-height:44px;padding:0 16px;border-radius:12px;cursor:pointer;border:1px solid ${on ? '#111827' : '#DCDDD8'};background:${on ? '#111827' : '#fff'};color:${on ? '#fff' : '#1F2937'};`;
+    const segs = [['cnc', 'CNC', 126], ['robot', 'Robots', 1], ['conv', 'Conventional', 16], ['proc', 'Process', 17], ['util', 'Utilities', 30], ['dg', 'DG sets', 3]].map(([k, label, n]) => ({ label, n, on: S.seg === k ? 'true' : 'false', pick: () => this.setState({ seg: k }), style: seg(S.seg === k) }));
+    const cats = Object.entries(counts).map(([k, n]) => { const on = S.cat === k; return { name: T[k][0], n, tip: `${T[k][0]}: ${n}`, on: on ? 'true' : 'false', pick: () => this.setState({ cat: on ? 'all' : k }), bar: `display:block;flex:${n};background:${T[k][1]};opacity:${S.cat === 'all' || on ? 1 : 0.25};`, dot: `width:10px;height:10px;border-radius:3px;background:${T[k][1]};`, chip: `display:inline-flex;gap:8px;align-items:center;font:inherit;font-size:13px;font-weight:600;min-height:36px;padding:0 12px;border-radius:999px;cursor:pointer;border:1px solid ${on ? T[k][1] : '#DCDDD8'};background:${on ? T[k][1] + '14' : '#fff'};color:#1F2937;` }; });
+    const data = [['TMC-2', 'NTX 2000', 'TMC', 6, 9, 4.1, 308, 37, 'run'], ['VC-8', 'CVM 800', 'VC', 2, 6, 7.8, 61, 22, 'run'], ['HMC-2', 'FMH 500', 'HMC', 3, 14, 5.2, 112, 30, 'down'], ['TC-10', 'FTC-20L', 'TC', 1, 6, 6.0, 74, 18, 'risk'], ['VC-14', 'CVM 800', 'VC', 5, 6, 9.4, 18, 22, 'run'], ['VC-22', 'MT 700', 'VC', 3, 7, 6.9, 52, 20, 'risk'], ['TC-31', 'SJE 10LM', 'TC', 8, 4, 6.4, 39, 15, 'run'], ['VTL-3', 'VTC 1600', 'VTL', 7, 11, 6.2, 66, 45, 'pm'], ['GRD-2', 'GU 32', 'GRD', 9, 8, 7.4, 21, 10, 'run'], ['VC-54', 'CVM 1050', 'VC', 7, 0, 8.8, 9, 25, 'run'], ['WJ-01', 'Waterjet 3020', 'OTH', 6, 1, 6.6, 47, 46, 'risk'], ['TC-5', 'FTC-20L', 'TC', 1, 5, 7.0, 44, 18, 'run']];
+    const ST = { run: ['Running', '#11673F', '#E8F5EE'], down: ['Down', '#991B1B', '#FEE2E2'], risk: ['At risk', '#92400E', '#FEF3C7'], pm: ['In PM', '#1E40AF', '#DBEAFE'] };
+    const keyIx = { code: 0, cell: 3, age: 4, health: 5, bd: 6, kva: 7 };
+    let list = data.filter((r) => S.cat === 'all' || r[2] === S.cat);
+    if (keyIx[S.sort] !== undefined) list = [...list].sort((a, b) => (a[keyIx[S.sort]] > b[keyIx[S.sort]] ? 1 : -1) * S.dir);
+    const rows = list.map(([code, model, ty, cell, age, health, bd, kva, st]) => ({
+      code, model, cat: T[ty][0], cell: `Cell ${cell}`, age: age ? `${age} y` : 'new', health: health.toFixed(1), bd: `${bd} h`, kva: `${kva} kVA`,
+      pill: `color:${T[ty][1]};background:${T[ty][1]}14;text-decoration:none;`,
+      hBar: `display:block;height:100%;width:${health * 10}%;background:${health < 6 ? '#B91C1C' : health < 7.5 ? '#D97706' : '#11673F'};`, hStyle: `color:${health < 6 ? '#B91C1C' : '#111827'};`,
+      bBar: `display:block;height:100%;width:${bd / 308 * 100}%;background:${bd > 100 ? '#B91C1C' : '#8A857C'};`,
+      st: ST[st][0], stStyle: `font-size:13px;font-weight:700;padding:2px 10px;border-radius:999px;background:${ST[st][2]};color:${ST[st][1]};`,
+    }));
+    const heads = [['code', 'Machine'], ['model', 'Model'], ['cell', 'Cell'], ['age', 'Age'], ['health', 'Health'], ['bd', 'Breakdown hours'], ['kva', 'Power'], ['st', 'Now']].map(([k, label], i) => { const on = S.sort === k; return { label, arrow: on ? (S.dir > 0 ? '↑' : '↓') : '↕', aria: on ? (S.dir > 0 ? 'ascending' : 'descending') : 'none', pick: () => this.setState({ sort: k, dir: on ? -S.dir : 1 }), style: `padding:12px ${i === 0 ? '20px' : '12px'};font-weight:600;` }; });
+    return { head: '126 CNC machines. 5 need attention; the oldest 10 lose 41% of the hours.', segs, cats, mixAria: 'CNC fleet by category; vertical machining centres are the largest group with 52', rows, heads, shownText: `Showing ${rows.length} of 126 · sample rows` };
+  }
+}
+</script>
+</body>
+</html>
