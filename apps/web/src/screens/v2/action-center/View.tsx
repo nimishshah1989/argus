@@ -22,7 +22,10 @@ function localNudge(
   if (ref.kind !== 'decision') return null;
   const row = model.nudges.find((n) => n.id === ref.id);
   if (!row) return null;
-  return { label: row.titleText, content: <NudgeDetail row={row} model={model} acts={acts} /> };
+  return {
+    label: row.titleText,
+    content: <NudgeDetail key={row.id} row={row} model={model} acts={acts} />,
+  };
 }
 
 /** The page under the header: the answer, the four priority counts, the nudges, the machines at risk. */

@@ -13,6 +13,8 @@ async function open(page: Page, width: number, theme = 'light') {
   await page.goto(`/gallery?view=v2-action-center&theme=${theme}`);
   await expect(page.getByRole('heading', { level: 1, name: 'Action Center' })).toBeVisible();
   await expect(page.locator('.v2-lede')).toContainText('5 high-priority and 26 medium nudges');
+  // A pointer left on the rail opens it over the first column (a machine chip sits under it): park it on the page.
+  await page.mouse.move(Math.round(width / 2), 450);
 }
 
 for (const width of [1440, 390]) {

@@ -166,6 +166,11 @@ const drawer = (page: Page) => page.locator('aside.v2-drawer');
 const rowOf = (page: Page, title: string) => list(page).getByRole('row').filter({ hasText: title });
 const opener = (page: Page, title: string) =>
   list(page).getByRole('button', { name: `Open ${title}` });
+/** Opens a nudge from its row and waits for its own drawer, so a later click never lands on the one it replaces. */
+async function openNudge(page: Page, title: string): Promise<void> {
+  await opener(page, title).click();
+  await expect(drawer(page)).toHaveAttribute('aria-label', title);
+}
 const FREQ = 'VC-1 has broken down 12 times in 30 days';
 const MTTR = 'VC-3: repairs take 4.24 hrs on average, 2.3x the fleet average';
 const GOOD = 'Downtime this week is 52% below the recent weekly average';
@@ -202,6 +207,8 @@ async function assertBoard(page: Page): Promise<void> {
   // Each priority chip says how many rows it opens under the tab, the type and the search.
   for (const chip of ['All priorities 5', 'High priority 2', 'Medium 1', 'Low 1', 'Good news 1'])
     await expect(list(page).getByRole('button', { name: chip, exact: true })).toBeVisible();
+  // The rail opens over the first column while the pointer is on it: park the pointer on the page.
+  await page.mouse.move(200, 450);
   const risk = page.getByRole('region', { name: 'Machines needing attention' });
   await expect(risk.getByRole('row')).toHaveCount(2);
   await expect(risk).toContainText('Frequent breakdowns');
@@ -215,7 +222,7 @@ async function assertBoard(page: Page): Promise<void> {
   // The row's machine is a chip that opens the machine, never a link to a database id.
   await expect(freq.getByRole('button', { name: 'VC-1', exact: true })).toBeVisible();
   await expect(list(page).getByRole('row')).toHaveCount(6);
-  await opener(page, GOOD).click();
+  await openNudge(page, GOOD);
   await expect(drawer(page)).toHaveAttribute('aria-label', GOOD);
   await expect(
     drawer(page).getByRole('button', { name: /Acknowledge|Snooze|Resolved/ }),
@@ -230,13 +237,19 @@ async function assertBoard(page: Page): Promise<void> {
 }
 
 async function ackAndReload(page: Page): Promise<void> {
-  // One form at a time: a nudge opens alone in the drawer, so another nudge's form never stands beside it.
-  await opener(page, FREQ).click();
-  await drawer(page).getByRole('button', { name: 'Acknowledge', exact: true }).click();
-  await opener(page, MTTR).click();
+  // One form at a time: a nudge opens alone in the drawer, so another nudge's form never stands beside it, and a form
+  // opened on one nudge is not there when the next is opened (on a phone the drawer covers the list, so it is closed first).
+  await openNudge(page, FREQ);
   await drawer(page).getByRole('button', { name: 'Acknowledge', exact: true }).click();
   await expect(page.getByRole('form', { name: 'Acknowledge nudge', exact: true })).toHaveCount(1);
-  await opener(page, FREQ).click();
+  await page.keyboard.press('Escape');
+  await openNudge(page, MTTR);
+  await expect(page.getByRole('form', { name: 'Acknowledge nudge', exact: true })).toHaveCount(0);
+  await drawer(page).getByRole('button', { name: 'Acknowledge', exact: true }).click();
+  await expect(page.getByRole('form', { name: 'Acknowledge nudge', exact: true })).toHaveCount(1);
+  await page.keyboard.press('Escape');
+  await openNudge(page, FREQ);
+  await expect(page.getByRole('form', { name: 'Acknowledge nudge', exact: true })).toHaveCount(0);
   await drawer(page).getByRole('button', { name: 'Acknowledge', exact: true }).click();
   const form = drawer(page).getByRole('form', { name: 'Acknowledge nudge', exact: true });
   await form.getByLabel('Owner', { exact: true }).selectOption('Asha');
@@ -251,7 +264,7 @@ async function ackAndReload(page: Page): Promise<void> {
   const freq = rowOf(page, FREQ);
   for (const text of ['Acknowledged', 'Asha', 'Due 20-Nov-2026', 'Note: Check the bearing'])
     await expect(freq).toContainText(text);
-  await opener(page, FREQ).click();
+  await openNudge(page, FREQ);
   await expect(drawer(page).getByRole('button', { name: 'Reopen', exact: true })).toBeVisible();
   await page.reload();
   await tabs(page)
@@ -263,7 +276,7 @@ async function ackAndReload(page: Page): Promise<void> {
 
 async function snoozeAndReopen(page: Page): Promise<void> {
   await tabs(page).getByRole('button', { name: /^Open/ }).click();
-  await opener(page, MTTR).click();
+  await openNudge(page, MTTR);
   await drawer(page).getByRole('button', { name: 'Snooze 7 days', exact: true }).click();
   // A snoozed nudge leaves the Open tab; its own tab shows the snooze day.
   await page.keyboard.press('Escape');
@@ -276,17 +289,17 @@ async function snoozeAndReopen(page: Page): Promise<void> {
     .getByRole('button', { name: /^Snoozed/ })
     .click();
   await expect(rowOf(page, MTTR)).toContainText('Snoozed until 18-Nov-2026');
-  await opener(page, MTTR).click();
+  await openNudge(page, MTTR);
   await drawer(page).getByRole('button', { name: 'Reopen', exact: true }).click();
   await page.keyboard.press('Escape');
   await expect(rowOf(page, MTTR)).toHaveCount(0);
   await tabs(page).getByRole('button', { name: /^Open/ }).click();
-  await opener(page, MTTR).click();
+  await openNudge(page, MTTR);
   await expect(
     drawer(page).getByRole('button', { name: 'Acknowledge', exact: true }),
   ).toBeVisible();
   await page.reload();
-  await opener(page, MTTR).click();
+  await openNudge(page, MTTR);
   await expect(
     drawer(page).getByRole('button', { name: 'Acknowledge', exact: true }),
   ).toBeVisible();
