@@ -40,7 +40,7 @@ test('Why-Why: the candidates are listed with their status; a machine chip opens
   await expect(table.locator('tbody tr')).toHaveCount(10);
   await expect(table.getByText('1–10 of 24')).toBeVisible();
   await expect(table.locator('tbody tr').first()).toContainText('Not Started');
-  await expect(page.getByRole('link', { name: 'Open the current Why-Why page.' })).toBeVisible();
+  await expect(table.getByRole('button', { name: 'Start Why-Why', exact: true })).toHaveCount(10);
   await chipOpensDrawer(
     page,
     'Breakdowns that ran past the Why-Why limit',
@@ -58,6 +58,45 @@ test('Why-Why: the Completed filter says so when nothing is done yet', async ({ 
   await table.getByRole('button', { name: 'Completed', exact: true }).click();
   await expect(table.getByText('Nothing matches this filter.')).toBeVisible();
 });
+
+test('Why-Why: Start opens the five whys and the required conclusion, and Cancel closes them', async ({
+  page,
+}) => {
+  await open(page);
+  const table = page.getByRole('region', {
+    name: 'Breakdowns that ran past the Why-Why limit',
+    exact: true,
+  });
+  await table.getByRole('button', { name: 'Start Why-Why', exact: true }).first().click();
+  const form = page.getByRole('form', { name: 'Why-Why form', exact: true });
+  await expect(form).toBeVisible();
+  for (const number of [1, 2, 3, 4, 5])
+    await expect(form.getByLabel(`Why ${number}`, { exact: true })).toBeVisible();
+  const save = form.getByRole('button', { name: 'Save Why-Why', exact: true });
+  await expect(save).toBeDisabled();
+  await form.getByLabel('Conclusion (required)', { exact: true }).fill('The bearing was worn.');
+  await expect(save).toBeEnabled();
+  await form.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(form).toHaveCount(0);
+});
+
+test('Why-Why: a role that may not save is told so and sees no Start', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('about:blank');
+  await page.goto('/gallery?view=v2-why-why&role=op');
+  await expect(page.getByText(/Only a supervisor, head, plant head or admin/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Start Why-Why' })).toHaveCount(0);
+});
+
+for (const theme of ['light', 'dark']) {
+  test(`Why-Why: axe finds nothing in ${theme} with the form open`, async ({ page }) => {
+    await open(page, theme);
+    await page.getByRole('button', { name: 'Start Why-Why', exact: true }).first().click();
+    await expect(page.getByRole('form', { name: 'Why-Why form', exact: true })).toBeVisible();
+    const { violations } = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
+    expect(violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(' ')}`)).toEqual([]);
+  });
+}
 
 for (const theme of ['light', 'dark']) {
   test(`Why-Why: axe finds nothing in ${theme}`, async ({ page }) => {
