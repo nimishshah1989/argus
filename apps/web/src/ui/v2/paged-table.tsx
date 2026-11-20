@@ -28,6 +28,8 @@ type Props<R> = {
   /** The one page the server sent: never more than 10 rows are held, so never more are drawn. */
   rows: R[];
   rowKey: (row: R) => string;
+  /** What the row's open button is called, when it is not the key (a key that holds ids is never said aloud). */
+  rowLabel?: (row: R) => string;
   columns: Column<R>[];
   filters: FilterChip<R>[];
   chip: string;
@@ -73,7 +75,7 @@ function PageRows<R>({ t }: { t: Props<R> }) {
               <button
                 type="button"
                 className="v2-icon-btn"
-                aria-label={`${t.words.open} ${key}`}
+                aria-label={`${t.words.open} ${t.rowLabel?.(row) ?? key}`}
                 onClick={(e) => (e.stopPropagation(), t.onOpen(row))}
               >
                 <Icon name="chevronRight" />

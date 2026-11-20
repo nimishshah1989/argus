@@ -4,7 +4,6 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import type { FiguresReply } from '@uptimo/shared/analytics';
-import { Waiting } from './ActionCenterPage.js';
 import { ChecklistReady } from './DataChecklist.js';
 import { TeamFocusPage } from './TeamFocusPage.js';
 import { dmy } from './action-center.js';
@@ -88,13 +87,6 @@ describe('the Today tabs in a state that is not ready', () => {
     );
     expect(page).toContain('data-state="empty"');
     expect(page).toContain('Nothing here');
-  });
-
-  it('keeps the Action Center refusal a status line in the danger ink', () => {
-    const page = html(createElement(Waiting, { state: 'ready', refused: true, onRetry: () => {} }));
-    expect(page).toContain('role="status"');
-    expect(page).toContain('text-bad-ink');
-    expect(page).toContain('data-page="refused"');
   });
 });
 

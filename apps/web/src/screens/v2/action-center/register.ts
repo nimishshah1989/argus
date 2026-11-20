@@ -9,5 +9,9 @@ declare module '../data.js' {
 
 export const screen: ScreenEntry<'action-center'> = {
   key: 'action-center',
-  provider: () => import('./fixture.js').then((m) => m.actionCenterFixture),
+  provider: async (_, { client }) => {
+    const { liveActionCenter } = await import('./live.js');
+    return liveActionCenter(client);
+  },
+  frozen: () => import('./frozen.js').then((m) => m.frozenActionCenter()),
 };
