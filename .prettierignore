@@ -17,6 +17,7 @@ docs/spec/PARITY.md
 .pnpm-store/
 docs/archive
 docs/design/slices/*.html
+docs/design/v2/*.html
 
 # Generated answer key: one row per line, written by tools/answer-key/generate.ts.
 fixtures/answer-key
