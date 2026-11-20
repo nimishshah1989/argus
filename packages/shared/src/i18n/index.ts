@@ -92,6 +92,8 @@ import { analyticsRegisterEn } from './analytics-register.en.js';
 import { analyticsRegisterGu } from './analytics-register.gu.js';
 import { analyticsTablesEn } from './analytics-tables.en.js';
 import { analyticsTablesGu } from './analytics-tables.gu.js';
+import { analyticsV2MachinesEn } from './analytics-v2-machines.en.js';
+import { analyticsV2MachinesGu } from './analytics-v2-machines.gu.js';
 import { analyticsV2ProblemsEn } from './analytics-v2-problems.en.js';
 import { analyticsV2ProblemsGu } from './analytics-v2-problems.gu.js';
 import { analyticsV2ReliabilityEn } from './analytics-v2-reliability.en.js';
@@ -146,6 +148,7 @@ export const NAMESPACES: Record<string, Record<string, string>> = {
   'analytics-shell': analyticsShellEn,
   'analytics-register': analyticsRegisterEn,
   'analytics-tables': analyticsTablesEn,
+  'analytics-v2-machines': analyticsV2MachinesEn,
   'analytics-v2-problems': analyticsV2ProblemsEn,
   'analytics-v2-reliability': analyticsV2ReliabilityEn,
 };
@@ -199,6 +202,7 @@ export const en = {
   ...analyticsShellEn,
   ...analyticsRegisterEn,
   ...analyticsTablesEn,
+  ...analyticsV2MachinesEn,
   ...analyticsV2ProblemsEn,
   ...analyticsV2ReliabilityEn,
 };
@@ -254,6 +258,7 @@ export const gu = {
   ...analyticsShellGu,
   ...analyticsRegisterGu,
   ...analyticsTablesGu,
+  ...analyticsV2MachinesGu,
   ...analyticsV2ProblemsGu,
   ...analyticsV2ReliabilityGu,
 };

@@ -28,18 +28,20 @@ export type TableWords = {
 };
 
 /** A table with more columns than this scrolls sideways inside its card instead of running past it. */
-const WIDE = 9;
 
 type TableProps<R> = {
   rows: R[];
   rowKey: (row: R) => string;
+  /** What the row's open button is called, when it is not the key (a machine that appears in many rows). */
+  rowLabel?: (row: R) => string;
   columns: Column<R>[];
   filters: FilterChip<R>[];
   text: (row: R) => string;
   words: TableWords;
   initialSort?: SortState;
   selected?: string;
-  onOpen: (row: R) => void;
+  /** What a row opens in the drawer; a table whose rows open nothing leaves it out and its rows are not buttons. */
+  onOpen?: (row: R) => void;
 };
 
 /** What the reader has asked of a table (search, chip, sort, page) and the page that answers it. */
@@ -89,7 +91,7 @@ function TableRows<R>({ t, rows, changes }: { t: TableProps<R>; rows: R[]; chang
             className={changes ? MOTION.reflow : undefined}
             style={{ ['--v2-i' as string]: i }}
             data-selected={key === t.selected}
-            onClick={() => t.onOpen(row)}
+            onClick={t.onOpen && (() => t.onOpen?.(row))}
           >
             {t.columns.map((c) => (
               <td key={c.key} className={c.numeric ? 'v2-num-cell' : undefined}>
@@ -97,14 +99,16 @@ function TableRows<R>({ t, rows, changes }: { t: TableProps<R>; rows: R[]; chang
               </td>
             ))}
             <td className="v2-row-action">
-              <button
-                type="button"
-                className="v2-icon-btn"
-                aria-label={`${t.words.open} ${key}`}
-                onClick={(e) => (e.stopPropagation(), t.onOpen(row))}
-              >
-                <Icon name="chevronRight" />
-              </button>
+              {t.onOpen ? (
+                <button
+                  type="button"
+                  className="v2-icon-btn"
+                  aria-label={`${t.words.open} ${t.rowLabel?.(row) ?? key}`}
+                  onClick={(e) => (e.stopPropagation(), t.onOpen?.(row))}
+                >
+                  <Icon name="chevronRight" />
+                </button>
+              ) : null}
             </td>
           </tr>
         );
@@ -132,7 +136,7 @@ export function DataTable<R>(props: TableProps<R>) {
         chip={ask.chip}
         onChip={ask.onChip}
       />
-      <div className="v2-table-scroll" data-wide={columns.length > WIDE ? '' : undefined}>
+      <div className="v2-table-scroll">
         <table className="v2-table">
           <TableHead columns={columns} sort={ask.sort} onSort={ask.onSort} />
           <TableRows t={props} rows={view.rows} changes={changes} />
