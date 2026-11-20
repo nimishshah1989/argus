@@ -55,4 +55,31 @@ describe('check-ui', () => {
     expect(check({ 'faces/desk/ok.tsx': 'export const a = <Stack gap={4} />;' })).toEqual([]);
     expect(check({ 'screens/x.tsx': 'export const a = 1;' })).toEqual([]);
   });
+
+  it('flags colour, font size, font weight and animation in a v2 screen', () => {
+    const errors = check({
+      'screens/v2/a/View.tsx': [
+        "const c = '#dc2626';",
+        '<p style={{ fontSize: 13 }} />',
+        '<p className="font-bold" />',
+        '@keyframes spin {}',
+        '// a comment may say font-size and #fff',
+      ].join('\n'),
+    });
+    expect(errors).toEqual([
+      'screens/v2/a/View.tsx:1: raw colour in screens/v2/',
+      'screens/v2/a/View.tsx:2: font size in screens/v2/',
+      'screens/v2/a/View.tsx:3: font weight in screens/v2/',
+      'screens/v2/a/View.tsx:4: animation in screens/v2/',
+    ]);
+  });
+
+  it('lets a v2 screen compose the kit, and leaves the kit itself alone', () => {
+    expect(
+      check({
+        'screens/v2/a/View.tsx': '<Panel title={words.title}><Row>{children}</Row></Panel>',
+        'ui/v2/v2.css': '.x { font-size: 12px; animation: none; color: #fff; }',
+      }),
+    ).toEqual([]);
+  });
 });

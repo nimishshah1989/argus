@@ -21,6 +21,21 @@ const FACES_RULES: [string, RegExp][] = [
 ];
 const LUCIDE = /['"]lucide-react(?:\/[^'"]*)?['"]/;
 
+/**
+ * v2 screens only compose the kit (docs/design/v2/LANGUAGE.md): colour, type size, weight and motion live in
+ * ui/v2. A comment line may name them.
+ */
+const V2_SCREEN_RULES: [string, RegExp][] = [
+  ['raw colour in screens/v2/', /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch|color-mix)\(/],
+  ['font size in screens/v2/', /font-?size|fontSize|\btext-(?:xs|sm|base|lg|\d?xl)\b/i],
+  [
+    'font weight in screens/v2/',
+    /font-?weight|fontWeight|\bfont-(?:thin|light|normal|medium|semibold|bold|black)\b/i,
+  ],
+  ['animation in screens/v2/', /@keyframes|\banimation\b|\banimate-\w|\btransition\b/i],
+];
+const COMMENT = /^\s*(?:\/\/|\/?\*)/;
+
 export function readWebSrc(webSrc: string): UiFile[] {
   const files: UiFile[] = [];
   const walk = (dir: string): void => {
@@ -48,6 +63,9 @@ export function uiErrors(files: UiFile[]): string[] {
     lines.forEach((line, i) => {
       if (faces)
         for (const [message, pattern] of FACES_RULES)
+          if (pattern.test(line)) errors.push(`${path}:${i + 1}: ${message}`);
+      if (path.startsWith('screens/v2/') && !COMMENT.test(line))
+        for (const [message, pattern] of V2_SCREEN_RULES)
           if (pattern.test(line)) errors.push(`${path}:${i + 1}: ${message}`);
       if (path !== 'ui/icon.ts' && LUCIDE.test(line))
         errors.push(`${path}:${i + 1}: lucide-react outside ui/icon.ts`);
