@@ -1,5 +1,6 @@
 import type { TableModel } from '../../../ui/v2/domain/engine-table.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
+import type { Drill } from '../../../ui/v2/drill.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
 
 /** One register: the engine's own count, load and age cards, its splits and its lists, with the answer first. */
@@ -21,6 +22,8 @@ export type RegistersWords = {
 /** Everything the Machines register prints. The registers that came back, in order; the URL picks one. */
 export type RegistersModel = {
   pages: RegisterPageModel[];
+  /** "See the machines": every machine the registers list, whatever page is open (no count on a page equals it). */
+  drill?: Drill;
   source: string;
   words: RegistersWords;
 };

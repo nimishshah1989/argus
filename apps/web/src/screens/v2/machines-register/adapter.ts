@@ -2,7 +2,7 @@ import type { FiguresReply } from '@uptimo/shared/analytics';
 import { fill } from '../../../i18n/fill.js';
 import type { IconName } from '../../../ui/v2/icons.js';
 import { REGISTER_TABS } from '../../analytics/machine-values.js';
-import { kpiCard, withDrill, sentence, verdictOf } from '../figures/point.js';
+import { kpiCard, sentence, verdictOf } from '../figures/point.js';
 import {
   machineChip,
   pagesOf,
@@ -11,8 +11,7 @@ import {
   type RegisterPage,
   type Translate,
 } from '../figures/read.js';
-import type { Drill } from '../../../ui/v2/drill.js';
-import { drillFor } from '../rows-behind/drill.js';
+import { seeMachinesFor } from '../rows-behind/drill.js';
 import { engineTable, type Cell, type TableModel } from '../figures/table.js';
 import { commonWords, tableWords, type CommonWords } from '../figures/words.js';
 import type { RegisterPageModel, RegistersModel } from './model.js';
@@ -87,10 +86,10 @@ function listTable(
   });
 }
 
-type Ctx = { c: CommonWords; t: Translate; source: string; drill?: Drill };
+type Ctx = { c: CommonWords; t: Translate; source: string };
 
 function pageModel(page: RegisterPage, label: string, ctx: Ctx): RegisterPageModel {
-  const { c, t, source, drill } = ctx;
+  const { c, t, source } = ctx;
   const { summary, controllers, makes } = splitKpis(page);
   const [first, ...others] = summary;
   const verdict = verdictOf(
@@ -135,12 +134,7 @@ function pageModel(page: RegisterPage, label: string, ctx: Ctx): RegisterPageMod
     id: page.id,
     label,
     verdict,
-    kpis: summary.map((kpi, i) =>
-      withDrill(
-        kpiCard(`${page.id}-${i}`, ICONS[i] ?? 'list', kpi, source),
-        i === 0 ? drill : undefined,
-      ),
-    ),
+    kpis: summary.map((kpi, i) => kpiCard(`${page.id}-${i}`, ICONS[i] ?? 'list', kpi, source)),
     tables: [...splits, ...printed],
   };
 }
@@ -150,6 +144,11 @@ const splitHead = (t: Translate): string[] => [
   t('v2m.reg.share'),
   t('v2m.reg.detail'),
 ];
+
+const drillOf = (reply: FiguresReply, t: Translate) => {
+  const drill = seeMachinesFor(reply, 'registers', t);
+  return drill ? { drill } : {};
+};
 
 /** The registers screen from the engine's `registers` figure; null while the engine has not computed it. */
 export function registersModel(reply: FiguresReply, t: Translate): RegistersModel | null {
@@ -163,8 +162,9 @@ export function registersModel(reply: FiguresReply, t: Translate): RegistersMode
   };
   return {
     pages: found.map((page) =>
-      pageModel(page, label(page.id), { c, t, source, drill: drillFor(reply, 'registers', t) }),
+      pageModel(page, label(page.id), { c, t, source }),
     ),
+    ...drillOf(reply, t),
     source,
     words: { tabs: t('analytics.registers.tabs'), why: c.why },
   };
