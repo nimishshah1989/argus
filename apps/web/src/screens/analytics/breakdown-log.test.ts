@@ -99,6 +99,19 @@ describe('the Breakdown Log opens on one page of rows', () => {
     expect(html).toContain('aria-label="Open the ticket for Sr No 1343"');
   });
 
+  it("opens each row's own ticket, not the one the sorted drill ids happen to put at its position", () => {
+    // The drill ids are sorted as text (id-0, id-1, id-10, id-100, ...), so by position row 3 would open id-10.
+    for (const [srNo, own] of [
+      [1343, 'id-0'],
+      [1342, 'id-1'],
+      [1341, 'id-2'],
+      [1340, 'id-3'],
+    ] as const) {
+      const link = html.match(new RegExp(`<a [^>]*Open the ticket for Sr No ${srNo}"[^>]*>`))?.[0];
+      expect(link, `the link of Sr No ${srNo}`).toContain(`href="/desk/${own}"`);
+    }
+  });
+
   it('paints a short log whole', () => {
     expect(bodyRows(page(logFigure(12)))).toBe(12);
   });
