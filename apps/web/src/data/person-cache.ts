@@ -1,4 +1,6 @@
 import type { Query, QueryClient, QueryKey } from '@tanstack/react-query';
+import { forgetCachedReads } from '../offline/cache.js';
+import { whenSessionChanges } from './client.js';
 import { currentWho } from './who.js';
 
 /**
@@ -32,4 +34,11 @@ export function isOwnCopy(client: QueryClient, key: QueryKey): boolean {
 /** Sign-out, sign-in or a change of the acting person: nothing saved for the last person is kept for the next. */
 export function forgetEveryone(client: QueryClient): void {
   client.clear();
+  forgetCachedReads();
+}
+
+/** What the app does at start: stamp every saved answer with its person, and forget them all when the session changes. */
+export function keepPeopleApart(client: QueryClient): QueryClient {
+  whenSessionChanges(() => forgetEveryone(client));
+  return keepOwners(client);
 }

@@ -1,7 +1,8 @@
 import { QueryClient } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearToken, setToken, whenSessionChanges } from './client.js';
-import { isOwnCopy, keepOwners } from './person-cache.js';
+import { readConfig, readState, saveConfig, saveState } from '../offline/cache.js';
+import { isOwnCopy, keepOwners, keepPeopleApart } from './person-cache.js';
 import { rememberWho } from './who.js';
 
 beforeEach(() => {
@@ -29,9 +30,8 @@ describe('what a person’s saved answers do when the session changes', () => {
     expect(changed).toHaveBeenCalledTimes(2);
   });
 
-  it('empties the app’s saved answers on sign-out and on sign-in', () => {
-    const client = new QueryClient();
-    whenSessionChanges(() => client.clear());
+  it('empties the app’s saved answers on sign-out and on sign-in, as the app wires it at start', () => {
+    const client = keepPeopleApart(new QueryClient());
     client.setQueryData(['analytics-figures', 'one', null], { asOf: '2026-11-11', figures: [] });
     client.setQueryData(['me'], { user: { role: 'head' } });
     clearToken();
@@ -39,6 +39,18 @@ describe('what a person’s saved answers do when the session changes', () => {
     client.setQueryData(['analytics-figures', 'one', null], { asOf: '2026-11-11', figures: [] });
     setToken('next');
     expect(client.getQueryData(['analytics-figures', 'one', null])).toBeUndefined();
+  });
+
+  it('forgets the phone’s saved lists and tickets too, which an offline sign-in would otherwise be handed', () => {
+    keepPeopleApart(new QueryClient());
+    saveConfig({ machines: [], people: [{ phone: 'a number only an admin sees' }] } as never);
+    saveState({ open: [] } as never);
+    clearToken();
+    expect(readConfig()).toBeNull();
+    expect(readState()).toBeNull();
+    saveConfig({ machines: [] } as never);
+    setToken('next');
+    expect(readConfig()).toBeNull();
   });
 
   it('keeps a saved answer for the person it was fetched for and for no one else', () => {
