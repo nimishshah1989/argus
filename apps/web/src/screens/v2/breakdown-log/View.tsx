@@ -27,7 +27,8 @@ function TicketLink({ row, label }: { row: LogRow; label: string }) {
     <a
       className="v2-ref v2-num"
       href={`/desk/${encodeURIComponent(row.ticketId)}`}
-      aria-label={fill(label, { srNo: row.srNo })}
+      // The name must contain the visible text (WCAG 2.5.3): the ticket number first, then what the link does.
+      aria-label={`${row.ticket}: ${fill(label, { srNo: row.srNo })}`}
       onClick={(e) => e.stopPropagation()}
     >
       {row.ticket}
