@@ -111,6 +111,14 @@ const V2DataChecklistView = () => (
   </Suspense>
 );
 
+// The v2 rows-behind panel on real drill replies: its own chunk too.
+const V2RowsBehind = lazy(() => import('./v2-rows-behind-view.js'));
+const V2RowsBehindView = () => (
+  <Suspense fallback={null}>
+    <V2RowsBehind />
+  </Suspense>
+);
+
 /** The gallery's whole-page views, picked by `?view=`; anything else is the section list. */
 const VIEWS: Record<string, () => React.JSX.Element> = {
   desktop: DesktopView,
@@ -125,6 +133,7 @@ const VIEWS: Record<string, () => React.JSX.Element> = {
   'v2-machine': V2MachineView,
   'v2-action-center': V2ActionCenterView,
   'v2-data-checklist': V2DataChecklistView,
+  'v2-rows-behind': V2RowsBehindView,
 };
 
 /** Own keys only, so `?view=constructor` is not a view. */
