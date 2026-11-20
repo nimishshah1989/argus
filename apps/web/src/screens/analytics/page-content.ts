@@ -3,6 +3,7 @@ import type { MessageKey } from '@uptimo/shared/i18n';
 import type { ChartSeries, ChartSpec } from '../../ui/chart/use-chart.js';
 import { specialChart } from './forecast-charts.js';
 import { screenChart } from './screen-charts.js';
+import { printableOf, tableRows } from './page-table-rows.js';
 
 /**
  * The key-shaped page (packets 40e-1 and 40e-2, extended by 41e-1 and 41e-2): the platform's own page, whole. The
@@ -25,6 +26,8 @@ export interface PageTable {
   rows: string[][];
   rowCount: number;
   truncated: boolean;
+  /** A6 only: the ticket behind each row, in row order, so an action on a row reaches that row's own ticket. */
+  rowTicketIds?: string[];
   /** The face may sort this table client-side (41e-1: A4's Manpower table and its two month matrices). */
   sortable?: boolean;
   heat?: boolean;
@@ -203,13 +206,6 @@ function isObject(value: unknown): value is ObjectValue {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/** A cell the engine printed as a string or a finite number; anything else is not a printable cell. */
-function printableOf(value: unknown): string | null {
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
-  return null;
-}
-
 function datasets(value: ObjectValue): unknown[] {
   return Array.isArray(value.datasets) ? value.datasets : [];
 }
@@ -246,10 +242,7 @@ function pageTable(raw: unknown, page: string, index: number): PageTable[] {
   const header = (Array.isArray(table.header) ? table.header : []).flatMap((cell) =>
     typeof cell === 'string' ? [cell] : [],
   );
-  const rows = (Array.isArray(table.rows) ? table.rows : []).flatMap((row) => {
-    const cells = (Array.isArray(row) ? row : []).map(printableOf);
-    return cells.length > 0 && cells.every((cell) => cell !== null) ? [cells as string[]] : [];
-  });
+  const { rows, rowTicketIds } = tableRows(table);
   if (header.length === 0 && rows.length === 0) return [];
   const count = Number(table.rowCount);
   const title = typeof table.title === 'string' ? table.title : '';
@@ -260,6 +253,7 @@ function pageTable(raw: unknown, page: string, index: number): PageTable[] {
       rows,
       rowCount: Number.isFinite(count) ? count : rows.length,
       truncated: table.truncated === true,
+      ...(rowTicketIds === null ? {} : { rowTicketIds }),
       ...(table.heat === true ? { heat: true } : {}),
       ...(isSortable(page, title, index) ? { sortable: true } : {}),
     },

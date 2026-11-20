@@ -275,15 +275,19 @@ export function useWhyWhyRecord(rows: readonly (readonly string[])[]) {
   return { choice, failure, save, open, pdf, close };
 }
 
+/** The ticket behind one row, from the figure's own per-row ids; null when the figure names none for that row. */
+export function rowTicketId(table: Table, rowIndex: number): string | null {
+  const id = table.rowTicketIds?.[rowIndex];
+  return id === undefined || id === '' ? null : id;
+}
+
 /** A6's candidate table, with the row's own action in its last engine cell. */
 export function Candidates({
   table,
-  ids,
   write,
   onPick,
 }: {
   table: Table;
-  ids: readonly string[];
   write: boolean;
   onPick: (rowIndex: number, ticketId: string, completed: boolean) => void;
 }) {
@@ -301,9 +305,9 @@ export function Candidates({
           return <StatusBadge complete={cell.trim() === 'Completed'} label={cell} />;
         if (column !== 5) return cell;
         if (!write) return null;
-        // The A6 engine builds its rows and drill ids from the same candidate list, so a row's id is its own.
-        const ticketId = ids[rowIndex];
-        if (ticketId === undefined) return null;
+        // The drill ids are sorted, not in row order: the row's own ticket is the one the figure printed beside it.
+        const ticketId = rowTicketId(table, rowIndex);
+        if (ticketId === null) return null;
         const completed = (table.rows[rowIndex]?.[4] ?? '').trim() === 'Completed';
         return (
           <button

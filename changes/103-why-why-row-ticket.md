@@ -1,0 +1,1 @@
+Why-Why: a candidate's Start Why-Why and View now always open, and save against, that row's own ticket. Before, with two or more candidates the screen paired rows with tickets by position in a list sorted by id while the rows run worst-hours first, so a record could be saved on the wrong ticket. The figure now names each row's ticket itself.
