@@ -51,7 +51,8 @@ export type WhyWhyActions = {
   /** The server's failure, in the reader's words; null when the last call went through. */
   failure: string | null;
   open: {
-    rowId: string;
+    /** The ticket this form is for: only the form's identity, never printed. */
+    ticketId: string;
     machine: string;
     date: string;
     completed: boolean;

@@ -14,7 +14,14 @@ export function WhyWhyLive(props: { model: WhyWhyModel; nav: NavItem[]; title: s
   const me = useQuery({ queryKey: ['me'], queryFn: getMe });
   const user = me.data?.user;
   // An open form belongs to the login and the person acting: another one starts with none.
-  return <Writer key={`${user?.id}:${user?.actingPersonId}`} {...props} user={user} />;
+  return (
+    <Writer
+      key={`${user?.id}:${user?.actingPersonId}`}
+      {...props}
+      user={user}
+      pending={me.isPending}
+    />
+  );
 }
 
 function Writer({
@@ -22,11 +29,13 @@ function Writer({
   nav,
   title,
   user,
+  pending,
 }: {
   model: WhyWhyModel;
   nav: NavItem[];
   title: string;
   user: Viewer | undefined;
+  pending: boolean;
 }) {
   const { t } = useTranslation();
   const record = useWhyWhyRecord();
@@ -39,7 +48,7 @@ function Writer({
       choice === null
         ? null
         : {
-            rowId: choice.rowId,
+            ticketId: choice.ticketId,
             machine: choice.machine,
             date: choice.date,
             completed: choice.completed,
@@ -57,13 +66,8 @@ function Writer({
     onPdf: () => void record.pdf(),
     onCancel: record.close,
   };
-  // Until the login is known the page offers nothing: a refusal is not said to someone not yet identified.
+  // While the login is loading the page offers nothing; if it cannot be read, no one may save, as in v1.
   return (
-    <WhyWhyView
-      model={model}
-      nav={nav}
-      title={title}
-      actions={user === undefined ? undefined : actions}
-    />
+    <WhyWhyView model={model} nav={nav} title={title} actions={pending ? undefined : actions} />
   );
 }

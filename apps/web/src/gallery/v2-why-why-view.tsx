@@ -36,7 +36,7 @@ export default function V2WhyWhyView() {
     author: t('analytics.whyWhy.author', { name: 'Gallery' }),
     failure: null,
     open: open && {
-      rowId: open.id,
+      ticketId: open.ticketId ?? open.id,
       machine: open.machine.label,
       date: open.date.shown,
       completed: open.status.done,

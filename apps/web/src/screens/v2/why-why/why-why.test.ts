@@ -7,7 +7,7 @@ import { UUID } from '../figures/real-reply.js';
 import { answerKey, keyPage, realT, testT } from '../printed-page/test-support.js';
 import { whyWhyModel, FIGURE } from './adapter.js';
 import type { WhyWhyActions } from './model.js';
-import { WhyWhyView } from './View.js';
+import { WhyWhyView, whyFormKey } from './View.js';
 
 const reply = answerKey('a6-why-why', 'a6-why-why', 41);
 const model = whyWhyModel(reply, testT)!;
@@ -135,7 +135,13 @@ describe('Start and View act on each row’s own ticket', () => {
   it('opens the form with the five whys and the required conclusion for the open row', () => {
     const markup = draw(ticketed, {
       ...actions(true),
-      open: { rowId: '0', machine: 'TMC-2', date: '13-Jun-2026', completed: false, record: null },
+      open: {
+        ticketId: TICKETS[0]!,
+        machine: 'TMC-2',
+        date: '13-Jun-2026',
+        completed: false,
+        record: null,
+      },
     });
     for (const label of ['Why 1', 'Why 2', 'Why 3', 'Why 4', 'Why 5', 'Conclusion (required)'])
       expect(markup).toContain(label);
@@ -147,7 +153,13 @@ describe('Start and View act on each row’s own ticket', () => {
   it('offers the PDF once a record is saved', () => {
     const markup = draw(ticketed, {
       ...actions(true),
-      open: { rowId: '0', machine: 'TMC-2', date: '13-Jun-2026', completed: true, record: null },
+      open: {
+        ticketId: TICKETS[0]!,
+        machine: 'TMC-2',
+        date: '13-Jun-2026',
+        completed: true,
+        record: null,
+      },
     });
     expect(markup).toContain('Download PDF');
   });
@@ -159,5 +171,24 @@ describe('Start and View act on each row’s own ticket', () => {
   it('opens the rows behind the whole page from one page control, never from a count', () => {
     expect(ticketed.drill).toMatchObject({ figure: FIGURE });
     expect(draw(ticketed)).toContain('Show the rows behind');
+  });
+
+  it('keys the open form by its ticket, so a refresh that puts another breakdown on the same row cannot keep the first one’s text', () => {
+    const first = { ticketId: TICKETS[0]!, record: null };
+    const sameRowLater = whyWhyModel(
+      withTickets([TICKETS[1]!, TICKETS[0]!, ...TICKETS.slice(2)]),
+      realT,
+    )!;
+    expect(sameRowLater.rows[0]!.ticketId).toBe(TICKETS[1]);
+    expect(whyFormKey({ ticketId: sameRowLater.rows[0]!.ticketId!, record: null })).not.toBe(
+      whyFormKey(first),
+    );
+    expect(whyFormKey(first)).toBe(whyFormKey({ ticketId: TICKETS[0]!, record: null }));
+  });
+
+  it('says the refusal when the signed-in person could not be read, and offers no action', () => {
+    const markup = draw(ticketed, actions(false));
+    expect(markup).toContain('Only a supervisor');
+    expect(markup).not.toContain('Start Why-Why');
   });
 });

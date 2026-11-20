@@ -263,6 +263,9 @@ async function openA4(page: Page): Promise<void> {
   const charts = page.locator('[data-chart-state]');
   await expect(charts).toHaveCount(1);
   await expect(charts).toHaveAttribute('data-chart-state', 'ready');
+  await expect(
+    page.getByText('Breakdowns handled — Done By', { exact: true }).first(),
+  ).toBeVisible();
   // The answer: who handled the most breakdowns, read from the printed table.
   await expect(
     page.getByText('Person 11 handled the most breakdowns: 197 of 1279 (15.40%).'),

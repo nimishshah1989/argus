@@ -38,7 +38,6 @@ export function mayWrite(user: Viewer | undefined): boolean {
 
 /** The row whose Why-Why is open: its own ticket (sent to the server, never printed) and the saved record, if any. */
 export type Choice = {
-  rowId: string;
   ticketId: string;
   machine: string;
   date: string;
@@ -74,7 +73,6 @@ export function useWhyWhyRecord() {
     setFailure(null);
     if (row.ticketId === null) return;
     const base = {
-      rowId: row.id,
       ticketId: row.ticketId,
       machine: row.machine.label,
       date: row.date.shown,

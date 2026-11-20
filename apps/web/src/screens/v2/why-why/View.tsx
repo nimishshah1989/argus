@@ -62,6 +62,13 @@ function columns(words: WhyWhyWords, actions: WhyWhyActions | undefined): Column
   return all;
 }
 
+/**
+ * A form belongs to its ticket, not to the row it was started from: when the figures refresh and another breakdown takes
+ * that row, a form opened on the first ticket stays the first ticket's and a new Start opens a fresh one.
+ */
+export const whyFormKey = (form: { ticketId: string; record: unknown }): string =>
+  `${form.ticketId}:${form.record === null ? 'new' : 'saved'}`;
+
 /** What the signed-in person is told and the one open form: the refusal, a failure from the server, the form. */
 function Writes({ words, actions }: { words: WhyWhyWords; actions: WhyWhyActions }) {
   const form = actions.open;
@@ -79,7 +86,7 @@ function Writes({ words, actions }: { words: WhyWhyWords; actions: WhyWhyActions
       ) : null}
       {form ? (
         <WhyForm
-          key={`${form.rowId}:${form.record === null ? 'new' : 'saved'}`}
+          key={whyFormKey(form)}
           words={words.form}
           heading={`${form.machine} · ${form.date}`}
           author={actions.author}
