@@ -66,6 +66,14 @@ const NavMapView = () => (
   </Suspense>
 );
 
+// The v2 Dashboard on its fixture (step 0 of the v2 front end): its own chunk too.
+const V2Dashboard = lazy(() => import('./v2-dashboard-view.js'));
+const V2DashboardView = () => (
+  <Suspense fallback={null}>
+    <V2Dashboard />
+  </Suspense>
+);
+
 /** The gallery's whole-page views, picked by `?view=`; anything else is the section list. */
 const VIEWS: Record<string, () => React.JSX.Element> = {
   desktop: DesktopView,
@@ -74,6 +82,7 @@ const VIEWS: Record<string, () => React.JSX.Element> = {
   navmap: NavMapView,
   charts: ChartDoorView,
   templates: TemplatesView,
+  'v2-dashboard': V2DashboardView,
 };
 
 /** Own keys only, so `?view=constructor` is not a view. */
