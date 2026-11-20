@@ -1,48 +1,52 @@
 # Where things stand — handoff for the next orchestrator session
 
-Read this first, then the tail of `docs/plan/ledger.md`, then "Road to v1" in `docs/plan/MILESTONES.md`. `git log origin/main` and the PR list beat this text where they differ. State: morning of 20 Nov 2026, after #494. OPEN, waiting on Nimish: #493 (83c-2).
-Open PRs via `gh api --method POST repos/nimishshah1989/argus/pulls --input <file.json>`, non-draft. Staging deploys on every merge: `https://cosmos.3-108-95-203.sslip.io/api/v1/health` shows the commit it serves.
+Read this first, then the tail of `docs/plan/ledger.md`. `git log origin/main` and the PR list beat this text.
+State as of 09:30 UTC, 20 Nov 2026. Staging deploys on every merge; `https://cosmos.3-108-95-203.sslip.io/api/v1/health`
+shows the commit it serves. Open PRs via `gh api --method POST repos/nimishshah1989/argus/pulls --input <file.json>`.
 
-## How to work (Nimish: non-technical, wants short plain answers, to be challenged, uncertainty flagged)
+## The one job now: redesign every screen (Nimish, 20 Nov) — nothing else starts until screens are final
 
-- Never ask him a technology question; settle it by running something. Product questions only. Technical questions for Bhavin: a short plain list; Nimish forwards it on WhatsApp.
-- Builders: Agent tool, `poteto-agent`, sonnet, worktree; resume the same builder for its own PR. Give each the brief
-  (PR body sections, lint, format:check and precheck before EVERY push, `Large PR:`, `Tests removed:`). - Checks: opus, one narrow independent check only where a number, permission or data-loss bug is possible. Local history database `argus_local`: port 5433.
-- Merge squash with `expectedHeadSha` (the CURRENT head) only after READING the check runs of that head; a "check suite
-  completed" event can be for an old head. Merge main into a PR (`update_pull_request_branch`) once its builder is idle,
-  then re-read the check runs of the resulting head before merging.
+- Source of truth for look and behaviour: `docs/design/v2/UX-RULES.md` (5 sizes 12/13/14/20/24; Inter, Geist, Geist
+  Mono; icon rail; glass header; 420px reflowing drawer; tables of 10 rows with search, sort, chips; motion carries
+  information, never page-load fades). `docs/design/v2/LANGUAGE.md`: decision-first, ELI5 bullets behind a click,
+  bold or colour only for highlights, side-by-side boxes aligned.
+- Kit + Dashboard merged (#496, #497). Gallery: `/gallery?view=v2-dashboard` (staging builds with the gallery on, #498).
+- Plug-and-play rule: a screen is `screens/v2/<name>/{model.ts, View.tsx, fixture.ts}`; View uses kit components only
+  (`ui/v2`, `ui/v2/domain`); data comes through `useScreenModel` (`screens/v2/data.ts`); `ui:check` blocks colours,
+  sizes, weights and animation in screen files. The backend later plugs in an adapter; screens do not change.
+  Fixtures compute every figure and a test checks totals. Mockups (`docs/design/v2/mockups/`) are illustrative only.
+- Old v1 screens are deleted as their v2 replacement ships. No tech debt.
+- Process: 5 screens per PR, up to 3 PRs in parallel, Sonnet builders (poteto-agent, worktree), from the kit,
+  LANGUAGE.md, UX-RULES.md and the mockups. One smoke e2e per screen + the orchestrator's screenshot check before
+  merge. No deep review round for pages (Nimish's speed rule); cubic findings on code are fixed in one push.
+- Batches: 1 Action Center, Team Focus, Data Checklist, Machine page, Compare · 2 Machines register, OEM, Age,
+  Footprint (confirm meaning with Nimish: assumed "20% of machines cause most hours" + cell map), Cell change log ·
+  3 Breakdown Log, General Work, PM Calendar, Fix Finder, Problem Analysis · 4 BD% & PM split, Category & Cell,
+  MTTR & MTBF, Manpower, Why-Why · 5 Energy heat map, Bottleneck, Shift-calendar KPIs, Forecast Lab, Reliability
+  scorecard · 6 Money Matters, Monthly, Annual, Guide, Settings · 7 Floor phone, desk, ticket, TV board, login.
+
+## Waiting on Nimish (ask in plain words, product only)
+
+1. Dashboard on staging: his check. 2. Rail: list pages inside each section, or sections only? 3. Verdict line at body
+   size or one 20px line? 4. Keep mid-green running tiles (needed for 3:1 contrast)? 5. Footprint page meaning.
+   Older: PM hours, breakdown hours with no downtime, manpower and spend figures; staging history yes/no (69d).
 
 ## Rulings (Nimish)
 
-Earlier: Running grey, Waiting amber, Transferred blue; Indian number grouping; analytics follows system dark/light; AI work
-paused (55, 72, 68); weekly staging dump parked; purge real data or make the repo private before cutover (N20); real data
-already in the public repo is an accepted risk, add NO more. 19 Nov: power and air failures COUNT in plant downtime AND
-AVAILABILITY (91); heads see failed jobs (78c); supervisors get a desk link to Analytics (86b). Night of 19 Nov: "build all
-the pages and get them live", staging only, no production stack; floor and desk stay on Bhavin's v3 flow (only colour,
-type, depth, motion change); the approved analytics design (Instrument look, white field, functional motion) wins over DESIGN.md's earlier motion text.
+Everything is redesigned. Floor phone: new look, Bhavin's step order, button order and words unchanged. Desk, ticket
+and TV: flow may change too. Rupee figures on the dashboard OK. #493 closed. Earlier: Running grey, Waiting amber,
+Transferred blue; Indian grouping; system dark/light; power and air failures count in downtime; real data already in
+the public repo is an accepted risk, add NO more (Bhavin's files hold real plant data: never commit screenshots of it).
 
-## Frontier
+## How to work
 
-- Merged 19 Nov night: 85 templates (#473), 83 elements (#474), 83b (#475), 83c-1 (#478), 86 Today (#476), fix (#477), and 87
-  pages: Action Center, checklist, Team Focus (#479), Money (#480), Reports (#481), Breakdown Log, registers, machine page (#482),
-  forecast and Forecast Lab (#483), Energy (#484), PM calendar + Guide (#486). Wave 3: 88a desk lists and ticket detail (#487, #488), 88b board/TV and settings (#490). Wave 4: 89a floor phone (#489). 83d shared-element gaps (#491). Earlier 19 Nov: 76, 75a, 77a/b, 78a/b/c, 79 (nightly workflow open), 69a/b/c, 81, 82, 86a/b.
-- Active: **84 Charts** (in progress: draw-in #475; bundle size after 83c-2 unmeasured); **91 Utility loss** (in progress: 2023 hours
-  unreconciled); **85** in progress until the 19-of-27 count and critique scores are recorded.
-- Left in 87: A6 Why-Why, A7 footprint, A8 age analysis (generic GroupPage/FigureTile/PageFigure), DrillTable, heat table in parts.tsx, EnergyGrids, then flip the `ui:check` guard (3 raw colours, 9 hand-written cards left). Then 83c-2 part 2 (trend and Pareto need a chart-door extension: custom tooltip, hover events, band, zoom), 75b/c/d/f, 69d, 88c, 89b (compare thirds of screen with Bhavin's phone tool in one environment), 90, 92-96.
-- Follow-ups (ledger): pager nav name; Disclosure has no controlled state; ButtonLink has no danger/disabled look; `landed` flag after Escape in PM move (cubic P3); TV loading/error text is 14-16 px; /desk/settings has two filled Save buttons (known exception); floor sheet scrim and desk manifest colour disagree; spares caption; Today's monthly sparkline needs a
-  field; shared search palette (87); nightly validate workflow; failed-jobs alarm; DESIGN.md changes should run the api shards; `ui/sheet.tsx` dark
-  scrim (needs a Docker gallery baseline); day-boundary flakes and `sla-timers.test.ts` deadlocks; jsdom ADR; prior-date figures endpoint; machine page prints spares and PM hours twice; engine fetches the whole plant per drill chunk.
+- Never ask Nimish a technology question. Report short and plain; challenge him; flag uncertainty.
+- Builders: `pnpm lint` and `pnpm precheck` before every push; `Large PR:` and `Tests removed:` lines in the body.
+- Merge squash with `expectedHeadSha` only after reading check runs of the CURRENT head. The gallery job has an
+  8-minute limit and the test server on port 3001 sometimes refuses connections: re-run once, then investigate.
+- Known staging bugs to fix when wiring real data: UUIDs shown instead of names, unformatted floats, A1 all 0.00%.
 
-## Open numbers (do not state as final)
+## Open numbers (not final)
 
-History vs Bhavin's sheets (`docs/plan/evidence/69c-real-load.md`): of 2,084 machine-months, 1,561 (75%) match raw and 1,855 (89%) once his
-counting rules are applied; 229 unexplained until he answers. Plant-event hours are a LOWER BOUND (named machines only); 2023 is 1,646.6 against
-the ticket's about 1,480; at most 44.4 h may double count with breakdowns; lost hours may include non-CNC machines. Staging is the Cosmos tenant without the 2022-2025 history (69d).
-
-## Tracker and waiting on people
-
-Tracker: https://claude.ai/artifact/5Kc9KrYMwnW9EK1UvmA9JJ, `datasets/tickets`, refresh half-hourly, never edit the page file.
-Waiting on Nimish: #493 changes the approved showcase look (tile frame is a 4 px family edge + chevron, dark heat map slightly different, short units beside the figure on phone): open `/gallery?view=showcase` at 360 px and dark, say yes or no; which way is good for PM hours, breakdown hours with no downtime, manpower hours and spend (all "neither" now); staging history
-(re-upload the four zips BD-22..BD-25; real data stays out of the repo); downtime family colour vs attention orange; Energy heat shading replaced by a chart (#484);
-Monthly/Annual as shell tabs or one tab with a switch (#481); no change shown on Team Focus (#479); dark mode on the floor (#489, already approved by LOCK A4: look on a preview); a 1440 px TV truncates the machine code (1920 is fine): do 1366/1440 TVs matter? (#490); the Jobs-this-month list as the keyboard Move-to-date place (#486); Guide heading is English only until N5. `docs/plan/NEEDS.md`: N16 answered (Bhavin, 19 Nov); N17 older files
-open (Bhavin, Nimish); N18 technician ranking, N19 AI thresholds open (Nimish); N20 purge open, not blocking (Nimish); N5 Gujarati: a native reader signs off, and Nimish rules whether analytics must be Gujarati.
+History vs Bhavin's sheets: 1,855 of 2,084 machine-months (89%) match with his rules; 229 unexplained. Plant-event
+hours are a lower bound. Tracker: https://claude.ai/artifact/5Kc9KrYMwnW9EK1UvmA9JJ (never edit the page file).
