@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
 import type { Point } from '../../../ui/v2/points.js';
 import { fill } from '../../../i18n/fill.js';
+import type { Translate } from '../figures/read.js';
 import { byTitle, figuresOf, rowWithMost, tablesOf, chartOf } from '../printed-page/page-model.js';
 import type { PrintedPageModel } from '../printed-page/page-model.js';
 import {
@@ -14,8 +15,9 @@ import {
 import { say, strong } from '../printed-page/segs.js';
 import { kpiOf, verdictOf } from '../printed-page/verdict.js';
 import { pageWords } from '../printed-page/words.js';
+import { seeRowsFor } from '../rows-behind/drill.js';
 
-const KEY = 'a1-bd-pm';
+export const FIGURE = 'a1-bd-pm';
 const CELLS = 'By Cell — Detail';
 /** The By Cell table's columns: name, machines, available hours, BD hours, BD %, PM hours, PM %, total %. */
 const COL = { cell: 0, bd: 4, pm: 6, total: 7 } as const;
@@ -55,10 +57,11 @@ function worstCell(page: Page, t: TFunction): Point | null {
  * answer is read from the printed figures and the cell the table says loses the most. Null when the engine has no page.
  */
 export function bdPmModel(reply: FiguresPart, t: TFunction): PrintedPageModel | null {
-  const page = pageOf(figureOf(reply, KEY), t);
+  const page = pageOf(figureOf(reply, FIGURE), t);
   if (page === null) return null;
   const words = pageWords(t, 'v2r.bd.source');
   const source = fill(words.source, { date: shortDate(reply.asOf) });
+  const say_: Translate = (key, values) => t(key, { ...values }) as string;
   const availability = kpiOf(page, 'Fleet Availability')?.sub;
   return {
     verdict: verdictOf(
@@ -72,6 +75,7 @@ export function bdPmModel(reply: FiguresPart, t: TFunction): PrintedPageModel | 
     figures: figuresOf(page.kpis),
     charts: page.charts.map((spec) => chartOf(spec, words)),
     tables: tablesOf(page.tables, words),
+    drill: seeRowsFor(reply, FIGURE, say_),
     source,
     words,
   };

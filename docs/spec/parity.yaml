@@ -1343,6 +1343,8 @@ rows:
       - fixtures/answer-key/a1-bd-pm.json
       - 'apps/web/src/screens/analytics/page-content.test.ts :: maps the six KPIs, the tables and the two charts with catalogue chrome'
       - 'apps/web/e2e/analytics-breakdowns.spec.ts :: a head filters the Breakdown Log, keeps its count, exports it and opens a ticket, then opens A1'
+      - 'apps/web/e2e/gallery/analytics-breakdown-pages.spec.ts :: BD % and PM split: its tab is pressed, the six figures, five tables and two charts are up, and the numbers are behind the charts'
+      - 'apps/web/src/screens/v2/breakdown-pages.test.ts :: the rows behind each page'
     source: docs/plan/m4a-triage.md
     screen: a1-bd-pm
     ticket: '40'
@@ -1356,7 +1358,9 @@ rows:
     evidence:
       - fixtures/answer-key/a2-category-cell.json
       - 'apps/web/src/screens/analytics/page-content.test.ts :: maps the key page whole: no KPIs, its 16 tables and its 8 bar charts'
-      - 'apps/web/e2e/analytics-breakdowns.spec.ts :: a head opens A2 and A3, sees their tables and charts, and drills into their tickets'
+      - 'apps/web/e2e/analytics-breakdowns.spec.ts :: a head opens A2 and A3, sees their tables and charts, and opens the tickets behind them'
+      - 'apps/web/e2e/gallery/analytics-breakdown-pages.spec.ts :: Category and cell: eight charts, the two summary tables, and the machines of all categories in one table that filters by category'
+      - 'apps/web/src/screens/v2/breakdown-pages.test.ts :: the rows behind each page'
     source: docs/plan/m4a-triage.md
     screen: a2-category-cell
     ticket: '40'
@@ -1371,7 +1375,9 @@ rows:
       - fixtures/answer-key/a3-mttr-mtbf.json
       - 'PR #320 (the a3-mttr-mtbf engine figure, merged 18 Nov)'
       - 'apps/web/src/screens/analytics/page-content.test.ts :: maps the key page whole: no KPIs, its 6 tables, its 6 bars and the two-line plant trend'
-      - 'apps/web/e2e/analytics-breakdowns.spec.ts :: a head opens A2 and A3, sees their tables and charts, and drills into their tickets'
+      - 'apps/web/e2e/analytics-breakdowns.spec.ts :: a head opens A2 and A3, sees their tables and charts, and opens the tickets behind them'
+      - 'apps/web/e2e/gallery/analytics-breakdown-pages.spec.ts :: MTTR and MTBF: seven charts, the six tables with the key’s dash, and the month matrices one table per measure'
+      - 'apps/web/src/screens/v2/breakdown-pages.test.ts :: the rows behind each page'
     source: docs/plan/m4a-triage.md
     screen: a3-mttr-mtbf
     ticket: '40'

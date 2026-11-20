@@ -9,5 +9,12 @@ declare module '../data.js' {
 
 export const screen: ScreenEntry<'bd-pm'> = {
   key: 'bd-pm',
-  provider: () => import('./source.js').then((m) => m.bdPmModelFromKey()),
+  provider: async (_, { client }) => {
+    const [{ liveReply }, { bdPmFromReply }] = await Promise.all([
+      import('../figures/live.js'),
+      import('./live.js'),
+    ]);
+    return bdPmFromReply(await liveReply(client));
+  },
+  frozen: () => import('./source.js').then((m) => m.bdPmModelFromKey()),
 };

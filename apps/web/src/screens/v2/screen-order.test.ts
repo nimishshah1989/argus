@@ -4,6 +4,13 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import '../../i18n/index.js';
+import { bdPmModel } from './bd-pm/adapter.js';
+import { BdPmView } from './bd-pm/View.js';
+import { categoryCellModel } from './category-cell/adapter.js';
+import { CategoryCellView } from './category-cell/View.js';
+import { mttrMtbfModel } from './mttr-mtbf/adapter.js';
+import { MttrMtbfView } from './mttr-mtbf/View.js';
+import type { PrintedPageModel } from './printed-page/page-model.js';
 import { fixFinderModel } from './fix-finder/adapter.js';
 import { FixFinderView } from './fix-finder/View.js';
 import { problemAnalysisModel } from './problem-analysis/adapter.js';
@@ -143,5 +150,41 @@ describe('Shift-calendar KPIs draws its four figures in order', () => {
       .slice(lines.indexOf('h2: Breakdown map'))
       .filter((line) => line.startsWith('th: Machine'));
     expect(grids).toEqual(['th: Machine']);
+  });
+});
+
+/**
+ * BD % and PM split, Category and cell, and MTTR and MTBF, where the v1 gallery list stood for them: the page title, the
+ * charts each with "Show the numbers", then the tables, then (v1's last item) the rows behind the page, now a page action
+ * at the top. Tables moving above the charts, or a chart losing its numbers, fails here.
+ */
+describe.each([
+  ['BD % and PM split', bdPmModel, BdPmView, 2],
+  ['Category and cell', categoryCellModel, CategoryCellView, 8],
+  ['MTTR and MTBF', mttrMtbfModel, MttrMtbfView, 7],
+] as const)('%s draws its parts in order', (_name, build, View, charts) => {
+  const model = build(realReply(), realT) as PrintedPageModel;
+  const markup = draw(createElement(View, { model, nav, title: 'Title' }));
+  const at = (needle: string) => markup.indexOf(needle.replaceAll('&', '&amp;'));
+
+  it('opens with the title, then the rows behind the page, then the charts', () => {
+    expect(at('<h1')).toBeGreaterThan(0);
+    expect(at('See the rows')).toBeGreaterThan(at('<h1'));
+    expect(at(`aria-label="${model.charts[0]!.spec.title}"`)).toBeGreaterThan(at('See the rows'));
+  });
+
+  it('gives every chart its own "Show the numbers", all before the first table', () => {
+    const summaries = [...markup.matchAll(/<summary[^>]*>Show the numbers<\/summary>/g)];
+    expect(model.charts).toHaveLength(charts);
+    expect(summaries).toHaveLength(charts);
+    const firstTable = at(`aria-label="${model.tables[0]!.title}"`);
+    expect(firstTable).toBeGreaterThan(0);
+    expect(summaries.at(-1)!.index).toBeLessThan(firstTable);
+  });
+
+  it('prints the tables in the engine order after the charts', () => {
+    const places = model.tables.map((table) => at(`aria-label="${table.title}"`));
+    expect(places.every((place) => place > 0)).toBe(true);
+    expect([...places].sort((a, b) => a - b)).toEqual(places);
   });
 });
