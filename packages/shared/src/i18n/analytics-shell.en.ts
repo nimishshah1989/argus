@@ -24,4 +24,6 @@ export const analyticsShellEn = {
   'ashell.search.none': 'Nothing matches',
   'ashell.search.section': 'Section',
   'ashell.search.screen': 'Screen in {{section}}',
+  'ashell.entity.fullPage': 'Open full page',
+  'ashell.entity.notFound': 'We could not find this one. It may have been removed.',
 };

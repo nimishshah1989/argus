@@ -41,7 +41,7 @@ the public repo is an accepted risk, add NO more (Bhavin's files hold real plant
 ## How to work
 
 - Never ask Nimish a technology question. Report short and plain; challenge him; flag uncertainty.
-- Builders: `pnpm lint` and `pnpm precheck` before every push; `Large PR:` and `Tests removed:` lines in the body.
+- Builders: before every push `pnpm precheck`, or for web/docs-only PRs the light set in CLAUDE.md (Git; it includes `pnpm format:check`); `Large PR:` and `Tests removed:` lines in the body.
 - Merge squash with `expectedHeadSha` only after reading check runs of the CURRENT head. The gallery job has an
   8-minute limit and the test server on port 3001 sometimes refuses connections: re-run once, then investigate.
 - Known staging bugs to fix when wiring real data: UUIDs shown instead of names, unformatted floats, A1 all 0.00%.

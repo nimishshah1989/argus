@@ -65,7 +65,10 @@ budget stop, and never let the writer review its own work.
 
 Work on a branch. Never push to main, never force-push, never `--no-verify`. One ticket per PR, with one
 `changes/<issue>-<slug>.md` fragment. The PR body says what changed for a user, which tests prove it, and how
-to try the preview. Run `pnpm precheck` before every push.
+to try the preview. Before every push run `pnpm precheck`, except for a PR that touches only `apps/web`, `docs` and
+`changes/` (Nimish, 20 Nov: frontend checks stay light): then run `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm ui:check`,
+`pnpm pii:scan`, `pnpm changelog:check` and the tests you touched, and skip the rest (CI runs the full suite on the PR).
+Any change outside those folders gets the full `pnpm precheck`.
 
 ## Memory
 

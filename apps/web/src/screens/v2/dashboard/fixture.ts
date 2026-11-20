@@ -1,6 +1,6 @@
 import type { DashboardModel } from './model.js';
 import { plantCells } from './fixture-plant.js';
-import { glue, pt, pts } from './fixture-text.js';
+import { chip, glue, pt, pts } from './fixture-text.js';
 import { KPIS, TREND } from './fixture-trend.js';
 import { dashboardWords } from './fixture-words.js';
 
@@ -15,7 +15,7 @@ export const dashboardFixture: DashboardModel = {
     headline: pt('November is !!9.2% worse!! than October. Four decisions win most of it back.'),
     why: pts(
       'Breakdown hours: !!312.4 h!! this month vs **286.0 h** in October',
-      '**3 machines** (HMC-2, TC-10, VC-22) caused !!31%!! of the hours',
+      '**3 machines** ({{machine:TC-56|TC-56}}, {{machine:VC-94|VC-94}}, {{machine:TC-111|TC-111}}) caused !!31%!! of the hours',
       'Biggest jump: **Cell 8**, !!+14.0 h!!',
       'The 4 decisions below win back ++79.7 h a month++ (++₹ 1.30 lakh a month++, ₹ 15.59 lakh a year)',
     ),
@@ -26,7 +26,7 @@ export const dashboardFixture: DashboardModel = {
       id: 'axis',
       kind: 'fix',
       kindLabel: 'Fix for good',
-      codes: ['VC-67', 'VC-94', 'TC-56'],
+      codes: [chip('VC-67'), chip('VC-94'), chip('TC-56')],
       title: 'Stop axis motor and encoder failures',
       keys: [
         { text: '16% of all hours', tone: 'loss' },
@@ -34,13 +34,13 @@ export const dashboardFixture: DashboardModel = {
       ],
       why: pts(
         '!!478 h!! in **98 breakdowns** on 44 machines',
-        'Worst on **VC-67 (13)**, **VC-94 (10)**, **TC-56 (5)**',
+        'Worst on {{machine:VC-67|VC-67}} (13), {{machine:VC-94|VC-94}} (10), {{machine:TC-56|TC-56}} (5)',
       ),
       detail: pts(
         '!!478 h!! in **98 breakdowns** on 44 machines',
-        'Worst on **VC-67 (13)**, **VC-94 (10)**, **TC-56 (5)**',
+        'Worst on {{machine:VC-67|VC-67}} (13), {{machine:VC-94|VC-94}} (10), {{machine:TC-56|TC-56}} (5)',
         'Causes: ~~cable bends~~ and ~~coolant in encoders~~',
-        '++Arjun V++ fixed the same fault on **VC-18**; it has not come back in 5 months',
+        '{{person:arjun-v|Arjun V}} fixed the same fault on {{machine:VC-18|VC-18}}; it has not come back in 5 months',
       ),
       hours: glue('48.1 h'),
       money: glue('₹ 10.38 lakh a year'),
@@ -48,15 +48,15 @@ export const dashboardFixture: DashboardModel = {
       stripLabel: '21 breakdowns in the last 90 days',
       action: 'Assign a root-cause fix',
       doneText: 'Assigned to Arjun V',
-      owner: 'Suggested: Arjun V',
+      owner: pt('Suggested: {{person:arjun-v|Arjun V}}'),
       decided: false,
     },
     {
       id: 'tmc2',
       kind: 'decide',
       kindLabel: 'Decide',
-      codes: ['TMC-2'],
-      title: 'Overhaul or replace the turnmill',
+      codes: [chip('TC-4')],
+      title: 'Overhaul or replace the turning centre',
       keys: [
         { text: 'Health 4.1 / 10', tone: 'loss' },
         { text: '2.6× expected loss', tone: 'loss' },
@@ -77,14 +77,14 @@ export const dashboardFixture: DashboardModel = {
       stripLabel: '14 breakdowns in the last 90 days',
       action: 'Get an overhaul quote',
       doneText: 'Quote requested',
-      owner: 'Owner: not assigned',
+      owner: pt('Owner: not assigned'),
       decided: false,
     },
     {
       id: 'dcmc',
       kind: 'plan',
       kindLabel: 'Plan',
-      codes: ['DCMC-02'],
+      codes: [chip('VC-35')],
       title: 'Move a warranty PM to keep Cell 3 running',
       keys: [
         { text: '3 PMs on 26-Nov-2026', tone: 'plan' },
@@ -92,11 +92,11 @@ export const dashboardFixture: DashboardModel = {
       ],
       why: pts(
         '**3 PM jobs** fall on **26-Nov-2026** in Cell 3',
-        'Moving DCMC-02 to **24-Nov-2026** leaves ++2 machines down instead of 3++',
+        'Moving {{machine:VC-35|VC-35}} to **24-Nov-2026** leaves ++2 machines down instead of 3++',
       ),
       detail: pts(
         '**3 PM jobs** fall on **26-Nov-2026** in Cell 3',
-        'Moving DCMC-02 to **24-Nov-2026** leaves ++2 machines down instead of 3++',
+        'Moving {{machine:VC-35|VC-35}} to **24-Nov-2026** leaves ++2 machines down instead of 3++',
         'The ++warranty date still holds++',
       ),
       hours: glue('7.5 h'),
@@ -105,15 +105,15 @@ export const dashboardFixture: DashboardModel = {
       stripLabel: 'No breakdowns in the last 90 days',
       action: 'Move to 24-Nov-2026',
       doneText: 'Moved to 24-Nov-2026',
-      owner: 'Warranty date holds',
+      owner: pt('Warranty date holds'),
       decided: false,
     },
     {
       id: 'wj01',
       kind: 'inspect',
       kindLabel: 'Inspect',
-      codes: ['WJ-01'],
-      title: 'Inspect the waterjet before December',
+      codes: [chip('GRD-127')],
+      title: 'Inspect the grinder before December',
       keys: [
         { text: 'Rising', tone: 'risk' },
         { text: '11 in 90 days', tone: 'risk' },
@@ -134,7 +134,7 @@ export const dashboardFixture: DashboardModel = {
       stripLabel: '11 breakdowns in the last 90 days',
       action: 'Schedule an inspection',
       doneText: 'Inspection on 24-Nov-2026',
-      owner: 'Free slot: 24-Nov-2026',
+      owner: pt('Free slot: 24-Nov-2026'),
       decided: false,
     },
   ],
@@ -213,7 +213,7 @@ export const dashboardFixture: DashboardModel = {
       why: pts(
         'Target **250 h**, now **212 h**',
         'Up ++14 h++ from October',
-        'Dragged down by **TMC-2** and **WJ-01**',
+        'Dragged down by {{machine:TC-4|TC-4}} and {{machine:GRD-127|GRD-127}}',
       ),
     },
     {
@@ -232,7 +232,7 @@ export const dashboardFixture: DashboardModel = {
       why: pts(
         '**11 of 12** PMs done on the day',
         'Up ++4 pts++ from October',
-        'Missed: **VC-31**, spare not in stock',
+        'Missed: {{machine:VC-31|VC-31}}, spare not in stock',
       ),
     },
   ],

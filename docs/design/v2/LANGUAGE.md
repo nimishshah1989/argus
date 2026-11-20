@@ -47,7 +47,9 @@ apps/web/src/screens/v2/data.ts   add the key to `Screens` and its provider to `
 ```
 
 - `useScreenModel(key, params)` returns `{ state: 'loading' | 'ready' | 'error' | 'empty', model, retry }`. Today every provider returns its fixture; the API adapter replaces one provider and no View changes.
-- Wrap the result in `ScreenStates` inside the `Shell`. The kit draws the skeleton, the error with "Try again" and the empty state.
+- Wrap the result in `ScreenStates` inside the shell. The kit draws the skeleton, the error with "Try again" and the empty state.
+- **A View uses `EntityShell`, never `Shell`** (`screens/v2/entity/EntityShell.tsx`, same props). It puts the drawer in the URL and fetches any machine, cell, person or decision a chip opens through the `entity` key of `useScreenModel`. A screen that holds an entity live (the Dashboard's decisions, with their Decide button) passes `local`; everything else needs no drawer code. Rows, tables and squares open their item with `useContext(EntityOpenContext)`.
+- **Entities in text are segments.** A sentence names a machine, cell, person or decision with a `Seg` that carries `entity`, so it prints as a chip. In a fixture write `{{machine:TC-12|TC-12}}`, `{{person:neel-s|Neel S}}`; a field that holds the thing itself (a decision's `codes`) holds `EntityChipProps`. Never type a code into a sentence: `ui:check` fails it (add `// ui-allow: entity-code <reason>` for the rare real exception).
 - The gallery shows a screen at `/gallery?view=v2-<name>`; `&state=loading|error|empty` previews those states.
 
 **A file under `screens/v2/` must not contain colours, font sizes, font weights or animation.** `pnpm ui:check` fails it. If a screen needs a look the kit lacks, add it to the kit.
@@ -69,6 +71,7 @@ apps/web/src/screens/v2/data.ts   add the key to `Screens` and its provider to `
 | Where the hours go                                    | `Pareto`                                                                                                |
 | A choice among a few                                  | `Segmented`                                                                                             |
 | Loading, error, empty                                 | `ScreenStates` (`Skeleton`, `ErrorState`, `EmptyState`)                                                 |
+| A machine, cell, person or decision, named anywhere   | `EntityChip`; its drawers are the `domain/` `…Detail` parts                                             |
 | Maintenance parts                                     | `domain/`: `DecisionList`, `DecisionRow`, `DecisionDetail`, `PlantMap`, `MachineTable`, `MachineDetail` |
 | Icons                                                 | `Icon` from `icons.tsx` (one stroke weight); never another icon set in v2                               |
 

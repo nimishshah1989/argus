@@ -1,7 +1,10 @@
 import { DataTable, type Column, type FilterChip, type TableWords } from '../data-table.js';
+import { EntityChip } from '../entity-chip.js';
 import { KeyPill } from '../key-pill.js';
 import { Sparkline } from '../sparkline.js';
 import {
+  cellChip,
+  machineChip,
   trendTone,
   STATE_ICON,
   STATE_TONE,
@@ -23,13 +26,11 @@ const WORST_FIRST = { key: 'hours', dir: 'desc' } as const;
 function Identity({ m }: { m: MachineData }) {
   return (
     <div className="v2-who">
-      <span className="v2-code" data-cat={m.cat}>
-        {m.code}
-      </span>
+      <EntityChip {...machineChip(m)} />
       <div>
         <div className="v2-who-name">{m.name}</div>
         <div className="v2-sub">
-          {m.typeLabel} · {m.cell}
+          {m.typeLabel} · <EntityChip {...cellChip(m.cell)} />
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { fill } from '../../../i18n/fill.js';
+import type { EntityChipProps } from '../entity-chip.js';
 import type { IconName } from '../icons.js';
 import type { Point } from '../points.js';
 
@@ -45,6 +46,20 @@ export const STATE_TONE = {
   idle: 'neutral',
 } as const;
 export type CellData = { name: string; machines: MachineData[] };
+
+/** A machine as a chip: its code in its type's colour. */
+export const machineChip = (m: MachineData): EntityChipProps => ({
+  kind: 'machine',
+  id: m.code,
+  label: m.code,
+  cat: m.cat,
+});
+/** A cell as a chip; a machine knows its cell by name, and a cell is asked for by its name. */
+export const cellChip = (name: string): EntityChipProps => ({
+  kind: 'cell',
+  id: name,
+  label: name,
+});
 export type PlantFilter = 'all' | 'down' | 'risk' | 'pm';
 
 export type PlantWords = {

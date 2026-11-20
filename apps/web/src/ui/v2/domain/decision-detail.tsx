@@ -1,6 +1,7 @@
+import { EntityChip } from '../entity-chip.js';
 import { EventStrip } from '../event-strip.js';
 import { KeyPill } from '../key-pill.js';
-import { Points } from '../points.js';
+import { Points, Segs } from '../points.js';
 import {
   DecisionAction,
   KIND_TONE,
@@ -24,19 +25,19 @@ export function DecisionDetail({
   words,
   source,
   ...act
-}: { d: DecisionData; words: DecisionDetailWords; source: string } & DecisionCallbacks) {
+}: { d: DecisionData; words: DecisionDetailWords; source: string } & Partial<DecisionCallbacks>) {
   return (
     <div className="v2-detail">
       <div className="v2-row v2-gap-8">
         <KeyPill text={d.kindLabel} tone={KIND_TONE[d.kind]} />
         {d.codes.map((c) => (
-          <span key={c} className="v2-code">
-            {c}
-          </span>
+          <EntityChip key={c.id} {...c} />
         ))}
       </div>
       <h2 className="v2-drawer-title">{d.title}</h2>
-      <p className="v2-sub">{d.owner}</p>
+      <p className="v2-sub">
+        <Segs point={d.owner} />
+      </p>
       <DetailSection label={words.worth}>
         <div className="v2-figures">
           <DetailFigure label={words.perMonth} value={d.hours} />
@@ -49,9 +50,11 @@ export function DecisionDetail({
       <DetailSection label={words.why}>
         <Points points={d.detail} />
       </DetailSection>
-      <div className="v2-row v2-gap-8">
-        <DecisionAction d={d} {...act} />
-      </div>
+      {act.onDecide && act.onUndo ? (
+        <div className="v2-row v2-gap-8">
+          <DecisionAction d={d} onDecide={act.onDecide} onUndo={act.onUndo} />
+        </div>
+      ) : null}
       <SourceLine text={source} />
     </div>
   );

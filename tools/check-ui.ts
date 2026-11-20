@@ -59,6 +59,30 @@ const V2_SCREEN_RULES: [string, RegExp][] = [
     /@keyframes|\b(?:animation|transition)(?:-[\w-]+)?\s*:|\banimation(?:Name|Duration)?\s*:|\banimate-\w/i,
   ],
 ];
+/**
+ * Entity links (docs/slices/entity-links.md): a machine, cell, person or decision is always an `EntityChip`, so a
+ * hand-drawn code or a code in a sentence is a mistake.
+ */
+const CODE_CLASS = /\bv2-code\b/;
+/** `{m.code}` or `{d.codes.join(', ')}` as JSX text; an attribute (`key={m.code}`) and a template part pass. */
+const CODE_AS_TEXT =
+  /(?<![=\w$])\{\s*(?:[\w?]+\.)*(?:codes?|\w+Codes?)(?:\[\d+\])?(?:\.join\([^)]*\))?\s*\}/;
+const ENTITY_WORD = /\b[A-Z]{2,5}-\d{1,4}\b/;
+const QUOTED = /'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`/g;
+const ALLOW_CODE = /\/\/\s*ui-allow:\s*entity-code\s+\S/;
+const SHELL_FILE = /^(?:screens\/v2\/|gallery\/v2-)(?:.+\/)?[^/]+\.tsx$/;
+const SHELL_IMPORT =
+  /import\s*(?:type\s*)?\{[^}]*\bShell\b[^}]*\}\s*from\s*['"][^'"]*ui\/v2\/shell(?:\.js)?['"]/;
+
+/** Whether a line of a fixture writes an entity code inside a sentence instead of as `{{machine:CODE|CODE}}`. */
+function codeInText(line: string): boolean {
+  if (ALLOW_CODE.test(line)) return false;
+  return (line.match(QUOTED) ?? []).some((q) => {
+    const bare = q.replace(/\{\{[^}]*\}\}/g, '');
+    return /\s/.test(bare) && ENTITY_WORD.test(bare);
+  });
+}
+
 /** A line that is only a comment: a line comment, a whole block comment, or a line inside a block comment. */
 const COMMENT_ONLY =
   /^\s*(?:\/\/.*|\/\*(?:(?!\*\/).)*(?:\*\/\s*)?|\*(?!\/)(?:(?!\*\/).)*(?:\*\/\s*)?|\*\/\s*)$/;
@@ -82,6 +106,21 @@ export function readWebSrc(webSrc: string): UiFile[] {
   return files;
 }
 
+const inKit = (path: string) => path.startsWith('screens/v2/') || path.startsWith('ui/v2/domain/');
+
+/** The entity-link rules for one line (rules 1 to 3); a comment-only line is never wrong. */
+function entityErrors(path: string, line: string, n: number): string[] {
+  if (COMMENT_ONLY.test(line) || ALLOW_CODE.test(line)) return [];
+  const found: string[] = [];
+  if (path !== 'ui/v2/entity-chip.tsx' && CODE_CLASS.test(line))
+    found.push(`${path}:${n}: v2-code outside entity-chip.tsx; use EntityChip`);
+  if (inKit(path) && path.endsWith('.tsx') && CODE_AS_TEXT.test(line))
+    found.push(`${path}:${n}: a code printed as text; use EntityChip`);
+  if (/^screens\/v2\/(?:.+\/)?fixture[^/]*\.ts$/.test(path) && codeInText(line))
+    found.push(`${path}:${n}: entity code in text; write {{machine:CODE|CODE}}`);
+  return found;
+}
+
 export function uiErrors(files: UiFile[]): string[] {
   const errors: string[] = [];
   for (const { path, text } of files) {
@@ -96,7 +135,14 @@ export function uiErrors(files: UiFile[]): string[] {
           if (pattern.test(line)) errors.push(`${path}:${i + 1}: ${message}`);
       if (path !== 'ui/icon.ts' && LUCIDE.test(line))
         errors.push(`${path}:${i + 1}: lucide-react outside ui/icon.ts`);
+      errors.push(...entityErrors(path, line, i + 1));
     });
+    const shell =
+      SHELL_FILE.test(path) && !path.endsWith('/EntityShell.tsx') && SHELL_IMPORT.exec(text);
+    if (shell) {
+      const at = text.slice(0, shell.index).split('\n').length;
+      errors.push(`${path}:${at}: Shell in a screen; use EntityShell`);
+    }
     if (faces && path.endsWith('.tsx') && lines.length > FACES_LINES)
       errors.push(`${path}: ${lines.length} lines (faces limit ${FACES_LINES})`);
   }
