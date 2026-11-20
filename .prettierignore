@@ -18,6 +18,7 @@ docs/spec/PARITY.md
 docs/archive
 docs/design/slices/*.html
 docs/design/v2/*.html
+docs/design/v2/mockups/*.html
 
 # Generated answer key: one row per line, written by tools/answer-key/generate.ts.
 fixtures/answer-key
