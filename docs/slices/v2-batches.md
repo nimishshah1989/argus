@@ -1,6 +1,6 @@
 # v2 batches: who builds what (each follows `docs/slices/v2-build.md`)
 
-Three builders at a time at most, each in its own worktree and branch (`claude/v2-<name>`), one PR of five screens (four if a
+Every screen ships LIVE with its v1 page deleted in the same PR (`v2-build.md` 3b). Three builders at a time at most, each in its own worktree and branch (`claude/v2-<name>`), one PR of five screens (four if a
 screen's inventory is large). Merges one at a time after CI is green on the current head.
 
 ## Foundation (done before any batch starts)

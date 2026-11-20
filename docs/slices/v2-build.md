@@ -37,6 +37,15 @@ then list it as `needs kit: rows-behind`), designed loading, empty, error and no
 filter chips, Indian number format, DD-MMM-YYYY dates, a source and as-of line. Registers itself (no shared-file edits) once the plumbing
 is merged; a gallery view `gallery/v2-<name>-view.tsx` and one e2e smoke (loads, a drawer opens, Back closes it, axe light and dark).
 
+## 3b. Live in the same PR, old page deleted in the same PR (owner's rule, never negotiable)
+
+The PR that ships a screen wires it to its real route (the same URL v1 used) with live data from the same API and the same role
+rules, and DELETES the v1 page: the screen, helpers only it used, its route and its unit tests. v1 e2e assertions are ported to the
+v2 screen against the real server (each maps to a coverage row), never dropped. No `?view=classic`, no "Old view" link, no
+gallery-only screen. Run the repo's dead-code checks after deleting. If the coverage table still has a MISSING row or a
+`needs server` / `needs kit` row that is a v1 feature, build that server or kit change in the same work; if it truly cannot be done now,
+the screen does not go live yet, and the PR says what blocks it. The gallery holds kit demos and test fixtures only.
+
 ## 4. Before the push and in the PR
 
 - Light checks (web and docs only): `pnpm format:check`, `lint`, `typecheck`, `ui:check`, `pii:scan`, `changelog:check`, the tests

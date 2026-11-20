@@ -47,7 +47,12 @@ budget stop, and never let the writer review its own work.
   shrink, and each screen should say more than v1 could with the data we hold (rankings, comparisons, trends, early
   warnings, causes, money). Every screen PR carries a coverage table (`docs/design/v2/COVERAGE.md`): each v1 and spec
   item and where it lives in v2. "Not built" needs Nimish's written yes; neither a builder nor the orchestrator decides
-  it. A screen with a MISSING row does not pass its gate, and its v1 screen is not deleted.
+  it. A screen with a MISSING row does not pass its gate and does not go live.
+- **A v2 screen goes live in the PR that ships it, and its old v1 page is deleted in that same PR (Nimish, 20 Nov: he has
+  said this repeatedly).** No gallery-only screens, no "Old view" or classic link, no two copies, no dead code. The v1 code
+  (screen, helpers only it used, its route, its unit tests) goes; v1's e2e assertions are ported to the v2 screen, never
+  dropped. A screen is live only when its coverage table is clean; if a v1 feature needs a server or kit change, that
+  change is part of the same work, not a later ticket. The gallery is for kit demos and tests only.
 
 ## Orchestrating the plan
 
