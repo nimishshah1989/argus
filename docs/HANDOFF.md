@@ -7,7 +7,8 @@ origin/main` and the PR list beat this text. As of 14:50 UTC, 20 Nov 2026. **Orc
 
 - PR #517 `claude/v2-go-live`: live data source, real-data drawers, Cell change log live with its v1 page deleted. CI had one gallery failure
   (the v1 order spec still listed the deleted screen); a fix was being pushed. Merge when green. First screen live.
-- PR #518 (stacked on #515, Nimish's draft Why-Why fix): Breakdown Log row ticket ids, fixes a live v1 wrong-ticket bug. Merge #515 then #518.
+- PRs #515, #518, #519 are MERGED (Nimish, 14:45 UTC). Still open: #517 only.
+- #517 CI (head 3d7eced): `browser (3/5)` failed on `apps/web/e2e/who-is-acting.spec.ts:217` ("a wrong current password keeps the phone signed in"; 3 retries, `page.goto` ERR_ABORTED at /floor). Not an analytics test; maybe a known flaky journey, maybe caused by the PR's move of the figures hook out of `api.ts`. Re-run that job once when the run completes; if it fails again it is this PR's: root-cause it (builder branch `claude/v2-go-live`) before merging.
 - PR #519: docs, one plan (this file, MILESTONES ticket 91). Merge when green.
 - Builders running in the old session, NOT pushed (may be lost; re-dispatch from MILESTONES ticket 91 if no PR exists): `claude/v2-drill-live`
   (wire the rows-behind drill into the shell and cards, then take Machines register, Age, Footprint, Fix Finder, Problem Analysis live and delete their v1
