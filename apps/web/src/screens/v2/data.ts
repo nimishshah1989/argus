@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { EntityRef } from '../../ui/v2/entity-chip.js';
 import type { LoadState, Loaded } from '../../ui/v2/screen-states.js';
+import type { CompareModel, CompareParams } from './compare/model.js';
 import type { DashboardModel } from './dashboard/model.js';
 import type { EntityModel } from './entity/model.js';
 import type { TeamFocusModel } from './team-focus/model.js';
@@ -14,6 +15,7 @@ export type Screens = {
   dashboard: { params: Record<string, never>; model: DashboardModel };
   /** One machine, cell, person or decision, for the drawer on any screen; nothing when it is not found. */
   entity: { params: EntityRef; model: EntityModel };
+  compare: { params: CompareParams; model: CompareModel };
   'team-focus': { params: Record<string, never>; model: TeamFocusModel };
 };
 export type ScreenKey = keyof Screens;
@@ -28,6 +30,7 @@ export type Provider<K extends ScreenKey> = (
 const PROVIDERS: { [K in ScreenKey]: Provider<K> } = {
   dashboard: () => import('./dashboard/fixture.js').then((m) => m.dashboardFixture),
   entity: (ref) => import('./entity/fixture.js').then((m) => m.entityFixture(ref)),
+  compare: (pair) => import('./compare/fixture.js').then((m) => m.compareFixture(pair)),
   'team-focus': () => import('./team-focus/fixture.js').then((m) => m.teamFocusFixture),
 };
 

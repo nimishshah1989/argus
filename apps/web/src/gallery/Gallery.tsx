@@ -82,6 +82,13 @@ const V2TeamFocusView = () => (
   </Suspense>
 );
 
+const V2Compare = lazy(() => import('./v2-compare-view.js'));
+const V2CompareView = () => (
+  <Suspense fallback={null}>
+    <V2Compare />
+  </Suspense>
+);
+
 /** The gallery's whole-page views, picked by `?view=`; anything else is the section list. */
 const VIEWS: Record<string, () => React.JSX.Element> = {
   desktop: DesktopView,
@@ -92,6 +99,7 @@ const VIEWS: Record<string, () => React.JSX.Element> = {
   templates: TemplatesView,
   'v2-dashboard': V2DashboardView,
   'v2-team-focus': V2TeamFocusView,
+  'v2-compare': V2CompareView,
 };
 
 /** Own keys only, so `?view=constructor` is not a view. */
