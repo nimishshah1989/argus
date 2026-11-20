@@ -30,21 +30,9 @@ const twoDecimals = new Intl.NumberFormat('en-IN', {
   maximumFractionDigits: 2,
 });
 
-/** What the card for the costliest problems says when it has no rows: held, nothing recorded, or nothing to rank. */
-function costliestEmpty(figure: Figure, t: Translate): string {
-  if (figure.status !== 'ready') return t('v2d.notComputed');
-  return figure.value === null ? NO_VALUE : t('v2d.costliest.empty');
-}
-
-/** The problems that cost the most downtime; `change` is what their hours gained in 30 days (a running total: no verdict). */
-export function costliestOf(
-  figure: Figure,
-  change: Pick<KpiData, 'delta' | 'period'>,
-  t: Translate,
-): CostliestModel {
-  const value = (figure.value ?? {}) as { rows?: unknown; totalHours?: unknown };
-  const rows = Array.isArray(value.rows) ? value.rows : [];
-  const cells = rows.flatMap((raw): Cell[][] => {
+/** One row per problem: hours, share (a dash when the engine sent none) and breakdowns. */
+function costliestRows(rows: unknown[]): Cell[][] {
+  return rows.flatMap((raw): Cell[][] => {
     const row = raw as {
       problem?: unknown;
       hours?: unknown;
@@ -64,6 +52,23 @@ export function costliestOf(
       ],
     ];
   });
+}
+
+/** What the card for the costliest problems says when it has no rows: held, nothing recorded, or nothing to rank. */
+function costliestEmpty(figure: Figure, t: Translate): string {
+  if (figure.status !== 'ready') return t('v2d.notComputed');
+  return figure.value === null ? NO_VALUE : t('v2d.costliest.empty');
+}
+
+/** The problems that cost the most downtime; `change` is what their hours gained in 30 days (a running total: no verdict). */
+export function costliestOf(
+  figure: Figure,
+  change: Pick<KpiData, 'delta' | 'period'>,
+  t: Translate,
+): CostliestModel {
+  const value = (figure.value ?? {}) as { rows?: unknown; totalHours?: unknown };
+  const rows = Array.isArray(value.rows) ? value.rows : [];
+  const cells = costliestRows(rows);
   const total = Number(value.totalHours);
   const title = t('v2d.costliest.title');
   const header = [
