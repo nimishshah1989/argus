@@ -3,8 +3,8 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { DrillReply, DrillType, FiguresReply } from '@uptimo/shared/analytics';
 import type { Config } from '@uptimo/shared/replies';
 import { analyticsFiguresQuery, getConfig, getDrill, getMe, getState } from '../../../api.js';
-import { ApiError } from '../../../data/index.js';
-import { LiveOffline } from './live-error.js';
+import { isOwnCopy } from '../../../data/index.js';
+import { isLostConnection, LiveOffline } from './live-error.js';
 import type { Translate } from './read.js';
 
 /** The catalogue as the adapters ask for it: one language, the reader's. */
@@ -13,8 +13,10 @@ export const catalogue: Translate = (key, values) => i18n.t(key, { ...values }) 
 /**
  * The one live source for v2 screens. Each read is the v1 screens' own query (same key, same fetch, same cache), so a
  * page that was just open costs no request and a figure the two agree on is fetched once. The client's own default
- * retries a lost connection twice. When the connection is lost and an older copy is cached, that copy is served (as
- * v1 does); with none, the read fails as `LiveOffline`. A refusal stays the server's `ApiError`.
+ * retries a lost connection twice. When the connection is lost and an older copy is cached for the person acting now,
+ * that copy is served (as v1 does); with none, the read fails as `LiveOffline`. A copy fetched for anyone else is
+ * dropped before the read and never served. A refusal stays the server's `ApiError`, and a reply that cannot be read
+ * is an error, never a reason to show an old copy.
  */
 async function read<T>(
   client: QueryClient | undefined,
@@ -22,14 +24,22 @@ async function read<T>(
 ): Promise<T> {
   if (!client) throw new Error('no query client');
   const key = [...query.queryKey];
+  if (client.getQueryState(key) && !isOwnCopy(client, key))
+    client.removeQueries({ queryKey: key, exact: true });
   try {
     return await client.fetchQuery({ queryKey: key, queryFn: query.queryFn, staleTime: 30_000 });
   } catch (error) {
-    if (error instanceof ApiError) throw error;
+    if (!isLostConnection(error)) throw error;
     const cached = client.getQueryData<T>(key);
     if (cached !== undefined) return cached;
     throw new LiveOffline();
   }
+}
+
+/** Whether the figures on screen are the saved copy: the last try to refresh them failed and the older answer stands. */
+export function savedFigures(client: QueryClient | undefined): boolean {
+  const state = client?.getQueryState(analyticsFiguresQuery.queryKey);
+  return state?.status === 'error' && state.data !== undefined;
 }
 
 type Client = QueryClient | undefined;

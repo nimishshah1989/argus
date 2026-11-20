@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ApiError, chooseActing, getActingChoices, getMe } from '../../api.js';
+import { forgetEveryone } from '../../data/index.js';
 import { SignOutSheet } from '../../components/AccountSheet.js';
 import { StateNotice } from '../../patterns/frame.js';
 import { WizardPage } from '../../patterns/wizard-page.js';
@@ -79,8 +80,8 @@ export function Who() {
     await ensurePushBinding(personId).catch(() => undefined);
     // What this person queued earlier on this phone goes now (review of PR 225); others' stays held.
     await replayOutbox().catch(() => undefined);
-    for (const key of ['me', 'config', 'state', 'tickets'])
-      await queryClient.invalidateQueries({ queryKey: [key] });
+    // The acting person changed, so what was saved for the one before (figures, role, lists) goes with them.
+    forgetEveryone(queryClient);
     navigate(landingPath(me.user.role));
     return false;
   }

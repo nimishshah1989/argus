@@ -8,7 +8,7 @@ import { viewState } from '../../patterns/view-state.js';
 import { DrillTrail, EmptyState } from '../../ui/elements/index.js';
 import { Template } from './shell/patterns/template.js';
 import { DrillTable } from './DrillTable.js';
-import { machineRecord, type MachineRecord } from './machine-record.js';
+import { machineIdOf, machineRecord, type MachineRecord } from './machine-record.js';
 import { MachineAside, MachineMain } from './machine-summary.js';
 import { MachineTiles } from './machine-tiles.js';
 import { MACHINES_PATH, parseDrill, type AnalyticsGroup } from './groups.js';
@@ -49,11 +49,14 @@ function ledeOf(record: MachineRecord): string | undefined {
   return parts.length === 0 ? undefined : parts.join(' · ');
 }
 
-/** The page once the figures are in: the record the engine holds for this machine, or the words for why not. */
+/**
+ * The page once the figures are in: the record the engine holds for this machine, or the words for why not. `id` is the
+ * machine's id or its code (a v2 chip's link carries the code).
+ */
 export function MachineView({
   group,
   figures,
-  id,
+  id: asked,
 }: {
   group: AnalyticsGroup;
   figures: FiguresReply;
@@ -69,6 +72,7 @@ export function MachineView({
     (candidate) => candidate.key === 'reliability',
   );
   const ready = figure?.status === 'ready';
+  const id = ready ? machineIdOf(figure?.value, asked) : asked;
   const record = ready && figure ? machineRecord(figure.value, id) : null;
   const drill = parseDrill(params.get('drill'));
   const code = record?.machine.code ?? t('analytics.machine.title');
