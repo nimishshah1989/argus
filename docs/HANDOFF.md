@@ -1,29 +1,24 @@
 # Where things stand — handoff for the next session (human or model)
 
 **The one plan is `docs/plan/MILESTONES.md` (ticket 91 is the redesign); everything else is detail under it.** Read this, the tail of `docs/plan/ledger.md`, then `docs/slices/v2-build.md` (section 5) (queue, recipe, ready-to-paste briefs). `git log
-origin/main` and the PR list beat this text. As of 16:00 UTC, 20 Nov 2026. **Second orchestrator session running.** Staging deploys on every merge (`https://cosmos.3-108-95-203.sslip.io/api/v1/health` shows the commit).
+origin/main` and the PR list beat this text. As of 17:20 UTC, 20 Nov 2026. **Second orchestrator session running.** Staging deploys on every merge (`https://cosmos.3-108-95-203.sslip.io/api/v1/health` shows the commit).
 
-## In flight (orchestrator session 2, 16:00 UTC, 20 Nov): check each against GitHub first
+## In flight (orchestrator session 2, 17:20 UTC, 20 Nov): check each against GitHub first
 
-- LIVE on staging (6 of 36 screens): Cell change log (#517), Machines register, Age, Footprint, Fix Finder, Problem Analysis (#523). Nimish merged both before independent review; the
-  reviews (Opus) then found real bugs, fixed or in fix PRs: saved copy tied to a person (#525 merged), machine drawer link, ids on screen, wrong drills (#528 open).
-- Open PRs; I merge only after an independent review passes AND its own checks are green (CI noise outside the diff is ignored, per Nimish):
-  - #528 fixes from the review of #523 (review PASS): register and Age open their rows from one "See the machines" page action (no drill on a count it does not equal), old `?drill=` links, "Not computed
-    yet", the engine printing machine codes not database ids in registers, footprint and Fix Finder, restored specs, the `analytics-order` gallery spec (RED ON MAIN until this lands). Needs main merged and a real CI run.
-  - #526 Dashboard live on real data (draft): review fixes pushed (UUIDs, 30 s refresh, costliest change, held figures, query forms); blocked by Q16 until the shell PR lands AND Nimish answers the
-    period-picker question.
-  - #529 batch 5, four screens live (Energy, Shift-calendar KPIs, Bottleneck, Forecast Lab); the fifth, "Reliability scorecard", is NOT a v1 screen (the monthly scorecard is ticket 53, a new
-    screen). CI running, independent review running. Its three rewritten real-server e2e specs have never run (no Docker locally).
-  - `claude/v2-shell-parity` (builder running): the v2 shell lacks v1's Desk link and Ctrl+K search palette, and its rail links reload the page.
-  - Merge order: #528, then #529, then #526 (all three change `screens/v2/live.tsx`; each later one merges main first).
-- Next: an engine ticket, "no database id in any printed figure" (one test over every figure with machines re-keyed to UUIDs; known: Dashboard bubble ids, data checklist text, a2 category-cell,
-  breakdown-log column 5, machine page byMachine, Bottleneck risk map, repeat faults); then Action Center and Machine page rebuilds; batch 4 and PM Calendar, Breakdown Log going live; Data Checklist,
-  Compare, Team Focus rebuilds; batches 6 and 7.
-- Rulings (Nimish, 20 Nov, session 2): do not spend time on CI noise that does not touch the diff (the `who-is-acting` /floor e2e and the `sla-timers` deadlock are unrelated flakes); only act on what blocks a merge or changes a result.
-- Cost rules from Nimish: tests minimal, Sonnet builders, Opus reviewers. The repo setting "Allow auto-merge" is off; only he can tick it.
-- Lessons (also in the builder contract used this session): the answer-key fixture sets machine id = code, so re-key to UUIDs in tests; a drill must equal its card; a figure v1 refreshed every 30 s must still refresh;
-  never merge a stacked PR into its parent's branch; Nimish merges PRs himself while an orchestrator works, so fetch main before every dispatch; gallery specs run locally with the preinstalled Chromium
-  (a throwaway Playwright config with `launchOptions.executablePath: '/opt/pw-browsers/chromium'`); the real-server e2e needs Docker and cannot run in this sandbox, so CI is the first run.
+- LIVE on staging (12 of about 34 screens): Cell change log; Machines register, Age, Footprint, Fix Finder, Problem Analysis; Energy, Shift-calendar KPIs, Bottleneck, Forecast Lab (#529); the Dashboard (#526); the Action Center (#532).
+  Also merged today: the shell with Desk link, Ctrl+K palette and router rail links (#531), the live reader's saved-copy fix (#525), fixes to #523's screens (#528), the engine printing no database ids with a guard test (#533),
+  the Excel exports printing codes (#534), the Breakdown Log row-ticket fix (#521). Every screen PR got an independent Opus review and each needed a fix round (ids on screen, a drill not equal to its card, a screen-switch crash, lost behaviour).
+- Open: #536 engine determinism (same-day ordering independent of UUID order; first review FAIL: the PDF reports, the Action Center board and the Excel analytics sheets call domain functions directly and skip the canonical order step; the builder is moving it to where no caller can skip it and extending the guard). #535 docs.
+  A full total order across days is NOT done: it changes last digits in the frozen answer key (for example 52.70 to 52.69); the server always sends days oldest first, so the production defect is closed; needs Nimish's yes before the key moves.
+- Nimish's answers (20 Nov, written in session): the disabled period box on Today is DROPPED; the Desk link is hidden from logins that cannot open the desk; General Work is not built now.
+  Open product questions for him (none blocks): a heading per priority group in the Action Center (the builder restored v1's per-priority counts on the chips instead); "Open full page" of a nudge goes to the same page; add "raise an inspection ticket from a nudge" later?
+- Next: batch 4 (BD% and PM split, Category and Cell, MTTR and MTBF, Manpower, Why-Why) and PM Calendar and Breakdown Log wiring live; Machine page, Data Checklist, Compare, Team Focus rebuilds; batches 6 and 7. "Reliability scorecard" is not a v1 screen (ticket 53 is the monthly scorecard).
+- Follow-ups: a DOM test runner (needs an ADR); keep the shell mounted when a screen goes from loading to ready (a phone menu opened early closes); blank Gujarati keys on the v2 screens (English shows); the Breakdown Log export has two identical columns
+  (Ticket ID and Ticket No.), the PM Reports Data column still holds UUIDs; a person switch may keep the previous person's screen until the next 30 s refresh; the `who-is-acting` e2e and the `sla-timers` deadlock are unrelated flakes.
+- Rulings (Nimish): do not spend time on CI noise outside the diff; only act on what blocks a merge or changes a result. Cost rules: tests minimal, Sonnet builders, Opus reviewers. The repo setting "Allow auto-merge" is off.
+- Lessons (in the builder contract used this session, `scratchpad/builder-preamble.md`, copy it into `docs/slices/v2-build.md` if it should outlive the session): the answer-key fixture sets machine id = code, so re-key to UUIDs in tests; a drill must equal its card;
+  v1's 30 s refresh must stay; every v2 screen is the same component in the same place, so key pages by screen; a draft PR runs no CI and "ready" does not start it, a push does; the real-server e2e needs Docker and cannot run in the sandbox, so CI is the first run;
+  gallery specs run locally with the preinstalled Chromium (throwaway Playwright config with `launchOptions.executablePath: '/opt/pw-browsers/chromium'`); gitleaks flags a long literal beside the word `key`.
 
 ## The one job: redesign every screen in the v2 language (Nimish, 20 Nov)
 
