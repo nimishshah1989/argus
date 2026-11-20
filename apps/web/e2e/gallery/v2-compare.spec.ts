@@ -8,7 +8,9 @@ async function open(page: Page, theme = 'light', width = 1440) {
   await page.setViewportSize({ width, height: 900 });
   await page.goto('about:blank');
   await page.goto(`/gallery?view=v2-compare&theme=${theme}`);
-  await expect(page.getByRole('heading', { level: 1, name: /^Compare machines/ })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Compare machines', exact: true }),
+  ).toBeVisible();
   await expect(page.getByText('more hours')).toBeVisible();
 }
 

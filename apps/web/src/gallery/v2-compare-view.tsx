@@ -25,7 +25,7 @@ export default function V2CompareView() {
   const loaded = useScreenModel('compare', pair, provider);
   const nav = useNav('machines');
   const { t } = useTranslation();
-  const title = t('analytics.screen.compare');
+  const title = t('ashell.v2.compare');
   const [added, setAdded] = useState(false);
   if (loaded.state !== 'ready' || !loaded.model)
     return (
