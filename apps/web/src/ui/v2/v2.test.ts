@@ -172,6 +172,20 @@ describe('v2 shell and drawer', () => {
     expect(all(out, /<h1[^>]*>(.*?)<\/h1>/g)).toEqual(['Dashboard']);
     expect(out.match(/<main/g)).toHaveLength(1);
   });
+  it('names the rail, offers the search only when it has pages to search, and shows the plant beside the title', () => {
+    const bare = html(createElement(Shell, { nav, title: 'Dashboard', children: 'x' }));
+    expect(bare).toMatch(/<nav class="v2-rail" aria-label="[^"]+"/);
+    expect(bare).not.toMatch(/aria-haspopup="dialog"/);
+    const search = [{ to: '/c', text: 'Reports', hint: 'Section', match: 'Reports' }];
+    const out = html(
+      createElement(Shell, { nav, title: 'Dashboard', plant: 'Plant 7', search, children: 'x' }),
+    );
+    expect(out).toMatch(
+      /<button[^>]*aria-haspopup="dialog"[^>]*aria-keyshortcuts="Control\+K Meta\+K"/,
+    );
+    expect(all(out, /<p class="v2-plant">(.*?)<\/p>/g)).toEqual(['Plant 7']);
+    expect(out).not.toContain('role="dialog"'); // the palette is closed until asked for
+  });
   it('keeps a closed drawer out of reach, and gives an open one its name and a close button', () => {
     expect(html(createElement(Drawer, { drawer: null }))).toMatch(/<aside[^>]*inert=""/);
     const open = html(
