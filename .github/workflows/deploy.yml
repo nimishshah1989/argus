@@ -77,8 +77,11 @@ jobs:
           echo "build=$missing" >> "$GITHUB_OUTPUT"
       - run: pnpm install --frozen-lockfile
         if: steps.gate.outputs.ready == 'true' && env.ACTION == 'deploy' && steps.exists.outputs.build == 'true'
+      # Staging shows the gallery (fixture data only) so new screens can be checked before they are wired.
       - run: pnpm build:web
         if: steps.gate.outputs.ready == 'true' && env.ACTION == 'deploy' && steps.exists.outputs.build == 'true'
+        env:
+          VITE_GALLERY: 'on'
       - uses: docker/setup-qemu-action@v3
         if: steps.gate.outputs.ready == 'true' && env.ACTION == 'deploy' && steps.exists.outputs.build == 'true'
       - uses: docker/setup-buildx-action@v3
