@@ -235,6 +235,45 @@
   --color-family-planned-ramp-ink-4: var(--color-ramp-ink-dark);
   --color-family-planned-ramp-5: #22817a;
   --color-family-planned-ramp-ink-5: var(--color-ramp-ink-light);
+
+  /* The v2 look (Nimish, 20 Nov 2026; docs/design/v2/dashboard-approved.dc.html). Colour only with meaning: loss red,
+     gain green, risk amber, planned blue, and purple for a decision only an owner can take. Each meaning has a text
+     colour (4.5:1 on the panel and on its tint), a fill (a bar, a tile) and a tint (the soft pill behind its word). */
+  --color-v2-page: #f6f6f4;
+  --color-v2-panel: #ffffff;
+  --color-v2-ink: #111827;
+  --color-v2-ink-2: #4b5563;
+  --color-v2-on-ink: #ffffff;
+  --color-v2-line: #e5e5e0;
+  --color-v2-line-soft: #efefeb;
+  --color-v2-control-line: #dcddd8;
+  --color-v2-well: #fafaf8;
+  --color-v2-track: #f1f1ee;
+  --color-v2-segment: #eaeae6;
+  --color-v2-hover: #f3f3f0;
+  --color-v2-mark: #6b7280;
+  --color-v2-focus: #2563eb;
+  --color-v2-quiet: #d6d3cd;
+  --color-v2-loss: #b91c1c;
+  --color-v2-loss-fill: #dc2626;
+  --color-v2-loss-tint: #feecec;
+  --color-v2-gain: #11673f;
+  --color-v2-gain-fill: #cfe9da;
+  --color-v2-gain-tint: #e8f5ee;
+  --color-v2-gain-zone: #e3f1e8;
+  --color-v2-risk: #b45309;
+  --color-v2-risk-fill: #f59e0b;
+  --color-v2-risk-tint: #fef3c7;
+  --color-v2-plan: #1e40af;
+  --color-v2-plan-fill: #3b82f6;
+  --color-v2-plan-tint: #dbeafe;
+  --color-v2-decide: #6b21a8;
+  --color-v2-decide-tint: #f3e8ff;
+  --color-v2-idle-fill: #e5e5e0;
+  /* The glyph on a red or blue tile, and on an amber one; the fills stay the same in dark, so these do too. */
+  --color-v2-on-fill: #ffffff;
+  --color-v2-on-risk: #111827;
+  --shadow-v2-panel: 0 1px 2px rgb(17 24 39 / 0.04), 0 8px 24px rgb(17 24 39 / 0.05);
 }
 
 /* The page language is set on <html> (i18n/index.ts), so this follows the tenant without a component prop. */
@@ -365,6 +404,40 @@
   --color-ramp-div-3: #1e2228;
   --color-ramp-div-4: #6e1584;
   --color-ramp-div-5: #d98dec;
+
+  /* v2 in dark: the same meanings, each text colour lifted to 4.5:1 on the dark panel and on its tint. */
+  --color-v2-page: #111214;
+  --color-v2-panel: #1c1c1e;
+  --color-v2-ink: #f3f4f6;
+  --color-v2-ink-2: #a1a1aa;
+  --color-v2-on-ink: #111827;
+  --color-v2-line: #2c2c2e;
+  --color-v2-line-soft: #262628;
+  --color-v2-control-line: #48484a;
+  --color-v2-well: #232326;
+  --color-v2-track: #2c2c2e;
+  --color-v2-segment: #2c2c2e;
+  --color-v2-hover: #2c2c2e;
+  --color-v2-mark: #a1a1aa;
+  --color-v2-focus: #60a5fa;
+  --color-v2-quiet: #48484a;
+  --color-v2-loss: #f87171;
+  --color-v2-loss-fill: #ef4444;
+  --color-v2-loss-tint: #3a1d1f;
+  --color-v2-gain: #4ade80;
+  --color-v2-gain-fill: #2f6b47;
+  --color-v2-gain-tint: #16301f;
+  --color-v2-gain-zone: #1a3a27;
+  --color-v2-risk: #fbbf24;
+  --color-v2-risk-fill: #f59e0b;
+  --color-v2-risk-tint: #33270f;
+  --color-v2-plan: #93c5fd;
+  --color-v2-plan-fill: #3b82f6;
+  --color-v2-plan-tint: #16233d;
+  --color-v2-decide: #d8b4fe;
+  --color-v2-decide-tint: #2a2140;
+  --color-v2-idle-fill: #48484a;
+  --shadow-v2-panel: 0 0 0 1px #2c2c2e;
 }
 
 /* The comparison accent (the old default); only the gallery sets data-accent. */
