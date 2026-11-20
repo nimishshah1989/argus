@@ -133,7 +133,7 @@ function laneA(models: readonly ForecastModel[], month: FocusMonth): Action[] {
         action(
           `fc|${machine.id}|${month.key}`,
           'A',
-          `${machine.id} (${machine.category ?? '—'}): inspect before ${month.label}`,
+          `${machine.code} (${machine.category ?? '—'}): inspect before ${month.label}`,
           model.expH,
         ),
         machine.id,
@@ -163,7 +163,7 @@ function laneBRepeats(
         action(
           `fixm|${repeat.machineId}|${repeat.group}`,
           'B',
-          `${repeat.machineId}: ${repeat.group.toLowerCase()} has come back ${occ} times`,
+          `${repeat.machineCode}: ${repeat.group.toLowerCase()} has come back ${occ} times`,
           repeat.hours / months,
         ),
         repeat.machineId,
@@ -226,7 +226,7 @@ function laneC(rows: readonly HealthRow[]): Action[] {
         action(
           `ovh|${row.risk.machine.id}`,
           'C',
-          `${row.risk.machine.id} (${row.risk.machine.category ?? '—'}): decide on overhaul or replacement`,
+          `${row.risk.machine.code} (${row.risk.machine.category ?? '—'}): decide on overhaul or replacement`,
           excess,
         ),
         row.risk.machine.id,
@@ -241,6 +241,7 @@ function laneF(
 ): Action[] {
   const end = dayNumber(options.asOf) ?? 0;
   const completed = new Set((data.whyWhy ?? []).map((record) => record.ticketId));
+  const codes = new Map(data.machines.map((machine) => [machine.id, machine.code]));
   return fleetRows(data)
     .filter((row) => {
       const day = dayNumber(row.report.date);
@@ -260,7 +261,7 @@ function laneF(
         action(
           `long|${row.report.id}`,
           'F',
-          `${row.report.machineId}: ${formatNumber(hours, 1)} hrs breakdown on ${dmy(row.report.date)} — Why-Why not done`,
+          `${codes.get(row.report.machineId) ?? row.report.machineId}: ${formatNumber(hours, 1)} hrs breakdown on ${dmy(row.report.date)} — Why-Why not done`,
           hours / options.months,
         ),
         row.report.machineId,
@@ -314,11 +315,14 @@ function kpisOf(actions: readonly Action[]): FigureValue {
 }
 
 /** One action as the key prints it: its computed text and stake, and the untouched status, owner and note. */
-function printedAction(item: Action): FigureValue {
+function printedAction(item: Action, codes: ReadonlyMap<string, string>): FigureValue {
   return {
     key: item.key,
     lane: item.lane,
-    ...(item.mid === undefined ? {} : { machine: item.mid }),
+    // `machine` is the row the card opens (an id); `machineCode` is what the card prints.
+    ...(item.mid === undefined
+      ? {}
+      : { machine: item.mid, machineCode: codes.get(item.mid) ?? item.mid }),
     title: item.title,
     stake: round2(item.stake),
     status: 'open',
@@ -340,6 +344,7 @@ export const teamFocusFigure: Computer = ({ data, asOf, profile }) => {
   // The platform's day difference (to - from) over 30.44, less the days of a month the plant recorded nothing in.
   const months = Math.max(1, (coreDays(core) - 1) / 30.44);
   const month = focusMonthOf(core.to, board.month.label);
+  const codes = new Map(data.machines.map((machine) => [machine.id, machine.code]));
   const actions = [
     ...laneA(board.models, month),
     ...laneBRepeats(analysis.events, analysis.repeats, months),
@@ -366,7 +371,7 @@ export const teamFocusFigure: Computer = ({ data, asOf, profile }) => {
     screen: 'team-focus',
     asOf,
     pages: [page],
-    extra: actions.map(printedAction),
+    extra: actions.map((item) => printedAction(item, codes)),
   };
   return {
     value: value as unknown as FigureValue,

@@ -170,9 +170,10 @@ function coreOf(input: ComputeInput): Core {
 }
 
 /** The page's one table: the risk rows, the machine cell a space and the model. */
-function nudgeTable(risk: readonly RiskRow[]) {
+function nudgeTable(risk: readonly RiskRow[], data: EngineData) {
+  const codes = new Map(data.machines.map((machine) => [machine.id, machine.code]));
   const rows = risk.map((row) => [
-    `${row.machine} ${row.model}`.trim(),
+    `${codes.get(row.machine) ?? row.machine} ${row.model}`.trim(),
     String(row.score),
     row.why,
   ]);
@@ -201,7 +202,7 @@ export const actionCenterFigure: Computer = (input) => {
         page: 'ac',
         title: 'Action Center',
         kpis: [],
-        tables: [nudgeTable(core.risk)],
+        tables: [nudgeTable(core.risk, input.data)],
         charts: [],
       },
     ],

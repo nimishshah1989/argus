@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { COMPUTERS, runWith, type EngineData, type FigureResult } from '../src/index.js';
 import { isProduction } from '../src/analytics/machine-facts.js';
 import { ENGINE_DATA, read, type FigureKey } from './answer-key/fixture.js';
+import { withoutCodeFields } from './answer-key/rekey.js';
 
 /**
  * The whole-page acceptance for ticket 42 (after 42d): the A9 page and the Forecast Lab, each run through the real
@@ -60,7 +61,7 @@ describe('the whole A9 and Forecast Lab values', () => {
   it('prints the A9 key whole: 14 KPIs, 9 tables and both charts', () => {
     const computed = A9_RESULT;
     expect(computed.status).toBe('ready');
-    expect(computed.value).toEqual(A9);
+    expect(withoutCodeFields(computed.value)).toEqual(A9);
     const page = pageOf(computed);
     expect(page.kpis).toHaveLength(14);
     expect(page.tables).toHaveLength(9);

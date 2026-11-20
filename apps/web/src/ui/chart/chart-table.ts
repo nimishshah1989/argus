@@ -1,4 +1,4 @@
-import { paretoRows, type ChartSpec } from './chart-spec.js';
+import { paretoRows, pointName, type ChartSpec } from './chart-spec.js';
 
 export interface TableView {
   categoryLabel: string;
@@ -16,7 +16,7 @@ export function tableView(spec: ChartSpec): TableView {
     case 'scatter':
       return {
         categoryLabel: spec.machineLabel,
-        categories: spec.points.map((point) => point.label),
+        categories: spec.points.map(pointName),
         series: [
           { name: spec.xLabel, values: spec.points.map((point) => point.x) },
           // A labelled lane axis (A9's map) prints the lane's name, not its number.

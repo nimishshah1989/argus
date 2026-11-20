@@ -243,9 +243,10 @@ function repeatTable(items: readonly RepeatItem[], data: EngineData): Table {
   const descriptions = new Map(
     (data.lists.maint_code ?? []).map((item) => [item.code, item.label ?? '']),
   );
+  const codes = new Map(data.machines.map((machine) => [machine.id, machine.code]));
   const rows = items.map((item, index) => [
     String(index + 1),
-    item.machineId,
+    codes.get(item.machineId) ?? item.machineId,
     item.category,
     item.type,
     item.code === '—' ? 'No code' : item.code + (descriptions.get(item.code) ?? ''),
@@ -277,10 +278,10 @@ function mapLanes(core: BottleneckCore): Lane[] {
     .sort((left, right) => left.machines - right.machines || left.average - right.average);
 }
 
-/** The platform's deterministic id hash, which places a dot inside its lane. */
+/** The platform's deterministic hash of the machine's code (its "id" there), which places a dot inside its lane. */
 function jitterOf(risk: BottleneckRisk): number {
   let hash = 0;
-  for (const character of risk.machine.id) hash = (hash * 31 + character.charCodeAt(0)) % 997;
+  for (const character of risk.machine.code) hash = (hash * 31 + character.charCodeAt(0)) % 997;
   return risk.peers > 1 ? ((hash % 100) / 100 - 0.5) * 0.62 : 0;
 }
 
@@ -299,6 +300,7 @@ function mapChart(core: BottleneckCore): Chart {
         x: Math.round(risk.unav * 1000) / 10,
         y: (laneOf.get(risk.machine.category ?? '—') ?? 0) + jitterOf(risk),
         id: risk.machine.id,
+        code: risk.machine.code,
         cat: risk.machine.category ?? '—',
         h: risk.hours,
         a: risk.a,

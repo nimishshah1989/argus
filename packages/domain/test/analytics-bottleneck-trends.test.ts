@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { COMPUTERS, runWith, type EngineData, type FigureResult } from '../src/index.js';
 import { isProduction } from '../src/analytics/machine-facts.js';
 import { ENGINE_DATA, read, type FigureKey } from './answer-key/fixture.js';
+import { withoutCodeFields } from './answer-key/rekey.js';
 
 /**
  * A9's maintenance trends, repeat faults and the two charts (packet 42c): tables 6 to 8 and both charts whole against
@@ -72,7 +73,7 @@ describe('the A9 maintenance trends, repeat faults and charts', () => {
     expect(page.tables[6]).toEqual(key.tables[6]);
     expect(page.tables[7]).toEqual(key.tables[7]);
     expect(page.tables[8]).toEqual(key.tables[8]);
-    expect(page.charts[0]).toEqual(key.charts[0]);
+    expect(withoutCodeFields(page.charts[0])).toEqual(key.charts[0]);
     expect(page.charts[1]).toEqual(key.charts[1]);
   });
 
