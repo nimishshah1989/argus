@@ -1415,7 +1415,7 @@ rows:
     evidence:
       - fixtures/answer-key/a6-why-why.json
       - 'apps/web/src/screens/analytics/page-content.test.ts :: maps the key candidate page whole: its title, its header and every row (status and action included)'
-      - 'apps/web/src/screens/analytics/why-why-parts.test.ts :: lets the four analytics roles write'
+      - 'apps/web/src/screens/v2/why-why/record.test.ts :: lets the four analytics roles write'
       - 'apps/web/e2e/analytics-whywhy.spec.ts :: a head starts a Why-Why on the first candidate, saves it, sees Completed and downloads the PDF'
     source: docs/plan/m4a-triage.md
     screen: a6-why-why
