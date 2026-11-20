@@ -12,30 +12,32 @@ const shown = (value: string | number | undefined): string =>
 export function NumbersTable({ spec }: { spec: ChartSpec }) {
   const table = tableView(spec);
   return (
-    <table className="v2-table v2-chart-numbers">
-      <thead>
-        <tr>
-          <th scope="col">{table.categoryLabel}</th>
-          {table.series.map((series) => (
-            <th key={series.name} scope="col" className="v2-num-head">
-              {series.name}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {table.categories.map((category, row) => (
-          <tr key={`${category}-${row}`}>
-            <th scope="row">{category}</th>
+    <div className="v2-table-scroll">
+      <table className="v2-table v2-chart-numbers">
+        <thead>
+          <tr>
+            <th scope="col">{table.categoryLabel}</th>
             {table.series.map((series) => (
-              <td key={series.name} className="v2-num-cell">
-                {shown(series.values[row])}
-              </td>
+              <th key={series.name} scope="col" className="v2-num-head">
+                {series.name}
+              </th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {table.categories.map((category, row) => (
+            <tr key={`${category}-${row}`}>
+              <th scope="row">{category}</th>
+              {table.series.map((series) => (
+                <td key={series.name} className="v2-num-cell">
+                  {shown(series.values[row])}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

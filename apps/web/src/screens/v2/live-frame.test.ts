@@ -112,3 +112,33 @@ describe('a screen that has drawn once', () => {
       expect(draw(drawn, { state }, 'model'), state).not.toContain('the page');
   });
 });
+
+describe('the section’s screens row', () => {
+  const { props } = pageOf('breakdowns', 'a1-bd-pm');
+  const as = (role: string) => {
+    const client = new QueryClient();
+    client.setQueryData(['me'], { user: { role } });
+    return renderToStaticMarkup(
+      h(
+        QueryClientProvider,
+        { client },
+        h(
+          MemoryRouter,
+          null,
+          h(ModelFrame as unknown as (p: Record<string, unknown>) => ReactElement, {
+            ...props,
+            loaded: { state: 'loading', retry: () => {} },
+          }),
+        ),
+      ),
+    );
+  };
+
+  it('is left out for a login that may not open analytics, who sees the refusal and no menu of screens', () => {
+    expect(as('operator')).not.toContain('Breakdowns screens');
+  });
+
+  it('is there for a login that may', () => {
+    expect(as('supervisor')).toContain('Breakdowns screens');
+  });
+});

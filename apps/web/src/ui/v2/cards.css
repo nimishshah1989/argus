@@ -254,7 +254,9 @@
   margin-top: var(--space-v2-inner);
 }
 .v2-numbers > summary {
-  min-height: 32px;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
   color: var(--color-v2-ink-2);
   font-size: var(--text-v2-secondary);
   font-weight: 600;

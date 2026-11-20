@@ -14,6 +14,7 @@ const B = '/analytics/breakdowns?screen=';
 const SCREEN_A1 = 'a1-bd-pm';
 const SCREEN_A2 = 'a2-category-cell';
 const SCREEN_A3 = 'a3-mttr-mtbf';
+const SCREEN_A9 = 'a9-bottleneck-forecast';
 
 type KeyTable = { title: string; header: string[]; rows: string[][] };
 type KeyPage = {
@@ -64,6 +65,7 @@ async function stub(page: Page, ids: string[] = ticketIds(2)): Promise<string[][
           figure(SCREEN_A1, keyOf(SCREEN_A1)),
           figure(SCREEN_A2, keyOf(SCREEN_A2)),
           figure(SCREEN_A3, keyOf(SCREEN_A3)),
+          { ...figure(SCREEN_A9, keyOf(SCREEN_A9)), drill: { type: 'machine', ids: [] } },
         ],
       },
     }),
@@ -257,3 +259,24 @@ for (const theme of ['light', 'dark'] as const)
         [],
       );
     });
+
+test('on a phone, opening every chart’s numbers never makes the page scroll sideways', async ({
+  page,
+}) => {
+  await stub(page);
+  for (const path of [
+    `${B}${SCREEN_A1}`,
+    `${B}${SCREEN_A2}`,
+    `${B}${SCREEN_A3}`,
+    `/analytics/forecast-scorecard?screen=${SCREEN_A9}`,
+  ]) {
+    await page.setViewportSize({ width: 360, height: 800 });
+    await page.goto(path);
+    await expect(page.locator('[data-chart-state="ready"]').first()).toBeVisible();
+    expect(await noSidewaysScroll(page), `${path} before`).toBe(true);
+    const summaries = page.getByText('Show the numbers', { exact: true });
+    for (const summary of await summaries.all()) await summary.click();
+    await expect(page.locator('.v2-chart-numbers').first()).toBeVisible();
+    expect(await noSidewaysScroll(page), `${path} with the numbers open`).toBe(true);
+  }
+});

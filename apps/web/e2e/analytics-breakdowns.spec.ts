@@ -451,13 +451,27 @@ test('A1 over the drill cap reads its tickets in runs the server accepts, and op
   await page.route('**/api/v1/analytics/drill**', (route) => {
     const ids = new URL(route.request().url()).searchParams.get('ids') ?? '';
     asked.push(ids.split(',').length);
-    return route.fulfill({ json: { type: 'ticket', rows: [] } });
+    const rows = ids.split(',').map((id, at) => ({
+      id: `00000000-0000-4000-8000-${String(at + 1).padStart(12, '0')}`,
+      ref: `BD-${id}`,
+      kind: 'stopped',
+      status: 'closed',
+      machineId: null,
+      reportedAt: '2026-11-07T08:00:00.000Z',
+      closedAt: '2026-11-07T09:30:00.000Z',
+      source: 'history',
+      downtimeMin: 90,
+      repairMin: 60,
+      workType: null,
+    }));
+    return route.fulfill({ json: { type: 'ticket', rows } });
   });
   await page.goto('/analytics/breakdowns?screen=a1-bd-pm');
   await expect(page.getByRole('heading', { level: 1, name: 'BD % and PM split' })).toBeVisible();
   await page.getByRole('button', { name: 'See the rows', exact: true }).click();
   await expect(page).toHaveURL(/[?&]drawer=figure:a1-bd-pm$/);
   await expect.poll(() => [...asked].sort((a, b) => a - b)).toEqual([1, 200]);
+  await expect(page.locator('aside.v2-drawer').getByText('201 tickets counted')).toBeVisible();
 });
 
 test('an old v1 link with ?drill= opens the page with its tickets in the drawer, never a v1 page', async ({
