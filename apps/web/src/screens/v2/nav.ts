@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { mayOpenDesk } from '../../roles.js';
 import type { MessageKey } from '@uptimo/shared/i18n';
 import type { IconName } from '../../ui/v2/icons.js';
 import type { PaletteEntry } from '../../ui/v2/palette-match.js';
@@ -24,7 +25,7 @@ const ICON: Record<SectionId, IconName> = {
 
 /**
  * The rail for a v2 screen, with `current` marked as the page you are on. A known `role` gets the sections it may open
- * (as v1's menu does), then the way out to the desk, which v1 showed to every login; none gets all of them.
+ * (as v1's menu does), then the way out to the desk if it may work there (as the account menu does); none gets all of them.
  */
 export function navItems(
   current: SectionId,
@@ -45,7 +46,7 @@ export function navItems(
     href: '/desk',
     end: true,
   };
-  return [...sections, desk];
+  return role === undefined || mayOpenDesk(role) ? [...sections, desk] : sections;
 }
 
 export function useNav(current: SectionId, role?: string): NavItem[] {
