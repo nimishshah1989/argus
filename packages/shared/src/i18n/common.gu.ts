@@ -54,6 +54,7 @@ export const commonGu = gujarati(commonEn, {
   'kit.notFound': 'પાનું મળ્યું નથી',
   'kit.pattern.more': 'વધુ બતાવો',
   'kit.pattern.error': 'લોડ ન થયું. ફરી પ્રયાસ કરો.',
+  'kit.pattern.refused': 'તમારા લૉગિનથી આ પાનું ખુલી શકતું નથી. મેન્ટેનન્સ હેડ પાસે પરવાનગી માગો.',
   'kit.pattern.retry': 'ફરી પ્રયાસ કરો',
   'kit.pattern.offline': 'તમે ઓફલાઇન છો. ફરી કનેક્ટ થશો ત્યારે આ લોડ થશે.',
   'kit.form.offlineQueued': 'તમે ઓફલાઇન છો. ફરી કનેક્ટ થશો ત્યારે આ મોકલાશે.',

@@ -167,8 +167,15 @@ export function getState(): Promise<State> {
 /** The plant's day score for the live board's Response today and Repair today tiles. */
 export const getBoardToday = (): Promise<BoardToday> => boardToday.one('today');
 
-/** `GET /analytics/figures`: every figure the menu shows, as of the plant's today (or an earlier date, for a change). */
-export const useAnalyticsFigures = () => analyticsFigures.useOne();
+/**
+ * `GET /analytics/figures`: every figure the menu shows, as of the plant's today (or an earlier date, for a change).
+ * The query is exported so code outside a component (the v2 screens' live source) fills and reads the same cache.
+ */
+export const analyticsFiguresQuery = {
+  queryKey: ['analytics-figures', 'one', null],
+  queryFn: () => analyticsFigures.one(),
+} as const;
+export const useAnalyticsFigures = () => useQuery(analyticsFiguresQuery);
 export const useAnalyticsFiguresAt = (asOf: string) =>
   useQuery({
     queryKey: ['analytics-figures', 'at', asOf],

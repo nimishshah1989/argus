@@ -51,6 +51,7 @@ export const commonEn = {
   'kit.notFound': 'Page not found',
   'kit.pattern.more': 'Load more',
   'kit.pattern.error': 'Could not load. Try again.',
+  'kit.pattern.refused': 'Your login cannot open this page. Ask the maintenance head for access.',
   'kit.pattern.retry': 'Try again',
   'kit.pattern.offline': 'You are offline. This will load when you reconnect.',
   'kit.form.offlineQueued': 'You are offline. This will send when you reconnect.',
