@@ -67,6 +67,22 @@ true: a human still compares it with the v1 code.
 server would need); lines of adapter vs the fixture lines it replaces; time taken; what real data does to the screen (staging has
 UUIDs where names belong, unformatted floats, A1 all 0.00%); and a recommendation (adapters from now on, fixtures, or a mix).
 
+## 4b. Prototype result (20 Nov, Action Center fed from the real engine reply; nothing pushed)
+
+- **Code saved is small:** the adapter is about 330 lines once split to pass lint, against 387 lines of invented fixtures: about 60
+  lines. Do NOT expect half the code per screen. The value is correctness and scope: the real reply shows at once what v1 carries
+  that the v2 model dropped (rule and priority filters, search, priority counts, good-news nudges, four status tabs, the
+  acknowledge form with owner, due date and note, snooze, resolve, reopen, the refused and offline states).
+- **The v2 Action Center premise has no source:** "decisions ranked by hours won back, with money" does not exist in the engine
+  (it produces nudges); v1 shows no money on this screen on purpose, and Nimish approved rupees on the Dashboard only.
+- **Real data is sparse:** every stored acknowledgement in the answer-key data has an empty owner (all 36 nudges show as no
+  owner); the engine writes machine ids into nudge titles, which are UUIDs on staging.
+- **Server asks (the "smarter" work):** (1) a value per decision, hours or rupees won back, money role-gated; (2) daily snapshots of
+  board counts so "vs last week" is real (`kpi_snapshot`); (3) machine codes, not ids, in nudge titles.
+- **Decision: a mix.** Build every v2 screen adapter-first against the live reply (the answer-key engine output is the test data);
+  keep an invented value only where nothing carries it, and mark that row `needs server: <what>` in the coverage table. The adapter
+  takes words as input: new v2 strings need en, gu and hi keys. Not verified: real HTTP, auth, staging data, a browser render.
+
 ## 5. Known open issue
 
 `apps/web/e2e/gallery/v2-team-focus.spec.ts` "a person chip opens the drawer, Back closes it" hung for 60 s on CI in 2 of 3 runs and
