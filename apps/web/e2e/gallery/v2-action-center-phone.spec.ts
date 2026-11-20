@@ -43,3 +43,35 @@ for (const wide of [true, false]) {
     ).toBeVisible();
   });
 }
+
+test('tapping a nudge, closing it and tapping the next straight away opens the next one, five times', async ({
+  page,
+}) => {
+  await page.goto('/gallery?view=v2-action-center&theme=light');
+  await expect(page.getByRole('heading', { level: 1, name: 'Action Center' })).toBeVisible();
+  for (let round = 0; round < 5; round += 1) {
+    for (const title of [FREQ, MTTR, FREQ]) {
+      // The page is inert while a drawer is open, so a tap waits for the close to finish and never lands before it.
+      await list(page)
+        .getByRole('button', { name: `Open ${title}` })
+        .click();
+      await expect(drawer(page)).toHaveAttribute('aria-label', title);
+      await page.keyboard.press('Escape');
+    }
+  }
+  await expect(page).not.toHaveURL(/drawer=/);
+});
+
+test('a reload brings the open nudge back open, with its buttons', async ({ page }) => {
+  await page.goto('/gallery?view=v2-action-center&theme=light');
+  await expect(page.getByRole('heading', { level: 1, name: 'Action Center' })).toBeVisible();
+  await list(page)
+    .getByRole('button', { name: `Open ${FREQ}` })
+    .click();
+  await expect(drawer(page)).toHaveAttribute('aria-label', FREQ);
+  await page.reload();
+  await expect(drawer(page)).toHaveAttribute('aria-label', FREQ);
+  await expect(
+    drawer(page).getByRole('button', { name: 'Acknowledge', exact: true }),
+  ).toBeVisible();
+});
