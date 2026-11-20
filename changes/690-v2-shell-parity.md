@@ -1,0 +1,1 @@
+The new analytics screens now have what the old menu had: a Desk link at the foot of the left menu, and a search (Ctrl K, or the Search button) that jumps to any page; the menu no longer reloads the whole page on each click.

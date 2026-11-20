@@ -1,0 +1,153 @@
+/* Heat: a value's weight shown as a tint of one colour in five steps, never as colour alone (every cell prints its
+   value and carries a name). One hue, light to strong, readable in light and dark; the strongest step is also bolder. */
+:root {
+  --v2-heat-1: 12%;
+  --v2-heat-2: 26%;
+  --v2-heat-3: 40%;
+  --v2-heat-4: 54%;
+  --v2-heat-5: 66%;
+}
+[data-level] {
+  background: color-mix(in srgb, var(--color-v2-plan-fill) var(--v2-heat), var(--color-v2-panel));
+  color: var(--color-v2-ink);
+}
+[data-level='1'] {
+  --v2-heat: var(--v2-heat-1);
+}
+[data-level='2'] {
+  --v2-heat: var(--v2-heat-2);
+}
+[data-level='3'] {
+  --v2-heat: var(--v2-heat-3);
+}
+[data-level='4'] {
+  --v2-heat: var(--v2-heat-4);
+}
+[data-level='5'] {
+  --v2-heat: var(--v2-heat-5);
+  font-weight: 600;
+}
+.v2-heat-scroll {
+  overflow-x: auto;
+}
+.v2-heat {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-v2-secondary);
+}
+.v2-heat caption {
+  padding: var(--space-v2-inner) var(--space-v2-pad) 4px;
+  color: var(--color-v2-ink);
+  font-size: var(--text-v2-body);
+  font-weight: 600;
+  text-align: left;
+}
+.v2-heat th {
+  padding: 6px 10px;
+  color: var(--color-v2-ink-3);
+  font-size: var(--text-v2-label);
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+}
+.v2-heat th[scope='row'] {
+  text-align: left;
+}
+.v2-heat td {
+  min-width: 52px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-v2-panel);
+  font-family: var(--font-v2-num);
+  font-weight: 500;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.v2-heat td[data-level='5'] {
+  font-weight: 600;
+}
+.v2-heat td[data-total] {
+  background: none;
+  color: var(--color-v2-ink-2);
+}
+.v2-heat-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px var(--space-v2-pad) var(--space-v2-pad);
+  color: var(--color-v2-ink-3);
+  font-size: var(--text-v2-label);
+}
+.v2-heat-step {
+  display: inline-block;
+  width: 20px;
+  height: 12px;
+  border-radius: 3px;
+}
+.v2-heat-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.v2-heat-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  min-height: 96px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-v2-line);
+  border-radius: 10px;
+  font: inherit;
+  text-align: left;
+}
+button.v2-heat-tile {
+  cursor: pointer;
+  transition: transform var(--motion-v2-fast) var(--ease-v2);
+}
+button.v2-heat-tile:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-v2-raised);
+}
+button.v2-heat-tile:active {
+  transform: scale(0.97);
+}
+.v2-heat-tile[data-empty] {
+  background: var(--color-v2-subtle);
+  color: var(--color-v2-ink-3);
+}
+.v2-heat-name {
+  font-size: var(--text-v2-label);
+  font-weight: 600;
+}
+.v2-heat-value {
+  font-family: var(--font-v2-num);
+  font-size: var(--text-v2-title);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.v2-heat-line {
+  font-size: var(--text-v2-label);
+}
+.v2-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-v2-gap);
+  min-width: 0;
+}
+.v2-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-v2-inner);
+}
+@media (prefers-reduced-motion: reduce) {
+  button.v2-heat-tile {
+    transition: none;
+  }
+}

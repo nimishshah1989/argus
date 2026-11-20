@@ -1,5 +1,6 @@
 import type { ChartSpec } from '../../../ui/chart/use-chart.js';
 import type { TableWords } from '../../../ui/v2/data-table.js';
+import type { Drill } from '../../../ui/v2/drill.js';
 import type { FigureData } from '../../../ui/v2/figure-tile.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
 import { fill } from '../../../i18n/fill.js';
@@ -31,6 +32,8 @@ export type PrintedPageModel = {
   figures: FigureData[];
   charts: PageChart[];
   tables: PrintedTable[];
+  /** The rows behind the whole page's figure, when v1 linked them from the page and not from a count. */
+  drill?: Drill;
   source: string;
   words: PageWords;
 };

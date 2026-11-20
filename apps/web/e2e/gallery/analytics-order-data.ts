@@ -79,11 +79,6 @@ export const SCREENS: [string, string[], string[]][] = [
     ],
   ],
   [
-    '/analytics/breakdowns?screen=shift-kpis',
-    BREAKDOWNS_MENU,
-    ['h2: Shift-calend', 'h3: Platform bas', 'h3: By shift', 'h3: Backlog', 'h3: Open at shif'],
-  ],
-  [
     '/analytics/machines?screen=compare',
     MACHINES_MENU,
     [
