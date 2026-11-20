@@ -33,6 +33,7 @@ The source of truth for how a v2 screen behaves, adapted for Argus from the rule
 16. Sticky header. Numbers right-aligned in Geist with tabular figures; text left-aligned.
 17. Each row tells its story at a glance: identity (code in its type's colour + name + cell), one or two status tags, the key number, a trend (sparkline or delta). Secondary columns go into the drawer.
 18. Rows are clickable → drawer. Row actions show on hover, and are always reachable from the keyboard.
+    **A code is always a chip.** A machine, cell, person or decision named anywhere (a row, a table cell, a sentence, the drawer itself) is an `EntityChip`: its icon and its name, a machine in its type's colour. Pressing it opens that thing in the drawer. A chip inside a clickable row opens its own thing, never the row's. **The drawer lives in the URL** (`?drawer=machine:TC-12`): Back closes it, Forward reopens it, a pasted link opens it. Opening from closed is one history step; swapping to another item replaces it, so one Back closes however many were visited; ✕, Esc or the same chip closes it without leaving a dead Back entry. Every drawer ends in "Open full page" where the thing has a page. **[check]** `pnpm ui:check` fails a hand-drawn code, a code printed as text, a code inside a fixture sentence, and a screen View that uses `Shell` instead of `EntityShell`.
 19. Empty, loading (skeleton), error and "no results for this filter" states are designed, never blank.
 
 ## 5. Colour, tags and icons

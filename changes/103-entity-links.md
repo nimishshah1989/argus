@@ -1,0 +1,1 @@
+Every machine, cell, person and decision on the v2 Dashboard is now a button that opens its detail in the side panel; the panel is in the web address, so Back closes it, and it has an Open full page link (sample data only, in the gallery).
