@@ -200,6 +200,12 @@ describe('the cut fixes the six span figures', () => {
               header: ['Machine', 'Date', 'Problem', 'Down (Hrs)', 'Status', ''],
               rows,
               rowCount: 144,
+              // One ticket per row in row order, by the fixture's rule `T-<machine>-<date>-<code>`.
+              rowTicketIds: entries(2026)
+                .filter(
+                  ([, , code, hours]) => (code === 'AX' || code === 'EL') && Number(hours) > 1,
+                )
+                .map(([date, id, code]) => `T-${id}-${date}-${code}`),
             },
           ],
         },

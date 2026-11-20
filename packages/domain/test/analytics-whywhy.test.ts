@@ -40,6 +40,22 @@ function table(value: FigureKey) {
   return found;
 }
 
+/** The ticket ids the figure prints beside its rows: Argus's addition to the platform's key, so the key lacks it. */
+const idsOf = (found: object): readonly string[] | undefined =>
+  (found as { rowTicketIds?: readonly string[] }).rowTicketIds;
+
+/** The figure's value without `rowTicketIds`: what the platform's own key can be held to, cell for cell. */
+function withoutTicketIds(value: unknown): unknown {
+  const page = value as { pages: { tables: Record<string, unknown>[] }[] };
+  return {
+    ...page,
+    pages: page.pages.map((one) => ({
+      ...one,
+      tables: one.tables.map(({ rowTicketIds: _ids, ...rest }) => rest),
+    })),
+  };
+}
+
 /** The raw recorded hours the figure reads: the legacy column when present, the minutes otherwise. */
 const rawHours = (report: ReportRow): number => report.recordedHours ?? report.downtimeMin / 60;
 
@@ -68,7 +84,7 @@ describe('the A6 Why-Why figure', () => {
     const computed = compute();
     // Red first: the A6 computer had not landed, so the engine answered not_computed.
     expect(computed.status).toBe('ready');
-    expect(computed.value).toEqual(A6);
+    expect(withoutTicketIds(computed.value)).toEqual(A6);
   });
 
   it('drills the candidate tickets it read, derived from the workbook', () => {
@@ -127,5 +143,48 @@ describe('the A6 Why-Why figure', () => {
     );
     expect(after.header).toEqual(before.header);
     expect(compute(grown).drill.ids).toEqual(compute().drill.ids);
+  });
+});
+
+/**
+ * The row-to-ticket pairing. The drill ids come back sorted (the engine's contract) while the table is worst hours
+ * first, so a screen cannot read a row's ticket by position in the drill: the table carries its own `rowTicketIds`,
+ * one per row, in row order. These tests fail if a row's ticket is ever read from the drill's position.
+ */
+describe("the A6 figure names each row's own ticket", () => {
+  it("carries one ticket id per row, in the table's own (worst-hours-first) order", () => {
+    const found = table(valueOf());
+    expect(idsOf(found)).toEqual(CANDIDATES.map((row) => row.ticket.id));
+    expect(idsOf(found)).toHaveLength(found.rows.length);
+    // The two orders really differ in the fixture, so a position-paired screen would have mixed the rows up.
+    expect(compute().drill.ids).not.toEqual(idsOf(found));
+  });
+
+  it('keeps two candidates paired with their own tickets when the sorted ids reverse the hours order', () => {
+    const [worst, next] = [CANDIDATES[0], CANDIDATES[1]];
+    if (worst === undefined || next === undefined) throw new Error('the fixture has no candidates');
+    // The worst row's ticket sorts last and the second row's sorts first: position pairing would swap them.
+    const WORST_ID = 'zzzz-worst-ticket';
+    const NEXT_ID = 'aaaa-next-ticket';
+    const renamed = (ticket: (typeof worst)['ticket'], id: string) => ({ ...ticket, id });
+    const data: EngineData = {
+      ...ENGINE_DATA,
+      tickets: [renamed(worst.ticket, WORST_ID), renamed(next.ticket, NEXT_ID)],
+      tasks: [],
+      reports: [
+        { ...worst.report, ticketId: WORST_ID },
+        { ...next.report, ticketId: NEXT_ID },
+      ],
+      whyWhy: [],
+    };
+    const computed = compute(data);
+    const found = table(computed.value as unknown as FigureKey);
+    expect(found.rows.map((row) => row[0])).toEqual([
+      machineOf(worst.report.machineId).code,
+      machineOf(next.report.machineId).code,
+    ]);
+    expect(rawHours(worst.report)).toBeGreaterThan(rawHours(next.report));
+    expect(computed.drill.ids).toEqual([NEXT_ID, WORST_ID]);
+    expect(idsOf(found)).toEqual([WORST_ID, NEXT_ID]);
   });
 });
