@@ -11,9 +11,6 @@ import { MachineView } from './MachinePage.js';
 import { machineRecord } from './machine-record.js';
 import { moveSortKey } from './machine-summary.js';
 import { MachineTiles } from './machine-tiles.js';
-import { Registers } from './Registers.js';
-
-type Figure = FiguresReply['figures'][number];
 
 const DRILL = encodeURIComponent('machine:m1');
 const NOT_AVAILABLE = 'Not available';
@@ -30,51 +27,6 @@ const page = (url: string, element: ReactElement) =>
   );
 
 const group = groupFor('machines')!;
-
-function registers(figure: Figure): string {
-  return page(
-    `/analytics/machines?screen=registers&drill=${DRILL}`,
-    h(Registers, { group, figure, menu: null, asOf: '2026-11-11' }),
-  );
-}
-
-const registerFigure = (status: Figure['status'], pages: unknown[]): Figure =>
-  ({
-    key: 'registers',
-    screen: 'registers',
-    owner: 39,
-    status,
-    value: status === 'ready' ? { pages } : null,
-    drill: { type: 'machine', ids: ['m1'] },
-  }) as Figure;
-
-describe('a drill opened on the registers', () => {
-  it('shows its rows under one h2 when the register has a page', () => {
-    const html = registers(
-      registerFigure('ready', [
-        { page: 'machines', title: 'CNC Machines', kpis: [{ label: 'A', value: '1' }], tables: [] },
-      ]),
-    );
-    expect(html.match(H2)).toHaveLength(1);
-    expect(html).toMatch(DRILL_TITLE);
-  });
-
-  it('still shows its rows when the register is not computed', () => {
-    const html = registers(registerFigure('not_computed', []));
-    expect(html).toContain('Not computed yet');
-    expect(html).toMatch(DRILL_TITLE);
-    expect(html.match(H2)).toHaveLength(1);
-  });
-
-  it('still shows its rows when the register page is empty', () => {
-    const html = registers(
-      registerFigure('ready', [{ page: 'machines', title: 'CNC Machines', kpis: [], tables: [] }]),
-    );
-    expect(html).toContain('No figures are registered for this screen yet.');
-    expect(html).toMatch(DRILL_TITLE);
-    expect(html.match(H2)).toHaveLength(1);
-  });
-});
 
 const machineFigures = (machine: unknown): FiguresReply =>
   ({

@@ -1,5 +1,5 @@
 import type { FiguresReply } from '@uptimo/shared/analytics';
-import { kpiCard, sentence, verdictOf } from '../figures/point.js';
+import { kpiCard, withDrill, sentence, verdictOf } from '../figures/point.js';
 import {
   numberIn,
   pagesOf,
@@ -7,6 +7,7 @@ import {
   type RegisterKpi,
   type Translate,
 } from '../figures/read.js';
+import { drillFor } from '../rows-behind/drill.js';
 import { engineTable, type TableModel } from '../figures/table.js';
 import { commonWords, tableWords } from '../figures/words.js';
 import type { AgeModel } from './model.js';
@@ -68,7 +69,9 @@ export function ageModel(reply: FiguresReply, t: Translate): AgeModel | null {
       t('analytics.guide.age.body2'),
       [t('analytics.guide.age.body1'), formula],
     ),
-    kpis: bands.map(({ average }, i) => kpiCard(`band-${i}`, 'clock', average, formula)),
+    kpis: bands.map(({ average }, i) =>
+      withDrill(kpiCard(`band-${i}`, 'clock', average, formula), drillFor(reply, 'a8-age', t)),
+    ),
     bands: bandTable(bands, t),
     source,
     words: { why: c.why },
