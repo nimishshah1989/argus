@@ -20,11 +20,14 @@ function screen(state: LoadState, url: string): string {
       h(
         MemoryRouter,
         { initialEntries: [url] },
-        h(
-          EntityShell,
-          { nav, title: 'Machines register' },
-          h(ScreenStates<string>, { loaded }, (model: string) => h('p', null, model)),
-        ),
+        h(EntityShell, {
+          nav,
+          title: 'Machines register',
+          children: h(ScreenStates<string>, {
+            loaded,
+            children: (model: string) => h('p', null, model),
+          }),
+        }),
       ),
     ),
   );
