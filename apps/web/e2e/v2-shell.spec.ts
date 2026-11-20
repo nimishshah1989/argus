@@ -67,7 +67,7 @@ test('Ctrl K opens a search over every page, typing narrows it, Enter goes there
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/analytics\/breakdowns\?screen=a3-mttr-mtbf$/);
   await expect(page.getByRole('heading', { level: 1, name: 'MTTR and MTBF' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Problems', exact: true })).toHaveAttribute(
+  await expect(rail(page).getByRole('link', { name: 'Problems', exact: true })).toHaveAttribute(
     'aria-current',
     'page',
   );

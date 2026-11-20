@@ -68,10 +68,15 @@ test('Ctrl K opens a search over the real routes and Enter goes there', async ({
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/analytics\/breakdowns\?screen=a3-mttr-mtbf$/);
   await expect(page.getByRole('heading', { level: 1, name: 'MTTR and MTBF' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Problems', exact: true })).toHaveAttribute(
-    'aria-current',
-    'page',
-  );
+  // On a phone the rail lives in the menu drawer: open it first.
+  if (info.project.name !== 'chromium')
+    await page.getByRole('button', { name: 'Menu', exact: true }).click();
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Analytics', exact: true })
+      .getByRole('link', { name: 'Problems', exact: true }),
+  ).toHaveAttribute('aria-current', 'page');
+  if (info.project.name !== 'chromium') await page.keyboard.press('Escape');
 
   // Esc closes it and the focus goes back to the Search button.
   await page.getByRole('button', { name: /^Search/ }).click();
