@@ -1,3 +1,4 @@
+import { fill } from '../../../i18n/fill.js';
 import type { Drill } from '../../../ui/v2/drill.js';
 import type { Translate } from '../figures/read.js';
 
@@ -21,6 +22,6 @@ export function drillOf(
     ? undefined
     : {
         figure: `machine-page:${at.machineId}:${at.part}`,
-        label: t('analytics.today.rowsFor', { figure }),
+        label: fill(t('v2m.rows.open'), { figure }),
       };
 }

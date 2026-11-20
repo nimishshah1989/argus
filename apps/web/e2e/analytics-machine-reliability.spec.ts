@@ -187,6 +187,35 @@ async function stubFigures(page: Page, reply: FiguresReply = FIGURES): Promise<v
   await page.route('**/api/v1/analytics/figures', (route) => route.fulfill({ json: reply }));
 }
 
+/** The drill reply is one ticket row: the table the links open, without seeding a real breakdown. */
+async function stubDrill(page: Page): Promise<string[]> {
+  const asked: string[] = [];
+  await page.route('**/api/v1/analytics/drill?*', (route) => {
+    asked.push(decodeURIComponent(route.request().url()));
+    return route.fulfill({
+      json: {
+        type: 'ticket',
+        rows: [
+          {
+            id: FIT_TICKETS[0],
+            ref: 'BD-2609-16-1',
+            kind: 'stopped',
+            status: 'closed',
+            machineId: FULL_ID,
+            reportedAt: '2026-09-16T08:00:00+05:30',
+            closedAt: '2026-09-16T10:00:00+05:30',
+            source: 'history',
+            downtimeMin: 240,
+            repairMin: 120,
+            workType: 'E',
+          },
+        ],
+      },
+    });
+  });
+  return asked;
+}
+
 /** The region a section renders (its own heading names it). */
 function region(page: Page, name: string) {
   return page.getByRole('region', { name, exact: true });
@@ -195,6 +224,7 @@ function region(page: Page, name: string) {
 test('a head reads one machine’s fit, its parts, and drills from each', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await stubFigures(page);
+  const asked = await stubDrill(page);
   await signIn(page, 'head');
 
   await page.goto(`/analytics/machines/${FULL_ID}`);
@@ -230,15 +260,25 @@ test('a head reads one machine’s fit, its parts, and drills from each', async 
   await expect(spares.getByRole('cell', { name: '0.0', exact: true })).toHaveCount(2);
   await expect(spares.getByText('4 parts, 4 shown', { exact: true })).toHaveCount(0);
 
-  // The fit and the spares each offer the rows behind them (the rows open in the drawer, which the rows-behind
-  // wiring serves: here the controls are asserted, as they are named for the block).
-  await expect(fit.getByRole('button', { name: 'See the rows', exact: true })).toBeVisible();
-  await expect(spares.getByRole('button', { name: 'See the rows', exact: true })).toBeVisible();
+  // The fit's drill opens the rows behind it in the drawer and asks for the tickets the fit counted.
+  const drawer = page.locator('aside.v2-drawer');
+  await fit.getByRole('button', { name: 'See the rows', exact: true }).click();
+  await expect(page).toHaveURL(/drawer=figure/);
+  await expect(drawer).not.toHaveAttribute('inert', '');
+  await expect(drawer.getByText('BD-2609-16-1', { exact: true })).toBeVisible();
+  expect(asked.some((url) => FIT_TICKETS.every((id) => url.includes(id)))).toBe(true);
+
+  // The spares' drill asks for the reports behind the listed parts.
+  await page.keyboard.press('Escape');
+  await spares.getByRole('button', { name: 'See the rows', exact: true }).click();
+  await expect.poll(() => asked.some((url) => url.includes(SPARE_TICKETS[0]!))).toBe(true);
+  await expect(drawer.getByText('BD-2609-16-1', { exact: true })).toBeVisible();
 });
 
 test('a machine with too little history and a machine with no spare say so', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await stubFigures(page);
+  await stubDrill(page);
   await signIn(page, 'head');
 
   // Four failures, three in its category, five needed: both counts print beside its own drill.

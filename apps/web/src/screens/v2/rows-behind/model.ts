@@ -3,6 +3,7 @@ import { rowsBehindModel } from '../../../ui/v2/domain/rows-behind-adapter.js';
 import type { RowsBehindModel } from '../../../ui/v2/domain/rows-behind.js';
 import { FIGURE_LABELS, unitOf } from '../../analytics/groups.js';
 import type { Translate } from '../figures/read.js';
+import { machineDrillKey, machineDrillName } from './machine.js';
 import { rowsWords } from './words.js';
 
 const indian = (n: number, digits: number) =>
@@ -27,6 +28,8 @@ export function printedValue(key: string, value: unknown, rows: number, t: Trans
 
 /** What the figure is called: the label every screen and the Guide print for its key; the key itself when none is. */
 export const figureName = (key: string, t: Translate): string => {
+  const mine = machineDrillKey(key);
+  if (mine) return machineDrillName(mine.part, t);
   const label = FIGURE_LABELS[key];
   return label ? t(label) : key;
 };

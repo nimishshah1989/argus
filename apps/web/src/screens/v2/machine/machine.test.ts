@@ -8,6 +8,8 @@ import type { Ticket } from '@uptimo/shared/replies';
 import { ENGINE_DATA } from '../../../../../../packages/domain/test/answer-key/fixture.js';
 import '../../../i18n/index.js';
 import { machineRecord } from '../../analytics/machine-record.js';
+import { machineDrill } from '../rows-behind/machine.js';
+import { figureName } from '../rows-behind/model.js';
 import { UUID, printed, realReply } from '../figures/real-reply.js';
 import { machinePageModel, type MachineFacts } from './adapter.js';
 import { MachineView } from './View.js';
@@ -94,6 +96,19 @@ describe('the v2 Machine page prints everything v1 showed', () => {
     // No PM visit was ever logged, so the PM figure has no rows to open.
     expect(value('pm-hours').drill).toBeUndefined();
     expect(value('age').drill).toBeUndefined();
+  });
+
+  it('each drill opens this machine’s own rows: its breakdown tickets, its fit’s tickets, itself', () => {
+    const counted = machineDrill('machine-page:HMC-2:breakdowns', reply)!;
+    expect([counted.type, counted.ids.length]).toEqual(['ticket', record.drills.breakdowns.length]);
+    expect(machineDrill('machine-page:HMC-2:fit', reply)!.type).toBe('ticket');
+    expect(machineDrill('machine-page:HMC-2:machine', reply)).toEqual({
+      type: 'machine',
+      ids: ['HMC-2'],
+    });
+    expect(machineDrill('machine-page:HMC-2:pm', reply)).toBeNull();
+    expect(machineDrill('dashboard.total-machines', reply)).toBeNull();
+    expect(figureName('machine-page:HMC-2:breakdowns', t)).toBe('Breakdown summary');
   });
 
   it('the last breakdown, the most frequent problem and the PM visits and hours', () => {

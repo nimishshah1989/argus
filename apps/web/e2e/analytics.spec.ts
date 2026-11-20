@@ -23,6 +23,31 @@ const FIGURES_REPLY = {
   ],
 };
 
+/** The machine row the figure drilled to, in the engine's plain shape. */
+const DRILL_ROW = {
+  id: MACHINE_ID,
+  code: 'M-1',
+  segment: 'CNC',
+  category: 'CNC',
+  cell: '4',
+  location: null,
+  make: null,
+  model: null,
+  serial: null,
+  controller: null,
+  controllerModel: null,
+  controllerSerial: null,
+  year: null,
+  purchasedOn: null,
+  powerKw: null,
+  capacityKva: null,
+  assetCode: null,
+  status: 'active',
+  criticality: 'A',
+  excludedFromProduction: false,
+  metadata: {},
+};
+
 type Figure = FiguresReply['figures'][number];
 
 /** The unit each Today number prints after its value; the six fleet counts have none. */
@@ -281,12 +306,18 @@ test('a head lands on Today with the live figures, a drill and the data checklis
   // The strip above the tiles is built from the existing /state, with no new endpoint.
   await expect(page.getByRole('heading', { name: 'What needs you now' })).toBeVisible();
 
-  // A figure that has rows behind it offers them: the control is on its card, named for the figure.
-  const drilled = ready.find((figure) => figure.drill.ids.length > 0 && tile(page, figure.key));
+  // One drill opens the rows behind its figure in the drawer, in the URL; Back closes it.
+  const drilled = ready.find((figure) => figure.drill.ids.length > 0);
   expect(drilled).toBeTruthy();
-  await expect(
-    tile(page, drilled!.key).getByRole('button', { name: /See the rows for/ }),
-  ).toBeVisible();
+  await tile(page, drilled!.key)
+    .getByRole('button', { name: /Show the rows behind/ })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`drawer=figure(%3A|:)${drilled!.key}`));
+  const drawer = page.locator('aside.v2-drawer');
+  await expect(drawer).not.toHaveAttribute('inert', '');
+  await expect(drawer.getByRole('table')).toBeVisible();
+  await page.goBack();
+  await expect(drawer).toHaveAttribute('inert', '');
 
   // A held figure never invents a number.
   const held = firstHeld(reply);
@@ -333,27 +364,33 @@ test('the needs-now strip is not shown as an all-clear until /state arrives', as
   await expect(strip.getByText(/clocks breached/)).toBeVisible({ timeout: 15_000 });
 });
 
-test('a ready figure prints its value and offers the rows behind it', async ({
-  page,
-}, testInfo) => {
+test('a ready figure opens the table of rows behind it', async ({ page }, testInfo) => {
   if (testInfo.project.name === 'chromium')
     await page.setViewportSize({ width: 1440, height: 900 });
   await signIn(page, 'head');
 
-  // Stub the engine's reply: one ready dashboard figure that drills to one machine row.
+  // Stub the two engine replies: one ready dashboard figure that drills to one machine row.
   await page.route('**/api/v1/analytics/figures', (route) =>
     route.fulfill({ json: FIGURES_REPLY }),
+  );
+  await page.route('**/api/v1/analytics/drill?*', (route) =>
+    route.fulfill({ json: { type: 'machine', rows: [DRILL_ROW] } }),
   );
   await page.goto('/analytics/today');
 
   // A ready figure prints its value and offers the rows it came from.
   await expect(tile(page, 'dashboard.total-machines')).toContainText('Total machines');
   await expect(tile(page, 'dashboard.total-machines')).toContainText('12');
-  await expect(
-    tile(page, 'dashboard.total-machines').getByRole('button', {
-      name: /See the rows for Total machines/,
-    }),
-  ).toBeVisible();
+  await tile(page, 'dashboard.total-machines')
+    .getByRole('button', { name: /Show the rows behind Total machines/ })
+    .click();
+
+  // The rows are the plain list of what identifies each one, in the drawer.
+  await expect(page).toHaveURL(/drawer=figure(%3A|:)dashboard\.total-machines/);
+  const table = page.locator('aside.v2-drawer').getByRole('table');
+  await expect(table).toBeVisible();
+  await expect(table.getByText('M-1', { exact: true })).toBeVisible();
+  await expect(table.getByText('Cell 4', { exact: true })).toBeVisible();
 });
 
 test('an operator lands on My complaints and has no analytics entry', async ({

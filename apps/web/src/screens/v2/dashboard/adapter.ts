@@ -16,6 +16,8 @@ import {
   splitFigure,
 } from '../../../ui/meaning/index.js';
 import { fill } from '../../../i18n/fill.js';
+import type { Drill } from '../../../ui/v2/drill.js';
+import { drillFor } from '../rows-behind/drill.js';
 import { bannerOf } from '../../analytics/action-center.js';
 import { FIGURE_LABELS } from '../../analytics/groups.js';
 import { contentOf } from '../../analytics/figure-content.js';
@@ -69,13 +71,8 @@ const isNumber = (figure: Figure): boolean =>
 const label = (key: string, t: Translate): string =>
   t(FIGURE_LABELS[key] ?? ('analytics.figure.unknown' satisfies MessageKey));
 
-const drillOf = (figure: Figure, t: Translate) =>
-  figure.drill.ids.length > 0
-    ? {
-        figure: figure.key,
-        label: t('analytics.today.rowsFor', { figure: label(figure.key, t) }),
-      }
-    : undefined;
+/** What a figure carries beside its value: its change against 30 days earlier and the rows behind it, when it has them. */
+type Per = { change: Change | undefined; drill: Drill | undefined };
 
 /** The change against 30 days earlier, as a card prints it: a verdict for a rate, a quiet amount for a running total. */
 function deltaOf(change: Change | undefined, t: Translate): KpiData['delta'] {
@@ -105,12 +102,7 @@ function deltaOf(change: Change | undefined, t: Translate): KpiData['delta'] {
 }
 
 /** One number figure as a card: the engine's exact value with its unit, or a dash that says it is not computed. */
-function numberCard(
-  figure: Figure,
-  change: Change | undefined,
-  period: string,
-  t: Translate,
-): KpiData {
+function numberCard(figure: Figure, per: Per, period: string, t: Translate): KpiData {
   const measure = figureMeasure(figure.key);
   const value = figure.status === 'ready' ? scalarOf(figure) : null;
   const places = value === null ? 0 : figurePlaces(measure, value);
@@ -121,21 +113,16 @@ function numberCard(
     label: label(figure.key, t),
     icon: ICON[figure.key] ?? 'list',
     value: unit ? `${text} ${unit}` : text,
-    delta: deltaOf(change, t),
+    delta: deltaOf(per.change, t),
     period,
     meaning: value === null ? t('analytics.notComputed') : '',
     more: '',
-    drill: value === null ? undefined : drillOf(figure, t),
+    drill: value === null ? undefined : per.drill,
   };
 }
 
 /** The breakdown-free sentence as a card: "53 of 125 machines", and its change in clean machines. */
-function cleanCard(
-  figure: Figure,
-  change: Change | undefined,
-  period: string,
-  t: Translate,
-): KpiData {
+function cleanCard(figure: Figure, per: Per, period: string, t: Translate): KpiData {
   const content = contentOf(figure, asT(t));
   const text = content?.kind === 'text' ? content.text : null;
   return {
@@ -143,11 +130,11 @@ function cleanCard(
     label: label(figure.key, t),
     icon: ICON[figure.key] ?? 'check',
     value: text ?? '—',
-    delta: deltaOf(change, t),
+    delta: deltaOf(per.change, t),
     period,
     meaning: text === null ? t('analytics.notComputed') : '',
     more: '',
-    drill: text === null ? undefined : drillOf(figure, t),
+    drill: text === null ? undefined : per.drill,
   };
 }
 
@@ -175,18 +162,14 @@ export function problemRows(figure: Figure): ProblemRow[] {
 const DASH = '—';
 
 /** The three costliest problems and everything else, as bars that add up to the engine's total, and the table of the rows. */
-function costliestOf(
-  figure: Figure,
-  change: Change | undefined,
-  t: Translate,
-): DashboardModel['costliest'] {
+function costliestOf(figure: Figure, per: Per, t: Translate): DashboardModel['costliest'] {
   const rows = problemRows(figure);
   const total = scalarOf(figure);
   if (rows.length === 0 || total === null) return null;
   const measure = figureMeasure('dashboard.costliest-problems');
   const hours = (n: number) => formatFigure(measure, n);
   const common = commonWords(t);
-  const drill = drillOf(figure, t);
+  const { drill } = per;
   const rest = total - rows.reduce((sum, row) => sum + row.hours, 0);
   const bars: ParetoData['bars'] = [
     ...rows.map((row) => ({
@@ -197,7 +180,7 @@ function costliestOf(
     })),
     ...(rest > 0.05 ? [{ label: t('v2t.dash.others'), hours: rest, shown: hours(rest) }] : []),
   ];
-  const moved = deltaOf(change, t).text;
+  const moved = deltaOf(per.change, t).text;
   const title = label(figure.key, t);
   const caption = t('analytics.content.costliest.caption', {
     hours: formatFigure({ ...measure, unit: 'count' }, total),
@@ -250,6 +233,7 @@ function codeLabels(
 
 function chartOf(
   figure: Figure,
+  drill: Drill | undefined,
   t: Translate,
   codeOf: (id: string) => string,
 ): DashboardChart | null {
@@ -261,7 +245,7 @@ function chartOf(
     spec: content.spec,
     sub: t(bubble ? 'v2t.dash.bubbleSub' : 'v2t.dash.timelineSub'),
     aria: t(bubble ? 'v2t.dash.bubbleAria' : 'v2t.dash.timelineAria'),
-    drill: drillOf(figure, t),
+    drill,
   };
 }
 
@@ -326,12 +310,14 @@ export function dashboardModel(
   if (figures.length === 0) return null;
   const compared = facts.before !== null;
   const sameYear = priorDate(reply.asOf).slice(0, 4) === reply.asOf.slice(0, 4);
-  const changeFor = (figure: Figure) =>
-    changeOf(
+  const perOf = (figure: Figure): Per => ({
+    change: changeOf(
       figure,
       facts.before?.figures.find((other) => other.key === figure.key),
       sameYear,
-    );
+    ),
+    drill: drillFor(reply, figure.key, t),
+  });
   const period = compared ? t('v2t.dash.vs', { date: dayText(priorDate(reply.asOf)) }) : '';
   const codeOf = (id: string) => facts.machines.find((machine) => machine.id === id)?.code ?? id;
   const banner = facts.board === null ? null : bannerOf(facts.board);
@@ -348,13 +334,13 @@ export function dashboardModel(
           },
     needs: facts.state === null ? null : needsNowModel(facts.state, facts.machines, t),
     kpis: [
-      ...figures.filter(isNumber).map((figure) => numberCard(figure, changeFor(figure), period, t)),
-      ...(free === undefined ? [] : [cleanCard(free, changeFor(free), period, t)]),
+      ...figures.filter(isNumber).map((figure) => numberCard(figure, perOf(figure), period, t)),
+      ...(free === undefined ? [] : [cleanCard(free, perOf(free), period, t)]),
     ],
-    costliest: costliest === undefined ? null : costliestOf(costliest, changeFor(costliest), t),
+    costliest: costliest === undefined ? null : costliestOf(costliest, perOf(costliest), t),
     charts: figures.flatMap((figure) => {
       const chart = ['dashboard.bubble-chart', 'dashboard.expansion-timeline'].includes(figure.key)
-        ? chartOf(figure, t, codeOf)
+        ? chartOf(figure, perOf(figure).drill, t, codeOf)
         : null;
       return chart === null ? [] : [chart];
     }),
