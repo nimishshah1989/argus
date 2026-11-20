@@ -63,12 +63,23 @@ function reply(): FiguresReply {
               page: 'breakdowns',
               title: 'Breakdown Log',
               kpis: [],
-              tables: [{ title: '', header: HEADER, rows, rowCount: TOTAL, truncated: true }],
+              tables: [
+                {
+                  title: '',
+                  header: HEADER,
+                  rows,
+                  // The engine prints each row's own ticket beside it, in row order.
+                  rowTicketIds: rows.map((_, at) => `fake-${at}`),
+                  rowCount: TOTAL,
+                  truncated: true,
+                },
+              ],
               charts: [],
             },
           ],
         },
-        drill: { type: 'ticket', ids: rows.map((_, at) => `fake-${at}`) },
+        // The engine sorts a figure's drill ids (as text), so by position they are not the rows' own tickets.
+        drill: { type: 'ticket', ids: rows.map((_, at) => `fake-${at}`).sort() },
       },
     ],
   };

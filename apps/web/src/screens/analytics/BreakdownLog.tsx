@@ -152,12 +152,10 @@ function CountLine({
 function LogTable({
   table,
   shown,
-  ids,
   resetKey,
 }: {
   table: PageTable;
   shown: ReturnType<typeof filterRows>;
-  ids: readonly string[];
   resetKey: string;
 }) {
   const { t } = useTranslation();
@@ -173,8 +171,9 @@ function LogTable({
       unsortable={UNSORTED}
       sortKey={(column, cell) => (column === DATE_COLUMN ? dayKey(cell) : undefined)}
       renderCell={(cell, index, column) => {
-        const ticketId = ids[index];
-        if (column !== 0 || ticketId === undefined) return cell;
+        // The drill ids are sorted, not in row order: the row's own ticket is the one the figure printed beside it.
+        const ticketId = table.rowTicketIds?.[index];
+        if (column !== 0 || ticketId === undefined || ticketId === '') return cell;
         return (
           <Link
             to={`/desk/${ticketId}`}
@@ -192,7 +191,7 @@ function LogTable({
 type LogPage =
   | { state: 'notComputed' }
   | { state: 'empty' }
-  | { state: 'ready'; title: string; table: PageTable; ids: readonly string[] };
+  | { state: 'ready'; title: string; table: PageTable };
 
 /** What the figure gives this screen: an honest notice, or the page's one table. */
 function logPageOf(figure: Figure | undefined, t: TFunction): LogPage {
@@ -201,7 +200,7 @@ function logPageOf(figure: Figure | undefined, t: TFunction): LogPage {
   if (content?.kind !== 'page') return { state: 'empty' };
   const table = content.tables[0];
   if (table === undefined || table.rows.length === 0) return { state: 'empty' };
-  return { state: 'ready', title: content.title, table, ids: figure.drill.ids };
+  return { state: 'ready', title: content.title, table };
 }
 
 interface LogProps {
@@ -232,7 +231,7 @@ function LogReady({
 }) {
   const { t } = useTranslation();
   const [filters, setFilters] = useState<LogFilters>(EMPTY_FILTERS);
-  const { title, table, ids } = page;
+  const { title, table } = page;
   const shown = useMemo(() => filterRows(table.rows, filters), [table.rows, filters]);
   const exported = useMemo(() => shown.map((entry) => entry.row), [shown]);
   const active = LOG_FILTERS.some((filter) => filters[filter.id] !== '');
@@ -258,7 +257,7 @@ function LogReady({
         shown.length === 0 ? (
           <EmptyState title={t('analytics.log.noMatches')} />
         ) : (
-          <LogTable table={table} shown={shown} ids={ids} resetKey={key} />
+          <LogTable table={table} shown={shown} resetKey={key} />
         )
       }
       {...drillSlot(drill, t('analytics.drill.title'))}
