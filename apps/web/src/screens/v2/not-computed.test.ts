@@ -9,7 +9,7 @@ import { realReply } from './figures/real-reply.js';
 const live = vi.hoisted(() => ({ reply: undefined as unknown }));
 vi.mock('./figures/live.js', () => ({
   liveReply: async () => live.reply,
-  catalogue: (key: string, values?: Record<string, unknown>) =>
+  catalogue: (key: string, values?: Record<string, string | number>) =>
     fill((en as Record<string, string>)[key] ?? key, values ?? {}),
 }));
 vi.mock('./fix-finder/live.js', async () => {
