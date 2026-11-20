@@ -63,6 +63,13 @@ export const machineChip = (code: string): EntityChipProps => ({
   label: code,
 });
 
+/** A printed cell name as the chip that opens it. The pages print names, not ids, so the name is the id. */
+export const cellChip = (name: string): EntityChipProps => ({
+  kind: 'cell',
+  id: name,
+  label: name,
+});
+
 /** A printed person's name as the chip that opens them (the pages print names, not ids). */
 export const personChip = (name: string): EntityChipProps => ({
   kind: 'person',
