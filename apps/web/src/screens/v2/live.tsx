@@ -2,14 +2,14 @@
 import type { MessageKey } from '@uptimo/shared/i18n';
 import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { correctMove, getBrand, getMe } from '../../api.js';
 import { ApiError, isOffline } from '../../data/index.js';
 import { Segmented } from '../../ui/v2/segmented.js';
 import { ScreenStates } from '../../ui/v2/screen-states.js';
 import { correctionError } from '../analytics/machine-values.js';
-import { SCREEN_LABELS, groupFor, type GroupId } from '../analytics/groups.js';
+import { SCREEN_LABELS, groupFor, parseDrill, type GroupId } from '../analytics/groups.js';
 import { AgeView } from './age/View.js';
 import { CellLogView } from './cell-change-log/View.js';
 import { FixFinderView } from './fix-finder/View.js';
@@ -20,6 +20,12 @@ import type { CellLogModel } from './cell-change-log/model.js';
 import { useScreenModel, type ScreenModel, type ScreenParams } from './data.js';
 import { savedFigures } from './figures/live.js';
 import { ChromeContext, EntityShell, WhoContext } from './entity/EntityShell.js';
+import { liveReply } from './figures/live.js';
+import {
+  NO_SUCH_FIGURE,
+  figureForLegacyDrill,
+  searchForLegacyDrill,
+} from './rows-behind/legacy.js';
 import { useNav } from './nav.js';
 import type { NavItem } from '../../ui/v2/shell.js';
 import type { SectionId } from '../analytics/shell/shell-data.js';
@@ -53,6 +59,31 @@ function ScreenTabs({ group, current }: { group: GroupId; current: string }) {
   );
 }
 
+/**
+ * An old v1 link (`?drill=<type>:<ids>`, from a tile, a bookmark or a pasted address) opens the same rows in the rows
+ * panel: the figure those ids belong to is found in the engine's reply and the address becomes `?drawer=figure:<key>`.
+ * Ids no figure counts open the panel with nothing in it, never a v1 table.
+ */
+function useLegacyDrill(screen: string) {
+  const { search } = useLocation();
+  const navigate = useNavigate();
+  const client = useQueryClient();
+  useEffect(() => {
+    const asked = parseDrill(new URLSearchParams(search).get('drill'));
+    if (!asked) return;
+    let current = true;
+    const go = (figure: string) =>
+      current && navigate({ search: searchForLegacyDrill(search, figure) }, { replace: true });
+    liveReply(client).then(
+      (reply) => go(figureForLegacyDrill(reply, asked, screen)),
+      () => go(NO_SUCH_FIGURE),
+    );
+    return () => {
+      current = false;
+    };
+  }, [search, screen, client, navigate]);
+}
+
 /** A screen's frame: the rail by the login's role, the section's screens above, and the figures' states in place of the page. */
 function LiveFrame({
   entry,
@@ -65,6 +96,7 @@ function LiveFrame({
   const { t } = useTranslation();
   const brand = useQuery({ queryKey: ['brand'], queryFn: getBrand }).data?.company;
   const nav = useNav(entry.section, role);
+  useLegacyDrill(entry.screen);
   return (
     <WhoContext.Provider value={{ role, company: brand || t('analytics.title') }}>
       <ChromeContext.Provider value={<ScreenTabs group={entry.group} current={entry.screen} />}>
@@ -237,8 +269,17 @@ const LIVE: readonly Live[] = [
   },
 ];
 
-/** The live v2 page for a group's screen (`?screen=`, or the group's first), or null when that screen is still v1's. */
+/**
+ * The live v2 page for a group's screen (`?screen=`, or the group's first), or null when that screen is still v1's. A
+ * Machines screen the group does not have (a bookmark, a typo, the machine page's id) goes to the register, the
+ * group's first v2 screen: there is no v1 copy of it to fall back to.
+ */
 export function liveScreen(group: string | undefined, screen: string | null): ReactElement | null {
   const named = screen ?? (group === 'machines' ? 'registers' : null);
-  return LIVE.find((entry) => entry.group === group && entry.screen === named)?.page() ?? null;
+  const found = LIVE.find((entry) => entry.group === group && entry.screen === named);
+  if (found) return found.page();
+  const known = groupFor('machines')?.screens.filter((id) => id !== 'machine-page') ?? [];
+  return group === 'machines' && named !== null && !known.includes(named) ? (
+    <Navigate to="/analytics/machines?screen=registers" replace />
+  ) : null;
 }
