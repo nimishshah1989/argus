@@ -49,14 +49,6 @@ export const PRINTED: Printed[] = [
     ],
   },
   {
-    path: `${B}shift-kpis`,
-    tiles: [['Day shift', '55.0%']],
-    rows: [
-      ['By shift', 0, ['Day', '20.0']],
-      ['By shift', 1, ['Evening', '']],
-    ],
-  },
-  {
     path: '/analytics/machines?screen=compare',
     tiles: [],
     rows: [

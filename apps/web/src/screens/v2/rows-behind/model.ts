@@ -39,15 +39,17 @@ export function rowsModel(
     reply: DrillReply;
     asOf: string;
     machineCode: (id: string) => string | undefined;
+    /** A part of a figure (one tile of a map) names itself and its value; the figure's own label and value stand otherwise. */
+    named?: { label: string; value: string };
   },
   t: Translate,
 ): RowsBehindModel | null {
-  const { key, value, reply, asOf, machineCode } = input;
+  const { key, value, reply, asOf, machineCode, named } = input;
   return rowsBehindModel({
     figure: {
       key,
-      label: figureName(key, t),
-      value: printedValue(key, value, reply.rows.length, t),
+      label: named?.label ?? figureName(key, t),
+      value: named?.value ?? printedValue(key, value, reply.rows.length, t),
     },
     reply,
     asOf,

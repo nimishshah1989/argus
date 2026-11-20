@@ -8,7 +8,10 @@ import { fixFinderModel } from './fix-finder/adapter.js';
 import { FixFinderView } from './fix-finder/View.js';
 import { problemAnalysisModel } from './problem-analysis/adapter.js';
 import { ProblemAnalysisView } from './problem-analysis/View.js';
-import { answerKey, testT } from './printed-page/test-support.js';
+import { answerKey, realT, testT } from './printed-page/test-support.js';
+import { realReply } from './figures/real-reply.js';
+import { shiftKpisModel } from './shift-kpis/adapter.js';
+import { ShiftKpisView } from './shift-kpis/View.js';
 
 /**
  * The order of a screen's headings and table columns, as the live screen draws them from the engine's answer key. It
@@ -105,5 +108,40 @@ describe('Fix Finder draws its table and filters in order', () => {
     const at = ['>All<', '>100% match<', '>Part match<'].map((chip) => markup.indexOf(chip));
     expect(at.every((place) => place > 0)).toBe(true);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
+  });
+});
+
+describe('Shift-calendar KPIs draws its four figures in order', () => {
+  const model = shiftKpisModel(realReply(), realT)!;
+  const lines = outline(
+    draw(createElement(ShiftKpisView, { model, nav, title: 'Shift-calendar KPIs' })),
+  );
+  const sections = lines.filter((line) => line.startsWith('h2: '));
+
+  it('has one page title and one heading per figure, the comparison first and the map last', () => {
+    expect(lines.filter((line) => line.startsWith('h1: '))).toEqual(['h1: Shift-calendar KPIs']);
+    const at = [
+      'h2: Platform basis beside the working-hour basis',
+      'h2: The shift split',
+      'h2: Open breakdowns, aged in working hours',
+      'h2: Breakdown map',
+    ].map((heading) => sections.indexOf(heading));
+    expect(at.every((place) => place >= 0)).toBe(true);
+    expect([...at].sort((a, b) => a - b)).toEqual(at);
+  });
+
+  it('prints the comparison, the shift split and the backlog tables before the map’s charts and heat grids', () => {
+    const columns = (after: string, before: string) =>
+      lines.slice(lines.indexOf(after) + 1, lines.indexOf(before)).map((line) => line.slice(4));
+    expect(
+      columns('h2: Platform basis beside the working-hour basis', 'h2: The shift split'),
+    ).toEqual(expect.arrayContaining(['Measure', 'Platform basis', 'Working-hour basis']));
+    expect(columns('h2: The shift split', 'h2: Open breakdowns, aged in working hours')).toEqual(
+      expect.arrayContaining(['Shift', 'Breakdowns', 'BD hours', 'MTTR', 'MTBF', 'Availability']),
+    );
+    const grids = lines
+      .slice(lines.indexOf('h2: Breakdown map'))
+      .filter((line) => line.startsWith('th: Machine'));
+    expect(grids).toEqual(['th: Machine']);
   });
 });

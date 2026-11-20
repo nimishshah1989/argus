@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { ChartCard } from '../../../ui/v2/chart-card.js';
 import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
 import { PrintedDataTable } from '../../../ui/v2/domain/printed-table.js';
+import { DrillAction } from '../../../ui/v2/drill-action.js';
 import { FigureTile } from '../../../ui/v2/figure-tile.js';
 import { Row } from '../../../ui/v2/row.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
@@ -34,6 +35,11 @@ export function PageBody({
   return (
     <EntityShell nav={nav} title={title}>
       <Verdict verdict={model.verdict} whyLabel={model.words.why} />
+      {model.drill ? (
+        <div>
+          <DrillAction drill={model.drill} />
+        </div>
+      ) : null}
       {model.figures.length > 0 ? (
         <Row cols={columnsFor(model.figures.length)}>
           {model.figures.map((figure) => (

@@ -131,26 +131,6 @@ const FIGURES = [
       { id: 'ch-a4-count', labels: ['Asha', 'Ravi'], datasets: [{ label: 'Jobs', data: [3, 5] }] },
     ],
   }),
-  figure('shift-kpis.compare', 'shift-kpis', {
-    page: 'sk',
-    title: 'Shift-calendar KPIs',
-    kpis: [['Day shift', '55.0%']],
-    tables: [
-      {
-        title: 'By shift',
-        header: ['Shift', 'Hours'],
-        rows: [
-          ['Day', '20.0'],
-          ['Evening', ''],
-        ],
-      },
-    ],
-  }),
-  figure('shift-kpis.backlog', 'shift-kpis', {
-    page: 'sk',
-    title: 'Backlog',
-    tables: [{ title: 'Open at shift end', header: ['Shift', 'Open'], rows: [['Day', '2']] }],
-  }),
   figure('compare', 'compare', {
     page: 'cmp',
     title: 'Compare machines',
