@@ -1,17 +1,13 @@
-import { drillReplySchema } from '@uptimo/shared/analytics';
 import { fill } from '../../i18n/fill.js';
 import type { BulletData } from '../../ui/v2/bullet-bar.js';
 import type { Drill } from '../../ui/v2/drill.js';
-import { rowsBehindModel } from '../../ui/v2/domain/rows-behind-adapter.js';
-import type { RowsBehindModel } from '../../ui/v2/domain/rows-behind.js';
 import type { KpiData } from '../../ui/v2/kpi-card.js';
 import type { ParetoData } from '../../ui/v2/pareto.js';
 import replies from './generated/replies.json' with { type: 'json' };
-import { adapterWords, figureLabels, openLabel, viewWords } from './words.js';
+import { figureLabels, openLabel, viewWords } from './words.js';
 
 type Entry = { value: unknown; reply: unknown };
 const figures = replies.figures as Record<string, Entry>;
-const codes = replies.machineCodes as Record<string, string>;
 const indian = (n: number, digits = 0) =>
   n.toLocaleString('en-IN', { minimumFractionDigits: digits, maximumFractionDigits: digits });
 
@@ -32,21 +28,6 @@ export const drillOf = (key: string): Drill => ({
   figure: key,
   label: fill(openLabel, { figure: figureLabels[key] ?? key }),
 });
-
-/** What the drawer shows for a figure: the rows of its real drill reply, or nothing for a figure the plant does not have. */
-export function rowsFor(key: string): Promise<RowsBehindModel | null> {
-  const entry = figures[key];
-  if (!entry) return Promise.resolve(null);
-  return Promise.resolve(
-    rowsBehindModel({
-      figure: { key, label: figureLabels[key] ?? key, value: printed(key) },
-      reply: drillReplySchema.parse(entry.reply),
-      asOf: replies.asOf,
-      machineCode: (id) => codes[id],
-      words: adapterWords,
-    }),
-  );
-}
 
 const w = viewWords;
 export const kpis: KpiData[] = [

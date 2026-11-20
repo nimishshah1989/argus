@@ -1,3 +1,7 @@
+/* eslint-disable i18next/no-literal-string -- icon names only; every visible word comes in as a prop */
+import { useContext } from 'react';
+import { DrillOpenContext, type Drill } from './drill.js';
+import { Icon } from './icons.js';
 import { useTick } from './motion.js';
 
 export type FigureData = {
@@ -7,17 +11,34 @@ export type FigureData = {
   value: string;
   /** The engine's own line under it, when it sent one. */
   sub: string;
+  /** The rows behind the figure: when given, the value is a button that opens them. */
+  drill?: Drill;
 };
 
 /** A key figure the engine printed with a line of its own and no change to compare: the value ticks in, the line stays. */
 export function FigureTile({ figure }: { figure: FigureData }) {
   const value = useTick(figure.value);
+  const open = useContext(DrillOpenContext);
   return (
     <section className="v2-card v2-kpi" tabIndex={0} aria-label={figure.label}>
       <div className="v2-kpi-label">{figure.label}</div>
-      <div key={value.n} className="v2-kpi-value" data-flash={value.flash}>
-        {value.text}
-      </div>
+      {figure.drill ? (
+        <button
+          key={value.n}
+          type="button"
+          className="v2-kpi-value v2-drill-value"
+          data-flash={value.flash}
+          aria-label={`${value.text}. ${figure.drill.label}`}
+          onClick={() => figure.drill && open(figure.drill)}
+        >
+          {value.text}
+          <Icon name="list" size={14} />
+        </button>
+      ) : (
+        <div key={value.n} className="v2-kpi-value" data-flash={value.flash}>
+          {value.text}
+        </div>
+      )}
       {figure.sub ? <p className="v2-kpi-meaning">{figure.sub}</p> : null}
     </section>
   );
