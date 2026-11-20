@@ -2,7 +2,7 @@ import { QueryClientContext, type QueryClient } from '@tanstack/react-query';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { ApiError } from '../../data/index.js';
 import type { LoadState, Loaded } from '../../ui/v2/screen-states.js';
-import { LiveOffline } from './figures/live-error.js';
+import { LiveOffline, NotComputed } from './figures/live-error.js';
 
 /**
  * The one seam between v2 screens and their data. Every screen is a key here, with the params it is asked for and
@@ -65,9 +65,10 @@ export const FROZEN = frozenOf(MODULES);
 export type Source = 'live' | 'frozen';
 export const SourceContext = createContext<Source>('live');
 
-/** The state a failed load shows: a refusal, a lost connection, a missing thing (v1's "empty"), or a plain error. */
+/** The state a failed load shows: a refusal, a lost connection, a figure not computed yet, a missing thing (v1's "empty"), or a plain error. */
 export function stateOfError(error: unknown): LoadState {
   if (error instanceof LiveOffline) return 'offline';
+  if (error instanceof NotComputed) return 'notComputed';
   if (error instanceof ApiError) {
     if (error.status === 403 || error.code === 'forbidden') return 'refused';
     return error.code === 'not_found' ? 'empty' : 'error';
