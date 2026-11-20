@@ -91,12 +91,12 @@ function trendOf(raw: RawMachine): TrendData {
   const peak = weeks.reduce((a, b) => (b.tenths > a.tenths ? b : a));
   return {
     title: 'Breakdown hours a week',
-    sub: '12 weeks to 20-Nov-2026 · hover any week for its exact hours',
+    sub: 'Hours a week · 12 weeks to 20-Nov-2026 · hover any week for its exact figure',
     aria: glue(
       `Breakdown hours a week for 12 weeks: ${(sum(weeks) / 10).toFixed(1)} h in all, most in the week from ${peak.label}`,
     ),
     categoryLabel: 'Week starting',
-    valueLabel: 'Hours',
+    valueLabel: '',
     categories: weeks.map((w) => w.label),
     series: [{ name: 'Breakdown', values, tone: 'danger' }],
   };
@@ -104,7 +104,7 @@ function trendOf(raw: RawMachine): TrendData {
 
 function delta(cur: number, prev: number, fmt: (n: number) => string, lowerIsBetter: boolean) {
   const d = Math.round((cur - prev) * 10) / 10;
-  if (d === 0) return { text: 'no change', up: false, good: true };
+  if (d === 0) return { text: 'no change', up: false, good: true, flat: true };
   return {
     text: glue(`${d > 0 ? '+' : '−'}${fmt(Math.abs(d))}`),
     up: d > 0,
@@ -167,7 +167,7 @@ function kpisOf(raw: RawMachine, nextPm: string, weekly: number[]): KpiData[] {
       delta:
         q.length && prevQ.length
           ? delta(mean(q), mean(prevQ), h1, true)
-          : { text: 'no comparison', up: false, good: true },
+          : { text: 'no comparison', up: false, good: true, flat: true },
       period: 'vs the 90 days before',
       meaning: q.length
         ? 'Average from a stop to running again'

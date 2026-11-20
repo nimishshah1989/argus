@@ -27,7 +27,7 @@ function Identity({ model }: { model: MachinePageModel }) {
       />
       <EntityChip {...machineChip(m)} />
       <span className="v2-sub">
-        {m.name} · {m.typeLabel} · <EntityChip {...cellChip(m.cell)} />
+        {m.typeLabel} · <EntityChip {...cellChip(m.cell)} />
       </span>
     </div>
   );

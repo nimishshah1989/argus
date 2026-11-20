@@ -46,6 +46,13 @@ describe('every machine of the plant has a page whose figures add up', () => {
     }
   });
 
+  it('gives a change of zero no direction and no colour, and every other change a sign', () => {
+    for (const m of machines)
+      for (const { delta } of get(m.code).kpis)
+        if (delta.flat) expect(delta.text, m.code).toMatch(/^no (change|comparison)$/);
+        else expect(delta.text, m.code).toMatch(/^[+\u2212]/);
+  });
+
   it('adds up its history: the month’s rows are the month’s hours, the weeks are the rows, the table is 12 months', () => {
     for (const m of machines) {
       const page = get(m.code);
@@ -111,6 +118,7 @@ describe('the Machine page as a reader sees it', () => {
 
   it('answers first: the state, four key figures and what to do next, before the detail', () => {
     expect(text(out)).toContain('This machine is down');
+    expect(text(out).split('Vertical machining centre 67')).toHaveLength(2);
     expect(out.match(/class="v2-card v2-kpi"/g)).toHaveLength(4);
     const heads = [...out.matchAll(/<h2[^>]*>(.*?)<\/h2>/g)].map((m) => text(m[1]!));
     expect(heads).toEqual([
