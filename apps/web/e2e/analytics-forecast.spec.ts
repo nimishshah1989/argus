@@ -5,11 +5,11 @@ import { expect, test } from './test.js';
 import { MACHINES, signIn } from './fixtures.js';
 
 /**
- * 42e: the A9 Bottleneck Analysis and the Forecast Lab screens. A head opens A9, sees all 14 KPIs, the
- * risk table and both charts drawn ready, sorts the risk table by its numeric score, opens the machine
- * drill and one machine row. Then the Lab: its method table, its month detail, the one line chart with the
- * key's y axis title, and the machine drill behind it. The figures reply is stubbed with the frozen keys
- * (the face's established seam), so the screen is proved against the key; the drill rows are real machines.
+ * 42e: the A9 Bottleneck Analysis and the Forecast Lab screens (v2, live at their v1 address). A head opens A9, sees
+ * all 14 KPIs, the risk table and both charts drawn ready, sorts the risk table by its numeric score, opens the machines
+ * behind the page and one machine. Then the Lab: its method table, its month detail, the one line chart with the
+ * key's y axis title, and the machines behind it. The figures reply is stubbed with the frozen keys (the face's
+ * established seam), so the screen is proved against the key; the drill rows are real machines.
  */
 
 type Figure = FiguresReply['figures'][number];
@@ -72,36 +72,37 @@ async function stubFigures(page: Page): Promise<void> {
   await page.route('**/api/v1/analytics/figures', (route) => route.fulfill({ json: reply }));
 }
 
+const range = (rows: number) => new RegExp(`^1–\\d+ of ${rows}$`);
+
 async function firstRiskMachine(page: Page): Promise<string> {
-  const table = page.getByRole('table', { name: RISK.title, exact: true });
+  const table = page.getByRole('region', { name: RISK.title, exact: true });
   return (await table.getByRole('row').nth(1).getByRole('cell').nth(1).innerText()).trim();
 }
 
-/** A9: the key page, its 14 KPIs, the risk table and both charts drawn by the one chart kit. */
+const tabs = (page: Page) =>
+  page.getByRole('group', { name: 'Screens in Reliability & forecast', exact: true });
+
+/** A9: the page, its 14 KPIs, the risk table and both charts drawn by the one chart kit. */
 async function openA9(page: Page): Promise<void> {
   await page.goto(`/analytics/forecast-scorecard?screen=${SCREEN_A9}`);
-  const nav = page.getByRole('navigation', {
-    name: 'Screens in Reliability & forecast',
-    exact: true,
-  });
   await expect(
-    nav.getByRole('link', { name: 'A9 bottleneck and forecast', exact: true }),
-  ).toHaveAttribute('aria-current', 'page');
-  await expect(page.getByRole('heading', { name: A9.title, exact: true })).toBeVisible();
+    tabs(page).getByRole('button', { name: 'A9 bottleneck and forecast', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('heading', { level: 1, name: A9.title })).toBeVisible();
   expect(A9.kpis).toHaveLength(14);
   for (const kpi of A9.kpis) {
     await expect(page.getByText(kpi.label, { exact: true }).first()).toBeVisible();
     await expect(page.getByText(kpi.value, { exact: true }).first()).toBeVisible();
   }
-  const risk = page.getByRole('table', { name: RISK.title, exact: true });
+  const risk = page.getByRole('region', { name: RISK.title, exact: true });
   await expect(risk).toBeVisible();
-  await expect(risk.getByRole('row')).toHaveCount(RISK.rows.length + 1);
+  await expect(risk.getByText(range(RISK.rows.length))).toBeVisible();
   for (const heading of RISK.header)
     await expect(risk.getByRole('columnheader', { name: heading, exact: true })).toBeVisible();
   await expect(
-    risk.getByRole('cell', { name: RISK.rows[0]![1]!, exact: true }).first(),
+    risk.getByRole('button', { name: RISK.rows[0]![1]!, exact: true }).first(),
   ).toBeVisible();
-  const charts = page.getByTestId('chart');
+  const charts = page.locator('[data-chart-state]');
   await expect(charts).toHaveCount(2);
   for (const chart of await charts.all())
     await expect(chart).toHaveAttribute('data-chart-state', 'ready');
@@ -113,60 +114,52 @@ async function openA9(page: Page): Promise<void> {
   ).toBeVisible();
 }
 
-/** One numeric column, both ways: the click sorts ascending, the keyboard press brings the key's order back. */
+/** One numeric column, both ways: the click sorts largest first, the keyboard press reverses it. */
 async function sortRisk(page: Page): Promise<void> {
-  const table = page.getByRole('table', { name: RISK.title, exact: true });
+  const table = page.getByRole('region', { name: RISK.title, exact: true });
   const ascending = [...RISK.rows].sort((left, right) => Number(left[10]) - Number(right[10]));
   const header = table.getByRole('columnheader', { name: 'Score', exact: true });
-  await expect(header).toHaveAttribute('aria-sort', 'none');
+  await expect(header).not.toHaveAttribute('aria-sort', /ascending|descending/);
   await header.getByRole('button').click();
-  await expect(header).toHaveAttribute('aria-sort', 'ascending');
-  expect(await firstRiskMachine(page)).toBe(ascending[0]![1]);
-  await header.getByRole('button').press('Enter');
   await expect(header).toHaveAttribute('aria-sort', 'descending');
   expect(await firstRiskMachine(page)).toBe(RISK.rows[0]![1]);
+  await header.getByRole('button').press('Enter');
+  await expect(header).toHaveAttribute('aria-sort', 'ascending');
+  expect(await firstRiskMachine(page)).toBe(ascending[0]![1]);
 }
 
-/** The figure's own machine drill: every real machine, one row opening that machine's page. */
-async function openMachineDrill(page: Page): Promise<void> {
-  await page.getByRole('link', { name: 'See the rows', exact: true }).click();
-  await expect(page).toHaveURL(/drill=machine%3A/);
-  await expect(
-    page.getByRole('heading', { name: 'The rows behind this figure', exact: true }),
-  ).toBeVisible();
-  const section = page.locator('section').filter({ hasText: 'The rows behind this figure' });
-  const table = section.getByRole('table');
-  await expect(table.getByRole('row')).toHaveCount(DRILL_IDS.length + 1);
+/** The page action opens every machine the figure counted, in the drawer; a machine in it opens on top and Back returns. */
+async function openMachineDrill(page: Page, figure: string, name: RegExp): Promise<void> {
+  await page.getByRole('button', { name }).click();
+  await expect(page).toHaveURL(new RegExp(`[?&]drawer=figure:${figure}$`));
+  const drawer = page.locator('aside.v2-drawer');
+  await expect(drawer.getByText(new RegExp(`of ${DRILL_IDS.length}$`))).toBeVisible();
   const first = MACHINES[0]!;
-  const link = table.getByRole('link', { name: first.code, exact: true });
-  await expect(link).toHaveAttribute('href', new RegExp(`/analytics/machines/${first.id}$`));
-  await link.click();
-  await expect(page).toHaveURL(new RegExp(`/analytics/machines/${first.id}$`));
+  await drawer.getByRole('button', { name: first.code, exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`[?&]drawer=machine:${first.code}`));
+  await page.goBack();
+  await page.goBack();
+  await expect(page).not.toHaveURL(/drawer=/);
 }
 
 /** The Lab: its method table, its month detail and the one line chart titled with the key's y axis. */
 async function openLab(page: Page): Promise<void> {
   await page.goto(`/analytics/forecast-scorecard?screen=${SCREEN_LAB}`);
-  const nav = page.getByRole('navigation', {
-    name: 'Screens in Reliability & forecast',
-    exact: true,
-  });
-  await expect(nav.getByRole('link', { name: 'Forecast Lab', exact: true })).toHaveAttribute(
-    'aria-current',
-    'page',
-  );
-  await expect(page.getByRole('heading', { name: FL.title, exact: true })).toBeVisible();
-  const method = page.getByRole('table', { name: METHOD.title, exact: true });
+  await expect(
+    tabs(page).getByRole('button', { name: 'Forecast Lab', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('heading', { level: 1, name: FL.title })).toBeVisible();
+  const method = page.getByRole('region', { name: METHOD.title, exact: true });
   await expect(method).toBeVisible();
-  await expect(method.getByRole('row')).toHaveCount(METHOD.rows.length + 1);
-  for (const heading of METHOD.header)
+  await expect(method.getByText(range(METHOD.rows.length))).toBeVisible();
+  for (const heading of METHOD.header.filter((label) => label !== ''))
     await expect(method.getByRole('columnheader', { name: heading, exact: true })).toBeVisible();
   await expect(method.getByText('1.85', { exact: true }).first()).toBeVisible();
-  const months = page.getByRole('table', { name: MONTHS.title, exact: true });
+  const months = page.getByRole('region', { name: MONTHS.title, exact: true });
   await expect(months).toBeVisible();
-  await expect(months.getByRole('row')).toHaveCount(MONTHS.rows.length + 1);
+  await expect(months.getByText(range(MONTHS.rows.length))).toBeVisible();
   await expect(months.getByRole('cell', { name: '194.4', exact: true })).toBeVisible();
-  const charts = page.getByTestId('chart');
+  const charts = page.locator('[data-chart-state]');
   await expect(charts).toHaveCount(1);
   await expect(charts.first()).toHaveAttribute('data-chart-state', 'ready');
   await expect(page.getByText('Breakdown hours in the month', { exact: true })).toBeVisible();
@@ -184,14 +177,24 @@ test('a head opens A9 and the Forecast Lab, sorts the risk table, reads both cha
 
   await openA9(page);
   await sortRisk(page);
-  await openMachineDrill(page);
+  await openMachineDrill(page, SCREEN_A9, /Show the rows behind A9 bottleneck and forecast/);
 
   await openLab(page);
-  await page.getByRole('link', { name: 'See the rows', exact: true }).click();
-  await expect(page).toHaveURL(/drill=machine%3A/);
-  await expect(
-    page.getByRole('heading', { name: 'The rows behind this figure', exact: true }),
-  ).toBeVisible();
-  const drill = page.locator('section').filter({ hasText: 'The rows behind this figure' });
-  await expect(drill.getByRole('table').getByRole('row')).toHaveCount(DRILL_IDS.length + 1);
+  await openMachineDrill(page, SCREEN_LAB, /Show the rows behind Forecast Lab/);
+});
+
+test('an old v1 address opens the v2 screen: an unknown screen opens A9, and a ?drill= link opens its rows', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await stubFigures(page);
+  await signIn(page, 'head');
+
+  await page.goto('/analytics/forecast-scorecard?screen=no-such-screen');
+  await expect(page.getByRole('heading', { level: 1, name: A9.title })).toBeVisible();
+
+  const link = encodeURIComponent(`machine:${DRILL_IDS.join(',')}`);
+  await page.goto(`/analytics/forecast-scorecard?screen=${SCREEN_LAB}&drill=${link}`);
+  await expect(page).toHaveURL(new RegExp(`[?&]drawer=figure:${SCREEN_LAB}$`));
+  await expect(page).not.toHaveURL(/drill=/);
 });
