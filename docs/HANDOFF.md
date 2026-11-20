@@ -42,6 +42,7 @@ fixture.ts, tests}`, `EntityShell` (never `Shell`), kit parts only, data through
 
 ## Rulings (Nimish)
 
+**A v2 screen goes live in its own PR and the old v1 page is deleted in that PR: no gallery-only screens, no Old view, no two copies.**
 Never reduce scope (above). Light checks for web and docs PRs. Everything is redesigned. Floor phone: new
 look, Bhavin's step order, button order and words unchanged. Desk, ticket, TV: flow may change. Rupee figures OK. Running grey,
 Waiting amber, Transferred blue; Indian grouping; system dark and light; power and air failures count in downtime. Real data
