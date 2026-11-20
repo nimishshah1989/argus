@@ -80,4 +80,5 @@ export const analyticsV2MachinesEn = {
   'v2m.entity.jobs': 'Jobs closed',
   'v2m.entity.hoursWorked': 'Hours worked',
   'v2m.entity.hoursUnit': '{n} h',
+  'v2m.refused': 'Your login cannot open this page. Ask the maintenance head for access.',
 };

@@ -62,7 +62,7 @@ export function RefusedState() {
       <span className="v2-seg-risk">
         <Icon name="alert" size={24} />
       </span>
-      <p>{t('kit.pattern.refused')}</p>
+      <p>{t('v2m.refused')}</p>
     </div>
   );
 }
