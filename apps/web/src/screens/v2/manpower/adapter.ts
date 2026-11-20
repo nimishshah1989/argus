@@ -1,5 +1,7 @@
 import type { TFunction } from 'i18next';
 import { fill } from '../../../i18n/fill.js';
+import type { Translate } from '../figures/read.js';
+import { drillFor } from '../rows-behind/drill.js';
 import {
   byTitle,
   chartOf,
@@ -7,7 +9,6 @@ import {
   figuresOf,
   rowWithMost,
   tablesOf,
-  type PrintedPageModel,
 } from '../printed-page/page-model.js';
 import {
   figureOf,
@@ -19,8 +20,11 @@ import {
 import { say, strong } from '../printed-page/segs.js';
 import { kpiOf, verdictOf } from '../printed-page/verdict.js';
 import { pageWords } from '../printed-page/words.js';
+import type { ManpowerModel } from './model.js';
 
-const KEY = 'a4-manpower';
+/** The engine's figure this screen is built from. */
+export const FIGURE = 'a4-manpower';
+const SPECIALIZATION = 'Specialization';
 const TABLE = 'Manpower Table';
 /** The Manpower table's columns: name, type, breakdowns done, hours done, average fix time, then who supported. */
 const COL = { name: 0, type: 1, done: 2, hours: 3, share: 8 } as const;
@@ -31,10 +35,11 @@ const TYPE_CHIPS = 3;
  * and five tables are kept as printed (the PM matrix's paired rows become one table for jobs and one for hours); a
  * person is a chip. The answer is the person who handled the most breakdowns, read from the printed table.
  */
-export function manpowerModel(reply: FiguresPart, t: TFunction): PrintedPageModel | null {
-  const page = pageOf(figureOf(reply, KEY), t);
+export function manpowerModel(reply: FiguresPart, t: TFunction): ManpowerModel | null {
+  const page = pageOf(figureOf(reply, FIGURE), t);
   if (page === null) return null;
   const words = pageWords(t, 'v2r.mp.source');
+  const say_: Translate = (key, values) => t(key, { ...values }) as string;
   const source = fill(words.source, { date: shortDate(reply.asOf) });
   const table = byTitle(page, TABLE);
   const most = rowWithMost(table, COL.done);
@@ -77,7 +82,15 @@ export function manpowerModel(reply: FiguresPart, t: TFunction): PrintedPageMode
     tables: tablesOf(page.tables, words, (t) =>
       t.title === TABLE ? chipsOf(t, COL.type, TYPE_CHIPS, words.all) : [],
     ),
+    drill: drillFor(reply, FIGURE, say_),
     source,
     words,
+    specialization: {
+      table: SPECIALIZATION,
+      toggle: t('analytics.specialization.toggle'),
+      category: t('analytics.specialization.category'),
+      code: t('analytics.specialization.code'),
+      notComputed: t('analytics.notComputed'),
+    },
   };
 }

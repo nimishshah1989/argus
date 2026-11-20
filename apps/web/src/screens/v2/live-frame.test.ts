@@ -19,6 +19,8 @@ const pageOf = (group: string, screen: string): { key: string | null; props: Pag
 const SCREENS = [
   ['machines', 'a5-energy', 'Energy Heatmap'],
   ['breakdowns', 'shift-kpis', 'Shift-calendar KPIs'],
+  ['breakdowns', 'a4-manpower', 'Manpower'],
+  ['breakdowns', 'a6-why-why', 'Why-Why'],
   ['forecast-scorecard', 'a9-bottleneck-forecast', 'Bottleneck Analysis'],
   ['forecast-scorecard', 'forecast-lab', 'Forecast Lab'],
   ['breakdowns', 'a1-bd-pm', 'BD % and PM split'],
@@ -57,7 +59,7 @@ describe('moving between two live screens', () => {
   });
 });
 
-describe('Energy, Shift-calendar KPIs, Bottleneck, Forecast Lab, BD % and PM split, Category and cell and MTTR and MTBF in every state that is not the page', () => {
+describe('Energy, Shift-calendar KPIs, Manpower, Why-Why, Bottleneck, Forecast Lab, BD % and PM split, Category and cell and MTTR and MTBF in every state that is not the page', () => {
   for (const [group, screen, title] of SCREENS) {
     const { props } = pageOf(group, screen);
     const states: LoadState[] = ['loading', 'error', 'empty', 'offline', 'refused'];

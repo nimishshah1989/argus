@@ -1,54 +1,33 @@
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import type { FiguresReply } from '@uptimo/shared/analytics';
 import { useAnalyticsFigures } from '../../api.js';
 import { StateNotice } from '../../patterns/frame.js';
 import type { ViewState } from '../../patterns/view-state.js';
 import { useFiguresState } from './screen-state.js';
-import { Stack } from '../../ui/layout.js';
 import { BreakdownLog } from './BreakdownLog.js';
 import { ScreenMenu } from './screen-menu.js';
-import { KeyScreen } from './key-screen.js';
-import { manpowerTable } from './ManpowerPage.js';
-import { WhyWhyPage } from './WhyWhyPage.js';
 import { DrillTable } from './DrillTable.js';
 import { SCREEN_LABELS, parseDrill, type AnalyticsGroup } from './groups.js';
 
 const LOG = 'breakdown-log';
-const A1 = 'a1-bd-pm';
-const A2 = 'a2-category-cell';
-const A3 = 'a3-mttr-mtbf';
-const A4 = 'a4-manpower';
-const A6 = 'a6-why-why';
-const A10 = 'a10-problems';
-const FIX = 'fix-finder';
-const SHIFT = 'shift-kpis';
+const MENU = [
+  LOG,
+  'a1-bd-pm',
+  'a2-category-cell',
+  'a3-mttr-mtbf',
+  'a4-manpower',
+  'a6-why-why',
+  'a10-problems',
+  'fix-finder',
+  'shift-kpis',
+] as const;
 
-/**
- * The screens this page draws: the log, then A4 and A6. BD % and PM split, Category and Cell, MTTR and MTBF, Problem
- * Analysis, Fix Finder and the shift-calendar KPIs are v2 and live in `screens/v2/live.tsx`; the menu still lists
- * them, in their place.
- */
-const SCREENS = [LOG, A4, A6] as const;
-const MENU = [LOG, A1, A2, A3, A4, A6, A10, FIX, SHIFT] as const;
-
-type Screen = (typeof SCREENS)[number];
-
-function screenOf(raw: string | null): Screen {
-  return SCREENS.find((screen) => screen === raw) ?? LOG;
-}
-
-/** Every screen here is the one figure the engine sent for it. */
-function screenFigures(all: FiguresReply['figures'], screen: Screen): FiguresReply['figures'] {
-  return all.filter((figure) => figure.screen === screen).slice(0, 1);
-}
-
-function ScreenNav({ current }: { current: Screen }) {
+function ScreenNav() {
   const { t } = useTranslation();
   return (
     <ScreenMenu
       label={t('analytics.breakdowns.nav')}
-      current={current}
+      current={LOG}
       items={MENU.map((screen) => ({
         id: screen,
         to: `/analytics/breakdowns?screen=${screen}`,
@@ -59,9 +38,10 @@ function ScreenNav({ current }: { current: Screen }) {
 }
 
 /**
- * The Breakdowns group (packets 40e-1, 40e-2, 41e-1 and 41e-2): its own screen menu, opening on the Breakdown
- * Log and switching to A4, A6 and the v2 screens (A1, A2, A3, A10, Fix Finder, shift-calendar KPIs) in the group's route. The
- * drill a screen links to renders above its page, in the face's one drill table. A6 is still on the old frame.
+ * The Breakdowns group (packets 40e-1, 40e-2, 41e-1 and 41e-2): its own screen menu, opening on the Breakdown Log.
+ * Every other screen of the menu (BD % and PM split, Category and Cell, MTTR and MTBF, Manpower, Why-Why, Problem
+ * Analysis, Fix Finder, the shift-calendar KPIs) is v2 and lives in `screens/v2/live.tsx`. The drill a link names
+ * renders above the log, in the face's one drill table.
  */
 export function BreakdownsPage({ group }: { group: AnalyticsGroup }) {
   const { t } = useTranslation();
@@ -76,46 +56,13 @@ export function BreakdownsPage({ group }: { group: AnalyticsGroup }) {
         onRetry={() => void figures.refetch()}
       />
     );
-  const screen = screenOf(params.get('screen'));
-  const figureOf = (key: string) => figures.data?.figures.find((figure) => figure.screen === key);
   const drill = parseDrill(params.get('drill'));
-  const drillTable = drill ? (
-    <DrillTable
-      bare={screen === LOG}
-      group={group}
-      drill={drill}
-      headingLevel={screen === LOG || screen === A6 ? undefined : 3}
-    />
-  ) : null;
-  if (screen === LOG)
-    return (
-      <BreakdownLog
-        figure={figureOf(LOG)}
-        menu={<ScreenNav current={screen} />}
-        asOf={figures.data.asOf}
-        drill={drillTable}
-      />
-    );
-  if (screen !== A6)
-    return (
-      <KeyScreen
-        screen={screen}
-        figures={screenFigures(figures.data.figures, screen)}
-        group={group}
-        menu={<ScreenNav current={screen} />}
-        asOf={figures.data.asOf}
-        drill={drillTable}
-        renderTable={screen === A4 ? manpowerTable : undefined}
-      />
-    );
   return (
-    <Stack gap={6}>
-      <ScreenNav current={screen} />
-      <p className="text-footnote text-neutral-600">
-        {t('analytics.asOf', { date: figures.data.asOf })}
-      </p>
-      {drillTable}
-      <WhyWhyPage figure={figureOf(A6)} group={group} />
-    </Stack>
+    <BreakdownLog
+      figure={figures.data.figures.find((figure) => figure.screen === LOG)}
+      menu={<ScreenNav />}
+      asOf={figures.data.asOf}
+      drill={drill ? <DrillTable bare group={group} drill={drill} /> : null}
+    />
   );
 }

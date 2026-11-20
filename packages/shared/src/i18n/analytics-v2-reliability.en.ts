@@ -58,7 +58,4 @@ export const analyticsV2ReliabilityEn = {
   'v2r.ww.status': 'Status',
   'v2r.ww.todo': 'Not started',
   'v2r.ww.done': 'Completed',
-  'v2r.ww.startNote':
-    'Starting or opening a Why-Why is not on this screen yet: the server has to say which ticket each row is.',
-  'v2r.ww.startLink': 'Open the current Why-Why page.',
 };

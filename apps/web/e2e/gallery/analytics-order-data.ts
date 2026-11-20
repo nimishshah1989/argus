@@ -18,18 +18,6 @@ export const SHELL_PHONE = [
   'a: Desk',
 ];
 export const SHELL_WIDE = SHELL_PHONE.slice(1);
-const BREAKDOWNS_MENU = [
-  'h1: Problems',
-  'a: Breakdown lo',
-  'a: A1 breakdown',
-  'a: A2 category ',
-  'a: A3 MTTR and ',
-  'a: A4 manpower',
-  'a: A6 Why-Why',
-  'a: A10 problem ',
-  'a: Fix Finder',
-  'a: Shift-calend',
-];
 const MACHINES_MENU = [
   'h1: Machines',
   'a: Registers an',
@@ -42,20 +30,6 @@ const MACHINES_MENU = [
 
 /** Each screen: its path, its group's menu, and its own part after the shell and the menu. */
 export const SCREENS: [string, string[], string[]][] = [
-  [
-    '/analytics/breakdowns?screen=a4-manpower',
-    BREAKDOWNS_MENU,
-    [
-      'h2: Manpower',
-      'summary: Show the num',
-      'h3: Manpower Tab',
-      'button: Person',
-      'button: Hours',
-      'h3: Specializati',
-      'button: By Category',
-      'button: By Fault Cod',
-    ],
-  ],
   [
     '/analytics/machines?screen=compare',
     MACHINES_MENU,

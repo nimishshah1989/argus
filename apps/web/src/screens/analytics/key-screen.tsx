@@ -6,13 +6,11 @@ import { contentOf, type FigureContent } from './figure-content.js';
 import { KeyBody, KeyKpi } from './key-body.js';
 import { FigureDrill } from './KeyPage.js';
 import { SCREEN_LABELS, type AnalyticsGroup } from './groups.js';
-import type { PageTable } from './page-content.js';
 import { OVERVIEW } from './screen-state.js';
 import { Template } from './shell/patterns/template.js';
 
 type Figure = FiguresReply['figures'][number];
 type Page = Extract<FigureContent, { kind: 'page' }>;
-type TableCard = (table: PageTable) => ReactNode;
 
 const tiles = (page: Page) =>
   page.kpis.map((kpi, at) => <KeyKpi key={`${kpi.label}-${at}`} kpi={kpi} />);
@@ -27,20 +25,10 @@ function NotComputed() {
 }
 
 /** The charts and tables of one figure, then its ticket drill. */
-function Body({
-  figure,
-  page,
-  group,
-  renderTable,
-}: {
-  figure: Figure;
-  page: Page;
-  group: AnalyticsGroup;
-  renderTable?: TableCard;
-}) {
+function Body({ figure, page, group }: { figure: Figure; page: Page; group: AnalyticsGroup }) {
   return (
     <>
-      <KeyBody tables={page.tables} charts={page.charts} renderTable={renderTable} fits />
+      <KeyBody tables={page.tables} charts={page.charts} fits />
       <div data-span="full">
         <FigureDrill figure={figure} group={group} />
       </div>
@@ -62,7 +50,6 @@ export function KeyScreen({
   menu,
   asOf,
   drill,
-  renderTable,
 }: {
   screen: string;
   figures: readonly Figure[];
@@ -71,8 +58,6 @@ export function KeyScreen({
   asOf: string;
   /** The rows behind the figure the page was opened from, when the address names them. */
   drill: ReactNode;
-  /** A screen's own card for one table (A4's Specialization, A10's editor). */
-  renderTable?: TableCard;
 }) {
   const { t } = useTranslation();
   const labelKey = SCREEN_LABELS[screen] ?? 'analytics.screen.unknown';
@@ -98,7 +83,7 @@ export function KeyScreen({
               <NotComputed key={figure.key} />
             ) : (
               <Fragment key={figure.key}>
-                <Body figure={figure} page={page} group={group} renderTable={renderTable} />
+                <Body figure={figure} page={page} group={group} />
               </Fragment>
             ),
           )}

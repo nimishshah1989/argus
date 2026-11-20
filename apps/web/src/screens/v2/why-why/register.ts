@@ -9,5 +9,11 @@ declare module '../data.js' {
 
 export const screen: ScreenEntry<'why-why'> = {
   key: 'why-why',
-  provider: () => import('./source.js').then((m) => m.whyWhyModelFromKey()),
+  provider: async (_, { client }) => {
+    const [{ liveReply }, { whyWhyFromReply }] = await Promise.all([
+      import('../figures/live.js'),
+      import('./live.js'),
+    ]);
+    return whyWhyFromReply(await liveReply(client));
+  },
 };

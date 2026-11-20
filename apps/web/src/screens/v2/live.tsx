@@ -19,9 +19,11 @@ import { EnergyView } from './energy/View.js';
 import { FixFinderView } from './fix-finder/View.js';
 import { ForecastLabView } from './forecast-lab/View.js';
 import { FootprintView } from './footprint/View.js';
+import { ManpowerView } from './manpower/View.js';
 import { RegistersView } from './machines-register/View.js';
 import { ProblemAnalysisView } from './problem-analysis/View.js';
 import { ShiftKpisView } from './shift-kpis/View.js';
+import { WhyWhyLive } from './why-why/Live.js';
 import type { CellLogModel } from './cell-change-log/model.js';
 import { useScreenModel, type ScreenModel, type ScreenParams } from './data.js';
 import { savedFigures } from './figures/live.js';
@@ -208,6 +210,34 @@ const LIVE: readonly Live[] = [
         empty="analytics.notComputed"
         title="analytics.screen.shift-kpis"
         draw={(model, shell) => <ShiftKpisView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'breakdowns',
+    section: 'problems',
+    screen: 'a4-manpower',
+    page: () => (
+      <ModelPage
+        entry={screenOf('breakdowns', 'problems', 'a4-manpower')}
+        screen="manpower"
+        empty="analytics.notComputed"
+        title="v2r.mp.title"
+        draw={(model, shell) => <ManpowerView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'breakdowns',
+    section: 'problems',
+    screen: 'a6-why-why',
+    page: () => (
+      <ModelPage
+        entry={screenOf('breakdowns', 'problems', 'a6-why-why')}
+        screen="why-why"
+        empty="analytics.notComputed"
+        title="v2r.ww.title"
+        draw={(model, shell) => <WhyWhyLive model={model} {...shell} />}
       />
     ),
   },

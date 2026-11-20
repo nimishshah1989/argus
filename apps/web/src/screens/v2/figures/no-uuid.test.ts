@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { bottleneckModel } from '../bottleneck/adapter.js';
 import { energyModel, FIGURE as ENERGY } from '../energy/adapter.js';
 import { forecastLabModel } from '../forecast-lab/adapter.js';
+import { manpowerModel } from '../manpower/adapter.js';
+import { whyWhyModel } from '../why-why/adapter.js';
 import { realT } from '../printed-page/test-support.js';
 import { shiftKpisModel } from '../shift-kpis/adapter.js';
 import { parseTile, tileMachines } from '../rows-behind/tile.js';
@@ -25,9 +27,11 @@ const screens: Record<string, Build> = {
   bottleneck: (reply, t, codeOf) => bottleneckModel(reply, t, codeOf),
   'forecast lab': (reply, t) => forecastLabModel(reply, t),
   'shift-calendar KPIs': (reply, t) => shiftKpisModel(reply, t),
+  manpower: (reply, t) => manpowerModel(reply, t),
+  'why-why': (reply, t) => whyWhyModel(reply, t),
 };
 
-describe('the Energy, Bottleneck, Forecast Lab and Shift-calendar screens on a plant whose machine ids are UUIDs', () => {
+describe('the Energy, Bottleneck, Forecast Lab, Shift-calendar, Manpower and Why-Why screens on a plant whose machine ids are UUIDs', () => {
   it('re-keys the plant: its machines really have UUIDs that are not their codes', () => {
     const energy = keyed.figures.find((f) => f.key === ENERGY)!;
     expect(energy.drill.ids.every((id) => UUID.test(id))).toBe(true);

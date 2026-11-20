@@ -48,6 +48,25 @@ test('Manpower: the type chips narrow the table to vendors', async ({ page }) =>
   await expect(table.locator('tbody tr').first()).toContainText('Vendor');
 });
 
+test('Manpower: the Specialization toggle keeps v1’s fault-code form, which says it is not computed', async ({
+  page,
+}) => {
+  await open(page);
+  const toggle = page.getByRole('group', { name: 'Specialization view', exact: true });
+  await expect(toggle.getByRole('button', { name: 'By Category', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(page.getByRole('columnheader', { name: 'Turning Cen…', exact: true })).toBeVisible();
+  await toggle.getByRole('button', { name: 'By Fault Code', exact: true }).click();
+  await expect(page.getByText('Not computed yet', { exact: true })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Turning Cen…', exact: true })).toHaveCount(
+    0,
+  );
+  await toggle.getByRole('button', { name: 'By Category', exact: true }).click();
+  await expect(page.getByRole('columnheader', { name: 'Turning Cen…', exact: true })).toBeVisible();
+});
+
 for (const theme of ['light', 'dark']) {
   test(`Manpower: axe finds nothing in ${theme}`, async ({ page }) => {
     await open(page, theme);

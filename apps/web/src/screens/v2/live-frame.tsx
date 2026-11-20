@@ -138,6 +138,8 @@ export type ModelKey =
   | 'bottleneck'
   | 'forecast-lab'
   | 'shift-kpis'
+  | 'manpower'
+  | 'why-why'
   | 'bd-pm'
   | 'category-cell'
   | 'mttr-mtbf';
