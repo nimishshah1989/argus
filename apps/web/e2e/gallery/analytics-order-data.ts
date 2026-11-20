@@ -1,4 +1,9 @@
-/** What each analytics screen listed before the 87 restyle: every control and heading, top to bottom (see analytics-order.spec.ts). */
+/**
+ * What each analytics screen lists: every control, heading and chart `summary`, top to bottom (see analytics-order.spec.ts).
+ * Read off the screens BEFORE the 87 restyle (`git show d3fbd43b`), then re-read with `summary` added. The old screens
+ * and the new differ in exactly three ways, all deliberate: the charts' summaries come before the tables (charts first,
+ * as on Reports and Money); the shift-calendar page has one h2 and an h3 per figure; the Cell change log has an h2.
+ */
 export const SHELL_PHONE = [
   'button: Menu',
   'select: Period',
@@ -35,28 +40,36 @@ const MACHINES_MENU = [
   'a: A5 energy he',
 ];
 
-/** The screen's own part: after the shell and the group's menu. */
+/** Each screen: its path, its group's menu, and its own part after the shell and the menu. */
 export const SCREENS: [string, string[], string[]][] = [
   [
     '/analytics/breakdowns?screen=a1-bd-pm',
     BREAKDOWNS_MENU,
-    ['h2: Breakdown ag', 'h3: By cell', 'h3: By month', 'a: See the rows'],
+    [
+      'h2: Breakdown ag',
+      'summary: Show the num',
+      'summary: Show the num',
+      'h3: By cell',
+      'h3: By month',
+      'a: See the rows',
+    ],
   ],
   [
     '/analytics/breakdowns?screen=a2-category-cell',
     BREAKDOWNS_MENU,
-    ['h2: Category and', 'h3: By category'],
+    ['h2: Category and', 'summary: Show the num', 'h3: By category'],
   ],
   [
     '/analytics/breakdowns?screen=a3-mttr-mtbf',
     BREAKDOWNS_MENU,
-    ['h2: MTTR and MTB', 'h3: By category'],
+    ['h2: MTTR and MTB', 'summary: Show the num', 'h3: By category'],
   ],
   [
     '/analytics/breakdowns?screen=a4-manpower',
     BREAKDOWNS_MENU,
     [
       'h2: Manpower',
+      'summary: Show the num',
       'h3: Manpower Tab',
       'button: Person',
       'button: Hours',
@@ -70,6 +83,7 @@ export const SCREENS: [string, string[], string[]][] = [
     BREAKDOWNS_MENU,
     [
       'h2: Problem Anal',
+      'summary: Show the num',
       'h3: Problem grou',
       'button: Problem grou',
       'button: Count',
@@ -91,14 +105,15 @@ export const SCREENS: [string, string[], string[]][] = [
   [
     '/analytics/breakdowns?screen=shift-kpis',
     BREAKDOWNS_MENU,
-    // Deliberate (one h2 a screen): the screen's name is the h2, and the two figures' titles are h3s under it.
-    ['h2: Shift-calend', 'h3: Shift compar', 'h3: By shift', 'h3: Backlog', 'h3: Open at shif'],
+    ['h2: Shift-calend', 'h3: Platform bas', 'h3: By shift', 'h3: Backlog', 'h3: Open at shif'],
   ],
   [
     '/analytics/machines?screen=compare',
     MACHINES_MENU,
     [
       'h2: Compare mach',
+      'summary: Show the num',
+      'summary: Show the num',
       'h3: Scorecard',
       'h3: Checkup',
       'h3: Specificatio',
@@ -111,7 +126,6 @@ export const SCREENS: [string, string[], string[]][] = [
     '/analytics/machines?screen=cell-change-log',
     MACHINES_MENU,
     [
-      // Deliberate: the screen had no heading; it now has its one h2, the name its menu entry carries.
       'h2: Cell change ',
       'button: Export to CS',
       'a: CNC-01',

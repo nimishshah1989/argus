@@ -41,7 +41,12 @@ function GroupEditor({ table }: { table: PageTable }) {
         {title}
       </h3>
       <p className="text-footnote text-neutral-600">{t('analytics.problems.editorReadOnly')}</p>
-      <KeyTable table={{ ...table, title, sortable: false }} fits heading={false} />
+      <KeyTable
+        table={{ ...table, title, sortable: false }}
+        fits
+        heading={false}
+        dim={(column) => column === 0 || column === table.header.length - 1}
+      />
     </section>
   );
 }

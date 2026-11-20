@@ -1,20 +1,29 @@
-import { expect, test } from '@playwright/test';
-import { controlOrder } from './desk-mock.js';
+import { expect, test, type Page } from '@playwright/test';
 import { SCREENS, SHELL_PHONE, SHELL_WIDE } from './analytics-order-data.js';
+import { analyticsOrder, mockAnalytics } from './analytics-mock.js';
 import { PRINTED } from './analytics-printed-data.js';
-import { mockAnalytics } from './analytics-mock.js';
 
 /**
  * LOCK.md rule 1 and ticket 87: the new look never moves a control on an analytics screen and never changes a figure.
- * The lists in `analytics-order-data.ts` were read off these screens BEFORE the restyle (the invented plant of
- * `analytics-mock.ts`; `controlOrder` cuts each name at 12 letters) and are written out in full: a restyle that
- * reorders, adds or drops a control, a tab or a heading fails here. The texts under "prints" are the engine's own, a
- * blank, a dash and a "pts" among them. No database: the API is answered in the browser.
+ * The lists in `analytics-order-data.ts` are written out in full (the invented plant of `analytics-mock.ts`;
+ * `analyticsOrder` cuts each name at 12 letters and also reads a chart's "Show the numbers"): a restyle that reorders,
+ * adds or drops a control, a tab, a heading or a chart summary fails here. The figures under "prints" are checked
+ * where they belong, in their own tile or table row, a blank cell and a dash among them. No database: the API is
+ * answered in the browser.
  */
 const SIZES = {
   phone: { width: 360, height: 740 },
   wide: { width: 1440, height: 900 },
 } as const;
+
+/** The smallest block holding a tile's label, its value and its sub-line. */
+const tileOf = (page: Page, parts: string[]) =>
+  parts
+    .reduce(
+      (found, part) => found.filter({ has: page.getByText(part, { exact: true }) }),
+      page.locator('li, section, div'),
+    )
+    .last();
 
 for (const scheme of ['light', 'dark'] as const) {
   test.describe(`analytics screens keep their order, ${scheme}`, () => {
@@ -29,23 +38,32 @@ for (const scheme of ['light', 'dark'] as const) {
           await page.goto(path);
           await expect(page.getByRole('heading').first()).toBeVisible();
           await expect
-            .poll(() => controlOrder(page), { message: path })
+            .poll(() => analyticsOrder(page), { message: path })
             .toEqual([...shell, ...menu, ...body]);
         }
       });
     }
 
-    test('every screen prints the engine figures as written', async ({ page }) => {
+    test('every screen prints the engine figures as written, each in its own place', async ({
+      page,
+    }) => {
       await page.setViewportSize(SIZES.wide);
       await mockAnalytics(page);
-      for (const [path, texts] of PRINTED) {
+      for (const { path, tiles, rows } of PRINTED) {
         await page.goto(path);
         await expect(page.getByRole('heading').first()).toBeVisible();
-        for (const text of texts)
+        for (const [label, value, sub] of tiles)
           await expect(
-            page.getByText(text, { exact: true }).first(),
-            `${path}: ${text}`,
+            tileOf(page, [label, value, ...(sub ? [sub] : [])]),
+            `${path}: ${label}`,
           ).toBeVisible();
+        for (const [name, at, cells] of rows) {
+          const row = page
+            .getByRole('table', { name, exact: true })
+            .getByRole('row')
+            .nth(at + 1);
+          await expect(row.getByRole('cell'), `${path}: ${name} ${at}`).toHaveText(cells);
+        }
       }
     });
   });

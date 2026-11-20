@@ -37,6 +37,10 @@ const figure = (key: string, screen: string, spec: PageSpec, ids: string[] = [])
 });
 
 const CELLS = ['Cell 2', 'Cell 3', 'Cell 6'];
+const CATEGORIES = {
+  labels: ['Spindle', 'Coolant'],
+  datasets: [{ label: 'Hours', data: [9.5, 4] }],
+};
 const BARS = { labels: CELLS, datasets: [{ label: 'Hours', data: [12.5, 8, 21] }] };
 const MONTHS = {
   labels: ['Jan', 'Feb', 'Mar'],
@@ -81,7 +85,7 @@ const FIGURES = [
     title: 'Category and cell',
     kpis: [['Top category', 'Spindle', '12 breakdowns']],
     tables: [{ title: 'By category', header: ['Category', 'Hours'], rows: [['Spindle', '9.5']] }],
-    charts: [{ id: 'ch-a2-cathrs', ...BARS }],
+    charts: [{ id: 'ch-a2-cathrs', ...CATEGORIES }],
   }),
   figure('a3-mttr-mtbf', 'a3-mttr-mtbf', {
     page: 'a3',
@@ -97,7 +101,13 @@ const FIGURES = [
         rows: [['Spindle', '2.5', '—']],
       },
     ],
-    charts: [{ id: 'ch-a3-catmttr', ...BARS }],
+    charts: [
+      {
+        id: 'ch-a3-catmttr',
+        labels: CATEGORIES.labels,
+        datasets: [{ label: 'MTTR', data: [2.5, 1.5] }],
+      },
+    ],
   }),
   figure('a4-manpower', 'a4-manpower', {
     page: 'a4',
@@ -157,7 +167,7 @@ const FIGURES = [
   }),
   figure('shift-kpis.compare', 'shift-kpis', {
     page: 'sk',
-    title: 'Shift comparison',
+    title: 'Shift-calendar KPIs',
     kpis: [['Day shift', '55.0%']],
     tables: [
       {
@@ -188,7 +198,24 @@ const FIGURES = [
       { title: 'Specifications', header: ['Item', 'CNC-01'], rows: [['Year', '2019']] },
       { title: 'Longest breakdowns', header: ['Date', 'Hours'], rows: [['01-02-2026', '6.5']] },
     ],
-    charts: [{ id: 'ch-a1-trend', ...MONTHS }],
+    charts: [
+      {
+        id: 'ch-cmp-code',
+        labels: ['No code', 'Spindle'],
+        datasets: [
+          { label: 'CNC-01', data: [1.5, 4] },
+          { label: 'CNC-02', data: [0, 2.5] },
+        ],
+      },
+      {
+        id: 'ch-cmp-month',
+        labels: ['Jan 26', 'Feb 26'],
+        datasets: [
+          { label: 'CNC-01', data: [3, 2.5] },
+          { label: 'CNC-02', data: [1, 0] },
+        ],
+      },
+    ],
   }),
   {
     key: 'cell-change-log',
@@ -235,4 +262,17 @@ export async function mockAnalytics(page: Page): Promise<void> {
   await page.route('**/api/v1/analytics/figures**', (route: Route) =>
     route.fulfill({ json: REPLY }),
   );
+}
+
+/** Every heading and control top to bottom, as `controlOrder` reads them, and the chart's `summary` ("Show the numbers"). */
+export function analyticsOrder(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const selector = 'h1,h2,h3,a[href],button,input,select,textarea,summary';
+    return Array.from(document.querySelectorAll<HTMLElement>(selector))
+      .filter((el) => el.getBoundingClientRect().height > 0)
+      .map((el) => {
+        const name = (el.getAttribute('aria-label') ?? el.textContent ?? '').replace(/\s+/g, ' ');
+        return `${el.tagName.toLowerCase()}: ${name.trim().slice(0, 12)}`;
+      });
+  });
 }

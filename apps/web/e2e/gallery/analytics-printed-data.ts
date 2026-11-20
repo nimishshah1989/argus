@@ -1,27 +1,101 @@
-/** Text each screen prints exactly as the engine wrote it: a blank, a dash, "pts" and every figure stay as they were. */
-export const PRINTED: [string, string[]][] = [
-  [
-    '/analytics/breakdowns?screen=a1-bd-pm',
-    ['Breakdown hours', '41.5', '3 pts up', 'PM hours', '—', '12.5', '4.0'],
-  ],
-  [
-    '/analytics/breakdowns?screen=a2-category-cell',
-    ['Top category', 'Spindle', '12 breakdowns', '9.5'],
-  ],
-  ['/analytics/breakdowns?screen=a3-mttr-mtbf', ['MTTR', '2.5', 'MTBF', '110.0', 'hours']],
-  [
-    '/analytics/breakdowns?screen=a4-manpower',
-    ['People', 'Hours handled', '30.5', 'Asha', '18.5', 'Ravi'],
-  ],
-  [
-    '/analytics/breakdowns?screen=a10-problems',
-    ['Groups', 'Odd noise', '01-03-2026', 'coolant, leak'],
-  ],
-  ['/analytics/breakdowns?screen=fix-finder', ['Best fix', 'Re-seat the probe', 'Probe re-seated']],
-  ['/analytics/breakdowns?screen=shift-kpis', ['Day shift', '55.0%', 'Evening', '20.0']],
-  ['/analytics/machines?screen=compare', ['Health', '82', '74', 'Coolant', '2019', '6.5']],
-  [
-    '/analytics/machines?screen=cell-change-log',
-    ['10-02-2026', 'Cell 2 → Cell 6', 'No change', '— → Cell 2', '— → Bay B'],
-  ],
+/**
+ * What each screen prints, as the engine wrote it (see `analytics-mock.ts`): a tile is [label, value, sub-line]; a row
+ * is [table name, the row's place in the body, every cell of it]. A blank cell is '' and stays blank, a dash stays a dash.
+ */
+export interface Printed {
+  path: string;
+  tiles: [string, string, string?][];
+  rows: [string, number, string[]][];
+}
+
+const B = '/analytics/breakdowns?screen=';
+
+export const PRINTED: Printed[] = [
+  {
+    path: `${B}a1-bd-pm`,
+    tiles: [
+      ['Breakdown hours', '41.5', '3 pts up'],
+      ['PM hours', '—'],
+    ],
+    rows: [
+      ['By cell', 0, ['Cell 2', '12.5', '']],
+      ['By month', 0, ['Jan', '4.0']],
+      ['By month', 1, ['Feb', '—']],
+    ],
+  },
+  {
+    path: `${B}a2-category-cell`,
+    tiles: [['Top category', 'Spindle', '12 breakdowns']],
+    rows: [['By category', 0, ['Spindle', '9.5']]],
+  },
+  {
+    path: `${B}a3-mttr-mtbf`,
+    tiles: [
+      ['MTTR', '2.5', 'hours'],
+      ['MTBF', '110.0', 'hours'],
+    ],
+    rows: [['By category', 0, ['Spindle', '2.5', '—']]],
+  },
+  {
+    path: `${B}a4-manpower`,
+    tiles: [
+      ['People', '2'],
+      ['Hours handled', '30.5'],
+    ],
+    rows: [
+      ['Manpower Table', 0, ['Asha', '12.0']],
+      ['Manpower Table', 1, ['Ravi', '18.5']],
+    ],
+  },
+  {
+    path: `${B}a10-problems`,
+    tiles: [['Groups', '3']],
+    rows: [
+      [
+        'Entries the system could not place',
+        0,
+        ['01-03-2026', 'CNC-01', 'Odd noise', '1.5', 'Coolant', ''],
+      ],
+    ],
+  },
+  {
+    path: `${B}fix-finder`,
+    tiles: [
+      ['Similar breakdowns', '15'],
+      ['Best fix', 'Re-seat the probe'],
+    ],
+    rows: [['Similar breakdowns', 0, ['T-001', 'CNC-01', 'Probe re-seated']]],
+  },
+  {
+    path: `${B}shift-kpis`,
+    tiles: [['Day shift', '55.0%']],
+    rows: [
+      ['By shift', 0, ['Day', '20.0']],
+      ['By shift', 1, ['Evening', '']],
+    ],
+  },
+  {
+    path: '/analytics/machines?screen=compare',
+    tiles: [],
+    rows: [
+      ['Scorecard', 0, ['Health', '82', '74']],
+      ['Longest breakdowns', 0, ['01-02-2026', '6.5']],
+    ],
+  },
+  {
+    path: '/analytics/machines?screen=cell-change-log',
+    tiles: [],
+    rows: [
+      [
+        'Cell / Location Change Log',
+        0,
+        ['10-02-2026', 'CNC-01', 'Cell 2 → Cell 6', 'No change', 'Correct date'],
+      ],
+      [
+        'Cell / Location Change Log',
+        1,
+        ['05-01-2026', 'DRL-04', '— → Cell 2', '— → Bay B', 'Correct date'],
+      ],
+    ],
+  },
 ];

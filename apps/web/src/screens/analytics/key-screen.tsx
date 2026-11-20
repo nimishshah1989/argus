@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { MessageKey } from '@uptimo/shared/i18n';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { EmptyState } from '../../ui/elements/index.js';
 import { contentOf, type FigureContent } from './figure-content.js';
@@ -60,10 +61,15 @@ function Part({
   group: AnalyticsGroup;
   renderTable?: TableCard;
 }) {
+  const { t } = useTranslation();
+  // The engine titles the first shift figure with the screen's own name: the heading then says what the figure is.
+  const label = `analytics.figure.${rest.figure.key}` as MessageKey;
+  const title =
+    page.title === '' || page.title === name ? t(label, { defaultValue: name }) : page.title;
   return (
     <>
       <div data-span="full">
-        <h3 className="text-title3 font-semibold">{page.title === '' ? name : page.title}</h3>
+        <h3 className="text-title3 font-semibold">{title}</h3>
       </div>
       {page.kpis.length === 0 ? null : (
         <div data-span="full" className="at-figures">
@@ -115,7 +121,7 @@ export function KeyScreen({
       trail={menu}
       title={alone && alone.title !== '' ? alone.title : name}
       lede={t('analytics.asOf', { date: asOf })}
-      figures={alone ? tiles(alone) : undefined}
+      figures={alone && alone.kpis.length > 0 ? tiles(alone) : undefined}
       main={
         <>
           {drill === null ? null : <div data-span="full">{drill}</div>}

@@ -318,7 +318,10 @@ export function CellChangeLog({
       kind={REGISTER}
       trail={menu}
       title={t('analytics.screen.cell-change-log')}
-      lede={`${t('analytics.asOf', { date: asOf })} · ${t('analytics.cellLog.intro')}`}
+      lede={t('analytics.cellLog.lede', {
+        asOf: t('analytics.asOf', { date: asOf }),
+        intro: t('analytics.cellLog.intro'),
+      })}
       actions={<ExportButton moves={moves} codeOf={codeOf} disabled={!exportable} />}
       main={
         <>

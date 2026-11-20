@@ -144,14 +144,28 @@ export function KeyTable({
   table,
   fits = false,
   heading = true,
+  dim,
 }: {
   table: PageTable;
+  /** Columns printed in the quiet ink (a read-only cell). */
+  dim?: (column: number) => boolean;
   fits?: boolean;
   heading?: boolean;
 }) {
   const headingId = useId();
   const rows = useMemo(() => table.rows.map((cells, at) => ({ at, cells })), [table]);
-  const columns = useMemo(() => columnsOf(table, rows), [table, rows]);
+  const columns = useMemo(
+    () =>
+      columnsOf(table, rows).map((column, at) =>
+        dim?.(at) === true
+          ? {
+              ...column,
+              cell: (row: Row) => <span className="text-neutral-600">{column.cell(row)}</span>,
+            }
+          : column,
+      ),
+    [table, rows, dim],
+  );
   const caption = table.title === '' ? table.header.join(' · ') : table.title;
   const labels = useTableLabels(caption);
   const view = usePagedRows(rows, columns);
