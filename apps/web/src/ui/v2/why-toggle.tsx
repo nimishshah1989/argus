@@ -27,11 +27,10 @@ export function WhyButton({ why, label }: { why: Why; label: string }) {
   );
 }
 
-/** The explanation the button opens; nothing is rendered while it is closed. */
+/** The explanation the button opens; always in the page, hidden while closed, so the button's target exists. */
 export function WhyPanel({ why, points, well }: { why: Why; points: Point[]; well?: boolean }) {
-  if (!why.open) return null;
   return (
-    <div id={why.id} className="v2-open">
+    <div id={why.id} hidden={!why.open} className="v2-open">
       <Points points={points} well={well} />
     </div>
   );

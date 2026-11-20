@@ -1,5 +1,5 @@
 import type { Point, Tone } from '../../../ui/v2/points.js';
-import type { CellData, MachineState } from '../../../ui/v2/plant-map.js';
+import type { CellData, MachineState } from '../../../ui/v2/domain/plant-map.js';
 import type { DashboardModel } from './model.js';
 
 /**
@@ -7,8 +7,11 @@ import type { DashboardModel } from './model.js';
  * `pt` writes a sentence the short way: **bold**, !!loss!!, ++gain++, ~~risk~~.
  */
 const MARK: Record<string, Tone> = { '**': 'strong', '!!': 'loss', '++': 'gain', '~~': 'risk' };
+// A number and its unit never part at a line end ("~167 h", "₹ 15.59 lakh"): the engine will do the same.
+const glue = (s: string) =>
+  s.replace(/(\d) (?=h\b|min\b|lakh\b|pts\b)/g, '$1\u00a0').replace(/₹ /g, '₹\u00a0');
 const pt = (s: string): Point =>
-  s
+  glue(s)
     .split(/(\*\*[^*]+\*\*|!![^!]+!!|\+\+[^+]+\+\+|~~[^~]+~~)/)
     .filter(Boolean)
     .map((t) => {
@@ -75,38 +78,19 @@ export const dashboardFixture: DashboardModel = {
       'Breakdown hours: !!312 h!! this month vs **286 h** in October',
       '**3 machines** (HMC-2, TC-10, VC-22) caused !!31%!! of the hours',
       'Biggest jump: **Cell 8**, !!+14 h!!',
-      'The 4 decisions below win back ++~178 h a month++ (++₹ 5.9 lakh++)',
+      'The 4 decisions below win back ++79.7 h a month++ (++₹ 15.59 lakh a year++)',
     ),
     figures: [
-      { label: 'Lost this month', value: '₹ 10.4 lakh', note: '312.4 breakdown hours' },
-      { label: 'You can win back', value: '₹ 5.9 lakh', note: 'about 178 h a month', tone: 'gain' },
+      { label: 'Lost this month', value: glue('₹ 10.4 lakh'), note: glue('312.4 breakdown hours') },
+      {
+        label: 'You can win back',
+        value: glue('₹ 15.59 lakh'),
+        note: glue('a year · 79.7 h a month'),
+        tone: 'gain',
+      },
     ],
   },
   decisions: [
-    {
-      id: 'tmc2',
-      kind: 'decide',
-      kindLabel: 'Decide',
-      codes: ['TMC-2'],
-      title: 'Overhaul or replace the turnmill',
-      keys: [
-        { text: 'Health 4.1 / 10', tone: 'loss' },
-        { text: '2.6× expected loss', tone: 'loss' },
-      ],
-      why: pts(
-        'Lost !!308 h!! — a machine its age and type loses about **119 h**',
-        '**20 breakdowns** this year, mostly **spindle** and **ball screws**',
-        'Each month waiting costs about !!18.8 h!!',
-        'Next step: get an **overhaul quote** and compare with ++replacement++',
-      ),
-      hours: '18.8 h',
-      money: '₹ 4.07 lakh a year',
-      days: [3, 9, 15, 22, 31, 38, 44, 52, 60, 61, 70, 78, 84, 88],
-      stripLabel: '14 breakdowns in the last 90 days',
-      action: 'Get an overhaul quote',
-      doneText: 'Quote requested',
-      owner: 'Owner: not assigned',
-    },
     {
       id: 'axis',
       kind: 'fix',
@@ -123,13 +107,63 @@ export const dashboardFixture: DashboardModel = {
         'Causes: ~~cable bends~~ and ~~coolant in encoders~~',
         '++Arjun V++ fixed the same fault on **VC-14**; it has not come back in 5 months',
       ),
-      hours: '48.1 h',
-      money: '₹ 10.38 lakh a year',
+      hours: glue('48.1 h'),
+      money: glue('₹ 10.38 lakh a year'),
       days: [2, 5, 11, 14, 19, 25, 27, 33, 36, 41, 47, 50, 55, 58, 63, 66, 72, 75, 81, 86, 89],
       stripLabel: '21 breakdowns in the last 90 days',
       action: 'Assign a root-cause fix',
       doneText: 'Assigned to Arjun V',
       owner: 'Suggested: Arjun V',
+      decided: false,
+    },
+    {
+      id: 'tmc2',
+      kind: 'decide',
+      kindLabel: 'Decide',
+      codes: ['TMC-2'],
+      title: 'Overhaul or replace the turnmill',
+      keys: [
+        { text: 'Health 4.1 / 10', tone: 'loss' },
+        { text: '2.6× expected loss', tone: 'loss' },
+      ],
+      why: pts(
+        'Lost !!308 h!! — a machine its age and type loses about **119 h**',
+        '**20 breakdowns** this year, mostly **spindle** and **ball screws**',
+        'Each month waiting costs about !!18.8 h!!',
+        'Next step: get an **overhaul quote** and compare with ++replacement++',
+      ),
+      hours: glue('18.8 h'),
+      money: glue('₹ 4.07 lakh a year'),
+      days: [3, 9, 15, 22, 31, 38, 44, 52, 60, 61, 70, 78, 84, 88],
+      stripLabel: '14 breakdowns in the last 90 days',
+      action: 'Get an overhaul quote',
+      doneText: 'Quote requested',
+      owner: 'Owner: not assigned',
+      decided: false,
+    },
+    {
+      id: 'dcmc',
+      kind: 'plan',
+      kindLabel: 'Plan',
+      codes: ['DCMC-02'],
+      title: 'Move a warranty PM to keep Cell 3 running',
+      keys: [
+        { text: '3 PMs on 26 Nov', tone: 'plan' },
+        { text: 'Warranty safe', tone: 'gain' },
+      ],
+      why: pts(
+        '**3 PM jobs** fall on **26 Nov** in Cell 3',
+        'Moving DCMC-02 to **24 Nov** leaves ++2 machines down instead of 3++',
+        'The ++warranty date still holds++',
+      ),
+      hours: glue('7.5 h'),
+      money: glue('one shift kept'),
+      days: [],
+      stripLabel: 'No breakdowns in the last 90 days',
+      action: 'Move to 24 Nov',
+      doneText: 'Moved to 24 Nov',
+      owner: 'Warranty date holds',
+      decided: false,
     },
     {
       id: 'wj01',
@@ -147,36 +181,14 @@ export const dashboardFixture: DashboardModel = {
         'Last fix: **pump seal** on 13 Oct — the leaks came back',
         'A PM slot is ++free on 24 Nov++',
       ),
-      hours: '5.3 h',
-      money: '₹ 1.14 lakh a year',
+      hours: glue('5.3 h'),
+      money: glue('₹ 1.14 lakh a year'),
       days: [40, 52, 58, 63, 67, 71, 74, 79, 83, 86, 89],
       stripLabel: '11 breakdowns in the last 90 days',
       action: 'Schedule an inspection',
       doneText: 'Inspection on 24 Nov',
       owner: 'Free slot: 24 Nov',
-    },
-    {
-      id: 'dcmc',
-      kind: 'plan',
-      kindLabel: 'Plan',
-      codes: ['DCMC-02'],
-      title: 'Move a warranty PM to keep Cell 3 running',
-      keys: [
-        { text: '3 PMs on 26 Nov', tone: 'plan' },
-        { text: 'Warranty safe', tone: 'gain' },
-      ],
-      why: pts(
-        '**3 PM jobs** fall on **26 Nov** in Cell 3',
-        'Moving DCMC-02 to **24 Nov** leaves ++2 machines down instead of 3++',
-        'The ++warranty date still holds++',
-      ),
-      hours: '7.5 h',
-      money: 'one shift kept',
-      days: [],
-      stripLabel: 'No breakdowns in the last 90 days',
-      action: 'Move to 24 Nov',
-      doneText: 'Moved to 24 Nov',
-      owner: 'Warranty date holds',
+      decided: false,
     },
   ],
   cells,
@@ -279,23 +291,23 @@ export const dashboardFixture: DashboardModel = {
   ],
   pareto: {
     bars: [
-      { label: 'Axis drives', hours: 48.1, shown: '48.1' },
-      { label: 'Coolant', hours: 29.6, shown: '29.6' },
-      { label: 'Tool clamp', hours: 24.2, shown: '24.2' },
-      { label: 'ATC arm', hours: 18.9, shown: '18.9' },
-      { label: 'Spindle', hours: 16.4, shown: '16.4' },
-      { label: 'PLC alarm', hours: 14.8, shown: '14.8' },
-      { label: 'Conveyor', hours: 12.1, shown: '12.1' },
-      { label: 'Other', hours: 31.2, shown: '31.2' },
+      { label: 'Axis drives', hours: 78.6, shown: '78.6' },
+      { label: 'Coolant', hours: 48.4, shown: '48.4' },
+      { label: 'Tool clamp', hours: 39.6, shown: '39.6' },
+      { label: 'ATC arm', hours: 30.9, shown: '30.9' },
+      { label: 'Spindle', hours: 26.8, shown: '26.8' },
+      { label: 'PLC alarm', hours: 24.2, shown: '24.2' },
+      { label: 'Conveyor', hours: 19.8, shown: '19.8' },
+      { label: 'Other', hours: 44.1, shown: '44.1' },
     ],
     top: 3,
-    total: 302.6,
-    aria: 'Breakdown hours by problem with running total; the top three problems are 34% of all hours',
-    conclusion: pt('Fix 3 problems, win back ++~102 h++ a month'),
+    total: 312.4,
+    aria: 'Breakdown hours by problem with running total; the top three problems are 53% of all breakdown hours',
+    conclusion: pt('3 problems cause !!~167 h!! of the month’s 312 h'),
     why: pts(
-      'These 3 are !!34%!! of all breakdown hours',
+      'These 3 are !!53%!! of this month’s breakdown hours (**166.6 h** of **312.4 h**)',
       'Each has a ++fix that worked before++ on at least one machine',
-      'The other 5 together are **smaller than axis drives alone**',
+      'The other 5 together are **145.8 h**, less than these 3',
     ),
   },
   words: {
@@ -308,11 +320,12 @@ export const dashboardFixture: DashboardModel = {
     stripCaption: 'Breakdowns, last 90 days',
     plant: {
       title: 'The plant right now',
+      mapLabel: 'Machines by cell',
       filterLabel: 'Show machines',
       filters: { all: 'All', down: 'Down', risk: 'At risk', pm: 'In PM' },
       states: STATE_WORDS,
       hint: 'Tap any square to see why that machine is in its state.',
-      cellDown: '{n} down',
+      cellCounts: { down: '{n} down', risk: '{n} at risk', pm: '{n} in PM', idle: '{n} idle' },
       cellRunning: 'all running',
     },
     targetTitle: 'Against target',

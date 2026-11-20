@@ -1,9 +1,10 @@
-import { Check } from '../icon.js';
-import { EventStrip } from './event-strip.js';
-import { KeyPill, type PillTone } from './key-pill.js';
-import type { Point } from './points.js';
-import { useWhy, WhyButton, WhyPanel } from './why-toggle.js';
+import { Check } from '../../icon.js';
+import { EventStrip } from '../event-strip.js';
+import { KeyPill, type PillTone } from '../key-pill.js';
+import type { Point } from '../points.js';
+import { useWhy, WhyButton, WhyPanel } from '../why-toggle.js';
 
+/** Domain kit: one maintenance decision. Generic pieces live one folder up. */
 export type DecisionKind = 'decide' | 'fix' | 'inspect' | 'plan';
 
 const KIND_TONE: Record<DecisionKind, PillTone> = {
@@ -30,6 +31,8 @@ export type DecisionData = {
   action: string;
   doneText: string;
   owner: string;
+  /** Whether the owner has taken the action; the model says so, the row only shows it. */
+  decided: boolean;
 };
 
 export type DecisionWords = { why: string; perMonth: string; stripCaption: string };
@@ -38,13 +41,13 @@ export type DecisionWords = { why: string; perMonth: string; stripCaption: strin
 export function DecisionRow({
   d,
   words,
-  done,
-  onAct,
+  onDecide,
+  onUndo,
 }: {
   d: DecisionData;
   words: DecisionWords;
-  done: boolean;
-  onAct: () => void;
+  onDecide: (id: string) => void;
+  onUndo: (id: string) => void;
 }) {
   const why = useWhy();
   return (
@@ -79,11 +82,12 @@ export function DecisionRow({
         <div className="v2-stack v2-gap-6 v2-act">
           <button
             type="button"
-            className={done ? 'v2-btn v2-btn-done' : 'v2-btn v2-btn-primary'}
-            onClick={onAct}
+            className={d.decided ? 'v2-btn v2-btn-done' : 'v2-btn v2-btn-primary'}
+            aria-pressed={d.decided}
+            onClick={() => (d.decided ? onUndo(d.id) : onDecide(d.id))}
           >
-            {done ? <Check size={16} strokeWidth={2.5} aria-hidden="true" /> : null}
-            {done ? d.doneText : d.action}
+            {d.decided ? <Check size={16} strokeWidth={2.5} aria-hidden="true" /> : null}
+            {d.decided ? d.doneText : d.action}
           </button>
           <span className="v2-note v2-center">{d.owner}</span>
         </div>

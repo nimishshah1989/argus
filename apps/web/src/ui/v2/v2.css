@@ -4,6 +4,7 @@
 
 .v2-page {
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--color-v2-page);
   color: var(--color-v2-ink);
   font-size: 15px;
@@ -88,6 +89,12 @@
 }
 .v2-seg-risk {
   color: var(--color-v2-risk);
+}
+.v2-seg-plan {
+  color: var(--color-v2-plan);
+}
+.v2-seg-decide {
+  color: var(--color-v2-decide);
 }
 .v2-points {
   display: flex;
@@ -199,7 +206,7 @@
   color: var(--color-v2-on-ink);
 }
 .v2-btn-primary:hover {
-  box-shadow: 0 4px 14px rgb(17 24 39 / 0.22);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-v2-shadow) 22%, transparent);
 }
 .v2-btn-ghost {
   border-color: var(--color-v2-control-line);
@@ -236,7 +243,7 @@
 .v2-segmented > button[aria-pressed='true'] {
   background: var(--color-v2-panel);
   color: var(--color-v2-ink);
-  box-shadow: 0 1px 3px rgb(17 24 39 / 0.14);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--color-v2-shadow) 14%, transparent);
 }
 
 /* Sections and surfaces. */
@@ -351,9 +358,14 @@
 }
 
 /* The plant map. */
+.v2-map {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 .v2-cell {
   display: grid;
-  grid-template-columns: 60px minmax(0, 1fr) 80px;
+  grid-template-columns: 60px minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
 }
@@ -362,6 +374,7 @@
   font-weight: 600;
 }
 .v2-cell-note {
+  max-width: 180px;
   font-size: 13px;
   text-align: right;
   color: var(--color-v2-ink-2);
@@ -376,6 +389,7 @@
   gap: 5px;
 }
 .v2-tile {
+  position: relative;
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -389,14 +403,20 @@
   cursor: pointer;
   transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-button.v2-tile:hover {
-  position: relative;
+/* Tiles stay 22 px to the eye; the tap reaches 44 px around each, like the Why pill. */
+button.v2-tile::after {
+  content: '';
+  position: absolute;
+  inset: -11px;
+}
+button.v2-tile:hover:not(:disabled) {
   z-index: 2;
   transform: scale(1.35);
-  box-shadow: 0 4px 10px rgb(0 0 0 / 0.18);
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--color-v2-shadow) 18%, transparent);
 }
-.v2-tile[data-dim='true'] {
+.v2-tile:disabled {
   opacity: 0.18;
+  cursor: default;
 }
 .v2-tile[aria-pressed='true'] {
   outline: 2px solid var(--color-v2-ink);
@@ -429,18 +449,19 @@ button.v2-tile:hover {
 }
 .v2-tile[data-state='idle'] {
   background: var(--color-v2-idle-fill);
-  color: var(--color-v2-ink);
+  color: var(--color-v2-on-fill);
 }
-.v2-tile[data-state='down']:not([data-dim='true']) {
-  animation: v2-pulse 1.8s ease-in-out infinite;
+/* A machine that is down pulses three times when it appears or the filter brings it back, then holds still. */
+.v2-tile[data-state='down']:not(:disabled) {
+  animation: v2-pulse 1.8s ease-in-out 3;
 }
 @keyframes v2-pulse {
   50% {
-    box-shadow: 0 0 0 5px rgb(220 38 38 / 0);
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-v2-loss-fill) 0%, transparent);
   }
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgb(220 38 38 / 0.45);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-v2-loss-fill) 45%, transparent);
   }
 }
 .v2-tile-chip {
@@ -531,6 +552,20 @@ button.v2-tile:hover {
   border-radius: 4px;
   background: var(--color-v2-ink);
 }
+.v2-bullet-bar[data-clamp]::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  border: 7px solid transparent;
+}
+.v2-bullet-bar[data-clamp='over']::after {
+  right: -12px;
+  border-left-color: var(--color-v2-ink);
+}
+.v2-bullet-bar[data-clamp='under']::after {
+  left: -12px;
+  border-right-color: var(--color-v2-ink);
+}
 .v2-bullet-target {
   top: 2px;
   bottom: 2px;
@@ -583,11 +618,11 @@ button.v2-tile:hover {
 .v2-scroll {
   overflow-x: auto;
 }
-.v2-pareto-svg {
+.v2-scroll > svg {
   display: block;
-  width: 100%;
-  min-width: 560px;
-  height: auto;
+}
+.v2-grid {
+  stroke: var(--color-v2-line-soft);
 }
 .v2-bar {
   fill: var(--color-v2-quiet);
@@ -643,8 +678,11 @@ button.v2-tile:hover {
     padding: 16px;
   }
   .v2-cell {
-    grid-template-columns: 52px minmax(0, 1fr) 64px;
+    grid-template-columns: 52px minmax(0, 1fr) auto;
     gap: 10px;
+  }
+  .v2-cell-note {
+    max-width: 96px;
   }
   .v2-rowbtn {
     grid-template-columns: minmax(0, 1fr) 20px;
@@ -658,7 +696,7 @@ button.v2-tile:hover {
 
 @media (prefers-reduced-motion: reduce) {
   .v2-open,
-  .v2-tile[data-state='down']:not([data-dim='true']) {
+  .v2-tile[data-state='down']:not(:disabled) {
     animation: none;
   }
   .v2-why,
@@ -666,5 +704,9 @@ button.v2-tile:hover {
   .v2-chev,
   .v2-tile {
     transition: none;
+  }
+  .v2-btn:active,
+  button.v2-tile:hover:not(:disabled) {
+    transform: none;
   }
 }

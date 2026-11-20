@@ -1,5 +1,8 @@
-/** A piece of a sentence: plain, bold, or bold in the colour of a loss, a gain or a risk. */
-export type Tone = 'strong' | 'loss' | 'gain' | 'risk';
+/**
+ * What a piece of text means, said by its colour and always by its words too: a loss, a gain, a risk, a plan, a
+ * decision only an owner can take, or just weight (`strong`, bold without a colour).
+ */
+export type Tone = 'strong' | 'loss' | 'gain' | 'risk' | 'plan' | 'decide';
 export type Seg = { text: string; tone?: Tone };
 /** One sentence of an explanation, built by the engine from segments, never from markup. */
 export type Point = Seg[];

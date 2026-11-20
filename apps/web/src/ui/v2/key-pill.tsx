@@ -1,7 +1,9 @@
-/** What a pill means; the word on it says it too, so colour never carries it alone. */
-export type PillTone = 'loss' | 'gain' | 'risk' | 'plan' | 'decide';
+import type { Tone } from './points.js';
 
-/** A key pointer visible without clicking: a short word or number on a soft tint. */
+/** A pill always has a meaning; plain weight (`strong`) is for text, not pills. */
+export type PillTone = Exclude<Tone, 'strong'>;
+
+/** A key pointer visible without clicking: a short word or number on a soft tint of its meaning. */
 export function KeyPill({ text, tone }: { text: string; tone: PillTone }) {
   return <span className={`v2-pill v2-pill-${tone}`}>{text}</span>;
 }

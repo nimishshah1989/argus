@@ -1,38 +1,33 @@
-import { useState } from 'react';
+import { fill } from '../../../i18n/fill.js';
 import { BulletBar } from '../../../ui/v2/bullet-bar.js';
-import { DecisionRow } from '../../../ui/v2/decision-row.js';
+import { DecisionRow } from '../../../ui/v2/domain/decision-row.js';
+import { PlantMap } from '../../../ui/v2/domain/plant-map.js';
 import { Panel } from '../../../ui/v2/panel.js';
 import { Pareto } from '../../../ui/v2/pareto.js';
-import { PlantMap } from '../../../ui/v2/plant-map.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
 import type { DashboardActions, DashboardModel, DashboardWords } from './model.js';
 
-function Decisions({ model, onDecide }: { model: DashboardModel } & DashboardActions) {
-  const [done, setDone] = useState<ReadonlySet<string>>(new Set());
+const ignore = () => {};
+
+function Decisions({
+  model,
+  onDecide = ignore,
+  onUndo = ignore,
+}: { model: DashboardModel } & DashboardActions) {
   const { words, decisions } = model;
-  const act = (id: string) => {
-    const next = new Set(done);
-    if (next.has(id)) next.delete(id);
-    else {
-      next.add(id);
-      onDecide?.(id);
-    }
-    setDone(next);
-  };
-  const count = done.size
-    ? words.decideDone
-        .replace('{n}', String(done.size))
-        .replace('{total}', String(decisions.length))
-    : words.decideWaiting.replace('{n}', String(decisions.length));
+  const decided = decisions.filter((d) => d.decided).length;
+  const count = decided
+    ? fill(words.decideDone, { n: decided, total: decisions.length })
+    : fill(words.decideWaiting, { n: decisions.length });
+  const aside = (
+    <span className="v2-note v2-num" aria-live="polite" aria-atomic="true">
+      {count}
+    </span>
+  );
   return (
-    <Panel
-      id="v2-decide"
-      title={words.decideTitle}
-      inset
-      aside={<span className="v2-note v2-num">{count}</span>}
-    >
+    <Panel title={words.decideTitle} inset aside={aside}>
       {decisions.map((d) => (
-        <DecisionRow key={d.id} d={d} words={words} done={done.has(d.id)} onAct={() => act(d.id)} />
+        <DecisionRow key={d.id} d={d} words={words} onDecide={onDecide} onUndo={onUndo} />
       ))}
     </Panel>
   );
@@ -78,17 +73,17 @@ export function Dashboard({ model, ...actions }: { model: DashboardModel } & Das
     <main className="v2-page">
       <div className="v2-col">
         <Verdict verdict={model.verdict} whyLabel={words.why} />
-        <Decisions model={model} onDecide={actions.onDecide} />
+        <Decisions model={model} onDecide={actions.onDecide} onUndo={actions.onUndo} />
         <div className="v2-two">
           <PlantMap cells={model.cells} words={words.plant} />
-          <Panel id="v2-target" title={words.targetTitle}>
+          <Panel title={words.targetTitle}>
             {model.bullets.map((b) => (
               <BulletBar key={b.id} b={b} />
             ))}
             <Legend legend={words.legend} />
           </Panel>
         </div>
-        <Panel id="v2-pareto" title={words.paretoTitle}>
+        <Panel title={words.paretoTitle}>
           <Pareto data={model.pareto} whyLabel={words.whyThese} actions={buttons} />
         </Panel>
       </div>
