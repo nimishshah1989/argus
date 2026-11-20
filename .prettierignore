@@ -25,3 +25,6 @@ fixtures/answer-key
 
 # Design preview figures, written by tools/directions-figures.ts (ticket 80g).
 apps/web/src/gallery/directions/generated
+
+# Rows-behind demo replies, written by tools/answer-key/rows-behind.ts (one row per line).
+apps/web/src/gallery/rows-behind/generated

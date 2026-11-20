@@ -1,0 +1,21 @@
+/* The rows behind a figure (domain/rows-behind.tsx): the drawer's header, its table and the link to a ticket. Tokens only. */
+.v2-rows-behind {
+  min-width: 0;
+}
+.v2-rows-behind .v2-table-card {
+  box-shadow: none;
+}
+.v2-ref {
+  color: var(--color-v2-ink);
+  font-family: var(--font-v2-num);
+  font-variant-numeric: tabular-nums;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.v2-ref:hover {
+  color: var(--color-v2-plan);
+}
+/* A row stays one line tall so its figures read across; the table scrolls inside its card instead. */
+.v2-rows-behind td {
+  white-space: nowrap;
+}
