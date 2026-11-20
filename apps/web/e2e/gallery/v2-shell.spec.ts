@@ -73,6 +73,28 @@ test('a click outside the search closes it', async ({ page }) => {
   await expect(palette(page)).toHaveCount(0);
 });
 
+test('Back closes the search that was open, and does not leave it over the page it returns to', async ({
+  page,
+}) => {
+  await open(page);
+  await page
+    .locator('article.v2-decision')
+    .first()
+    .getByRole('button', { name: 'VC-67', exact: true })
+    .click();
+  await expect(page).toHaveURL(/drawer=machine:VC-67$/);
+  // The drawer showing is the page having taken the new address; only then is the search opened over it.
+  await expect(page.locator('aside.v2-drawer')).toHaveAttribute(
+    'aria-label',
+    'Vertical machining centre 67',
+  );
+  await page.keyboard.press('Control+k');
+  await expect(palette(page)).toBeVisible();
+  await page.goBack();
+  await expect(page).not.toHaveURL(/drawer=/);
+  await expect(palette(page)).toHaveCount(0);
+});
+
 test('Enter on a result goes there without loading a new document', async ({ page }) => {
   await open(page);
   await page.evaluate(() => {
@@ -113,8 +135,14 @@ test('on a phone the menu opens on the first section, Esc closes it, and nothing
   await menu.click();
   await expect(rail(page)).toBeVisible();
   await expect(rail(page).getByRole('link', { name: 'Today', exact: true })).toBeFocused();
+  // Open, the menu is a modal: it is a dialog for a screen reader and the page behind it, header included, is inert.
+  await expect(
+    page.getByRole('dialog', { name: 'Analytics', exact: true, includeHidden: true }),
+  ).toHaveAttribute('aria-modal', 'true');
+  await expect(page.locator('.v2-main')).toHaveAttribute('inert', '');
   await page.keyboard.press('Escape');
   await expect(rail(page)).toBeHidden();
+  await expect(page.locator('.v2-main')).not.toHaveAttribute('inert', '');
   await expect(menu).toBeFocused();
   await menu.click();
   await page

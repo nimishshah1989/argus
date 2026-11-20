@@ -1,7 +1,7 @@
 import { createContext, useContext, type ComponentProps, type ReactNode } from 'react';
 import type { MessageKey } from '@uptimo/shared/i18n';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { DrawerSpec } from '../../../ui/v2/drawer.js';
 import { EntityOpenContext, type EntityRef } from '../../../ui/v2/entity-chip.js';
 import { ScreenStates, type Loaded } from '../../../ui/v2/screen-states.js';
@@ -18,7 +18,10 @@ import { useEntityParam, useFigureParam } from './url.js';
 
 /** What a screen that holds an entity live gives the drawer instead of the port's version of it. */
 export type LocalEntity = Pick<DrawerSpec, 'label' | 'content'>;
-export type EntityShellProps = Omit<ComponentProps<typeof Shell>, 'drawer' | 'search' | 'plant'> & {
+export type EntityShellProps = Omit<
+  ComponentProps<typeof Shell>,
+  'drawer' | 'search' | 'plant' | 'at'
+> & {
   /** A screen's own version of an entity it holds live (a decision with its Decide button); null falls through to the port. */
   local?: (ref: EntityRef) => LocalEntity | null;
   /** Where the rows behind a figure come from; the app's own (the engine's drill) when left out. A preview or a test may pass its own. */
@@ -129,14 +132,21 @@ export function EntityShell({ local, rows, children, ...shell }: EntityShellProp
   const { role, company } = useContext(WhoContext);
   const pages = usePaletteEntries(role);
   const navigate = useNavigate();
+  const location = useLocation();
   const press = (ref: EntityRef) => (same(current, ref) ? close() : open(ref));
   const drill = (d: { figure: string }) =>
     figure.current === d.figure ? figure.close() : figure.open(d.figure);
   return (
     <DrillOpenContext.Provider value={drill}>
       <EntityOpenContext.Provider value={press}>
-        <NavigateContext.Provider value={(to) => navigate(to)}>
-          <Shell {...shell} plant={company} search={pages} drawer={rowsDrawer ?? entityDrawer}>
+        <NavigateContext.Provider value={(to, options) => navigate(to, options)}>
+          <Shell
+            {...shell}
+            plant={company}
+            search={pages}
+            at={location.pathname + location.search}
+            drawer={rowsDrawer ?? entityDrawer}
+          >
             {chrome}
             {children}
           </Shell>

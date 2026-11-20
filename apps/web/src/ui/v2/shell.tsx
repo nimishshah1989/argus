@@ -31,8 +31,9 @@ export type NavItem = {
  * How the shell goes to another page without reloading this one. The kit does not know the router, so the app's shell
  * provides it; with none around, as in a test, a link is an ordinary address and the browser loads it.
  */
-export const NavigateContext = createContext<(to: string) => void>((to) =>
-  window.location.assign(to),
+type Go = (to: string, options?: { replace?: boolean }) => void;
+export const NavigateContext = createContext<Go>((to, options) =>
+  options?.replace ? window.location.replace(to) : window.location.assign(to),
 );
 
 const isMac = () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
@@ -161,7 +162,7 @@ function Header({
  * What is open over the page: the phone menu and the search. Ctrl or Cmd K toggles the search from anywhere (and
  * the menu never sits under it); Esc closes the menu; whatever closes one, focus goes back to the control that opened it.
  */
-function useOverlays(hasSearch: boolean) {
+function useOverlays(hasSearch: boolean, at: string | undefined) {
   const [menu, setMenu] = useState(false);
   const [search, setSearch] = useState(false);
   const menuRef = useRef<HTMLButtonElement>(null);
@@ -179,15 +180,20 @@ function useOverlays(hasSearch: boolean) {
     return () => window.removeEventListener('keydown', onKey);
   }, [hasSearch]);
   useEffect(() => {
+    setMenu(false);
+    setSearch(false); // a Back or Forward must not leave either open over the new page
+  }, [at]);
+  useEffect(() => {
     if (was.current.search && !search) searchRef.current?.focus();
     else if (was.current.menu && !menu && !search) menuRef.current?.focus();
     if (menu && !was.current.menu)
       document.querySelector<HTMLElement>('.v2-rail a[href]')?.focus({ preventScroll: true });
     was.current = { menu, search };
   }, [menu, search]);
-  const pick = (go: (to: string) => void) => (to: string) => {
+  const go = useContext(NavigateContext);
+  const pick = (to: string) => {
     setSearch(false);
-    go(to);
+    go(to, { replace: to === at });
   };
   return { menu, setMenu, search, setSearch, menuRef, searchRef, pick };
 }
@@ -197,17 +203,26 @@ function Rail({
   nav,
   menu,
   inert,
+  at,
   onGo,
 }: {
   nav: NavItem[];
   menu: boolean;
   inert: boolean;
+  /** The address now showing: a click on the link to it replaces the history entry instead of adding one. */
+  at?: string;
   onGo: () => void;
 }) {
   const { t } = useTranslation();
   const navigate = useContext(NavigateContext);
   return (
-    <div className="v2-rail-col" inert={inert}>
+    <div
+      className="v2-rail-col"
+      inert={inert}
+      role={menu ? 'dialog' : undefined}
+      aria-modal={menu ? true : undefined}
+      aria-label={menu ? t('analytics.menu') : undefined}
+    >
       <nav
         className="v2-rail"
         aria-label={t('analytics.menu')}
@@ -223,7 +238,7 @@ function Rail({
               if (!isPlain(e)) return;
               e.preventDefault();
               onGo();
-              navigate(item.href);
+              navigate(item.href, { replace: item.href === at });
             }}
           >
             <Icon name={item.icon} size={18} />
@@ -234,6 +249,9 @@ function Rail({
     </div>
   );
 }
+
+const remeasure = (e: TransitionEvent) =>
+  e.target === e.currentTarget && window.dispatchEvent(new Event('resize'));
 
 /**
  * The v2 app frame: an icon rail that opens on hover with the section names (every link goes through the app's router,
@@ -246,6 +264,7 @@ export function Shell({
   title,
   plant,
   search,
+  at,
   alerts = 0,
   onAlerts,
   drawer = null,
@@ -257,17 +276,16 @@ export function Shell({
   plant?: string;
   /** The pages the search can open; with none the header has no search. */
   search?: readonly PaletteEntry[];
+  /** The address now showing (path and query): a change closes the menu and the search, and the link to it replaces the entry. */
+  at?: string;
   alerts?: number;
   onAlerts?: () => void;
   drawer?: DrawerSpec | null;
   children: ReactNode;
 }) {
-  const navigate = useContext(NavigateContext);
-  const ui = useOverlays(search !== undefined);
+  const ui = useOverlays(search !== undefined, at);
   const { menu, setMenu } = ui;
   const { covered } = useDrawerFrame(drawer !== null);
-  const remeasure = (e: TransitionEvent) =>
-    e.target === e.currentTarget && window.dispatchEvent(new Event('resize'));
   return (
     <div
       className="v2-app"
@@ -275,9 +293,15 @@ export function Shell({
       data-menu={menu}
       onTransitionEnd={remeasure}
     >
-      <Rail nav={nav} menu={menu} inert={covered || ui.search} onGo={() => setMenu(false)} />
+      <Rail
+        nav={nav}
+        menu={menu}
+        inert={covered || ui.search}
+        at={at}
+        onGo={() => setMenu(false)}
+      />
       {menu ? <ScrimButton onClose={() => setMenu(false)} /> : null}
-      <div className="v2-main" inert={covered || ui.search}>
+      <div className="v2-main" inert={covered || ui.search || menu}>
         <Header
           title={title}
           plant={plant}
@@ -293,7 +317,7 @@ export function Shell({
       </div>
       <Drawer drawer={drawer} />
       {ui.search && search ? (
-        <Palette entries={search} onClose={() => ui.setSearch(false)} onPick={ui.pick(navigate)} />
+        <Palette entries={search} onClose={() => ui.setSearch(false)} onPick={ui.pick} />
       ) : null}
     </div>
   );

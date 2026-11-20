@@ -80,6 +80,14 @@ test('Ctrl K opens a search over every page, typing narrows it, Enter goes there
   await expect(searchButton(page)).toBeFocused();
 });
 
+test('a click on the section you are already on adds no history entry', async ({ page }) => {
+  await openMachines(page, 'head');
+  await rail(page).getByRole('link', { name: 'Machines', exact: true }).click();
+  await expect(page).toHaveURL(/\/analytics\/machines$/);
+  await page.goBack();
+  await expect(page).not.toHaveURL(/\/analytics\/machines$/);
+});
+
 test('a rail click goes to the page without loading a new document', async ({ page }) => {
   await openMachines(page, 'head');
   await page.evaluate(() => {
