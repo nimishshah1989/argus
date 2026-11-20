@@ -1,8 +1,20 @@
 # Where things stand — handoff for the next session (human or model)
 
-Read this, the tail of `docs/plan/ledger.md`, then `docs/plan/v2-next.md` (queue, recipe, ready-to-paste briefs). `git log
-origin/main` and the PR list beat this text. As of 12:15 UTC, 20 Nov 2026. **Paused by Nimish** to continue locally on cheaper
-models. Staging deploys on every merge (`https://cosmos.3-108-95-203.sslip.io/api/v1/health` shows the commit).
+**The one plan is `docs/plan/MILESTONES.md` (ticket 91 is the redesign); everything else is detail under it.** Read this, the tail of `docs/plan/ledger.md`, then `docs/slices/v2-build.md` (section 5) (queue, recipe, ready-to-paste briefs). `git log
+origin/main` and the PR list beat this text. As of 14:50 UTC, 20 Nov 2026. **Orchestrator session handed over (Nimish).** Staging deploys on every merge (`https://cosmos.3-108-95-203.sslip.io/api/v1/health` shows the commit).
+
+## In flight at hand-over (14:50 UTC): check each against GitHub first
+
+- PR #517 `claude/v2-go-live`: live data source, real-data drawers, Cell change log live with its v1 page deleted. CI had one gallery failure
+  (the v1 order spec still listed the deleted screen); a fix was being pushed. Merge when green. First screen live.
+- PR #518 (stacked on #515, Nimish's draft Why-Why fix): Breakdown Log row ticket ids, fixes a live v1 wrong-ticket bug. Merge #515 then #518.
+- PR #519: docs, one plan (this file, MILESTONES ticket 91). Merge when green.
+- Builders running in the old session, NOT pushed (may be lost; re-dispatch from MILESTONES ticket 91 if no PR exists): `claude/v2-drill-live`
+  (wire the rows-behind drill into the shell and cards, then take Machines register, Age, Footprint, Fix Finder, Problem Analysis live and delete their v1
+  pages) and `claude/v2-batch1-live` (rebuild Dashboard, Action Center, Machine page on real data, live, v1 deleted).
+- Next after those: batch 4 (merged, not wired), PM Calendar and Breakdown Log going live; rebuild Data Checklist, Compare, Team Focus; then batches 5 to 7.
+- Cost rules from Nimish: tests minimal (one smoke on the real server, one completeness test, ported v1 assertions); Sonnet for builders; he asked CI auto-merge
+  to be enabled (repo setting "Allow auto-merge" is off; only he can tick it).
 
 ## The one job: redesign every screen in the v2 language (Nimish, 20 Nov)
 
@@ -48,7 +60,7 @@ look, Bhavin's step order, button order and words unchanged. Desk, ticket, TV: f
 Waiting amber, Transferred blue; Indian grouping; system dark and light; power and air failures count in downtime. Real data
 already in the public repo is an accepted risk: add NO more (never commit screenshots of Bhavin's files).
 
-## What cost time (details in `docs/plan/v2-next.md`)
+## What cost time (details in `docs/slices/v2-build.md` (section 5))
 
 About 20 minutes from brief to an open PR, 40 to 85 to merge. Waste: PR-body lines CI checks (`No parity:`, Q14 never `pending`),
 the gallery job limit (now 15 min), PRs appending to the same registry lines, one Team Focus gallery test that hung in CI twice and
