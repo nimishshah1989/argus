@@ -28,6 +28,8 @@ type Tiles = {
   picked: string | null;
   focus: string | undefined;
   onPick: (code: string) => void;
+  /** A tile that takes focus, by click or by Tab, becomes where the arrow keys start. */
+  onFocus: (code: string) => void;
 };
 
 function CellRow({ cell, words, t }: { cell: CellData; words: PlantWords; t: Tiles }) {
@@ -49,6 +51,7 @@ function CellRow({ cell, words, t }: { cell: CellData; words: PlantWords; t: Til
             aria-pressed={t.picked === m.code}
             aria-label={`${m.code}, ${cell.name}: ${words.states[m.state]}`}
             onClick={() => t.onPick(m.code)}
+            onFocus={() => t.onFocus(m.code)}
           >
             <Glyph state={m.state} />
           </button>
@@ -96,7 +99,11 @@ export function PlantMap({ cells, words }: { cells: CellData[]; words: PlantWord
     shown,
     picked,
     focus,
-    onPick: (code) => setPicked(picked === code ? null : code),
+    onPick: (code) => {
+      setActive(code);
+      setPicked(picked === code ? null : code);
+    },
+    onFocus: setActive,
   };
   const options = FILTERS.map((key) => ({ key, label: words.filters[key] }));
   const aside = (

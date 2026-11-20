@@ -101,6 +101,9 @@ test('the plant map is one tab stop and the arrow keys move inside it, skipping 
   await expect(tile(page, 'TC-2, Cell 1: Running')).toBeFocused();
   await page.keyboard.press('ArrowDown');
   await expect(tile(page, 'VC-17, Cell 2: In PM')).toBeFocused();
+  await tile(page, 'VC-24, Cell 2: At risk').click();
+  await page.keyboard.press('ArrowRight');
+  await expect(tile(page, 'VC-25, Cell 2: Running')).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(map.locator(':focus')).toHaveCount(0);
 
