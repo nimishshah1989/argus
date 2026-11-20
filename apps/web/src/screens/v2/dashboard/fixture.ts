@@ -1,4 +1,4 @@
-import type { DashboardModel } from './model.js';
+import type { DemoModel } from './fixture-model.js';
 import { plantCells } from './fixture-plant.js';
 import { chip, glue, pt, pts } from './fixture-text.js';
 import { KPIS, TREND } from './fixture-trend.js';
@@ -9,7 +9,7 @@ import { dashboardWords } from './fixture-words.js';
  * figures agree with each other (v2.test checks): the month's 312.4 breakdown hours are the KPI, the Pareto's total
  * and the sum over every machine; "win back" is the four decisions added up.
  */
-export const dashboardFixture: DashboardModel = {
+export const dashboardFixture: DemoModel = {
   verdict: {
     context: 'Friday 20-Nov-2026 · whole plant',
     headline: pt('November is !!9.2% worse!! than October. Four decisions win most of it back.'),

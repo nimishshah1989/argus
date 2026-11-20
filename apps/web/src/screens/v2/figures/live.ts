@@ -18,7 +18,7 @@ export const catalogue: Translate = (key, values) => i18n.t(key, { ...values }) 
  * dropped before the read and never served. A refusal stays the server's `ApiError`, and a reply that cannot be read
  * is an error, never a reason to show an old copy.
  */
-async function read<T>(
+export async function read<T>(
   client: QueryClient | undefined,
   query: { queryKey: readonly unknown[]; queryFn: () => Promise<T> },
 ): Promise<T> {

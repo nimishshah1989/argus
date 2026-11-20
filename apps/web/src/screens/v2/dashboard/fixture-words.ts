@@ -1,4 +1,4 @@
-import type { DashboardWords } from './model.js';
+import type { DemoWords } from './fixture-model.js';
 
 /** Every word the Dashboard prints, in English for the gallery; the API adapter brings the reader's language. */
 const STATES = {
@@ -10,7 +10,7 @@ const STATES = {
 };
 const FILTERS = { all: 'All', down: 'Down', risk: 'At risk', pm: 'In PM' };
 
-export const dashboardWords: DashboardWords = {
+export const dashboardWords: DemoWords = {
   why: 'Why?',
   whyThese: 'Why these 3?',
   decisions: {

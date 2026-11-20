@@ -1,17 +1,16 @@
 /* eslint-disable i18next/no-literal-string -- screen ids and routes only; every visible word goes through t() */
-import type { MessageKey } from '@uptimo/shared/i18n';
-import { Fragment, useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Fragment, useEffect, useRef, useState, type ReactElement } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { correctMove, getBrand, getMe } from '../../api.js';
+import { correctMove } from '../../api.js';
 import { ApiError, isOffline } from '../../data/index.js';
-import { Segmented } from '../../ui/v2/segmented.js';
-import { ScreenStates, type Loaded } from '../../ui/v2/screen-states.js';
+import { ScreenStates } from '../../ui/v2/screen-states.js';
 import { correctionError } from '../analytics/machine-values.js';
-import { SCREEN_LABELS, groupFor, parseDrill, type GroupId } from '../analytics/groups.js';
+import { groupFor, type GroupId } from '../analytics/groups.js';
 import { AgeView } from './age/View.js';
 import { CellLogView } from './cell-change-log/View.js';
+import { DashboardPage } from './dashboard/Page.js';
 import { BottleneckView } from './bottleneck/View.js';
 import { EnergyView } from './energy/View.js';
 import { FixFinderView } from './fix-finder/View.js';
@@ -23,101 +22,23 @@ import { ShiftKpisView } from './shift-kpis/View.js';
 import type { CellLogModel } from './cell-change-log/model.js';
 import { useScreenModel, type ScreenModel, type ScreenParams } from './data.js';
 import { savedFigures } from './figures/live.js';
-import { ChromeContext, EntityShell, WhoContext } from './entity/EntityShell.js';
-import { liveReply } from './figures/live.js';
+import { EntityShell } from './entity/EntityShell.js';
 import {
-  NO_SUCH_FIGURE,
-  figureForLegacyDrill,
-  searchForLegacyDrill,
-} from './rows-behind/legacy.js';
-import { useNav } from './nav.js';
-import { modelToShow, useRefreshOnFigures } from './refresh.js';
-import type { NavItem } from '../../ui/v2/shell.js';
+  FORECAST,
+  LiveFrame,
+  ModelFrame,
+  type LiveEntry,
+  type ModelKey,
+  type PageConfig,
+} from './live-frame.js';
+import { useRefreshOnFigures } from './refresh.js';
 import type { SectionId } from '../analytics/shell/shell-data.js';
 
 /**
  * The v2 screens that are live: each renders at the URL its v1 page had, inside the v2 shell, with the data and the role
  * rules v1 used. `AnalyticsFace` asks here first and falls back to v1's page for any screen not listed.
  */
-type Live = { group: GroupId; section: SectionId; screen: string; page: () => ReactElement };
-
-const NAV_LABEL: Partial<Record<GroupId, MessageKey>> = {
-  machines: 'analytics.machines.nav',
-  breakdowns: 'analytics.breakdowns.nav',
-};
-
-/** The Reliability and forecast section names its screens as the shell's own tab row did: "Screens in {section}". */
-const FORECAST: GroupId = 'forecast-scorecard';
-
-/** The other screens of the group, as one row above the page, so the section stays reachable from a v2 screen. */
-function ScreenTabs({ group, current }: { group: GroupId; current: string }) {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const screens = (groupFor(group)?.screens ?? []).filter((screen) => screen !== 'machine-page');
-  const named = NAV_LABEL[group];
-  const label =
-    group === FORECAST
-      ? t('ashell.tabs', { section: t('ashell.section.reliability') })
-      : t(named ?? 'analytics.menu');
-  return (
-    <Segmented
-      label={label}
-      options={screens.map((screen) => ({
-        key: screen,
-        label: t(SCREEN_LABELS[screen] ?? 'analytics.screen.unknown'),
-      }))}
-      value={current}
-      onChange={(screen) => navigate(`/analytics/${group}?screen=${screen}`)}
-    />
-  );
-}
-
-/**
- * An old v1 link (`?drill=<type>:<ids>`, from a tile, a bookmark or a pasted address) opens the same rows in the rows
- * panel: the figure those ids belong to is found in the engine's reply and the address becomes `?drawer=figure:<key>`.
- * Ids no figure counts open the panel with nothing in it, never a v1 table.
- */
-function useLegacyDrill(screen: string) {
-  const { search } = useLocation();
-  const navigate = useNavigate();
-  const client = useQueryClient();
-  useEffect(() => {
-    const asked = parseDrill(new URLSearchParams(search).get('drill'));
-    if (!asked) return;
-    let current = true;
-    const go = (figure: string) =>
-      current && navigate({ search: searchForLegacyDrill(search, figure) }, { replace: true });
-    liveReply(client).then(
-      (reply) => go(figureForLegacyDrill(reply, asked, screen)),
-      () => go(NO_SUCH_FIGURE),
-    );
-    return () => {
-      current = false;
-    };
-  }, [search, screen, client, navigate]);
-}
-
-/** A screen's frame: the rail by the login's role, the section's screens above, and the figures' states in place of the page. */
-function LiveFrame({
-  entry,
-  children,
-}: {
-  entry: Pick<Live, 'group' | 'section' | 'screen'>;
-  children: (nav: ReturnType<typeof useNav>) => ReactNode;
-}) {
-  const role = useQuery({ queryKey: ['me'], queryFn: getMe }).data?.user.role;
-  const { t } = useTranslation();
-  const brand = useQuery({ queryKey: ['brand'], queryFn: getBrand }).data?.company;
-  const nav = useNav(entry.section, role);
-  useLegacyDrill(entry.screen);
-  return (
-    <WhoContext.Provider value={{ role, company: brand || t('analytics.title') }}>
-      <ChromeContext.Provider value={<ScreenTabs group={entry.group} current={entry.screen} />}>
-        {children(nav)}
-      </ChromeContext.Provider>
-    </WhoContext.Provider>
-  );
-}
+type Live = LiveEntry & { page: () => ReactElement };
 
 /** One head's or admin's correction of a move's date: the server's words on a refusal; never offline. */
 function useCorrect(afterwards: () => void) {
@@ -170,58 +91,6 @@ function CellChangeLogPage() {
   );
 }
 
-type ModelKey =
-  | 'machines-register'
-  | 'age'
-  | 'footprint'
-  | 'fix-finder'
-  | 'problem-analysis'
-  | 'energy'
-  | 'bottleneck'
-  | 'forecast-lab'
-  | 'shift-kpis';
-
-type PageConfig<K extends ModelKey> = {
-  entry: Pick<Live, 'group' | 'section' | 'screen'>;
-  screen: K;
-  title: MessageKey;
-  /** What the screen says when the model is null: a figure the engine has not computed says so, not "nothing to show". */
-  empty?: MessageKey;
-  draw: (model: ScreenModel<K>, shell: { nav: NavItem[]; title: string }) => ReactElement;
-};
-
-/**
- * What a model page shows for where its load stands: the model when there is one to draw, else the states in the shell,
- * under the screen's own title in every state.
- */
-export function ModelFrame<K extends ModelKey>({
-  entry,
-  title,
-  empty,
-  draw,
-  loaded,
-  lastGood,
-}: Omit<PageConfig<K>, 'screen'> & { loaded: Loaded<ScreenModel<K>>; lastGood?: ScreenModel<K> }) {
-  const { t } = useTranslation();
-  const model = modelToShow(loaded, lastGood);
-  const heading = t(title);
-  return (
-    <LiveFrame entry={entry}>
-      {(nav) =>
-        model ? (
-          draw(model, { nav, title: heading })
-        ) : (
-          <EntityShell nav={nav} title={heading}>
-            <ScreenStates loaded={loaded} emptyText={empty ? t(empty) : undefined}>
-              {() => null}
-            </ScreenStates>
-          </EntityShell>
-        )
-      }
-    </LiveFrame>
-  );
-}
-
 /** A screen that only draws its model: the model through the shared seam, the states in the shell until it is ready. */
 function ModelPage<K extends ModelKey>(config: PageConfig<K>) {
   const loaded = useScreenModel(config.screen, {} as ScreenParams<K>);
@@ -239,6 +108,7 @@ const screenOf = (group: GroupId, section: SectionId, screen: string) => ({
 });
 
 const LIVE: readonly Live[] = [
+  { group: 'today', section: 'today', screen: 'dashboard', page: () => <DashboardPage /> },
   {
     group: 'machines',
     section: 'machines',
@@ -375,13 +245,35 @@ const LIVE: readonly Live[] = [
  * so an unknown `?screen=` there opens its first screen, Bottleneck.
  */
 export function liveScreen(group: string | undefined, screen: string | null): ReactElement | null {
-  const named = screen ?? (group === 'machines' ? 'registers' : null);
+  // Today: Team Focus keeps its v1 page; anything else (no ?screen=, an unknown one) is the Dashboard, as in v1.
+  if (group === 'today' && screen === 'team-focus') return null;
+  const named = screen ?? FIRST[group ?? ''] ?? null;
   const found =
     LIVE.find((entry) => entry.group === group && entry.screen === named) ??
-    (group === FORECAST ? LIVE.find((entry) => entry.group === FORECAST) : undefined);
+    (WHOLE.has(group ?? '') ? LIVE.find((entry) => entry.group === group) : undefined);
   if (found) return <Fragment key={`${found.group}:${found.screen}`}>{found.page()}</Fragment>;
-  const known = groupFor('machines')?.screens.filter((id) => id !== 'machine-page') ?? [];
-  return group === 'machines' && named !== null && !known.includes(named) ? (
+  return unknownMachinesScreen(group, named);
+}
+
+/** A Machines screen the group does not have goes to the register; every other miss is the v1 page's. */
+function unknownMachinesScreen(
+  group: string | undefined,
+  named: string | null,
+): ReactElement | null {
+  return group === 'machines' && named !== null && !knownMachinesScreen(named) ? (
     <Navigate to="/analytics/machines?screen=registers" replace />
   ) : null;
 }
+
+/** The screen a group's address opens with no `?screen=`. */
+const FIRST: Record<string, string> = { machines: 'registers', today: 'dashboard' };
+/** Groups that are v2 whole: an unknown `?screen=` opens their first screen. */
+const WHOLE: ReadonlySet<string> = new Set([FORECAST, 'today']);
+
+function knownMachinesScreen(id: string): boolean {
+  return (groupFor('machines')?.screens ?? []).some(
+    (known) => known === id && known !== 'machine-page',
+  );
+}
+
+export { ModelFrame };

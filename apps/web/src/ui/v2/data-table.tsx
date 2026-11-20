@@ -18,6 +18,8 @@ export type Column<R> = {
 export type FilterChip<R> = { key: string; label: string; test?: (row: R) => boolean };
 export type TableWords = {
   title: string;
+  /** One quiet line under the title. */
+  sub?: string;
   /** The search box's prompt, e.g. "Search 125 machines". */
   search: string;
   /** `{from}`–`{to}` of `{total}`. */
@@ -40,6 +42,8 @@ type TableProps<R> = {
   words: TableWords;
   initialSort?: SortState;
   selected?: string;
+  /** Beside the title. */
+  aside?: ReactNode;
   /** What a row opens in the drawer; a table whose rows open nothing leaves it out and its rows are not buttons. */
   onOpen?: (row: R) => void;
 };
@@ -129,6 +133,8 @@ export function DataTable<R>(props: TableProps<R>) {
     <section className="v2-card v2-table-card" aria-label={words.title}>
       <TableBar
         title={words.title}
+        sub={words.sub}
+        aside={props.aside}
         search={words.search}
         query={ask.query}
         onQuery={ask.onQuery}
