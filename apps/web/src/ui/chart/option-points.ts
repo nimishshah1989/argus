@@ -1,14 +1,14 @@
 import { seriesColor, toneColor, type Palette } from './chart-palette.js';
 import { baseOption, categoryAxis, valueAxis, type Option } from './chart-parts.js';
 import { escapeHtml, inkOn, mix, parseHex } from './chart-color.js';
-import type { HeatmapSpec, ScatterPoint, ScatterSpec } from './chart-spec.js';
+import { pointName, type HeatmapSpec, type ScatterPoint, type ScatterSpec } from './chart-spec.js';
 
 /** One point: its arm, its rating tone and, only where the spec asks, its machine label. */
 function scatterItem(point: ScatterPoint, p: Palette) {
   return {
     value: [point.x, point.y],
     symbolSize: point.r,
-    name: point.label,
+    name: pointName(point),
     ...(point.tone === undefined
       ? {}
       : { itemStyle: { color: toneColor(point.tone, p, seriesColor(p, 0)) } }),
@@ -17,7 +17,7 @@ function scatterItem(point: ScatterPoint, p: Palette) {
           label: {
             show: true,
             position: 'right' as const,
-            formatter: point.label,
+            formatter: pointName(point),
             color: p.axis,
             fontSize: 10,
           },
@@ -62,7 +62,7 @@ export function scatterOption(spec: ScatterSpec, p: Palette): Option {
       confine: true,
       formatter: (params: unknown) => {
         const name = (params as { name?: string }).name;
-        const mttr = spec.points.find((point) => point.label === name)?.mttr;
+        const mttr = spec.points.find((point) => pointName(point) === name)?.mttr;
         const label = escapeHtml(String(name ?? ''));
         return mttr === undefined ? label : `${label}<br/>${escapeHtml(spec.mttrLabel)}: ${mttr}`;
       },
