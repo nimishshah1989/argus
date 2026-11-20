@@ -192,6 +192,8 @@ const firstHeld = (reply: FiguresReply) =>
  * the data checklist is a screen of Today, reached from the row of Today's screens above the page.
  */
 async function expectShellMenu(page: Page, wide: boolean) {
+  // The page swaps its loading frame for its own once the figures are in, which closes a menu opened before that.
+  await expect(page.locator('[data-kpi]').first()).toBeVisible();
   if (!wide) await page.getByRole('button', { name: 'Menu', exact: true }).click();
   const menu = page.locator('nav.v2-rail');
   for (const name of [
