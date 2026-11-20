@@ -22,13 +22,9 @@ const A4 = 'a4-manpower';
 const A6 = 'a6-why-why';
 const A10 = 'a10-problems';
 const FIX = 'fix-finder';
-const SHIFT = 'shift-kpis';
 
-/**
- * The screens the group shows: the log, then A1, A2, A3, A4, A6, A10, Fix Finder's key-shaped pages and ticket 48's
- * shift-calendar family.
- */
-const SCREENS = [LOG, A1, A2, A3, A4, A6, A10, FIX, SHIFT] as const;
+/** The screens the group shows: the log, then A1, A2, A3, A4, A6, A10 and Fix Finder's key-shaped pages (the shift-calendar KPIs are v2). */
+const SCREENS = [LOG, A1, A2, A3, A4, A6, A10, FIX] as const;
 
 type Screen = (typeof SCREENS)[number];
 
@@ -36,10 +32,9 @@ function screenOf(raw: string | null): Screen {
   return SCREENS.find((screen) => screen === raw) ?? LOG;
 }
 
-/** The shift-calendar screen draws all of its figures; every other screen is the one figure the engine sent for it. */
+/** Every screen here is the one figure the engine sent for it. */
 function screenFigures(all: FiguresReply['figures'], screen: Screen): FiguresReply['figures'] {
-  const own = all.filter((figure) => figure.screen === screen);
-  return screen === SHIFT ? own : own.slice(0, 1);
+  return all.filter((figure) => figure.screen === screen).slice(0, 1);
 }
 
 function ScreenNav({ current }: { current: Screen }) {
