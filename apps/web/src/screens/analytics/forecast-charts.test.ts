@@ -225,6 +225,39 @@ describe('the A9 page', () => {
     expect(forecast.series[0]?.tones?.filter((tone) => tone === 'hold')).toHaveLength(14);
   });
 
+  it('labels the risk map by machine code when the points are looked up by database id', () => {
+    const uuid = (at: number) => `00000000-0000-4000-8000-${String(at).padStart(12, '0')}`;
+    let at = 0;
+    const keyed = {
+      ...(A9_KEY as object),
+      pages: [
+        {
+          ...A9,
+          charts: A9.charts.map((chart) =>
+            chart.id === 'ch-a9-map'
+              ? {
+                  ...chart,
+                  datasets: chart.datasets.map((dataset) => ({
+                    ...dataset,
+                    data: (dataset.data as MapPoint[]).map((point) => ({
+                      ...point,
+                      id: uuid((at += 1)),
+                      code: point.id,
+                    })),
+                  })),
+                }
+              : chart,
+          ),
+        },
+      ],
+    };
+    const content = contentOf(figure(SCREEN_A9, keyed), translator());
+    if (content?.kind !== 'page') throw new Error('expected the A9 page');
+    const map = content.charts[0];
+    if (map?.kind !== 'scatter') throw new Error('expected the risk map');
+    expect(map).toEqual(expectedMap());
+  });
+
   it('names the A9 chart chrome in both catalogues', () => {
     for (const key of [
       'analytics.content.a9.mapChart',

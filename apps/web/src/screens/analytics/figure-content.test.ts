@@ -121,6 +121,26 @@ describe('the bubble chart figure', () => {
   });
 });
 
+describe('the bubble chart on a plant whose machine ids are UUIDs', () => {
+  it('labels each point with the machine code, never the id the point is looked up by', () => {
+    const uuid = '3f1c2a9e-5b7d-4c68-9a10-2e4d6f8a0b12';
+    const value = {
+      ...BUBBLE,
+      datasets: [
+        {
+          label: 'Machines',
+          data: [{ x: 12.5, y: 3, r: 10.2, id: uuid, code: 'CNC-01', model: '—', mttr: 4.1667 }],
+        },
+      ],
+    };
+    const content = contentOf(figure('dashboard.bubble-chart', value), translator().t);
+    if (content?.kind !== 'chart' || content.spec.kind !== 'scatter') {
+      throw new Error('expected a scatter chart');
+    }
+    expect(content.spec.points.map((point) => point.label)).toEqual(['CNC-01']);
+  });
+});
+
 describe('the expansion timeline figure', () => {
   it('maps the engine labels to categories, the prefix datasets to bars and the cumulative series to the line', () => {
     const { t, calls } = translator();

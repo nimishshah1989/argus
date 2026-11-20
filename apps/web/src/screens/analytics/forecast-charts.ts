@@ -115,7 +115,17 @@ function mapPoints(chart: ObjectValue): MapPoint[] {
       const y = Number(item.y);
       const hours = Number(item.h);
       if (![x, y, hours].every(Number.isFinite) || typeof item.id !== 'string') return [];
-      return [{ x, y, r: radiusOf(hours), label: item.id, mttr: hours, tone, showLabel }];
+      return [
+        {
+          x,
+          y,
+          r: radiusOf(hours),
+          label: typeof item.code === 'string' ? item.code : item.id,
+          mttr: hours,
+          tone,
+          showLabel,
+        },
+      ];
     });
   });
 }
