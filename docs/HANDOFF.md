@@ -1,52 +1,54 @@
-# Where things stand — handoff for the next orchestrator session
+# Where things stand — handoff for the next session (human or model)
 
-Read this first, then the tail of `docs/plan/ledger.md`. `git log origin/main` and the PR list beat this text.
-State as of 09:30 UTC, 20 Nov 2026. Staging deploys on every merge; `https://cosmos.3-108-95-203.sslip.io/api/v1/health`
-shows the commit it serves. Open PRs via `gh api --method POST repos/nimishshah1989/argus/pulls --input <file.json>`.
+Read this, the tail of `docs/plan/ledger.md`, then `docs/plan/v2-next.md` (queue, recipe, ready-to-paste briefs). `git log
+origin/main` and the PR list beat this text. As of 12:15 UTC, 20 Nov 2026. **Paused by Nimish** to continue locally on cheaper
+models. Staging deploys on every merge (`https://cosmos.3-108-95-203.sslip.io/api/v1/health` shows the commit).
 
-## The one job now: redesign every screen (Nimish, 20 Nov) — nothing else starts until screens are final
+## The one job: redesign every screen in the v2 language (Nimish, 20 Nov)
 
-- Source of truth for look and behaviour: `docs/design/v2/UX-RULES.md` (5 sizes 12/13/14/20/24; Inter, Geist, Geist
-  Mono; icon rail; glass header; 420px reflowing drawer; tables of 10 rows with search, sort, chips; motion carries
-  information, never page-load fades). `docs/design/v2/LANGUAGE.md`: decision-first, ELI5 bullets behind a click,
-  bold or colour only for highlights, side-by-side boxes aligned.
-- Kit + Dashboard merged (#496, #497). Gallery: `/gallery?view=v2-dashboard` (staging builds with the gallery on, #498).
-- Plug-and-play rule: a screen is `screens/v2/<name>/{model.ts, View.tsx, fixture.ts}`; View uses kit components only
-  (`ui/v2`, `ui/v2/domain`); data comes through `useScreenModel` (`screens/v2/data.ts`); `ui:check` blocks colours,
-  sizes, weights and animation in screen files. The backend later plugs in an adapter; screens do not change.
-  Fixtures compute every figure and a test checks totals. Mockups (`docs/design/v2/mockups/`) are illustrative only.
-- Old v1 screens are deleted as their v2 replacement ships. No tech debt.
-- Process: 5 screens per PR, up to 3 PRs in parallel, Sonnet builders (poteto-agent, worktree), from the kit,
-  LANGUAGE.md, UX-RULES.md and the mockups. One smoke e2e per screen + the orchestrator's screenshot check before
-  merge. No deep review round for pages (Nimish's speed rule); cubic findings on code are fixed in one push.
-- Batches: 1 Action Center, Team Focus, Data Checklist, Machine page, Compare · 2 Machines register, OEM, Age,
-  Footprint (confirm meaning with Nimish: assumed "20% of machines cause most hours" + cell map), Cell change log ·
-  3 Breakdown Log, General Work, PM Calendar, Fix Finder, Problem Analysis · 4 BD% & PM split, Category & Cell,
-  MTTR & MTBF, Manpower, Why-Why · 5 Energy heat map, Bottleneck, Shift-calendar KPIs, Forecast Lab, Reliability
-  scorecard · 6 Money Matters, Monthly, Annual, Guide, Settings · 7 Floor phone, desk, ticket, TV board, login.
+- **Rule that outranks speed: a redesign never reduces scope.** Same or more detail, insight and analytics, smarter with
+  our data. Each screen PR carries a coverage table (`docs/design/v2/COVERAGE.md`, `UX-RULES.md` section 11). "Not built"
+  needs Nimish's written yes. Nothing is deleted from v1 until its v2 screen has a clean table.
+- Look and behaviour: `docs/design/v2/UX-RULES.md`, `LANGUAGE.md`. Screen recipe: `screens/v2/<name>/{model.ts, View.tsx,
+fixture.ts, tests}`, `EntityShell` (never `Shell`), kit parts only, data through `useScreenModel`, a machine, cell,
+  person or decision is always an `EntityChip` (`docs/slices/entity-links.md`). `pnpm ui:check` enforces it.
 
-## Waiting on Nimish (ask in plain words, product only)
+## What is merged (main = c633043), all gallery-only, v1 untouched and still live
 
-1. Dashboard on staging: his check. 2. Rail: list pages inside each section, or sections only? 3. Verdict line at body
-   size or one 20px line? 4. Keep mid-green running tiles (needed for 3:1 contrast)? 5. Footprint page meaning.
-   Older: PM hours, breakdown hours with no downtime, manpower and spend figures; staging history yes/no (69d).
+- Kit, Dashboard, entity chip + drawer in the URL (#496, #497, #500). Action Center, Data Checklist (#502), Machine page
+  (#501), Team Focus, Compare (#503), CI gallery limit 15 min (#504). View any at `/gallery?view=v2-<name>`.
+- 6 of about 36 screens are done. Batches left: 2 Machines register, OEM, Age, Footprint, Cell change log · 3 Breakdown Log,
+  General Work, PM Calendar, Fix Finder, Problem Analysis · 4 BD% and PM split, Category and Cell, MTTR and MTBF, Manpower,
+  Why-Why · 5 Energy heat map, Bottleneck, Shift-calendar KPIs, Forecast Lab, Reliability scorecard · 6 Money Matters,
+  Monthly, Annual, Guide, Settings · 7 Floor phone, desk, ticket, TV board, login.
+
+## Coverage debt (the batch-1 gate is CLOSED until cleared)
+
+- Audit: `docs/design/v2/scope/batch1.md`. Of 187 v1 items checked across the six merged v2 screens: 28 same, 62 changed,
+  **97 MISSING** (Dashboard 26 of 38, Compare 20 of 33, Data Checklist 17 of 30, Machine page 16 of 34, Action Center 14 of 36,
+  Team Focus 4 of 16). Worst: no figure opens the tickets behind it (parity rule), Compare lost the health score and tables,
+  Machine page lost the reliability fit and nameplate, Dashboard lost the "needs you now" strip, Data Checklist runs 5 of v1's
+  16 checks, rupees show to every role (parity says head, plant head, admin only). Some v2 fixtures show data we do not collect.
+- Not yet verified by a second reader: whether renamed figures keep v1's formulas. Spot-checked only the Action Center filters.
+- Clear the debt, then the gate report `docs/plan/gates/M-v2-1.md` (under 30 lines), then Nimish's go.
+
+## Waiting on Nimish (plain words, product only)
+
+- Compare: keep v1's health score and the two tables? (my advice: yes)
+- A decision's "Open full page": Action Center with it open?
+- Rail: list pages inside each section, or sections only? Verdict line at body size or one 20px line?
+- Keep mid-green running tiles (3:1 contrast)? Footprint meaning (assumed "20% of machines cause most hours" + cell map)?
+  Older: PM hours, manpower and spend figures, staging history (69d).
 
 ## Rulings (Nimish)
 
-Everything is redesigned. Floor phone: new look, Bhavin's step order, button order and words unchanged. Desk, ticket
-and TV: flow may change too. Rupee figures on the dashboard OK. #493 closed. Earlier: Running grey, Waiting amber,
-Transferred blue; Indian grouping; system dark/light; power and air failures count in downtime; real data already in
-the public repo is an accepted risk, add NO more (Bhavin's files hold real plant data: never commit screenshots of it).
+Never reduce scope (above). Light checks for web and docs PRs. Everything is redesigned. Floor phone: new
+look, Bhavin's step order, button order and words unchanged. Desk, ticket, TV: flow may change. Rupee figures OK. Running grey,
+Waiting amber, Transferred blue; Indian grouping; system dark and light; power and air failures count in downtime. Real data
+already in the public repo is an accepted risk: add NO more (never commit screenshots of Bhavin's files).
 
-## How to work
+## What cost time (details in `docs/plan/v2-next.md`)
 
-- Never ask Nimish a technology question. Report short and plain; challenge him; flag uncertainty.
-- Builders: before every push `pnpm precheck`, or for web/docs-only PRs the light set in CLAUDE.md (Git; it includes `pnpm format:check`); `Large PR:` and `Tests removed:` lines in the body.
-- Merge squash with `expectedHeadSha` only after reading check runs of the CURRENT head. The gallery job has an
-  8-minute limit and the test server on port 3001 sometimes refuses connections: re-run once, then investigate.
-- Known staging bugs to fix when wiring real data: UUIDs shown instead of names, unformatted floats, A1 all 0.00%.
-
-## Open numbers (not final)
-
-History vs Bhavin's sheets: 1,855 of 2,084 machine-months (89%) match with his rules; 229 unexplained. Plant-event
-hours are a lower bound. Tracker: https://claude.ai/artifact/5Kc9KrYMwnW9EK1UvmA9JJ (never edit the page file).
+About 20 minutes from brief to an open PR, 40 to 85 to merge. Waste: PR-body lines CI checks (`No parity:`, Q14 never `pending`),
+the gallery job limit (now 15 min), PRs appending to the same registry lines, one Team Focus gallery test that hung in CI twice and
+never locally (now instrumented). A builder run is about 300k tokens; most of a screen PR is invented fixture data and its tests.

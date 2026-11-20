@@ -42,6 +42,12 @@ budget stop, and never let the writer review its own work.
 - One build at a time per file area; at most five builders in parallel (two orchestrator lanes), each in its own worktree.
 - Pause for a person before anything irreversible: production deploys, data deletion, messages to customers.
 - When you catch an agent repeating a mistake, run `/correct` so a check blocks it next time.
+- **A redesign never reduces scope (Nimish, 20 Nov).** How a screen shows things may change; the detail, figures,
+  filters, drill-downs, exports, explanations and insights the plant had before (v1 and `docs/spec/SPEC.md`) may not
+  shrink, and each screen should say more than v1 could with the data we hold (rankings, comparisons, trends, early
+  warnings, causes, money). Every screen PR carries a coverage table (`docs/design/v2/COVERAGE.md`): each v1 and spec
+  item and where it lives in v2. "Not built" needs Nimish's written yes; neither a builder nor the orchestrator decides
+  it. A screen with a MISSING row does not pass its gate, and its v1 screen is not deleted.
 
 ## Orchestrating the plan
 
