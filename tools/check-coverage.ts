@@ -102,7 +102,10 @@ export interface CoverageInput {
 
 /** The reasons a PR that changes v2 screens does not carry its coverage, one line each; empty when it does. */
 export function coverageProblems({ body, changed, read }: CoverageInput): string[] {
-  const screens = changedScreens(changed);
+  // A folder is a screen only if it has a View.tsx; shared v2 code (entity, printed-page, figures) has none.
+  const screens = changedScreens(changed).filter(
+    (screen) => read(`apps/web/src/screens/v2/${screen}/View.tsx`) !== null,
+  );
   if (screens.length === 0) return [];
   const section = coverageSection(body);
   const problems =
