@@ -146,17 +146,18 @@ const isReference = (offender: Offender): boolean =>
  * Every id a reference lets through must have its printable code beside it: if the engine stops writing the code, a
  * screen that falls back to the id would print a UUID again. `seen` counts the checks made, so none is vacuous.
  */
-function missingCodes(
-  figure: string,
-  value: FigureValue,
-  path: string,
-  found: string[],
-  seen: Set<Reference>,
-): void {
+interface CodeChecks {
+  figure: string;
+  found: string[];
+  seen: Set<Reference>;
+}
+
+function missingCodes(checks: CodeChecks, value: FigureValue, path: string): void {
+  const { figure, found, seen } = checks;
   if (value === null || typeof value !== 'object') return;
   if (Array.isArray(value)) {
     for (const item of value as readonly FigureValue[]) {
-      missingCodes(figure, item, `${path}[]`, found, seen);
+      missingCodes(checks, item, `${path}[]`);
     }
     return;
   }
@@ -171,7 +172,7 @@ function missingCodes(
         found.push(`${figure}  ${here}  has no printable \`${ref.codeBeside}\` beside it`);
       }
     }
-    missingCodes(figure, item, here, found, seen);
+    missingCodes(checks, item, here);
   }
 }
 
@@ -244,7 +245,9 @@ describe.each(PLANTS)('the engine prints no database id: $name', ({ data, asOf, 
   it('carries a printable code beside every id a screen looks a machine up by', () => {
     const found: string[] = [];
     const seen = new Set<Reference>();
-    for (const figure of result.figures) missingCodes(figure.key, figure.value, '', found, seen);
+    for (const figure of result.figures) {
+      missingCodes({ figure: figure.key, found, seen }, figure.value, '');
+    }
     expect([...new Set(found)]).toEqual([]);
     if (data === ENGINE_DATA && span === undefined) {
       const coded = REFERENCES.filter((ref) => ref.codeBeside !== undefined);
