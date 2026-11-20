@@ -302,6 +302,7 @@ function logFigure(): Figure {
               title: '',
               header: LOG_HEADER,
               rows: logRows(),
+              rowTicketIds: [tickets.first.id, tickets.second.id, 'fake-3', 'fake-4', 'fake-5'],
               rowCount: 1343,
               truncated: true,
             },
@@ -310,9 +311,11 @@ function logFigure(): Figure {
         },
       ],
     },
+    // The engine sorts a figure's drill ids; here they run against the row order on purpose, so a link that
+    // paired row N with drill id N would open the wrong ticket.
     drill: {
       type: 'ticket',
-      ids: [tickets.first.id, tickets.second.id, 'fake-3', 'fake-4', 'fake-5'],
+      ids: ['fake-5', 'fake-4', 'fake-3', tickets.second.id, tickets.first.id],
     },
   };
 }

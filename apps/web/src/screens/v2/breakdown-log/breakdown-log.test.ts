@@ -86,6 +86,27 @@ describe('the Breakdown Log pages on the server and never holds more than one pa
     expect(ids[0]).not.toBe(LOG.rows[0]![2]);
   });
 
+  it('links every entry to the ticket the engine printed beside it, on any page, sort or filter', () => {
+    const { rows, rowTicketIds } = (
+      workbookLog.figures[0]!.value as {
+        pages: { tables: { rows: string[][]; rowTicketIds: string[] }[] }[];
+      }
+    ).pages[0]!.tables[0]!;
+    const own = new Map(rows.map((row, at) => [row[1], rowTicketIds[at]]));
+    const queries: Partial<LogQuery>[] = [
+      {},
+      { page: 3 },
+      { sort: { key: 'machine', dir: 'asc' }, page: 3 },
+      { sort: { key: 'hours', dir: 'desc' } },
+      { filters: { ...EMPTY_QUERY.filters, shift: '2' }, page: 2 },
+    ];
+    for (const query of queries) {
+      const page = ask(query).rows;
+      expect(page.length).toBeGreaterThan(0);
+      for (const row of page) expect(row.ticketId).toBe(own.get(row.srNo));
+    }
+  });
+
   it('is empty when the engine printed no log', () => {
     const none = {
       ...workbookLog,

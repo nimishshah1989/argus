@@ -1,0 +1,1 @@
+Breakdown Log: the eye link on each row now opens that row's own ticket. Before, with two or more rows the screen paired the printed row with the figure's drill ids, which the engine sorts, so it could open a different ticket. The figure now names each row's ticket itself, and the new Breakdown Log screen shows the same link.
