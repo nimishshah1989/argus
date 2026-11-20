@@ -10,10 +10,10 @@ origin/main` and the PR list beat this text. As of 14:50 UTC, 20 Nov 2026. **Orc
 - PRs #515, #518, #519 are MERGED (Nimish, 14:45 UTC). Still open: #517 only.
 - #517 CI (head 3d7eced): `browser (3/5)` failed on `apps/web/e2e/who-is-acting.spec.ts:217` ("a wrong current password keeps the phone signed in"; 3 retries, `page.goto` ERR_ABORTED at /floor). Not an analytics test; maybe a known flaky journey, maybe caused by the PR's move of the figures hook out of `api.ts`. Re-run that job once when the run completes; if it fails again it is this PR's: root-cause it (builder branch `claude/v2-go-live`) before merging.
 - PR #519: docs, one plan (this file, MILESTONES ticket 91). Merge when green.
-- PR #522 `claude/v2-drill-live` (base `claude/v2-go-live` until #517 merges, then main): wires rows-behind into the shell and cards and takes Machines register, Age, Footprint,
-  Fix Finder and Problem Analysis LIVE with their v1 pages deleted. Blocked on a person deleting two gallery specs for the deleted preview pages
-  (`apps/web/e2e/gallery/v2-fix-finder.spec.ts`, `v2-problem-analysis.spec.ts`; the harness blocks agents deleting tests; their assertions were ported to the real-server e2e). After #517
-  merges: re-run CI on #522 (catalogue test `kit.pattern.refused` may clear), mark ready, merge.
+- PR #523 `claude/v2-drill-live-main` (replaces #522, closed; same two commits replayed on main after #517 merged): wires rows-behind into the shell and cards and takes Machines register, Age,
+  Footprint, Fix Finder and Problem Analysis LIVE with their v1 pages deleted. Draft. Blocked on a person deleting two gallery specs for the deleted preview pages
+  (`apps/web/e2e/gallery/v2-fix-finder.spec.ts`, `v2-problem-analysis.spec.ts`; the harness blocks agents deleting tests; their assertions were ported to the real-server e2e). Then mark ready, CI, merge.
+- #517 (first live screen, Cell change log) is MERGED. If staging shows a sign-in problem (one browser sign-in journey failed in its CI), that is the cause to look at.
 - Builder `claude/v2-batch1-live` (rebuild Dashboard, Action Center, Machine page on real data, live, v1 deleted) was still running and NOT pushed at hand-over; re-dispatch from MILESTONES ticket 91 if no PR exists.
 - Next after those: batch 4 (merged, not wired), PM Calendar and Breakdown Log going live; rebuild Data Checklist, Compare, Team Focus; then batches 5 to 7.
 - Cost rules from Nimish: tests minimal (one smoke on the real server, one completeness test, ported v1 assertions); Sonnet for builders; he asked CI auto-merge
