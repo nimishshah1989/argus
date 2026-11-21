@@ -15,6 +15,8 @@ export interface Palette {
   surface?: string;
   /** The chart box's width in px when known: the category labels are laid out to fit it. */
   width?: number;
+  /** The box has a size of its own and cannot grow or scroll (the v1 chart): labels keep ECharts' own spacing. */
+  fixed?: boolean;
 }
 
 const TONES = ['danger', 'warning', 'info', 'hold', 'moved', 'ok', 'muted'] as const;
@@ -41,6 +43,7 @@ const SLOTS: string[][] = [
 export function readPalette(el: HTMLElement): Palette {
   const css = getComputedStyle(el);
   const read = (name: string) => css.getPropertyValue(name).trim();
+  const fixed = !el.classList.contains('v2-trend');
   const surface = parseHex(read('--color-surface'));
   const fallback =
     surface !== undefined && luminance(surface) < 0.4 ? FALLBACK_DARK : FALLBACK_LIGHT;
@@ -58,7 +61,8 @@ export function readPalette(el: HTMLElement): Palette {
       gain: read('--color-v2-gain-fill'),
     },
     surface: read('--color-v2-panel'),
-    width: el.clientWidth,
+    fixed,
+    width: fixed ? undefined : el.clientWidth,
   };
 }
 

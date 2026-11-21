@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { chartOption } from './chart-option.js';
 import { chartRoom, labelPlan, sidePlan, tickWidth } from './chart-labels.js';
+import { strokeOf } from './option-lines.js';
 import type { Palette } from './chart-palette.js';
 import type { ChartSpec } from './chart-spec.js';
 
@@ -136,20 +137,110 @@ describe('series colours by meaning', () => {
 describe('a ranking of categories', () => {
   const ranked = bar({ horizontal: true, highlight: 3 });
 
-  it('reads from the top down, the first three in the accent and the rest in the neutral slot', () => {
-    const out = view(ranked);
-    expect(out.yAxis?.inverse).toBe(true);
-    const colours = (out.series?.[0]?.data as { itemStyle: { color: string } }[]).map(
+  const coloursOf = (spec: ChartSpec) =>
+    (view(spec).series?.[0]?.data as { itemStyle: { color: string } }[]).map(
       (d) => d.itemStyle.color,
     );
+
+  it('reads from the top down, the first three in the accent and the rest in the neutral slot', () => {
+    expect(view(ranked).yAxis?.inverse).toBe(true);
+    const colours = coloursOf(ranked);
     expect(colours.slice(0, 3)).toEqual(['#acc', '#acc', '#acc']);
     expect(new Set(colours.slice(3))).toEqual(new Set(['#neu']));
+  });
+
+  it('marks the first three bars in the series meaning when it has one, and the accent only when it has none', () => {
+    const lost = bar({
+      horizontal: true,
+      highlight: 3,
+      series: [{ name: 'BD Hrs', values: [9, 8, 7, 6, 5], meaning: 'loss' }],
+      categories: ['A', 'B', 'C', 'D', 'E'],
+    });
+    expect(coloursOf(lost)).toEqual(['#loss', '#loss', '#loss', '#neu', '#neu']);
+  });
+
+  it('never marks a bar of nothing, however few bars have a value', () => {
+    const few = bar({
+      horizontal: true,
+      highlight: 3,
+      series: [{ name: 'BD Hrs', values: [9, 0, 0, 0] }],
+      categories: ['A', 'B', 'C', 'D'],
+    });
+    expect(coloursOf(few)).toEqual(['#acc', '#neu', '#neu', '#neu']);
+  });
+
+  it('draws the value-axis title of a ranking clear of the plot, with room under it', () => {
+    const out = view({ ...ranked, valueLabel: 'BD Hrs' } as ChartSpec) as View & {
+      grid?: { bottom?: number };
+      xAxis?: { name?: string };
+    };
+    expect(out.xAxis?.name).toBe('BD Hrs');
+    expect(out.grid?.bottom).toBeGreaterThanOrEqual(36);
   });
 
   it('prints every category name on its own row', () => {
     const out = view(ranked);
     expect(out.yAxis?.data).toEqual(NAMES);
     expect(out.yAxis?.axisLabel?.interval).toBe(0);
+  });
+});
+
+describe('how a line is told apart from the others without its colour', () => {
+  it('draws a loss solid with round marks, planned and gain dashed with triangles', () => {
+    expect(strokeOf({ meaning: 'loss' }, 0)).toEqual({ symbol: 'circle', dashed: false });
+    expect(strokeOf({ meaning: 'loss' }, 1)).toEqual({ symbol: 'circle', dashed: false });
+    expect(strokeOf({ meaning: 'planned' }, 1)).toEqual({ symbol: 'triangle', dashed: true });
+    expect(strokeOf({ meaning: 'gain' }, 1)).toEqual({ symbol: 'triangle', dashed: true });
+  });
+
+  it('keeps the kit order for lines with no meaning: the first solid, the rest dashed, marks alternating', () => {
+    expect([0, 1, 2, 3, 4].map((i) => strokeOf({}, i))).toEqual([
+      { symbol: 'circle', dashed: false },
+      { symbol: 'triangle', dashed: true },
+      { symbol: 'circle', dashed: true },
+      { symbol: 'triangle', dashed: true },
+      { symbol: 'circle', dashed: true },
+    ]);
+  });
+});
+
+describe('a box with a size of its own', () => {
+  it('keeps ECharts own label spacing: no forced labels, no tilt, no extra room', () => {
+    const fixed = chartOption(bar(), {
+      ...palette,
+      fixed: true,
+      width: undefined,
+    }) as unknown as View;
+    expect(fixed.xAxis?.axisLabel).toEqual({ color: '#ax' });
+    const titled = chartOption(bar({ axisTitles: true }), {
+      ...palette,
+      fixed: true,
+    }) as unknown as View & { grid?: { bottom?: number } };
+    expect(titled.grid?.bottom).toBe(36);
+  });
+});
+
+describe('the axis title under tilted names', () => {
+  it('is pushed down and given room by as much as the names take', () => {
+    const wide = { ...palette, width: 700 };
+    const out = chartOption(bar({ axisTitles: true }), wide) as unknown as View & {
+      grid?: { bottom?: number };
+      xAxis?: { nameGap?: number };
+    };
+    const room = labelPlan(NAMES, 700).room;
+    expect(room).toBeGreaterThan(150);
+    expect(out.grid?.bottom).toBe(36 + room);
+    expect(out.xAxis?.nameGap).toBe(28 + room);
+  });
+});
+
+describe('a percent chart', () => {
+  it('prints the unit on the bar labels and in the tooltip as well as on the axis', () => {
+    const out = view(bar({ unit: '%' })) as View & {
+      series?: { label?: { formatter?: string } }[];
+    } & { tooltip?: { valueFormatter?: (v: unknown) => string } };
+    expect(out.series?.[0]?.label?.formatter).toBe('{c}%');
+    expect(out.tooltip?.valueFormatter?.(1.36)).toBe('1.36%');
   });
 });
 

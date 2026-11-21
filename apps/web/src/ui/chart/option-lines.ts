@@ -12,10 +12,18 @@ import {
 } from './chart-parts.js';
 import type { ChartSeries, LineSpec } from './chart-spec.js';
 
-/** A planned line is always dashed with triangle marks, and a loss or gain line solid with round ones: pattern and hue. */
-function strokeOf(s: ChartSeries, index: number): { symbol: string; dashed: boolean } {
-  const dashed = s.meaning === 'planned' || (s.meaning === undefined && index % 2 === 1);
-  return { symbol: dashed ? 'triangle' : 'circle', dashed };
+/**
+ * How a line is drawn apart from its colour (UX-RULES 21). A loss is solid with round marks; planned and gain lines are
+ * dashed with triangles, so no two meanings differ by hue alone. A line with no meaning keeps the kit's own order: the
+ * first solid, the rest dashed, the marks alternating round and triangle.
+ */
+export function strokeOf(
+  s: Pick<ChartSeries, 'meaning'>,
+  index: number,
+): { symbol: 'circle' | 'triangle'; dashed: boolean } {
+  if (s.meaning === 'loss') return { symbol: 'circle', dashed: false };
+  if (s.meaning === 'planned' || s.meaning === 'gain') return { symbol: 'triangle', dashed: true };
+  return { symbol: index % 2 === 0 ? 'circle' : 'triangle', dashed: index > 0 };
 }
 
 /**
@@ -36,7 +44,8 @@ export function lineOption(spec: LineSpec, p: Palette): Option {
     legend,
     spec.series.map((s) => s.name),
   );
-  const titled = spec.axisTitles ? withTitleRoom(base) : base;
+  const plan = planOf(spec, p.width);
+  const titled = spec.axisTitles ? withTitleRoom(base, plan.room) : base;
   return {
     ...(spec.valueLabel === undefined || secondAxis ? titled : withValueTitleRoom(titled)),
     ...drawOption(spec.draw),
@@ -50,12 +59,7 @@ export function lineOption(spec: LineSpec, p: Palette): Option {
           extraCssText: 'box-shadow:none;',
         }
       : axisTooltip('line'),
-    xAxis: categoryAxis(
-      spec.categories,
-      p,
-      spec.axisTitles ? spec.categoryLabel : undefined,
-      planOf(spec, p.width),
-    ),
+    xAxis: categoryAxis(spec.categories, p, spec.axisTitles ? spec.categoryLabel : undefined, plan),
     yAxis: secondAxis ? [axis, { ...axis, splitLine: { show: false } }] : axis,
     series: spec.series.map((s, i) => {
       const stroke = strokeOf(s, i);
@@ -70,7 +74,7 @@ export function lineOption(spec: LineSpec, p: Palette): Option {
         symbolSize: 8,
         showAllSymbol: true,
         lineStyle: { width: 2, type: stroke.dashed ? ('dashed' as const) : ('solid' as const) },
-        endLabel: { show: !legend, formatter: '{a}', distance: 10, color },
+        endLabel: { show: !legend, formatter: '{a}', color },
       };
     }),
   };

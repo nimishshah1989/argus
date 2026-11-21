@@ -1,4 +1,4 @@
-import { planOf, sidePlan, topValue } from './chart-labels.js';
+import { planOf, sidePlan, topValue, type LabelPlan } from './chart-labels.js';
 import { paintOf, seriesColor, toneColor, type Palette } from './chart-palette.js';
 import {
   axisTooltip,
@@ -19,19 +19,13 @@ import {
   type ParetoSpec,
 } from './chart-spec.js';
 
-/** The two axes of a bar chart: the categories (the biggest first in a ranking) and the value, with its unit. */
-function barAxes(spec: BarSpec, p: Palette, title: string | undefined) {
+/** The two axes of a bar chart: the categories (the worst first in a ranking) and the value, with its unit. */
+function barAxes(spec: BarSpec, p: Palette, title: string | undefined, plan: LabelPlan) {
   const horizontal = spec.horizontal === true;
   const ranked = spec.highlight !== undefined && spec.series.length === 1;
+  // A ranking reads from the top down: the first category on the top row.
   const category = {
-    // Down the side the names sit flat, one to a row (the box is made tall enough for every row).
-    ...categoryAxis(
-      spec.categories,
-      p,
-      title,
-      horizontal ? sidePlan(spec.categories, p.width) : planOf(spec, p.width),
-    ),
-    // A ranking reads from the top down: the biggest first.
+    ...categoryAxis(spec.categories, p, title, plan),
     ...(ranked && horizontal ? { inverse: true } : {}),
   };
   const top = horizontal ? undefined : topValue(spec.series, spec.stacked === true);
@@ -39,20 +33,32 @@ function barAxes(spec: BarSpec, p: Palette, title: string | undefined) {
     ...titledValueAxis(spec.valueLabel, p, top, spec.unit),
     ...(spec.unit === undefined
       ? {}
-      : { axisLabel: { color: p.axis, formatter: `{value}${spec.unit}` } }),
+      : {
+          axisLabel: {
+            color: p.axis,
+            hideOverlap: p.fixed !== true,
+            formatter: `{value}${spec.unit}`,
+          },
+        }),
   };
   return horizontal ? { xAxis: value, yAxis: category } : { xAxis: category, yAxis: value };
 }
 
-/** The bar series: a meaning or tone colours a series, a ranking colours its first few bars (accent) apart from the rest. */
+/**
+ * The bar series. A meaning or tone colours a series. In a ranking the first `highlight` bars that have a value take the
+ * series' colour (its meaning's, else the accent) and the rest stay neutral (UX-RULES 24: colour on few marks); a bar
+ * of nothing is never marked.
+ */
 function barSeries(spec: BarSpec, p: Palette) {
   const ranked = spec.highlight !== undefined && spec.series.length === 1;
+  const unit = spec.unit ?? '';
   return spec.series.map((series, index) => {
     const color = paintOf(series, p, index);
-    // A ranking: the worst few in the accent, the rest quiet (UX-RULES 24: colour on few marks).
     const colourAt = (at: number) =>
       ranked
-        ? seriesColor(p, at < (spec.highlight ?? 0) ? 0 : 1)
+        ? at < (spec.highlight ?? 0) && (series.values[at] ?? 0) > 0
+          ? color
+          : seriesColor(p, 1)
         : toneColor(series.tones?.[at], p, color);
     return {
       type: 'bar' as const,
@@ -71,6 +77,7 @@ function barSeries(spec: BarSpec, p: Palette) {
         show: spec.stacked !== true,
         position: spec.horizontal === true ? ('right' as const) : ('top' as const),
         color: p.axis,
+        ...(unit === '' ? {} : { formatter: `{c}${unit}` }),
       },
     };
   });
@@ -81,21 +88,30 @@ export function barOption(spec: BarSpec, p: Palette): Option {
   const horizontal = spec.horizontal === true;
   const stacked = spec.stacked === true;
   const legend = spec.legend ?? (stacked && spec.series.length >= 2);
-  // Horizontal bars keep their long machine labels on the left: the title is for the vertical chart.
+  // Horizontal bars keep their long machine labels on the left: the category title is for the vertical chart.
   const title = spec.axisTitles && !horizontal ? spec.categoryLabel : undefined;
+  // Down the side the names sit flat, one to a row (the box is made tall enough for every row).
+  const plan = horizontal ? sidePlan(spec.categories, p.width) : planOf(spec, p.width);
   const base = baseOption(
     p,
     // A bar's value label sits past its end: keep room for it at the edge.
-    horizontal ? 64 : 16,
+    horizontal && !p.fixed ? 64 : 16,
     legend,
     spec.series.map((s) => s.name),
   );
-  const titled = title === undefined ? base : withTitleRoom(base);
+  // A title under the plot: the category title of a vertical chart, the value title of a horizontal one.
+  const underTitle =
+    title !== undefined || (horizontal && spec.valueLabel !== undefined && !p.fixed);
+  const titled = underTitle ? withTitleRoom(base, horizontal ? 0 : plan.room) : base;
+  const tooltip = axisTooltip('shadow');
   return {
     ...(spec.valueLabel === undefined || horizontal ? titled : withValueTitleRoom(titled)),
     ...drawOption(spec.draw),
-    tooltip: axisTooltip('shadow'),
-    ...barAxes(spec, p, title),
+    tooltip:
+      spec.unit === undefined
+        ? tooltip
+        : { ...tooltip, valueFormatter: (v: unknown) => `${String(v)}${spec.unit}` },
+    ...barAxes(spec, p, title, plan),
     series: barSeries(spec, p),
   };
 }

@@ -34,7 +34,7 @@ export function ChartCard({
         </div>
         {drill ? <DrillButton drill={drill} /> : null}
       </div>
-      <div className="v2-trend-scroll" data-chart-scroll role="group" aria-label={spec.title}>
+      <div className="v2-trend-scroll" data-chart-scroll>
         <div ref={ref} className="v2-trend" role="img" aria-label={aria} data-chart-state={state} />
       </div>
       {numbers ? <ChartNumbers spec={spec} /> : null}

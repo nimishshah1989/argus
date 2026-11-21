@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ChartSpec } from '../../ui/chart/use-chart.js';
-import { withMeaning } from './chart-meanings.js';
+import { readFileSync, readdirSync } from 'node:fs';
+import { hasMeaning, withMeaning } from './chart-meanings.js';
 
 const bar = (values: (number | undefined)[], name = 'BD Hrs'): ChartSpec => ({
   kind: 'bar',
@@ -34,12 +35,29 @@ describe('what an engine chart means', () => {
     ]);
   });
 
-  it('ranks a by-category chart worst first, horizontal, with the first three marked', () => {
+  it('ranks a by-category chart worst first, horizontal, with the first three marked as a loss', () => {
     const [out] = withMeaning('ch-a2-cathrs', [bar([5, 40, undefined, 20])]) as Bar[];
     expect(out?.categories).toEqual(['B', 'D', 'A', 'C']);
     expect(out?.series[0]?.values).toEqual([40, 20, 5, undefined]);
+    expect(out?.series[0]?.meaning).toBe('loss');
     expect(out?.horizontal).toBe(true);
     expect(out?.highlight).toBe(3);
+  });
+
+  it('ranks MTBF by category from the lowest: more time between failures is better, so the worst come first', () => {
+    const [out] = withMeaning('ch-a3-catmtbf', [bar([500, 90, 700, 300], 'MTBF')]) as Bar[];
+    expect(out?.categories).toEqual(['B', 'D', 'A', 'C']);
+    expect(out?.series[0]?.values).toEqual([90, 300, 500, 700]);
+    expect(out?.series[0]?.meaning).toBe('loss');
+    expect(out?.highlight).toBe(3);
+    // A category with no MTBF is last, never first.
+    const [gap] = withMeaning('ch-a3-catmtbf', [bar([500, undefined, 700, 300], 'MTBF')]) as Bar[];
+    expect(gap?.categories).toEqual(['D', 'A', 'C', 'B']);
+  });
+
+  it('keeps the engine order among equal bars', () => {
+    const [out] = withMeaning('ch-a2-catcnt', [bar([4, 9, 4, 9])]) as Bar[];
+    expect(out?.categories).toEqual(['B', 'D', 'A', 'C']);
   });
 
   it('keeps every number: the ranking is a reordering, nothing more', () => {
@@ -75,5 +93,32 @@ describe('what an engine chart means', () => {
     const [out] = withMeaning('ch-sk-machine', [mixed]);
     expect(out?.kind === 'mixed' && out.bars[0]?.meaning).toBe('loss');
     expect(out?.kind === 'mixed' && out.line?.meaning).toBeUndefined();
+  });
+});
+
+describe('every chart the engine draws has a decision', () => {
+  /** The engine's chart ids: the frozen answer keys and the domain source that emits them. */
+  function engineIds(): Set<string> {
+    const base = new URL('../../../../../', import.meta.url);
+    const ids = new Set<string>();
+    const found = (text: string) => {
+      for (const [id] of text.matchAll(/ch-[a-z0-9]+(?:-[a-z0-9]+)*/g)) ids.add(id);
+    };
+    for (const file of readdirSync(new URL('fixtures/answer-key/', base)))
+      if (file.endsWith('.json'))
+        found(readFileSync(new URL(`fixtures/answer-key/${file}`, base), 'utf8'));
+    for (const file of readdirSync(new URL('packages/domain/src/analytics/', base)))
+      if (file.endsWith('.ts'))
+        found(readFileSync(new URL(`packages/domain/src/analytics/${file}`, base), 'utf8'));
+    // The shift KPIs build their ids from the dimension (`ch-sk-${dimension}`).
+    ids.delete('ch-sk');
+    for (const dimension of ['machine', 'cell', 'code', 'shift']) ids.add(`ch-sk-${dimension}`);
+    return ids;
+  }
+
+  it('lists a meaning or an explicit neutral for each id, so none is left plain by forgetting it', () => {
+    const ids = [...engineIds()];
+    expect(ids.length).toBeGreaterThan(25);
+    expect(ids.filter((id) => !hasMeaning(id))).toEqual([]);
   });
 });

@@ -52,9 +52,9 @@ export function axisTooltip(kind: 'shadow' | 'line'): Option {
   return { trigger: 'axis', axisPointer: { type: kind }, confine: true };
 }
 
-/** The option with room under the plot for a category axis title. */
-export function withTitleRoom(option: Option): Option {
-  return { ...option, grid: { ...(option.grid as object), bottom: 36 } };
+/** The option with room under the plot for an axis title, and under that for tilted category names (`room`). */
+export function withTitleRoom(option: Option, room = 0): Option {
+  return { ...option, grid: { ...(option.grid as object), bottom: 36 + room } };
 }
 
 /**
@@ -68,6 +68,23 @@ export function categoryAxis(
   title?: string,
   plan: LabelPlan = labelPlan(categories, p.width),
 ) {
+  // A box with a size of its own (the v1 chart) cannot grow or scroll: ECharts spaces and skips its labels itself.
+  if (p.fixed === true)
+    return {
+      type: 'category' as const,
+      data: categories,
+      axisTick: { show: false },
+      axisLine: { lineStyle: { color: p.grid } },
+      axisLabel: { color: p.axis },
+      ...(title === undefined
+        ? {}
+        : {
+            name: title,
+            nameLocation: 'middle' as const,
+            nameGap: 28,
+            nameTextStyle: { color: p.axis },
+          }),
+    };
   return {
     type: 'category' as const,
     data: categories,
@@ -95,7 +112,7 @@ export function valueAxis(p: Palette) {
   return {
     type: 'value' as const,
     splitLine: { lineStyle: { color: p.grid } },
-    axisLabel: { color: p.axis, hideOverlap: true },
+    axisLabel: { color: p.axis, hideOverlap: p.fixed !== true },
   };
 }
 

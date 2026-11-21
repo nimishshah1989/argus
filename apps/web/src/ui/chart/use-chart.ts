@@ -124,9 +124,14 @@ function optionFor(el: HTMLElement, key: string, first: boolean) {
     el.classList.contains('v2-trend') && room.height > BASE_HEIGHT ? `${room.height}px` : '';
   const scroller = el.parentElement?.hasAttribute('data-chart-scroll') ? el.parentElement : null;
   if (room.scrollWidth !== undefined && scroller) el.style.minWidth = `${room.scrollWidth}px`;
-  // A box that scrolls sideways can be reached and scrolled from the keyboard.
-  if (room.scrollWidth !== undefined) scroller?.setAttribute('tabindex', '0');
-  else scroller?.removeAttribute('tabindex');
+  // A box that scrolls sideways is a named group that can be reached and scrolled from the keyboard.
+  if (room.scrollWidth !== undefined) {
+    scroller?.setAttribute('tabindex', '0');
+    scroller?.setAttribute('role', 'group');
+    scroller?.setAttribute('aria-label', spec.title);
+  } else {
+    for (const name of ['tabindex', 'role', 'aria-label']) scroller?.removeAttribute(name);
+  }
   return frameOption(chartOption(spec, palette), { first, reduced });
 }
 

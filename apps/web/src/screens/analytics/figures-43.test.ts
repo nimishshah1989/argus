@@ -174,7 +174,7 @@ describe('the Money Matters page', () => {
         categoryLabel: 'Problem',
         valueLabel: 'Money lost in the period (₹ lakh)',
         categories: chart.labels,
-        series: [{ name: 'Money lost (₹ lakh)', values: chart.datasets[0]!.data }],
+        series: [{ name: 'Money lost (₹ lakh)', values: chart.datasets[0]!.data, meaning: 'loss' }],
         horizontal: true,
       },
     ]);
