@@ -98,25 +98,25 @@ describe('the machines behind an energy tile print their connected and running l
     expect(power).toBeGreaterThan(0);
     expect(read({ ...rated, metadata: { efficiency: 50 } }).runningKva?.sort).toBeCloseTo(
       power / 2,
-      1,
+      2,
     );
     expect(read({ ...rated, metadata: { efficiency: 130 } }).runningKva?.sort).toBeCloseTo(
       power,
-      1,
+      2,
     );
     expect(read({ ...rated, metadata: {} }).runningKva?.sort).toBeCloseTo(
       (power * effFactorPct) / 100,
-      1,
+      2,
     );
     // A blank efficiency ('' or spaces, as every machine in the 11 Nov export has it) is none: the plant factor applies.
     for (const blank of ['', '  ', null])
       expect(read({ ...rated, metadata: { efficiency: blank } }).runningKva?.sort).toBeCloseTo(
         (power * effFactorPct) / 100,
-        1,
+        2,
       );
     expect(read({ ...rated, metadata: { efficiency: '50' } }).runningKva?.sort).toBeCloseTo(
       power / 2,
-      1,
+      2,
     );
     const unrated = read({ ...rated, powerKw: null });
     expect([unrated.connectedKva?.text, unrated.runningKva?.text]).toEqual(['—', '—']);

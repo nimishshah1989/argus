@@ -150,4 +150,44 @@ describe('the Breakdown Log keeps what Bhavin’s log shows', () => {
     )!;
     expect(model.rows.every((row) => row.severity === null)).toBe(true);
   });
+
+  it('keeps every row’s own severity, type and supporters through sort, filter and paging', () => {
+    // Each row is told apart by its Sr No in the whole log; what it carries is read from there, never from its place on the page.
+    const own = new Map(
+      LOG.rows.map((row, at) => {
+        const hours = row[8] === '—' ? 0 : Number(row[8]);
+        const severity = hours > 4 ? 'long' : hours > 1 ? 'watch' : null;
+        return [row[1]!, { ...LOG.detail[at]!, severity }];
+      }),
+    );
+    const supporter = LOG.detail.flatMap((d) => names(d.supportedBy))[0]!;
+    const queries: Partial<LogQuery>[] = [
+      {},
+      { page: 3 },
+      { sort: { key: 'hours', dir: 'desc' } },
+      { sort: { key: 'hours', dir: 'asc' }, page: 40 },
+      { sort: { key: 'machine', dir: 'asc' }, page: 7 },
+      { sort: { key: 'doneBy', dir: 'desc' }, page: 2 },
+      { ...filter({ shift: '2' }), page: 2 },
+      { ...filter({ person: supporter }), sort: { key: 'date', dir: 'asc' } },
+      { ...filter({ month: ask().options.month[3]! }), sort: { key: 'hours', dir: 'desc' } },
+      { query: 'axis', sort: { key: 'srNo', dir: 'asc' } },
+    ];
+    let tagged = 0;
+    let supported = 0;
+    for (const query of queries) {
+      const rows = ask(query).rows;
+      expect(rows.length).toBeGreaterThan(0);
+      for (const row of rows) {
+        const expected = own.get(row.srNo)!;
+        expect(row.severity, `${row.srNo} severity`).toBe(expected.severity);
+        expect(row.type, `${row.srNo} type`).toBe(expected.type === row.code ? '' : expected.type);
+        expect(row.supportedBy.map((chip) => chip.label)).toEqual(names(expected.supportedBy));
+        if (row.severity !== null) tagged += 1;
+        if (row.supportedBy.length > 0) supported += 1;
+      }
+    }
+    expect(tagged).toBeGreaterThan(0);
+    expect(supported).toBeGreaterThan(0);
+  });
 });
