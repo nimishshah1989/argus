@@ -1,4 +1,4 @@
-import { expect, test, type Page, type Route } from '@playwright/test';
+import { expect, test, type Page, type Route, type TestInfo } from '@playwright/test';
 import { mockPlant } from './plant-mock.js';
 
 /**
@@ -114,46 +114,91 @@ async function open(page: Page, width: number): Promise<void> {
   await expect(page.locator('.v2-bubble-dot')).toHaveCount(POINTS.length);
 }
 
+/** What a press at a page point would land on: the element, its ancestors up to the card, and the styles that decide it. */
+type Landing = {
+  chain: string[];
+  insideCard: boolean;
+  onValueButton: boolean;
+  pointerEvents: string;
+  cardTransform: string;
+  cardTransition: string;
+  railOpen: boolean;
+  fonts: string;
+};
+
 /**
- * Presses a point 14 px in from a card's bottom-left corner: inside the card, clear of its rounded corner and of its
- * value button. It waits for the fonts, so a late font swap cannot move the card under the pointer, and presses through
- * the card's own locator, which waits for the card to hold still and checks that the card (or something in it) is what
- * the pointer lands on: a rail or a banner in the way fails the press with its name instead of a silent miss.
+ * Presses a point 14 px in from a card's bottom-RIGHT corner: inside the card, clear of its rounded corner, of its value
+ * button (top left) and of the rail that opens over the page's left edge. It never waits on a locator's actionability
+ * and every wait is short, so a press that cannot work fails in seconds and says why: before pressing it reads what
+ * the pointer would land on (the element and its ancestors, the styles that decide it, the fonts' state), prints it
+ * and attaches it to the test, and fails if that is not the card or something in it.
  */
-const corner = async (page: Page, name: string) => {
-  await page.evaluate(() => document.fonts.ready);
+const corner = async (page: Page, name: string, testInfo: TestInfo) => {
   const card = page.getByRole('region', { name, exact: true });
-  await expect(card).toBeVisible();
+  await expect(card).toBeVisible({ timeout: 5_000 });
+  await card.scrollIntoViewIfNeeded({ timeout: 5_000 });
+  await page.mouse.move(700, 4); // away from the rail, which opens over the page's left edge when hovered
   const box = (await card.boundingBox())!;
-  const point = { x: 14, y: Math.max(14, box.height - 14) };
-  const button = await card.locator('.v2-drill-value').boundingBox();
-  if (button) {
-    const [x, y] = [box.x + point.x, box.y + point.y];
-    const onButton =
-      x >= button.x &&
-      x <= button.x + button.width &&
-      y >= button.y &&
-      y <= button.y + button.height;
-    expect(onButton, 'the press must not be on the value button itself').toBe(false);
-  }
-  await card.click({ position: point });
+  const [x, y] = [box.x + box.width - 14, box.y + box.height - 14];
+  const landing = await page.evaluate(
+    // eslint-disable-next-line complexity -- runs inside the page as one self-contained function
+    ([px, py, label]): Landing => {
+      const el = document.elementFromPoint(px!, py!);
+      const cardEl = document.querySelector(`section[aria-label="${label}"]`);
+      const chain: string[] = [];
+      for (let at: Element | null = el; at && chain.length < 6; at = at.parentElement)
+        chain.push(
+          `${at.tagName.toLowerCase()}.${String(at.className).trim().replace(/\s+/g, '.')}`,
+        );
+      const style = cardEl ? getComputedStyle(cardEl) : null;
+      const button = cardEl?.querySelector('.v2-drill-value')?.getBoundingClientRect();
+      return {
+        chain,
+        insideCard: !!el && !!cardEl && cardEl.contains(el),
+        onValueButton:
+          !!button &&
+          px! >= button.left &&
+          px! <= button.right &&
+          py! >= button.top &&
+          py! <= button.bottom,
+        pointerEvents: el ? getComputedStyle(el).pointerEvents : 'none',
+        cardTransform: style?.transform ?? '',
+        cardTransition: style?.transition ?? '',
+        railOpen: !!document.querySelector('.v2-rail:hover, .v2-rail:focus-within'),
+        fonts: document.fonts.status,
+      };
+    },
+    [x, y, name] as const,
+  );
+  const report = JSON.stringify({ name, point: { x, y }, box, ...landing }, null, 1);
+  console.log(`press ${name}: ${report}`);
+  await testInfo.attach(`press-${name}`, { body: report, contentType: 'application/json' });
+  expect(landing.insideCard, `the press at (${x}, ${y}) lands outside the card: ${report}`).toBe(
+    true,
+  );
+  expect(landing.onValueButton, 'the press must not be on the value button itself').toBe(false);
+  await page.mouse.click(x, y);
 };
 
 test('a card is one target: a press on its corner opens the rows behind its figure', async ({
   page,
-}) => {
+}, testInfo) => {
+  test.setTimeout(30_000);
   await open(page, 1440);
-  await corner(page, 'Total machines');
-  await expect(page).toHaveURL(/[?&]drawer=figure:dashboard\.total-machines/);
-  await expect(page.locator('aside.v2-drawer')).not.toHaveAttribute('inert', '');
+  await corner(page, 'Total machines', testInfo);
+  await expect(page).toHaveURL(/[?&]drawer=figure:dashboard\.total-machines/, { timeout: 5_000 });
+  await expect(page.locator('aside.v2-drawer')).not.toHaveAttribute('inert', '', {
+    timeout: 5_000,
+  });
 });
 
 test('a machine-type card is one target too: a press on its corner opens its register', async ({
   page,
-}) => {
+}, testInfo) => {
+  test.setTimeout(30_000);
   await open(page, 1440);
-  await corner(page, 'CNC machines');
-  await expect(page).toHaveURL(/screen=registers&register=machines/);
+  await corner(page, 'CNC machines', testInfo);
+  await expect(page).toHaveURL(/screen=registers&register=machines/, { timeout: 5_000 });
 });
 
 test('Ctrl and the wheel zoom the plot and are kept from zooming the page', async ({ page }) => {
