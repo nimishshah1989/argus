@@ -1,9 +1,9 @@
 import type { TFunction } from 'i18next';
 import { NotComputed } from '../figures/live-error.js';
-import { figureOf, pageOf, type FiguresPart } from '../printed-page/printed.js';
+import { figureOf, pageOf, type Figure, type FiguresPart } from '../printed-page/printed.js';
 import { logModel } from './adapter.js';
 import type { LogModel, LogQuery } from './model.js';
-import { cutPage, everyMatch, type PrintedLog } from './serve.js';
+import { cutPage, everyMatch, NO_DETAIL, type PrintedLog } from './serve.js';
 
 const KEY = 'breakdown-log';
 
@@ -12,11 +12,34 @@ export function printedLog(reply: FiguresPart, t: TFunction): PrintedLog | null 
   const figure = figureOf(reply, KEY);
   const table = pageOf(figure, t)?.tables[0];
   if (figure === undefined || table === undefined || table.rows.length === 0) return null;
+  const extra = extraOf(figure);
   return {
     header: table.header,
     rows: table.rows,
     ticketIds: table.rowTicketIds ?? [],
     rowCount: table.rowCount,
+    ...extra,
+  };
+}
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+const text = (value: unknown): string => (typeof value === 'string' ? value : '');
+
+/** What the engine sent beside the page: each row's detail and the code list; none of it when a saved copy predates it. */
+function extraOf(figure: Figure): Pick<PrintedLog, 'detail' | 'codes'> {
+  const extra = isObject(figure.value) && isObject(figure.value.extra) ? figure.value.extra : {};
+  const rows: unknown[] = Array.isArray(extra.rows) ? extra.rows : [];
+  const codes: unknown[] = Array.isArray(extra.codes) ? extra.codes : [];
+  return {
+    detail: rows.map((row) =>
+      isObject(row) ? { supportedBy: text(row.supportedBy), type: text(row.type) } : NO_DETAIL,
+    ),
+    codes: codes.flatMap((entry) =>
+      isObject(entry) && text(entry.code) !== '' && text(entry.label) !== ''
+        ? [{ code: text(entry.code), label: text(entry.label) }]
+        : [],
+    ),
   };
 }
 

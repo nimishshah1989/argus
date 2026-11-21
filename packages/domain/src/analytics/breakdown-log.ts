@@ -55,6 +55,11 @@ function hoursText(row: SourcedReport): string {
   return isNoDowntime(row) ? DASH : String(effectiveHours(row.report));
 }
 
+/** The coded names a row lists as people, in its own order; empty when it names nobody. */
+function peopleText(codes: readonly string[], names: ReadonlyMap<string, string>): string {
+  return codes.map((code) => names.get(code) ?? code).join(', ');
+}
+
 /** One display row, in the key's column order. */
 function rowTexts(
   entry: { srNo: number; row: SourcedReport },
@@ -84,6 +89,7 @@ export const breakdownLogFigure: Computer = ({ data, asOf }) => {
   const names = new Map(data.people.map((person) => [person.code, person.displayName]));
   const codes = new Map(data.machines.map((machine) => [machine.id, machine.code]));
   const rows = entries.map((entry) => rowTexts(entry, names, codes));
+  const described = (data.lists.maint_code ?? []).filter(({ label }) => label.trim() !== '');
   const value = {
     screen: 'breakdown-log',
     asOf,
@@ -107,6 +113,15 @@ export const breakdownLogFigure: Computer = ({ data, asOf }) => {
         charts: [],
       },
     ],
+    // What the log shows in a row's detail and a code's tooltip, beside the key's own page (which stays as printed):
+    // `rows` pairs with the table's rows one for one, `codes` is the plant's maintenance-code list with descriptions.
+    extra: {
+      rows: entries.map((entry) => ({
+        supportedBy: peopleText(entry.row.report.supportedBy, names),
+        type: entry.row.report.category?.trim() ?? '',
+      })),
+      codes: described.map(({ code, label }) => ({ code, label })),
+    },
   };
   return {
     value: value as unknown as FigureValue,

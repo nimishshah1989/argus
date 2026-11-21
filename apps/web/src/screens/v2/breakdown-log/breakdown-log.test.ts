@@ -63,7 +63,10 @@ describe('the Breakdown Log pages on the server and never holds more than one pa
     expect(first!.machine).toMatchObject({ kind: 'machine' });
     expect(first!.doneBy[0]).toMatchObject({ kind: 'person' });
     expect(first!.ticket).toBe(LOG.rows[0]![2]);
-    expect(ask({ sort: { key: 'srNo', dir: 'asc' } }).rows[0]!.ticket).toBe('—');
+    // An imported entry carries its workbook id there: never printed as a ticket number, said as where it came from.
+    const imported = ask({ sort: { key: 'srNo', dir: 'asc' } }).rows[0]!;
+    expect(imported.ticket).toBe('Imported');
+    expect(imported.ticket).not.toBe(LOG.rows.find((r) => r[1] === imported.srNo)![2]);
   });
 
   it('opens the answer with the engine count and how far the records run, in v1’s words', () => {
