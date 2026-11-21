@@ -49,6 +49,7 @@ describe('chart axis titles', () => {
     const asked = view({ ...bar, axisTitles: true, horizontal: true } as ChartSpec);
     expect(asked.xAxis?.name).toBe('Hours');
     expect(asked.yAxis?.name).toBeUndefined();
-    expect(asked.grid?.bottom).toBe(8);
+    // The value axis title sits under the plot, so the plot leaves room for it.
+    expect(asked.grid?.bottom).toBe(36);
   });
 });

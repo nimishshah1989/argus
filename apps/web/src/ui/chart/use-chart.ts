@@ -1,12 +1,20 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { chartOption } from './chart-option.js';
+import { BASE_HEIGHT, chartRoom } from './chart-labels.js';
 import { frameOption } from './chart-parts.js';
 import { readPalette } from './chart-palette.js';
 import type { ChartSpec, ChartState } from './chart-spec.js';
 
 export { chartOption } from './chart-option.js';
 export { readPalette, type Palette } from './chart-palette.js';
-export type { ChartSeries, ChartSpec, ChartState, ChartTone, ScatterPoint } from './chart-spec.js';
+export type {
+  ChartMeaning,
+  ChartSeries,
+  ChartSpec,
+  ChartState,
+  ChartTone,
+  ScatterPoint,
+} from './chart-spec.js';
 
 let loader: ReturnType<typeof load> | null = null;
 
@@ -57,6 +65,7 @@ function attach(
   echarts: Awaited<ReturnType<typeof loadEcharts>>,
   el: HTMLElement,
   first: (made: Instance) => void,
+  again: (made: Instance) => void,
 ): { made: Instance; dispose: () => void } {
   const made: Instance = echarts.init(el, null, { renderer: 'svg' });
   try {
@@ -65,7 +74,10 @@ function attach(
     made.dispose();
     throw error;
   }
-  const resize = () => made.resize();
+  // A new width can need other label room (a drawer opening, a phone turning): size the box, then lay the labels out.
+  const resize = () => {
+    again(made);
+  };
   const query = window.matchMedia(REDUCED);
   const still = () => query.matches && made.setOption({ animation: false });
   window.addEventListener('resize', resize);
@@ -95,13 +107,38 @@ export function refresh(made: Instance, build: () => unknown): ChartState {
   }
 }
 
-/** The option for the spec held in `key`, framed for the first draw of an instance or for a later update. */
+/**
+ * The option for the spec held in `key`, framed for the first draw of an instance or for a later update. The box is
+ * sized first: tilted category labels need height, and labels too many for the box's width make it scroll sideways
+ * inside its card (when the card's wrapper says it can: `data-chart-scroll`), so no label is ever dropped.
+ */
 function optionFor(el: HTMLElement, key: string, first: boolean) {
   const reduced = window.matchMedia(REDUCED).matches;
-  return frameOption(chartOption(JSON.parse(key) as ChartSpec, readPalette(el)), {
-    first,
-    reduced,
-  });
+  const spec = JSON.parse(key) as ChartSpec;
+  el.style.minWidth = '';
+  const palette = readPalette(el);
+  sizeBox(el, spec, chartRoom(spec, palette.width));
+  return frameOption(chartOption(spec, palette), { first, reduced });
+}
+
+/**
+ * Make the box the room its labels need. A v2 chart that needs more than the kit's own height (tilted names, a long
+ * horizontal bar) is made taller, and one with too many labels for its width scrolls sideways inside its card; a box
+ * with a size of its own (the v1 chart's) keeps it. A box that scrolls is a named group reachable from the keyboard.
+ */
+function sizeBox(el: HTMLElement, spec: ChartSpec, room: ReturnType<typeof chartRoom>): void {
+  el.style.minHeight =
+    el.classList.contains('v2-trend') && room.height > BASE_HEIGHT ? `${room.height}px` : '';
+  const scroller = el.parentElement?.hasAttribute('data-chart-scroll') ? el.parentElement : null;
+  if (scroller === null) return;
+  if (room.scrollWidth === undefined) {
+    for (const name of ['tabindex', 'role', 'aria-label']) scroller.removeAttribute(name);
+    return;
+  }
+  el.style.minWidth = `${room.scrollWidth}px`;
+  scroller.setAttribute('tabindex', '0');
+  scroller.setAttribute('role', 'group');
+  scroller.setAttribute('aria-label', spec.title);
 }
 
 /**
@@ -129,8 +166,15 @@ export function useChart(spec: ChartSpec): {
         const el = ref.current;
         if (!live || !el) return;
         try {
-          const attached = attach(echarts, el, (made) =>
-            made.setOption(optionFor(el, latest.current, true)),
+          const attached = attach(
+            echarts,
+            el,
+            (made) => {
+              const option = optionFor(el, latest.current, true);
+              made.resize(); // the box may have grown for its labels since it was made
+              made.setOption(option);
+            },
+            (made) => setState(refresh(made, () => optionFor(el, latest.current, false))),
           );
           chart.current = attached.made;
           dispose = () => {
