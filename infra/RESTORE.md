@@ -18,7 +18,7 @@ load, and `deploy.sh` takes `uptimo-pre-<tag>-<time>` before every deploy that m
 drill log and the dump is not relied on. GitHub pauses scheduled workflows in a repository with no activity for 60 days; the drill log
 shows the date of the last dump.
 
-_Run from `~/argus-staging` with `terraform` on your PATH (the Mac install). If `terraform output` fails, the server is `i-0c8debfdec0da8209`._
+_Run from `~/argus` (the one clone of this repo on the Mac) with `terraform` on your PATH (the Mac install). If `terraform output` fails, the server is `i-0c8debfdec0da8209`._
 
 ## 0. Switch the weekly dump on (once, after Nimish applies the Terraform in `infra/terraform`)
 
