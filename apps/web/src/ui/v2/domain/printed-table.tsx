@@ -19,6 +19,8 @@ export type PrintedTable = {
   header: { label: string; numeric: boolean }[];
   rows: PrintedCell[][];
   chips: PrintedChip[];
+  /** What the table counts and how to read it, in the platform's own words: one quiet line under its title. */
+  note?: string;
 };
 
 type Row = { id: string; cells: PrintedCell[] };
@@ -69,7 +71,11 @@ export function PrintedDataTable({
       columns={columns}
       filters={filters}
       text={(r) => r.cells.map((c) => c.text).join(' ')}
-      words={{ ...words, title: table.title || words.title }}
+      words={{
+        ...words,
+        title: table.title || words.title,
+        ...(table.note ? { sub: table.note } : {}),
+      }}
       selected={selected}
       onOpen={(r) => {
         const first = r.cells.flatMap((c) => c.chips)[0];
