@@ -28,6 +28,8 @@ export const adapterWords: RowsBehindAdapterWords = {
     to: 'To',
     movedOn: 'Moved on',
     location: 'Location',
+    connectedKva: 'Connected KVA',
+    runningKva: 'Running KVA',
   },
   ticketStatus: {
     open: 'Open',

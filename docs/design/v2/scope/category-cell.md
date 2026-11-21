@@ -33,3 +33,12 @@ Live at `/analytics/breakdowns?screen=<key>`; the v1 page is deleted. Built from
 | The category and the cell with the most breakdown hours, and the category that loses the most per machine | summary tables    | yes (the tables; the pick is made in the adapter) | built                              |
 | Machines of a category side by side, searchable and sortable across categories                            | machine tables    | yes                                               | built                              |
 | Repeat cause per category                                                                                 | breakdown reports | no                                                | needs server: a cause per category |
+
+## Fidelity pass against Bhavin's platform (21-Nov-2026)
+
+Bhavin's A2 is `renderA2` in the 11 Nov file (B11).
+
+| Item                                                                                                 | Bhavin (line)            | v2                                                               | vs Bhavin             | Where in v2                      |
+| ---------------------------------------------------------------------------------------------------- | ------------------------ | ---------------------------------------------------------------- | --------------------- | -------------------------------- |
+| Notes under the four per-machine average charts ("Category BD hours ÷ machines in the category ...") | B11:3277-3278, 3294-3295 | better                                                           | matches, in his words | the chart's line under its title |
+| "By Category / By Cell" mode of Machine-Level Detail and its note                                    | B11:3331-3350            | needs server: the engine prints per-category machine tables only | not built             | queued                           |

@@ -8,6 +8,8 @@ export type HeatTileData = {
   name: string;
   value: string;
   unit: string;
+  /** The running load, the second thing a tile says, a size below its figure; none for a map that has no running line. */
+  running?: string;
   lines: string[];
   level: HeatLevel | null;
   /** The tile's one sentence for a screen reader and a hover. */
@@ -23,6 +25,7 @@ function Tile({ tile }: { tile: HeatTileData }) {
       <span className="v2-heat-value">
         {tile.value} <span className="v2-heat-line">{tile.unit}</span>
       </span>
+      {tile.running ? <span className="v2-heat-run">{tile.running}</span> : null}
       {tile.lines.map((line) => (
         <span key={line} className="v2-heat-line">
           {line}
@@ -54,6 +57,9 @@ function Tile({ tile }: { tile: HeatTileData }) {
   );
 }
 
+/** The legend's numbers: what the lightest and the heaviest tile print, and the range each of the five steps covers. */
+export type HeatScale = { low: string; high: string; steps: string[] };
+
 /**
  * A map of tiles tinted by weight (the plant's load by cell, by location): each prints its figure and what stands
  * behind it, so the tint is never the only sign. A tile with machines behind it is a button that opens them.
@@ -62,10 +68,13 @@ export function HeatTiles({
   title,
   tiles,
   words,
+  scale,
 }: {
   title: string;
   tiles: HeatTileData[];
   words: HeatWords;
+  /** Numbers for the legend's ends and steps; without it the ends say only lighter and heavier. */
+  scale?: HeatScale;
 }) {
   return (
     <div>
@@ -77,11 +86,16 @@ export function HeatTiles({
         ))}
       </ul>
       <div className="v2-heat-legend" aria-hidden="true">
-        <span>{words.low}</span>
+        <span>{scale?.low ?? words.low}</span>
         {([1, 2, 3, 4, 5] as const).map((level) => (
-          <span key={level} className="v2-heat-step" data-level={level} />
+          <span
+            key={level}
+            className="v2-heat-step"
+            data-level={level}
+            title={scale?.steps[level - 1]}
+          />
         ))}
-        <span>{words.high}</span>
+        <span>{scale?.high ?? words.high}</span>
       </div>
     </div>
   );

@@ -6,6 +6,8 @@ export const analyticsV2ForecastGu = gujarati(analyticsV2ForecastEn, {
   'v2e.title': 'એનર્જી હીટમેપ',
   'v2e.heat.low': 'હળવો લોડ',
   'v2e.heat.high': 'ભારે લોડ',
+  'v2e.unit.perMachine': 'KVA/મશીન',
+  'v2e.chartView': 'ચાર્ટ દૃશ્ય',
   'v2b.title': 'બોટલનેક વિશ્લેષણ',
   'v2s.heat.low': 'ઓછા કલાક',
   'v2s.heat.high': 'વધુ કલાક',

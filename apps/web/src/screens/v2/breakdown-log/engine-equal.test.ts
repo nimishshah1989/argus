@@ -21,4 +21,18 @@ describe('the gallery log is the engine log', () => {
     expect(mine.rows.length).toBeGreaterThan(1000);
     expect(workbookLog.figures[0]!.drill.ids).toEqual(figure.drill.ids);
   });
+
+  it('sends the same detail beside the page: who supported each row, its type and the code list', () => {
+    const result = runWith({ 'breakdown-log': COMPUTERS['breakdown-log']! } as never, {
+      data: ENGINE_DATA,
+      asOf: '2026-11-11',
+      profile: DEFAULT_PROFILE,
+    });
+    const engine = (
+      result.figures.find((f) => f.key === 'breakdown-log')!.value as { extra: unknown }
+    ).extra;
+    const mine = printedLog(workbookLog, testT)!;
+    expect(engine).toEqual({ rows: mine.detail, codes: mine.codes });
+    expect(mine.detail.some((row) => row.supportedBy !== '')).toBe(true);
+  });
 });

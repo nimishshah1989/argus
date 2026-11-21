@@ -942,6 +942,8 @@ describe('the log filters', () => {
     rows,
     ticketIds: rows.map((_, at) => `ticket-${at}`),
     rowCount: rows.length,
+    detail: [],
+    codes: [],
   });
   const filtered = (rows: string[][], filters: Partial<typeof EMPTY_QUERY.filters>) =>
     cutPage(log(rows), { ...EMPTY_QUERY, filters: { ...EMPTY_QUERY.filters, ...filters } });

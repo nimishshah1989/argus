@@ -45,6 +45,8 @@ const KIND: Record<string, [string, string, string]> = {
   'NO DT': ['1', 'Checked outside production', 'Person 1'],
   PM: ['1', 'Planned service', 'Person 2'],
 };
+/** The E, M or E/M type the fixture gives each code's rows (`category` in many-years/fixture.ts); nobody supports a job. */
+const TYPE_OF: Record<string, string> = { AX: 'M', EL: 'E', 'NO DT': 'M', PM: 'PM' };
 const entries = (year: number): Entry[] => {
   const [bd, hours] = year === 2025 ? ([[5, 20], '1'] as const) : ([[5, 12, 20], '2'] as const);
   const out: Entry[] = [];
@@ -179,6 +181,16 @@ describe('the cut fixes the six span figures', () => {
             ],
           },
         ],
+        // Beside the page, row for row: who supported each job (nobody) and its type. The fixture lists no codes.
+        extra: {
+          rows: numbered.map(({ entry }) => ({
+            supportedBy: '',
+            type: TYPE_OF[entry[2]]!,
+            // Over 1 hour is a stop to watch: the 2 h breakdowns of 2026 and the 3 h PM; 1 h and a NO DT dash are not.
+            severity: entry[3] !== '—' && Number(entry[3]) > 1 ? 'watch' : '',
+          })),
+          codes: [],
+        },
       };
     };
     expect(SPAN_KEYS.map((key) => page(key).pages[0]!.tables[0]!.rowCount)).toEqual([81, 164, 245]);

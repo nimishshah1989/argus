@@ -1,5 +1,7 @@
-/* Heat: a value's weight shown as a tint of one colour in five steps, never as colour alone (every cell prints its
-   value and carries a name). One hue, light to strong, readable in light and dark; the strongest step is also bolder. */
+/* Heat: a value's weight shown as a tint of one neutral in five steps, never as colour alone (every cell prints its
+   value and carries a name). Neutral on purpose: blue means planned and green gain (UX-RULES 20), so a load's weight
+   takes no meaning colour. Light to strong, 4.5:1 for the ink on every step in light and dark; the strongest step is
+   also bolder. */
 :root {
   --v2-heat-1: 12%;
   --v2-heat-2: 26%;
@@ -8,7 +10,7 @@
   --v2-heat-5: 66%;
 }
 [data-level] {
-  background: color-mix(in srgb, var(--color-v2-plan-fill) var(--v2-heat), var(--color-v2-panel));
+  background: color-mix(in srgb, var(--color-v2-ink-3) var(--v2-heat), var(--color-v2-panel));
   color: var(--color-v2-ink);
 }
 [data-level='1'] {
@@ -74,6 +76,8 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
+  font-family: var(--font-v2-num);
+  font-variant-numeric: tabular-nums;
   padding: 8px var(--space-v2-pad) var(--space-v2-pad);
   color: var(--color-v2-ink-3);
   font-size: var(--text-v2-label);
@@ -126,12 +130,23 @@ button.v2-heat-tile:active {
 }
 .v2-heat-value {
   font-family: var(--font-v2-num);
-  font-size: var(--text-v2-title);
-  font-weight: 500;
+  font-size: var(--text-v2-kpi);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 .v2-heat-line {
   font-size: var(--text-v2-label);
+}
+/* The unit sits under the figure, so a long unit ("Connected KVA") never wraps beside it. */
+.v2-heat-value .v2-heat-line {
+  display: block;
+  font-family: var(--font-v2-text);
+  font-weight: 400;
+}
+.v2-heat-run {
+  font-family: var(--font-v2-num);
+  font-size: var(--text-v2-secondary);
+  font-variant-numeric: tabular-nums;
 }
 .v2-section {
   display: flex;

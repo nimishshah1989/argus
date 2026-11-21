@@ -6,6 +6,7 @@ import { Button } from '../../../ui/v2/button.js';
 import type { Column } from '../../../ui/v2/data-table.js';
 import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
 import { EntityChip, EntityOpenContext } from '../../../ui/v2/entity-chip.js';
+import { KeyPill } from '../../../ui/v2/key-pill.js';
 import { PagedTable, type SelectFilter } from '../../../ui/v2/paged-table.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
@@ -20,7 +21,27 @@ import {
   type LogSortKey,
 } from './model.js';
 
-const FILTERS: LogFilterId[] = ['date', 'shift', 'machine', 'code'];
+const FILTERS: LogFilterId[] = ['date', 'month', 'shift', 'machine', 'code', 'person'];
+const MONTH_NAMES = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+/** `2026-11` as `Nov 2026`: a month option reads the way the date column prints its month. */
+const monthLabel = (value: string): string => {
+  const [year, month] = value.split('-');
+  return `${MONTH_NAMES[Number(month) - 1] ?? ''} ${year ?? ''}`.trim();
+};
 
 /** The platform's eye: the ticket number opens the row's own ticket, the one the engine printed beside it. */
 function TicketLink({ row, label }: { row: LogRow; label: string }) {
@@ -38,6 +59,62 @@ function TicketLink({ row, label }: { row: LogRow; label: string }) {
   );
 }
 
+const chips = (people: LogRow['doneBy']) => (
+  <div className="v2-row v2-gap-6">
+    {people.map((p) => (
+      <EntityChip key={p.id} {...p} />
+    ))}
+  </div>
+);
+
+/** Who did the job; under them, when anyone did, who supported it (Bhavin's 11 Nov detail view). */
+function DoneBy({ row, words }: { row: LogRow; words: LogModel['words'] }) {
+  return (
+    <>
+      {row.doneBy.length === 0 ? <span className="v2-sub">{words.nobody}</span> : chips(row.doneBy)}
+      {row.supportedBy.length === 0 ? null : (
+        <div className="v2-row v2-gap-6">
+          <span className="v2-sub">{words.supportedBy}</span>
+          {chips(row.supportedBy)}
+        </div>
+      )}
+    </>
+  );
+}
+
+/** The hours as printed; only the exceptions carry a tag, with an icon and a word (never colour alone). */
+function Hours({ row, words }: { row: LogRow; words: LogModel['words'] }) {
+  if (row.severity === null) return <>{row.hours}</>;
+  return (
+    <span className="v2-num-tag" data-severity={row.severity}>
+      <KeyPill
+        text={row.severity === 'long' ? words.long : words.watch}
+        tone={row.severity === 'long' ? 'loss' : 'risk'}
+        icon={row.severity === 'long' ? 'alert' : 'clock'}
+      />
+      {row.hours}
+    </span>
+  );
+}
+
+/** The code as a badge that says what it means; PM is its own planned-work tag. Its type (E, M, E/M) sits under it. */
+function CodeBadge({ row, words }: { row: LogRow; words: LogModel['words'] }) {
+  if (row.code === '—') return <>—</>;
+  const meaning = row.codeLabel ?? '';
+  const named = meaning === '' ? row.code : `${row.code}: ${meaning}`;
+  return (
+    <div title={named}>
+      <KeyPill
+        text={row.code}
+        tone={row.code === 'PM' ? 'plan' : 'neutral'}
+        icon={row.code === 'PM' ? 'wrench' : undefined}
+      />
+      {meaning === '' ? null : <span className="v2-sr">{`: ${meaning}`}</span>}
+      {row.type === '' ? null : <div className="v2-sub">{`${words.type} ${row.type}`}</div>}
+    </div>
+  );
+}
+
 function columns(model: LogModel): Column<LogRow>[] {
   const c = model.words.columns;
   const sortable = (key: LogSortKey) => ({ key, label: c[key], sortBy: () => 0 });
@@ -48,25 +125,18 @@ function columns(model: LogModel): Column<LogRow>[] {
     { ...sortable('shift'), cell: (r) => r.shift },
     { ...sortable('machine'), cell: (r) => <EntityChip {...r.machine} /> },
     { ...sortable('problem'), cell: (r) => r.problem },
-    {
-      ...sortable('doneBy'),
-      cell: (r) =>
-        r.doneBy.length === 0 ? (
-          <span className="v2-sub">{model.words.nobody}</span>
-        ) : (
-          <div className="v2-row v2-gap-6">
-            {r.doneBy.map((p) => (
-              <EntityChip key={p.id} {...p} />
-            ))}
-          </div>
-        ),
-    },
-    { ...sortable('hours'), numeric: true, cell: (r) => r.hours },
-    { ...sortable('code'), cell: (r) => r.code },
+    { ...sortable('doneBy'), cell: (r) => <DoneBy row={r} words={model.words} /> },
+    { ...sortable('hours'), numeric: true, cell: (r) => <Hours row={r} words={model.words} /> },
+    { ...sortable('code'), cell: (r) => <CodeBadge row={r} words={model.words} /> },
   ];
 }
 
-/** The four exact filters, each offering only the values the engine printed. */
+const codeOption = (model: LogModel, code: string): string => {
+  const label = model.codeLabels[code];
+  return label === undefined ? code : fill(model.words.codeOption, { code, label });
+};
+
+/** The six exact filters, each offering only the values the engine printed. */
 function selectsOf(model: LogModel, change: (q: Partial<LogQuery>) => void): SelectFilter[] {
   return FILTERS.map((id) => ({
     key: id,
@@ -74,8 +144,11 @@ function selectsOf(model: LogModel, change: (q: Partial<LogQuery>) => void): Sel
     all: model.words.all,
     value: model.query.filters[id],
     options: model.options[id],
-    // A date is filtered by the day the engine printed and read the way the column prints it.
+    // A date is filtered by the day the engine printed and read the way the column prints it; a month with its year
+    // (Bhavin's filter had none); a code with what it means.
     ...(id === 'date' ? { labelOf: shortDate } : {}),
+    ...(id === 'month' ? { labelOf: monthLabel } : {}),
+    ...(id === 'code' ? { labelOf: (code: string) => codeOption(model, code), compact: true } : {}),
     onChange: (value: string) => change({ filters: { ...model.query.filters, [id]: value } }),
   }));
 }

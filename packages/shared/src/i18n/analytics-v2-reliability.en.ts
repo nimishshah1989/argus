@@ -21,6 +21,23 @@ export const analyticsV2ReliabilityEn = {
   'v2r.bd.headline':
     'Breakdowns took {bd} ({bdSub}) and PM took {pm} ({pmSub}). Fleet availability is {availability}.',
   'v2r.bd.availability': 'Availability: {sub}.',
+  // What the platform explains under its A1, A2 and A3 charts and tables (its own words, kept).
+  'v2r.note.bd.cell':
+    'Available hours count each machine only for the time it was in the cell (the cell move log is applied), so a machine that moved is shared between its cells. “Machines” is today’s count. Machines with no cell, or a cell not in Settings, appear under “No cell”.',
+  'v2r.note.bd.trend': 'Plant-level BD hours against PM hours across the year.',
+  'v2r.note.bd.share':
+    'BD % and PM % are each a share of that month’s available hours (annual ÷ 12 per machine, counted from the purchase date). Quarterly columns average the 3 months of the quarter, skipping months with no available hours. Year is the whole-year figure, the same as the By Cell table.',
+  'v2r.note.bd.hours':
+    'Each cell shows hours, and that cell-month’s share of the year’s total BD hours.',
+  'v2r.note.cc.catAvgHrs':
+    'Category BD hours ÷ machines in the category. A fair comparison between big and small groups.',
+  'v2r.note.cc.catAvgCount': 'Category breakdowns ÷ machines in the category.',
+  'v2r.note.cc.cellAvgHrs': 'Cell BD hours ÷ machines currently in the cell.',
+  'v2r.note.cc.cellAvgCount': 'Cell breakdowns ÷ machines currently in the cell.',
+  'v2r.note.mm.cell':
+    'Monthly available hours are the annual figure ÷ 12 (assumes an even spread across months; the month still running counts only its days so far). This is a simplifying assumption, not a day-count-adjusted figure. Total is the whole-year figure on the same basis as the By Cell and By Age Band tables: MTTR = BD hours ÷ breakdowns; MTBF = (annual available hours − BD hours) ÷ breakdowns. A machine that moved cells counts in each cell only for the time it was there.',
+  'v2r.note.mm.age':
+    'The same monthly-availability assumption as above (annual ÷ 12). Quarterly columns average the 3 months of the quarter, skipping any with no entries. Total is the whole-year figure, on the same basis as the By Age Band table.',
   'v2r.bd.worst':
     '{cell} loses the most: {total} of its available hours (breakdowns {bd}, PM {pm}).',
   // Category and cell.

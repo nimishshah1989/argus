@@ -37,6 +37,9 @@ export type RowsBehindAdapterWords = {
     to: string;
     movedOn: string;
     location: string;
+    /** The load columns of the energy figure's machines: rated power, and the share of it the plant runs. */
+    connectedKva: string;
+    runningKva: string;
   };
   ticketStatus: Record<TicketRow['status'], string>;
   ticketKind: Record<TicketRow['kind'], string>;
@@ -50,7 +53,18 @@ export type RowsBehindAdapterWords = {
  */
 export const REPLY_FIELDS: Record<Type, { shown: string[]; elsewhere: string[] }> = {
   machine: {
-    shown: ['code', 'cell', 'category', 'make', 'model', 'year', 'status', 'segment'],
+    shown: [
+      'code',
+      'cell',
+      'category',
+      'make',
+      'model',
+      'year',
+      'status',
+      'segment',
+      'powerKw',
+      'metadata',
+    ],
     elsewhere: [
       'id',
       'location',
@@ -59,12 +73,10 @@ export const REPLY_FIELDS: Record<Type, { shown: string[]; elsewhere: string[] }
       'controllerModel',
       'controllerSerial',
       'purchasedOn',
-      'powerKw',
       'capacityKva',
       'assetCode',
       'criticality',
       'excludedFromProduction',
-      'metadata',
     ],
   },
   ticket: {
@@ -77,8 +89,20 @@ export const REPLY_FIELDS: Record<Type, { shown: string[]; elsewhere: string[] }
   },
 };
 
+/**
+ * The load the energy figure counts, for the machines behind it. The screen brings the rule (`running`: the engine's
+ * `a5-energy` rule, applied to one machine), so this adapter only prints; null is a machine with no rated power.
+ */
+export type LoadBasis = {
+  running: (machine: {
+    powerKw: number | null;
+    metadata: Record<string, unknown>;
+  }) => number | null;
+};
+
 type Ctx = {
   words: RowsBehindAdapterWords;
+  load?: LoadBasis;
   machineCode: (id: string) => string | undefined;
   day: (value: string) => string;
 };
@@ -137,12 +161,37 @@ type Built = {
   sort: RowsBehindModel['initialSort'];
 };
 
+const oneDecimal = (ctx: Ctx, n: number) =>
+  n.toLocaleString(ctx.words.locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+/** Connected (rated) and running load of one machine; a machine with no rated power prints a dash and adds no load. */
+function loadCells(row: MachineRow, ctx: Ctx, load: LoadBasis): Record<string, RowCell> {
+  const rated = typeof row.powerKw === 'number' && Number.isFinite(row.powerKw);
+  const running = rated ? load.running(row) : null;
+  if (!rated || running === null)
+    return {
+      connectedKva: { ...text(ctx.words.none), sort: -1 },
+      runningKva: { ...text(ctx.words.none), sort: -1 },
+    };
+  return {
+    connectedKva: { text: oneDecimal(ctx, row.powerKw as number), sort: row.powerKw as number },
+    runningKva: { text: oneDecimal(ctx, running), sort: running },
+  };
+}
+
 function machines(rows: MachineRow[], ctx: Ctx): Built {
   const c = ctx.words.columns;
+  const { load } = ctx;
   return {
     columns: [
       column('machine', c.machine),
       column('cell', c.cell),
+      ...(load
+        ? [
+            column('connectedKva', c.connectedKva, true, true),
+            column('runningKva', c.runningKva, true, true),
+          ]
+        : []),
       column('type', c.type),
       column('makeModel', c.makeModel),
       column('year', c.year, true, true),
@@ -156,6 +205,7 @@ function machines(rows: MachineRow[], ctx: Ctx): Built {
       cells: {
         machine: { text: r.code, chip: machineChip(r.code) },
         cell: cellCell(ctx, r.cell),
+        ...(load ? loadCells(r, ctx, load) : {}),
         type: orNone(ctx, r.category),
         makeModel: orNone(ctx, [r.make, r.model].filter(Boolean).join(' ')),
         year: { ...orNone(ctx, r.year?.toString()), sort: r.year ?? 0 },
@@ -260,10 +310,12 @@ export function rowsBehindModel(input: {
   asOf: string;
   machineCode: (id: string) => string | undefined;
   words: RowsBehindAdapterWords;
+  /** Set for the energy figure: its machines also print their connected and running load. */
+  load?: LoadBasis;
 }): RowsBehindModel | null {
-  const { figure, reply, asOf, machineCode, words } = input;
+  const { figure, reply, asOf, machineCode, words, load } = input;
   if (reply.rows.length === 0) return null;
-  const ctx: Ctx = { words, machineCode, day: dayFormat(words.locale) };
+  const ctx: Ctx = { words, machineCode, day: dayFormat(words.locale), ...(load ? { load } : {}) };
   const built =
     reply.type === 'machine'
       ? machines(reply.rows as MachineRow[], ctx)

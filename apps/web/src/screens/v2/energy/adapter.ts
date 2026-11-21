@@ -2,7 +2,7 @@ import type { TFunction } from 'i18next';
 import type { ChartSpec } from '../../../ui/chart/use-chart.js';
 import { fill } from '../../../i18n/fill.js';
 import { levelOf, type HeatLevel } from '../../../ui/v2/domain/heat-matrix.js';
-import type { HeatTileData } from '../../../ui/v2/domain/heat-tiles.js';
+import type { HeatScale, HeatTileData } from '../../../ui/v2/domain/heat-tiles.js';
 import type { Drill } from '../../../ui/v2/drill.js';
 import {
   contentOf,
@@ -28,11 +28,48 @@ const rounded = (n: number): number => Number(n.toFixed(1));
 
 type Names = { name: (tile: EnergyTile) => string };
 
-/** The tint of each tile against the grid's own range; a tile with no machines is not tinted. */
-function levels(tiles: EnergyTile[], by: (tile: EnergyTile) => number): (HeatLevel | null)[] {
+/** The lightest and heaviest figure among the tiles that hold machines; none when no tile does. */
+function rangeOf(tiles: EnergyTile[], by: (tile: EnergyTile) => number): [number, number] | null {
   const filled = tiles.filter((tile) => tile.machines > 0).map(by);
-  const [min, max] = [Math.min(...filled), Math.max(...filled)];
-  return tiles.map((tile) => (tile.machines > 0 ? levelOf(by(tile), min, max) : null));
+  return filled.length === 0 ? null : [Math.min(...filled), Math.max(...filled)];
+}
+
+/** The tint of each tile against the grid's own range; a tile with no machines is not tinted. */
+function levels(
+  tiles: EnergyTile[],
+  by: (tile: EnergyTile) => number,
+  range: [number, number] | null,
+): (HeatLevel | null)[] {
+  return tiles.map((tile) =>
+    tile.machines > 0 && range ? levelOf(by(tile), range[0], range[1]) : null,
+  );
+}
+
+/**
+ * The legend's numbers: the figure of the lightest and of the heaviest tile at its ends, and the range each of the five
+ * steps covers (the same cuts `levelOf` makes), in the unit the tiles print.
+ */
+function scaleOf(
+  range: [number, number] | null,
+  unit: string,
+  t: TFunction,
+): HeatScale | undefined {
+  if (!range) return undefined;
+  const [min, max] = range;
+  const at = (step: number) => min + ((max - min) * step) / 5;
+  const end = (word: string, value: number) =>
+    fill(t('v2e.heat.end'), { word, value: `${oneDecimal(value)} ${unit}` });
+  return {
+    low: end(t('v2e.heat.low'), min),
+    high: end(t('v2e.heat.high'), max),
+    steps: [0, 1, 2, 3, 4].map((step) =>
+      fill(t('v2e.heat.range'), {
+        from: oneDecimal(at(step)),
+        to: oneDecimal(at(step + 1)),
+        unit,
+      }),
+    ),
+  };
 }
 
 function loadChart(
@@ -87,47 +124,50 @@ function machinesLine(tile: EnergyTile, t: TFunction): string {
 type TileCtx = {
   t: TFunction;
   names: Names;
-  /** The machines of a tile open in the drawer; the per-machine map has none. */
-  open?: { axis: EnergyGrid['axis'] };
+  /** The map the tile is on; it names the tile and says which of the engine's axes its machines are read by. */
+  grid: EnergyGridModel['id'];
+  /** The machines of a tile open in the drawer, read by this axis. */
+  open: { axis: EnergyGrid['axis'] };
   /** What the tile's figure is: the connected load, or the average per machine. */
   value: (tile: EnergyTile) => number;
+  /** What that figure is measured in: connected KVA, or KVA a machine. */
+  unit: string;
   showRunning: boolean;
 };
 
 function tileOf(tile: EnergyTile, level: HeatLevel | null, ctx: TileCtx): HeatTileData {
   const { t, names } = ctx;
   const name = names.name(tile);
-  const unit = `${t('analytics.energy.connected')} ${t('analytics.energy.unit')}`;
+  const { unit } = ctx;
   const empty = tile.machines === 0;
-  const lines = empty
-    ? [t('analytics.energy.noMachines')]
-    : [
-        ...(ctx.showRunning
-          ? [
-              `${t('analytics.energy.running')}: ${oneDecimal(tile.runningKva)} ${t('analytics.energy.unit')}`,
-            ]
-          : []),
+  const running = `${t('analytics.energy.running')}: ${oneDecimal(tile.runningKva)} ${t('analytics.energy.unit')}`;
+  /** The map of averages says the average as its figure, so its lines hold only the count. */
+  const counted = ctx.showRunning
+    ? [
         machinesLine(tile, t),
         t('analytics.energy.avg', { value: oneDecimal(tile.avgConnectedKva) }),
-      ];
+      ]
+    : [machinesLine(tile, t)];
+  const lines = empty ? [t('analytics.energy.noMachines')] : counted;
   const value = empty ? '—' : oneDecimal(ctx.value(tile));
   const drill: Drill | undefined =
-    ctx.open && tile.machineIds.length > 0
+    tile.machineIds.length > 0
       ? {
           figure: tileAddress({ figure: FIGURE, axis: ctx.open.axis, tile: tile.key }),
           label: fill(t('v2e.tile.open'), { name }),
         }
       : undefined;
   return {
-    id: `${ctx.open?.axis ?? 'machine'}:${tile.key}`,
+    id: `${ctx.grid}:${tile.key}`,
     name,
     value,
     unit: empty ? '' : unit,
+    ...(ctx.showRunning && !empty ? { running } : {}),
     lines,
     level,
     summary: empty
       ? `${name}. ${lines.join('. ')}`
-      : `${name}: ${value} ${unit}. ${lines.join('. ')}`,
+      : `${name}: ${value} ${unit}. ${ctx.showRunning ? `${running}. ` : ''}${lines.join('. ')}`,
     ...(drill ? { drill } : {}),
   };
 }
@@ -135,18 +175,25 @@ function tileOf(tile: EnergyTile, level: HeatLevel | null, ctx: TileCtx): HeatTi
 function gridOf(
   id: EnergyGridModel['id'],
   grid: EnergyGrid,
-  text: { title: string; sub: string; axis: string },
-  ctx: Omit<TileCtx, 'showRunning'>,
+  text: { title: string; sub: string; axis: string; scaleUnit: string },
+  ctx: Omit<TileCtx, 'showRunning' | 'grid' | 'open'>,
 ): EnergyGridModel {
   const { tiles } = grid;
-  const shade = levels(tiles, ctx.value);
+  const range = rangeOf(tiles, ctx.value);
+  const shade = levels(tiles, ctx.value, range);
   return {
     id,
     title: text.title,
     sub: text.sub,
     chart: grid.showRunning ? loadChart(grid, text, ctx.names, ctx.t) : null,
+    scale: scaleOf(range, text.scaleUnit, ctx.t),
     tiles: tiles.map((tile, at) =>
-      tileOf(tile, shade[at] ?? null, { ...ctx, showRunning: grid.showRunning }),
+      tileOf(tile, shade[at] ?? null, {
+        ...ctx,
+        grid: id,
+        open: { axis: grid.axis },
+        showRunning: grid.showRunning,
+      }),
     ),
   };
 }
@@ -246,6 +293,8 @@ function figuresFor(
 function gridsFor(content: EnergyContent, names: Names3, t: TFunction): EnergyGridModel[] {
   const pct = content.effFactorPct;
   const kva = (tile: EnergyTile) => tile.connectedKva;
+  const kvaUnit = t('analytics.energy.unit');
+  const connected = `${t('analytics.energy.connected')} ${kvaUnit}`;
   return [
     gridOf(
       'cell',
@@ -254,8 +303,9 @@ function gridsFor(content: EnergyContent, names: Names3, t: TFunction): EnergyGr
         title: t('analytics.energy.cellTitle'),
         sub: t('analytics.energy.cellDescription', { pct }),
         axis: t('analytics.drill.cell'),
+        scaleUnit: kvaUnit,
       },
-      { t, names: { name: names.cell }, open: { axis: 'cell' }, value: kva },
+      { t, names: { name: names.cell }, value: kva, unit: connected },
     ),
     gridOf(
       'location',
@@ -264,8 +314,9 @@ function gridsFor(content: EnergyContent, names: Names3, t: TFunction): EnergyGr
         title: t('analytics.energy.locationTitle'),
         sub: t('analytics.energy.locationDescription'),
         axis: t('analytics.energy.axisLocation'),
+        scaleUnit: kvaUnit,
       },
-      { t, names: { name: names.place }, open: { axis: 'location' }, value: kva },
+      { t, names: { name: names.place }, value: kva, unit: connected },
     ),
     gridOf(
       'machine',
@@ -274,8 +325,14 @@ function gridsFor(content: EnergyContent, names: Names3, t: TFunction): EnergyGr
         title: t('analytics.energy.machineTitle'),
         sub: t('analytics.energy.machineDescription'),
         axis: t('analytics.drill.cell'),
+        scaleUnit: t('v2e.unit.perMachine'),
       },
-      { t, names: { name: names.cell }, value: (tile) => tile.avgConnectedKva },
+      {
+        t,
+        names: { name: names.cell },
+        value: (tile) => tile.avgConnectedKva,
+        unit: t('v2e.unit.perMachine'),
+      },
     ),
   ];
 }
@@ -309,6 +366,10 @@ export function energyModel(reply: FiguresPart, t: TFunction): EnergyModel | nul
     grids: gridsFor(content, names, t),
     drill: drillFor(reply, FIGURE, say_),
     source,
-    words: { why: t('v2p.why'), heat: { low: t('v2e.heat.low'), high: t('v2e.heat.high') } },
+    words: {
+      why: t('v2p.why'),
+      heat: { low: t('v2e.heat.low'), high: t('v2e.heat.high') },
+      chartView: t('v2e.chartView'),
+    },
   };
 }

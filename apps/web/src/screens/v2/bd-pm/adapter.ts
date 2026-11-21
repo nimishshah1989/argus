@@ -12,6 +12,7 @@ import {
   shortDate,
   type FiguresPart,
 } from '../printed-page/printed.js';
+import { chartNotes, tableNotes } from '../printed-page/notes.js';
 import { say, strong } from '../printed-page/segs.js';
 import { kpiOf, verdictOf } from '../printed-page/verdict.js';
 import { pageWords } from '../printed-page/words.js';
@@ -73,8 +74,15 @@ export function bdPmModel(reply: FiguresPart, t: TFunction): PrintedPageModel | 
       source,
     ),
     figures: figuresOf(page.kpis),
-    charts: page.charts.map((spec) => chartOf(spec, words)),
-    tables: tablesOf(page.tables, words),
+    charts: chartNotes(
+      page.charts.map((spec) => chartOf(spec, words)),
+      { [t('analytics.content.a1.trendChart')]: t('v2r.note.bd.trend') },
+    ),
+    tables: tableNotes(tablesOf(page.tables, words), [
+      [CELLS, t('v2r.note.bd.cell')],
+      ['Month-on-Month — BD %', t('v2r.note.bd.share')],
+      ['Month-on-Month — BD Hours by Cell', t('v2r.note.bd.hours')],
+    ]),
     drill: seeRowsFor(reply, FIGURE, say_),
     source,
     words,

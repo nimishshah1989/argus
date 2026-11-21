@@ -20,6 +20,7 @@ import {
   shortDate,
   type FiguresPart,
 } from '../printed-page/printed.js';
+import { chartNotes } from '../printed-page/notes.js';
 import { say, strong } from '../printed-page/segs.js';
 import { printedTable, type PrintedTable } from '../printed-page/table.js';
 import { verdictOf } from '../printed-page/verdict.js';
@@ -122,7 +123,15 @@ export function categoryCellModel(reply: FiguresPart, t: TFunction): PrintedPage
       source,
     ),
     figures: [],
-    charts: page.charts.map((spec) => chartOf(spec, words)),
+    charts: chartNotes(
+      page.charts.map((spec) => chartOf(spec, words)),
+      {
+        [t('analytics.content.a2.catAvgHrsChart')]: t('v2r.note.cc.catAvgHrs'),
+        [t('analytics.content.a2.catAvgCountChart')]: t('v2r.note.cc.catAvgCount'),
+        [t('analytics.content.a2.cellAvgHrsChart')]: t('v2r.note.cc.cellAvgHrs'),
+        [t('analytics.content.a2.cellAvgCountChart')]: t('v2r.note.cc.cellAvgCount'),
+      },
+    ),
     tables: [
       ...tablesOf(
         page.tables.filter((table) => table.title !== MACHINES),
