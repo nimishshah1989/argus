@@ -29,10 +29,11 @@ export function bandOf(age: string | null): AgeBand {
   return BANDS.find((band) => years >= band.from && years < band.to)?.key ?? 'u';
 }
 
-/** The tooltip's lines, in Bhavin's order: model, age, breakdowns, downtime hours and repair time. */
-function tipOf(p: BubblePoint, t: Translate): string[] {
+/** The tooltip's lines: the machine's type (the colour alone does not say it), then Bhavin's order: model, age, breakdowns, downtime hours and repair time. */
+function tipOf(p: BubblePoint, category: string | null, t: Translate): string[] {
   const dash = (value: string | null) => value ?? NO_VALUE;
   return [
+    fill(t('v2d.bubble.tip.type'), { value: dash(category) }),
     fill(t('v2d.bubble.tip.model'), { value: dash(p.model) }),
     fill(t('v2d.bubble.tip.age'), { value: dash(p.age) }),
     fill(t('v2d.bubble.tip.breakdowns'), { value: p.y }),
@@ -87,7 +88,7 @@ export function bubbleOf(
       y: p.y,
       r: p.r,
       ...(category === null ? {} : { cat: catOf(category) }),
-      tip: tipOf(p, t),
+      tip: tipOf(p, category, t),
       opens: machine !== undefined,
       category,
       cell: machine?.cell ?? null,

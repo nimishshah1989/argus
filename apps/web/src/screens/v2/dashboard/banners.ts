@@ -7,27 +7,12 @@ import type { BannerModel } from './model.js';
 /** Where Team Focus lives: still the Today page's own screen. */
 export const TEAM_FOCUS_PATH = '/analytics/today?screen=team-focus';
 
-const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
-
 /** The month the plan is for, from the forecast actions' own key (`fc|<machine>|2026-12`); null when there is none. */
-function planMonth(actions: readonly FocusAction[]): string | null {
+function planMonth(actions: readonly FocusAction[], t: Translate): string | null {
   for (const action of actions) {
     const found = /\|(\d{4})-(\d{2})$/.exec(action.key);
-    const name = found ? MONTHS[Number(found[2]) - 1] : undefined;
-    if (found && name) return `${name} ${found[1]}`;
+    const month = found ? Number(found[2]) : 0;
+    if (found && month >= 1 && month <= 12) return `${t(`v2d.month.${month}`)} ${found[1]}`;
   }
   return null;
 }
@@ -49,7 +34,7 @@ export function teamFocusOf(reply: FiguresReply, t: Translate): BannerModel | nu
     (a, b) => b.stake - a.stake,
   )[0];
   if (open.length === 0) return null;
-  const month = planMonth(actions);
+  const month = planMonth(actions, t);
   const one = open.length === 1 ? '.one' : '';
   const lead = fill(t(`v2d.tf.text${month ? '.month' : ''}${one}`), {
     n: open.length,

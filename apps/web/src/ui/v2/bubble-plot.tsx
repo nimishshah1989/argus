@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState, type PointerEvent, type WheelEvent } from 'react';
-import { fullView, inside, panned, ticks, zoomed, type View } from './bubble-math.js';
+import { useEffect, useMemo, useReducer, useRef, useState, type PointerEvent } from 'react';
+import { fullView, inside, ticks, type View } from './bubble-math.js';
+import { plotReducer } from './bubble-state.js';
 
 /** One bubble: where it sits, how big it is, the type colour it wears and the lines its tooltip prints. */
 export type BubbleDot = {
@@ -38,51 +39,68 @@ const DRAG_SLOP = 0.004;
 const place = (v: number, lo: number, hi: number) =>
   `${(((v - lo) / (hi - lo)) * 100).toFixed(2)}%`;
 
-/** The window, the zoom and pan that move it, and the tooltip's bubble: everything the plot keeps. */
-function usePlot(dots: readonly BubbleDot[]) {
-  const full = useMemo(() => fullView(dots), [dots]);
-  const [view, setView] = useState<View>(full);
-  const [seen, setSeen] = useState(full);
+/**
+ * The window, the zoom and pan that move it, and the tooltip's bubble: everything the plot keeps. The window lives in a
+ * reducer apart from the dots, so a refresh that brings the same data again leaves the zoom where the reader put it;
+ * `resetKey` (the filters) starts the whole picture again when what is plotted changes.
+ */
+function usePlot(dots: readonly BubbleDot[], resetKey: string) {
+  const { x1, y1 } = fullView(dots);
+  // By value: a refresh builds new dots but not a new picture.
+  const full = useMemo<View>(() => ({ x0: 0, x1, y0: 0, y1 }), [x1, y1]);
+  const [state, dispatch] = useReducer(plotReducer, { view: null, key: resetKey });
   const [tip, setTip] = useState<string | null>(null);
   const box = useRef<HTMLDivElement>(null);
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
-  // A new set of dots (a filter) starts from the whole picture, as Bhavin's did.
-  if (seen !== full) {
-    setSeen(full);
-    setView(full);
-  }
-  const rect = () => box.current?.getBoundingClientRect();
-  const handlers = {
-    onWheel: (e: WheelEvent) => {
-      const r = rect();
-      if (!e.ctrlKey || !r || r.width === 0) return;
+  if (state.key !== resetKey) dispatch({ type: 'key', key: resetKey });
+  const fullRef = useRef(full);
+  fullRef.current = full;
+  // Ctrl or Cmd and the wheel (a trackpad pinch is the same) zoom the plot and never the page: a native listener, because
+  // React's wheel handler is passive and cannot stop the browser zooming.
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const wheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const r = el.getBoundingClientRect();
+      if (r.width === 0) return;
       const at = { x: (e.clientX - r.left) / r.width, y: 1 - (e.clientY - r.top) / r.height };
-      setView((was) => zoomed(was, full, e.deltaY > 0 ? 1 / FACTOR : FACTOR, at));
-    },
+      dispatch({
+        type: 'zoom',
+        factor: e.deltaY > 0 ? 1 / FACTOR : FACTOR,
+        at,
+        full: fullRef.current,
+      });
+    };
+    el.addEventListener('wheel', wheel, { passive: false });
+    return () => el.removeEventListener('wheel', wheel);
+  }, []);
+  const handlers = {
     onPointerDown: (e: PointerEvent) => {
       drag.current = { x: e.clientX, y: e.clientY, moved: false };
     },
     onPointerMove: (e: PointerEvent) => {
       const d = drag.current;
-      const r = rect();
+      const r = box.current?.getBoundingClientRect();
       if (!d || !r || r.width === 0 || (e.buttons & 1) === 0) return;
       const [dx, dy] = [(e.clientX - d.x) / r.width, -(e.clientY - d.y) / r.height];
       if (Math.abs(dx) + Math.abs(dy) < DRAG_SLOP && !d.moved) return;
       Object.assign(d, { moved: true, x: e.clientX, y: e.clientY });
-      setView((was) => panned(was, full, dx, dy));
+      dispatch({ type: 'pan', dx, dy, full });
     },
     onPointerUp: () => setTimeout(() => (drag.current = null)),
     onPointerLeave: () => setTip(null),
   };
   return {
     box,
-    view,
+    view: state.view ?? full,
     tip,
     setTip,
     handlers,
-    isZoomed: view !== full,
-    zoom: (factor: number) => setView((was) => zoomed(was, full, factor)),
-    reset: () => setView(full),
+    isZoomed: state.view !== null,
+    zoom: (factor: number) => dispatch({ type: 'zoom', factor, full }),
+    reset: () => dispatch({ type: 'reset' }),
     dragged: () => drag.current?.moved === true,
   };
 }
@@ -113,12 +131,16 @@ function Grid({ view }: { view: View }) {
   );
 }
 
-/** The tooltip over the bubble under the pointer: its title, then one line each. */
+/**
+ * The tooltip over the bubble under the pointer: its title, then one line each. Past the middle of the plot it opens to
+ * the left of the bubble, so it never runs out of the page. Not a live region (it would announce every hover); the
+ * bubble's own label carries the same lines.
+ */
 function Tip({ dot, view }: { dot: BubbleDot; view: View }) {
+  const left = (dot.x - view.x0) / (view.x1 - view.x0) > 0.5;
   return (
     <div
-      className="v2-bubble-tip"
-      role="status"
+      className={left ? 'v2-bubble-tip v2-bubble-tip-left' : 'v2-bubble-tip'}
       style={{ left: place(dot.x, view.x0, view.x1), bottom: place(dot.y, view.y0, view.y1) }}
     >
       <b>{dot.title}</b>
@@ -155,18 +177,21 @@ function Tools({ plot, words }: { plot: ReturnType<typeof usePlot>; words: Bubbl
  * A bubble plot the plant can explore: hover a bubble for its tooltip, press it to open it, zoom with the buttons or
  * Ctrl and the wheel, and drag to pan. Bubbles are the engine's own figures, placed here and nothing recomputed. Drawn
  * in HTML so every label stays crisp at any width; the table beneath is the keyboard's way in, so the bubbles
- * themselves are not tab stops.
+ * themselves are not tab stops (the machines table beneath carries the same numbers for every machine).
  */
 export function BubblePlot({
   dots,
   words,
   onOpen,
+  resetKey,
 }: {
   dots: readonly BubbleDot[];
   words: BubbleWords;
   onOpen: (dot: BubbleDot) => void;
+  /** What is plotted, as text (the filters): when it changes the picture starts again from the whole. */
+  resetKey: string;
 }) {
-  const plot = usePlot(dots);
+  const plot = usePlot(dots, resetKey);
   const { view } = plot;
   const shown = dots.filter((d) => inside(view, d.x, d.y));
   const active = shown.find((d) => d.id === plot.tip);

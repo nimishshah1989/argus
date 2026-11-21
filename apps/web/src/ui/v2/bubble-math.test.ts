@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { fullView, inside, panned, ticks, zoomed } from './bubble-math.js';
+import { plotReducer, type PlotState } from './bubble-state.js';
 
 const full = fullView([
   { x: 100, y: 10 },
@@ -42,5 +43,45 @@ describe('the bubble plot window', () => {
   it('draws round ticks', () => {
     expect(ticks(0, 108, 5)).toEqual([0, 50, 100]);
     expect(ticks(0, 10, 5)).toEqual([0, 2, 4, 6, 8, 10]);
+  });
+});
+
+describe('how far a zoom can go', () => {
+  it('stops at a few percent of the full range, so a bubble never zooms out of sight', () => {
+    let view = full;
+    for (let i = 0; i < 100; i += 1) view = zoomed(view, full, 0.5);
+    expect(view.x1 - view.x0).toBeCloseTo((full.x1 - full.x0) * 0.04);
+    expect(view.y1 - view.y0).toBeCloseTo((full.y1 - full.y0) * 0.04);
+  });
+});
+
+describe('what the plot keeps across a refresh', () => {
+  const start: PlotState = { view: null, key: 'all' };
+
+  it('keeps the zoom when the same data comes again, and when the extent is the same by value', () => {
+    const zoomedIn = plotReducer(start, { type: 'zoom', factor: 0.5, full });
+    const again = fullView([
+      { x: 100, y: 10 },
+      { x: 50, y: 4 },
+    ]);
+    expect(again).not.toBe(full);
+    expect(again).toEqual(full);
+    // A refresh dispatches nothing: the state, and so the zoom, is exactly what it was.
+    expect(zoomedIn.view).not.toBeNull();
+    expect(plotReducer(zoomedIn, { type: 'key', key: 'all' })).toBe(zoomedIn);
+  });
+
+  it('starts the picture again only when what is plotted changes (a filter)', () => {
+    const zoomedIn = plotReducer(start, { type: 'zoom', factor: 0.5, full });
+    expect(plotReducer(zoomedIn, { type: 'key', key: 'cell:1' })).toEqual({
+      view: null,
+      key: 'cell:1',
+    });
+  });
+
+  it('resets to the whole picture, and pans from the whole picture when not zoomed', () => {
+    const zoomedIn = plotReducer(start, { type: 'zoom', factor: 0.5, full });
+    expect(plotReducer(zoomedIn, { type: 'reset' }).view).toBeNull();
+    expect(plotReducer(start, { type: 'pan', dx: 0.3, dy: 0.3, full }).view).toEqual(full);
   });
 });

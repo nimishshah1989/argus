@@ -22,6 +22,14 @@
 .v2-kpi[data-stretch='link'] .v2-drill-value {
   z-index: 1;
 }
+/* A transform makes the button the containing block of its stretched target: while pressed the card's corner would
+   leave the button and no click would fire. The press shows on the card instead. */
+.v2-kpi[data-stretch='drill'] .v2-drill-value:active {
+  transform: none;
+}
+.v2-kpi[data-stretch='drill']:active {
+  box-shadow: var(--shadow-v2-rest);
+}
 .v2-kpi-link {
   display: inline-flex;
   align-items: center;

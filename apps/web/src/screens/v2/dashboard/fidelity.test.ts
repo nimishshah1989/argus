@@ -91,10 +91,10 @@ describe('the Action Center banner’s urgency', () => {
     });
   });
 
-  it('stays quiet, with no tag, when only medium nudges are open', () => {
+  it('is still a watch, with its word, when only medium nudges are open', () => {
     expect(model({ board: board(0, 10) }).actionCenter).toMatchObject({
-      tone: 'neutral',
-      tag: null,
+      tone: 'risk',
+      tag: 'Watch',
     });
   });
 });
@@ -213,14 +213,15 @@ describe('the bubble chart as Bhavin had it', () => {
     const row = model().machines!.rows[0]!;
     const dot = b.dots.find((d) => d.title === row[0]!.text)!;
     expect(dot.tip.map((line) => line.split(':')[0])).toEqual([
+      'Type',
       'Model',
       'Age',
       'Breakdowns',
       'Downtime hours',
       'Repair time',
     ]);
-    expect(dot.tip[2]).toBe(`Breakdowns: ${row[4]!.text}`);
-    expect(dot.tip[3]).toBe(`Downtime hours: ${row[3]!.text}`);
+    expect(dot.tip[3]).toBe(`Breakdowns: ${row[4]!.text}`);
+    expect(dot.tip[4]).toBe(`Downtime hours: ${row[3]!.text}`);
     expect(dot.opens).toBe(true);
     expect(dot.r).toBeGreaterThan(0);
   });

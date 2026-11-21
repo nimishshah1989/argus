@@ -152,3 +152,8 @@
   min-width: 0;
   max-width: 100%;
 }
+
+/* Past the middle of the plot the tooltip opens to the left, so on a phone it never pushes the page sideways. */
+.v2-bubble-tip-left {
+  transform: translate(calc(-100% - 12px), -110%);
+}

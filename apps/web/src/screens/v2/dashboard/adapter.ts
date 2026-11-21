@@ -7,7 +7,7 @@ import { ACTION_CENTER_PATH } from '../../analytics/groups.js';
 import { COMPARE_DAYS, priorDate } from '../../analytics/today-change.js';
 import { sentence } from '../figures/point.js';
 import { dayText, sourceLine, type Translate } from '../figures/read.js';
-import { GROUPS, NO_VALUE, changeOfCard, dash, drillOf, kpiOf, label, valueOf } from './cards.js';
+import { GROUPS, NO_VALUE, changeOfCard, dash, drillOf, kpiOf, valueOf } from './cards.js';
 import { changeOf } from '../../analytics/today-change.js';
 import type { ChartModel, DashboardFacts, DashboardModel, PlantMachine } from './model.js';
 import { bubbleOf } from './bubble.js';
@@ -73,11 +73,42 @@ export function actionCenterOf(
         text: t('analytics.actionCenter.banner', { high: banner.high, medium: banner.medium }),
         open: t('analytics.actionCenter.banner.open'),
         href: ACTION_CENTER_PATH,
-        // Bhavin's banner turned urgent when any nudge is high priority; v1 called it the "watch" tone.
-        tone: banner.high > 0 ? 'loss' : 'neutral',
-        tag: banner.high > 0 ? t('v2d.ac.urgent') : null,
+        // Bhavin's banner is red whenever it shows, v1's was the "watch" tone: urgent with any high nudge, a watch otherwise.
+        tone: banner.high > 0 ? 'loss' : 'risk',
+        tag: banner.high > 0 ? t('v2d.ac.urgent') : t('v2d.ac.watch'),
       }
     : null;
+}
+
+/** The pictures keep v1's chart titles, which the e2e and every reader know them by (the figures' own labels differ). */
+const PICTURES = [
+  ['bubble-chart', 'analytics.content.bubble.title', 'v2d.bubble.sub', 'v2d.bubble.aria'],
+  [
+    'expansion-timeline',
+    'analytics.content.timeline.title',
+    'v2d.timeline.sub',
+    'v2d.timeline.aria',
+  ],
+] as const;
+
+/** One picture's card: the explorable bubble plot, the chart, or the line that stands where it would be. */
+function pictureOf(
+  [name, titleKey, subKey, ariaKey]: (typeof PICTURES)[number],
+  figure: Figure,
+  plant: readonly PlantMachine[],
+  t: Translate,
+): ChartModel {
+  const base = { id: figure.key, title: t(titleKey) };
+  const drill = drillOf(figure, t);
+  const words = { sub: t(subKey), aria: t(ariaKey), ...(drill ? { drill } : {}) };
+  const points = name === 'bubble-chart' ? bubblePoints(figure) : [];
+  if (points.length > 0) return { ...base, bubble: bubbleOf(points, plant, t), ...words };
+  const content =
+    figure.status === 'ready' && name === 'expansion-timeline'
+      ? contentOf(figure, t as unknown as TFunction)
+      : null;
+  if (content?.kind === 'chart') return { ...base, spec: content.spec, ...words };
+  return { ...base, note: figure.status === 'ready' ? NO_VALUE : t('v2d.notComputed') };
 }
 
 /**
@@ -85,50 +116,9 @@ export function actionCenterOf(
  * computed, or computed as nothing (a plant with no history), keeps its card and says so, as v1's tile did.
  */
 function chartsOf(reply: FiguresReply, plant: readonly PlantMachine[], t: Translate): ChartModel[] {
-  const pictures = [
-    ['bubble-chart', 'v2d.bubble.sub', 'v2d.bubble.aria'],
-    ['expansion-timeline', 'v2d.timeline.sub', 'v2d.timeline.aria'],
-  ] as const;
-  return pictures.flatMap(([name, sub, aria]): ChartModel[] => {
-    const figure = reply.figures.find((f) => f.key === dash(name));
-    if (!figure) return [];
-    const title = label(figure.key, t);
-    const drill = drillOf(figure, t);
-    const points = name === 'bubble-chart' ? bubblePoints(figure) : [];
-    if (name === 'bubble-chart' && points.length > 0)
-      return [
-        {
-          id: figure.key,
-          // v1's chart title, which the e2e and every reader know it by (the figure's own label is "Bubble chart").
-          title: t('analytics.content.bubble.title'),
-          bubble: bubbleOf(points, plant, t),
-          sub: t(sub),
-          aria: t(aria),
-          ...(drill ? { drill } : {}),
-        },
-      ];
-    const content =
-      figure.status === 'ready' && name !== 'bubble-chart'
-        ? contentOf(figure, t as unknown as TFunction)
-        : null;
-    if (content?.kind !== 'chart')
-      return [
-        {
-          id: figure.key,
-          title,
-          note: figure.status === 'ready' ? NO_VALUE : t('v2d.notComputed'),
-        },
-      ];
-    return [
-      {
-        id: figure.key,
-        title,
-        spec: content.spec,
-        sub: t(sub),
-        aria: t(aria),
-        ...(drill ? { drill } : {}),
-      },
-    ];
+  return PICTURES.flatMap((picture): ChartModel[] => {
+    const figure = reply.figures.find((f) => f.key === dash(picture[0]));
+    return figure ? [pictureOf(picture, figure, plant, t)] : [];
   });
 }
 

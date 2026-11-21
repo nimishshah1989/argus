@@ -91,6 +91,7 @@ export function Bubble({
       />
       <BubblePlot
         dots={shown}
+        resetKey={JSON.stringify(filters)}
         words={{ ...words, aria }}
         onOpen={(dot) => open({ kind: 'machine', id: dot.id })}
       />
