@@ -99,7 +99,8 @@ function chartsOf(reply: FiguresReply, plant: readonly PlantMachine[], t: Transl
       return [
         {
           id: figure.key,
-          title,
+          // v1's chart title, which the e2e and every reader know it by (the figure's own label is "Bubble chart").
+          title: t('analytics.content.bubble.title'),
           bubble: bubbleOf(points, plant, t),
           sub: t(sub),
           aria: t(aria),

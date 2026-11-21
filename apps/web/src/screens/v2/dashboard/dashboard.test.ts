@@ -376,7 +376,7 @@ describe('the page', () => {
       'Machine data',
       'Problems costing the most downtime',
       'Failing faster than before',
-      'Bubble chart',
+      'Breakdowns against downtime',
     ]);
     expect(text(out)).toContain('Open items that need you now: 1.');
     expect(out).toContain('Records to 11-Nov-2026');
