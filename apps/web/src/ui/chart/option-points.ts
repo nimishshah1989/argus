@@ -103,8 +103,13 @@ export function heatmapOption(spec: HeatmapSpec, p: Palette): Option {
         return `${row}, ${escapeHtml(columns[c ?? 0] ?? '')}: ${value ?? ''}`;
       },
     },
-    xAxis: { ...categoryAxis(columns, p), splitArea: { show: false } },
-    yAxis: { ...categoryAxis(spec.categories, p), inverse: true },
+    // The grid keeps ECharts' own label spacing: its rows and columns are short names.
+    xAxis: {
+      ...categoryAxis(columns, p),
+      axisLabel: { color: p.axis },
+      splitArea: { show: false },
+    },
+    yAxis: { ...categoryAxis(spec.categories, p), axisLabel: { color: p.axis }, inverse: true },
     // The colour scale runs from the grid ink to the first series colour; it is not drawn, the cells carry numbers.
     visualMap: { show: false, min: 0, max: top, dimension: 2, inRange: { color: [p.grid, color] } },
     series: [

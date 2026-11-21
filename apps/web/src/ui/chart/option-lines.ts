@@ -1,4 +1,4 @@
-import { topValue } from './chart-labels.js';
+import { planOf, topValue } from './chart-labels.js';
 import { paintOf, type Palette } from './chart-palette.js';
 import {
   axisTooltip,
@@ -50,7 +50,12 @@ export function lineOption(spec: LineSpec, p: Palette): Option {
           extraCssText: 'box-shadow:none;',
         }
       : axisTooltip('line'),
-    xAxis: categoryAxis(spec.categories, p, spec.axisTitles ? spec.categoryLabel : undefined),
+    xAxis: categoryAxis(
+      spec.categories,
+      p,
+      spec.axisTitles ? spec.categoryLabel : undefined,
+      planOf(spec, p.width),
+    ),
     yAxis: secondAxis ? [axis, { ...axis, splitLine: { show: false } }] : axis,
     series: spec.series.map((s, i) => {
       const stroke = strokeOf(s, i);

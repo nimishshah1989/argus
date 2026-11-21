@@ -33,9 +33,13 @@ export interface LabelPlan {
 const wide = (label: string): number => [...label].length * CHAR;
 
 /** Side by side when they fit; tilted to 45 degrees when they do not; the box scrolls when even that is too tight. */
-export function labelPlan(categories: readonly string[], width: number | undefined): LabelPlan {
+export function labelPlan(
+  categories: readonly string[],
+  width: number | undefined,
+  reserve = 0,
+): LabelPlan {
   if (width === undefined || categories.length === 0) return { rotate: 0, room: 0 };
-  const plot = width - SIDE;
+  const plot = width - SIDE - reserve;
   const flat = categories.reduce((sum, label) => sum + wide(label) + SLOT, 0);
   if (flat <= plot) return { rotate: 0, room: 0 };
   const longest = Math.max(...categories.map(wide));
@@ -43,8 +47,19 @@ export function labelPlan(categories: readonly string[], width: number | undefin
   const need = categories.length * TILTED;
   return need <= plot
     ? { rotate: 45, room }
-    : { rotate: 45, room, scrollWidth: Math.ceil(need + SIDE) };
+    : { rotate: 45, room, scrollWidth: Math.ceil(need + SIDE + reserve) };
 }
+
+/** The width a chart keeps at its right for what is not plot: a line's end labels, a second value axis. */
+export function reserveOf(spec: ChartSpec): number {
+  if (spec.kind === 'line')
+    return spec.legend === true ? 0 : 7 * Math.max(...spec.series.map((s) => s.name.length));
+  return spec.kind === 'pareto' ? 40 : 0;
+}
+
+/** The plan for a chart whose categories run along the bottom. */
+export const planOf = (spec: Exclude<ChartSpec, { kind: 'scatter' | 'heatmap' }>, width?: number) =>
+  labelPlan(spec.categories, width, reserveOf(spec));
 
 /** The share of a horizontal chart's width its category names may take before they wrap onto more lines. */
 const SIDE_SHARE = 0.4;
@@ -70,7 +85,7 @@ export function chartRoom(
     const lane = Math.max(LANE, (sidePlan(spec.categories, width).lines ?? 1) * LINE + 10);
     return { height: Math.max(BASE_HEIGHT, spec.categories.length * lane + 60) };
   }
-  const plan = labelPlan(spec.categories, width);
+  const plan = planOf(spec, width);
   return {
     height: BASE_HEIGHT + plan.room,
     ...(plan.scrollWidth === undefined ? {} : { scrollWidth: plan.scrollWidth }),

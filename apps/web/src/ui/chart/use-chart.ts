@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { chartOption } from './chart-option.js';
-import { chartRoom } from './chart-labels.js';
+import { BASE_HEIGHT, chartRoom } from './chart-labels.js';
 import { frameOption } from './chart-parts.js';
 import { readPalette } from './chart-palette.js';
 import type { ChartSpec, ChartState } from './chart-spec.js';
@@ -118,7 +118,10 @@ function optionFor(el: HTMLElement, key: string, first: boolean) {
   el.style.minWidth = '';
   const palette = readPalette(el);
   const room = chartRoom(spec, palette.width);
-  el.style.minHeight = `${room.height}px`;
+  // A v2 chart that needs more than the kit's own height (tilted names, a long horizontal bar) is made taller; a box
+  // with a height of its own (the v1 chart's) keeps it.
+  el.style.minHeight =
+    el.classList.contains('v2-trend') && room.height > BASE_HEIGHT ? `${room.height}px` : '';
   const scroller = el.parentElement?.hasAttribute('data-chart-scroll') ? el.parentElement : null;
   if (room.scrollWidth !== undefined && scroller) el.style.minWidth = `${room.scrollWidth}px`;
   // A box that scrolls sideways can be reached and scrolled from the keyboard.

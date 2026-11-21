@@ -1,4 +1,4 @@
-import { sidePlan, topValue } from './chart-labels.js';
+import { planOf, sidePlan, topValue } from './chart-labels.js';
 import { paintOf, seriesColor, toneColor, type Palette } from './chart-palette.js';
 import {
   axisTooltip,
@@ -29,7 +29,7 @@ function barAxes(spec: BarSpec, p: Palette, title: string | undefined) {
       spec.categories,
       p,
       title,
-      horizontal ? sidePlan(spec.categories, p.width) : undefined,
+      horizontal ? sidePlan(spec.categories, p.width) : planOf(spec, p.width),
     ),
     // A ranking reads from the top down: the biggest first.
     ...(ranked && horizontal ? { inverse: true } : {}),
@@ -148,7 +148,7 @@ export function mixedOption(spec: MixedSpec, p: Palette): Option {
     ...baseOption(p, 16, legend, names),
     ...drawOption(spec.draw),
     tooltip: axisTooltip('shadow'),
-    xAxis: categoryAxis(spec.categories, p),
+    xAxis: categoryAxis(spec.categories, p, undefined, planOf(spec, p.width)),
     yAxis: [valueAxis(p), { ...valueAxis(p), splitLine: { show: false } }],
     series: [
       ...spec.bars.map((s, i) => ({
@@ -186,6 +186,8 @@ export function paretoOption(spec: ParetoSpec, p: Palette): Option {
     xAxis: categoryAxis(
       rows.map((row) => row.category),
       p,
+      undefined,
+      planOf(spec, p.width),
     ),
     yAxis: [valueAxis(p), { ...valueAxis(p), min: 0, max: 100, splitLine: { show: false } }],
     series: [
