@@ -1,7 +1,7 @@
 import type { ChartSpec } from '../../../ui/chart/use-chart.js';
 import type { Drill } from '../../../ui/v2/drill.js';
 import type { HeatWords } from '../../../ui/v2/domain/heat-matrix.js';
-import type { HeatTileData } from '../../../ui/v2/domain/heat-tiles.js';
+import type { HeatScale, HeatTileData } from '../../../ui/v2/domain/heat-tiles.js';
 import type { FigureData } from '../../../ui/v2/figure-tile.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
 
@@ -13,10 +13,15 @@ export type EnergyGridModel = {
   sub: string;
   /** Connected beside running load, tile by tile; none for the per-machine map, which has no running line. */
   chart: { spec: ChartSpec; sub: string; aria: string } | null;
+  /** The legend's numbers; none when no tile holds a machine. */
+  scale?: HeatScale;
   tiles: HeatTileData[];
 };
 
-/** Everything the Energy screen prints: the answer, the plant's load, the three maps and the rows behind the figure. */
+/**
+ * Everything the Energy screen prints: the answer, the plant's load, the three maps (tiles first, each chart behind its
+ * "Chart view" toggle) and the rows behind the figure.
+ */
 export type EnergyModel = {
   verdict: VerdictData;
   figures: FigureData[];
@@ -24,5 +29,5 @@ export type EnergyModel = {
   /** The machines behind the whole figure, opened from a page action (v1 linked them below the maps). */
   drill?: Drill;
   source: string;
-  words: { why: string; heat: HeatWords };
+  words: { why: string; heat: HeatWords; chartView: string };
 };

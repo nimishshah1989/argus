@@ -33,6 +33,8 @@ function adapterWords(t: Translate): RowsBehindAdapterWords {
       to: col('to'),
       movedOn: col('movedOn'),
       location: col('location'),
+      connectedKva: col('connectedKva'),
+      runningKva: col('runningKva'),
     },
     ticketStatus: {
       open: t('v2m.rows.ticket.open'),

@@ -23,6 +23,10 @@ export const analyticsV2ForecastEn = {
   'v2e.fig.perMachine': 'a machine',
   'v2e.heat.low': 'Lighter load',
   'v2e.heat.high': 'Heavier load',
+  'v2e.heat.end': '{word} · {value}',
+  'v2e.heat.range': '{from} to {to} {unit}',
+  'v2e.unit.perMachine': 'KVA/machine',
+  'v2e.chartView': 'Chart view',
   'v2e.chart': 'Connected and running load by {axis}',
   'v2e.tile.open': 'Show the machines behind {name}',
   // Bottleneck.

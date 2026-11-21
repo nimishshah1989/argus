@@ -1,6 +1,7 @@
 import i18n from 'i18next';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { contentOf, type EnergyGrid } from '../../analytics/figure-content.js';
+import type { LoadBasis } from '../../../ui/v2/domain/rows-behind-adapter.js';
 
 type Figure = FiguresReply['figures'][number];
 
@@ -26,4 +27,11 @@ export function tileMachines(figure: Figure, ref: TileRef): string[] {
   if (content?.kind !== 'energy') return [];
   const grid = ref.axis === 'cell' ? content.byCell : content.byLocation;
   return grid.tiles.find((tile) => tile.key === ref.tile)?.machineIds ?? [];
+}
+
+/** The load basis of the energy figure's machines (its efficiency factor, in percent); undefined for any other figure. */
+export function energyLoad(figure: Figure): LoadBasis | undefined {
+  if (figure.status !== 'ready' || figure.key !== 'a5-energy') return undefined;
+  const content = contentOf(figure, i18n.t.bind(i18n));
+  return content?.kind === 'energy' ? { factorPct: content.effFactorPct } : undefined;
 }
