@@ -2,8 +2,8 @@ import { dayValue, numberValue } from '../printed-page/printed.js';
 import type { LogFilterId, LogQuery, LogSortKey } from './model.js';
 
 /** What a row carries beside its printed cells: who supported the job and its type (E, M, E/M), as the engine sent them. */
-export type LogDetail = { supportedBy: string; type: string };
-export const NO_DETAIL: LogDetail = { supportedBy: '', type: '' };
+export type LogDetail = { supportedBy: string; type: string; severity: 'long' | 'watch' | '' };
+export const NO_DETAIL: LogDetail = { supportedBy: '', type: '', severity: '' };
 
 /**
  * The engine's printed log: its header and one row per entry (the eye, Sr No, ticket, date, shift, machine, problem, done by, hours,
@@ -179,6 +179,9 @@ function peopleOf(log: PrintedLog): string[] {
   return [...names].sort((a, b) => a.localeCompare(b));
 }
 
-/** Every row that matches the query, for the export: the whole narrowed log, in the order asked. */
+/**
+ * Every row that matches the query, for the export: the whole narrowed log, in the order asked. Supported By is the
+ * last column, so a row listed because of the person chosen in the Team member filter shows why.
+ */
 export const everyMatch = (log: PrintedLog, query: LogQuery): string[][] =>
-  matches(log, query).map((entry) => entry.cells);
+  matches(log, query).map((entry) => [...entry.cells, entry.detail.supportedBy]);

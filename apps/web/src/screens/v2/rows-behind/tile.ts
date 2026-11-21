@@ -2,6 +2,7 @@ import i18n from 'i18next';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { contentOf, type EnergyGrid } from '../../analytics/figure-content.js';
 import type { LoadBasis } from '../../../ui/v2/domain/rows-behind-adapter.js';
+import { runningFrom } from '../../analytics/machine-record.js';
 
 type Figure = FiguresReply['figures'][number];
 
@@ -29,9 +30,30 @@ export function tileMachines(figure: Figure, ref: TileRef): string[] {
   return grid.tiles.find((tile) => tile.key === ref.tile)?.machineIds ?? [];
 }
 
+/** A machine's own efficiency from its metadata: a number, or a number written as text; blank (`''`) or missing is none. */
+function ownEfficiency(value: unknown): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+/**
+ * The engine's running-load rule for one machine (`a5-energy`): its rated power at its own efficiency (clamped 0 to 100),
+ * or at the plant's factor when it has none. The tile's own figure stays the engine's; a test holds the two together.
+ */
+export const loadBasis = (factorPct: number): LoadBasis => ({
+  running: ({ powerKw, metadata }) => {
+    const own = ownEfficiency(metadata.efficiency);
+    return runningFrom(powerKw, own === null ? factorPct : Math.min(100, Math.max(0, own)));
+  },
+});
+
 /** The load basis of the energy figure's machines (its efficiency factor, in percent); undefined for any other figure. */
 export function energyLoad(figure: Figure): LoadBasis | undefined {
   if (figure.status !== 'ready' || figure.key !== 'a5-energy') return undefined;
   const content = contentOf(figure, i18n.t.bind(i18n));
-  return content?.kind === 'energy' ? { factorPct: content.effFactorPct } : undefined;
+  return content?.kind === 'energy' ? loadBasis(content.effFactorPct) : undefined;
 }

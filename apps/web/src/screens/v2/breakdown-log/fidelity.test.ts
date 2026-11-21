@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { realT } from '../printed-page/test-support.js';
-import { logFromFigures, printedLog } from './live.js';
+import { everyMatchOf, logFromFigures, printedLog } from './live.js';
 import { EMPTY_QUERY, type LogQuery } from './model.js';
 import { workbookLog } from './source.js';
 
@@ -113,5 +113,41 @@ describe('the Breakdown Log keeps what Bhavin’s log shows', () => {
     const model = logFromFigures(old, EMPTY_QUERY, realT)!;
     expect(model.rows).toHaveLength(10);
     expect(model.rows.every((r) => r.supportedBy.length === 0 && r.codeLabel === null)).toBe(true);
+  });
+
+  it('exports the Supported By of every row, so a person chosen as a supporter is in the file', () => {
+    const supporter = LOG.detail.flatMap((d) => names(d.supportedBy))[0]!;
+    const query = { ...EMPTY_QUERY, ...filter({ person: supporter }) };
+    const { header, rows } = everyMatchOf(workbookLog, query, realT);
+    expect(header.at(-1)).toBe('Supported by');
+    expect(rows).toHaveLength(ask(filter({ person: supporter })).matching);
+    for (const row of rows) {
+      const supportedBy = row.at(-1)!;
+      expect(names(row[7]!).includes(supporter) || names(supportedBy).includes(supporter)).toBe(
+        true,
+      );
+    }
+    expect(rows.some((row) => names(row[7]!).includes(supporter) === false)).toBe(true);
+    expect(rows.flat().some((cell) => /[0-9a-f]{8}-[0-9a-f]{4}-/.test(cell))).toBe(false);
+  });
+
+  it('takes the stop’s severity from the engine, and a saved log without it tags nothing', () => {
+    const figure = workbookLog.figures[0]!;
+    const value = figure.value as { extra: { rows: object[] } };
+    const bare = {
+      ...workbookLog,
+      figures: [
+        {
+          ...figure,
+          value: { ...value, extra: { ...value.extra, rows: value.extra.rows.map(() => ({})) } },
+        },
+      ],
+    };
+    const model = logFromFigures(
+      bare,
+      { ...EMPTY_QUERY, sort: { key: 'hours', dir: 'desc' } },
+      realT,
+    )!;
+    expect(model.rows.every((row) => row.severity === null)).toBe(true);
   });
 });

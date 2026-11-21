@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { COMPUTERS, runWith } from '../../../../../../packages/domain/src/index.js';
 import { ENGINE_DATA } from '../../../../../../packages/domain/test/answer-key/fixture.js';
 import { adapterWords } from '../../../gallery/rows-behind/words.js';
+import { loadBasis } from './tile.js';
 import { rowsBehindModel } from '../../../ui/v2/domain/rows-behind-adapter.js';
 
 type Bucket = {
@@ -46,7 +47,7 @@ const rowsOf = (tile: Bucket, load = true) =>
     asOf: '2026-11-11',
     machineCode: () => undefined,
     words: adapterWords,
-    ...(load ? { load: { factorPct: effFactorPct } } : {}),
+    ...(load ? { load: loadBasis(effFactorPct) } : {}),
   })!;
 
 describe('the machines behind an energy tile print their connected and running load', () => {
@@ -59,7 +60,10 @@ describe('the machines behind an energy tile print their connected and running l
         model.rows.reduce((total, row) => total + Number(row.cells[key]?.sort ?? 0), 0);
       expect(model.rows, `cell ${tile.key}`).toHaveLength(tile.machines);
       expect(sum('connectedKva')).toBeCloseTo(tile.totalKva, 6);
-      expect(sum('runningKva')).toBeCloseTo(tile.runningKva, 6);
+      // Each machine's running load is printed to 2 decimals, so the sum is within half a hundredth a machine.
+      expect(Math.abs(sum('runningKva') - tile.runningKva)).toBeLessThanOrEqual(
+        0.005 * tile.machines,
+      );
     }
   });
 
@@ -88,21 +92,31 @@ describe('the machines behind an energy tile print their connected and running l
         asOf: '2026-11-11',
         machineCode: () => undefined,
         words: adapterWords,
-        load: { factorPct: effFactorPct },
+        load: loadBasis(effFactorPct),
       })!.rows[0]!.cells;
     const power = rated!.powerKw ?? 0;
     expect(power).toBeGreaterThan(0);
     expect(read({ ...rated, metadata: { efficiency: 50 } }).runningKva?.sort).toBeCloseTo(
       power / 2,
-      6,
+      1,
     );
     expect(read({ ...rated, metadata: { efficiency: 130 } }).runningKva?.sort).toBeCloseTo(
       power,
-      6,
+      1,
     );
     expect(read({ ...rated, metadata: {} }).runningKva?.sort).toBeCloseTo(
       (power * effFactorPct) / 100,
-      6,
+      1,
+    );
+    // A blank efficiency ('' or spaces, as every machine in the 11 Nov export has it) is none: the plant factor applies.
+    for (const blank of ['', '  ', null])
+      expect(read({ ...rated, metadata: { efficiency: blank } }).runningKva?.sort).toBeCloseTo(
+        (power * effFactorPct) / 100,
+        1,
+      );
+    expect(read({ ...rated, metadata: { efficiency: '50' } }).runningKva?.sort).toBeCloseTo(
+      power / 2,
+      1,
     );
     const unrated = read({ ...rated, powerKw: null });
     expect([unrated.connectedKva?.text, unrated.runningKva?.text]).toEqual(['—', '—']);

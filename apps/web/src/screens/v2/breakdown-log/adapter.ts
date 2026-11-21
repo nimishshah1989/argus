@@ -1,24 +1,16 @@
 import type { TFunction } from 'i18next';
 import { fill } from '../../../i18n/fill.js';
-import { machineChip, numberValue, personChips, shortDate } from '../printed-page/printed.js';
+import { machineChip, personChips, shortDate } from '../printed-page/printed.js';
 import type { LogModel, LogQuery, LogRow, LogWords } from './model.js';
 import type { LogEntry, LogReply } from './serve.js';
 import { logWords } from './words.js';
 
-const DASH = '—';
-/** Bhavin's hard-coded bands (11 Nov platform): red over 4 hours, amber over 1 hour; queued as a plant setting. */
-const LONG_STOP_HOURS = 4;
-const WATCH_STOP_HOURS = 1;
 const TICKET_NUMBER = /^[A-Z]{1,3}-\d+$/;
 const whole = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 
-const severityOf = (hours: string): LogRow['severity'] => {
-  const value = hours === DASH ? 0 : numberValue(hours);
-  return value > LONG_STOP_HOURS ? 'long' : value > WATCH_STOP_HOURS ? 'watch' : null;
-};
-
-/** Who supported the job, and its type (E, M, E/M) when that adds to the code. */
+/** The row's detail: how long a stop it was, who supported the job, and its type (E, M, E/M) when that adds to the code. */
 const detailOf = (detail: LogEntry['detail'], code: string) => ({
+  severity: detail.severity === '' ? null : detail.severity,
   type: detail.type !== code ? detail.type : '',
   supportedBy: personChips(detail.supportedBy),
 });
@@ -55,7 +47,6 @@ function rowOf(
     problem,
     doneBy: personChips(doneBy),
     hours,
-    severity: severityOf(hours),
     code,
     codeLabel: labels[code] ?? null,
     ...detailOf(detail, code),

@@ -14,7 +14,6 @@
   font-size: var(--text-v2-label);
 }
 .v2-select-field select {
-  max-width: 16rem;
   min-height: 36px;
   padding: 0 9px;
   border: 1px solid var(--color-v2-line);
@@ -23,6 +22,9 @@
   color: var(--color-v2-ink-2);
   font: inherit;
   font-size: var(--text-v2-secondary);
+}
+.v2-select-field select[data-compact] {
+  max-width: 16rem;
 }
 .v2-select-field select:focus-visible {
   outline: 2px solid var(--color-v2-focus);

@@ -3,7 +3,7 @@ import { NotComputed } from '../figures/live-error.js';
 import { figureOf, pageOf, type Figure, type FiguresPart } from '../printed-page/printed.js';
 import { logModel } from './adapter.js';
 import type { LogModel, LogQuery } from './model.js';
-import { cutPage, everyMatch, NO_DETAIL, type PrintedLog } from './serve.js';
+import { cutPage, everyMatch, NO_DETAIL, type LogDetail, type PrintedLog } from './serve.js';
 
 const KEY = 'breakdown-log';
 
@@ -25,6 +25,8 @@ export function printedLog(reply: FiguresPart, t: TFunction): PrintedLog | null 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 const text = (value: unknown): string => (typeof value === 'string' ? value : '');
+const severityOf = (value: unknown): LogDetail['severity'] =>
+  value === 'long' || value === 'watch' ? value : '';
 
 /** What the engine sent beside the page: each row's detail and the code list; none of it when a saved copy predates it. */
 function extraOf(figure: Figure): Pick<PrintedLog, 'detail' | 'codes'> {
@@ -33,7 +35,13 @@ function extraOf(figure: Figure): Pick<PrintedLog, 'detail' | 'codes'> {
   const codes: unknown[] = Array.isArray(extra.codes) ? extra.codes : [];
   return {
     detail: rows.map((row) =>
-      isObject(row) ? { supportedBy: text(row.supportedBy), type: text(row.type) } : NO_DETAIL,
+      isObject(row)
+        ? {
+            supportedBy: text(row.supportedBy),
+            type: text(row.type),
+            severity: severityOf(row.severity),
+          }
+        : NO_DETAIL,
     ),
     codes: codes.flatMap((entry) =>
       isObject(entry) && text(entry.code) !== '' && text(entry.label) !== ''
@@ -61,7 +69,7 @@ export function everyMatchOf(
   const log = printedLog(reply, t);
   return log === null
     ? { header: [], rows: [] }
-    : { header: log.header, rows: everyMatch(log, query) };
+    : { header: [...log.header, t('v2p.bl.supportedBy')], rows: everyMatch(log, query) };
 }
 
 /**

@@ -78,7 +78,9 @@ describe('the Breakdown Log pages on the server and never holds more than one pa
     const query = { ...EMPTY_QUERY, filters: { ...EMPTY_QUERY.filters, shift: '2' } };
     const { header, rows } = everyMatchOf(workbookLog, query, testT);
     expect(header[1]).toBe('Sr No');
-    expect(rows).toEqual(LOG.rows.filter((r) => r[4] === '2'));
+    // The engine's own columns, then Supported By.
+    expect(rows.map((r) => r.slice(0, 10))).toEqual(LOG.rows.filter((r) => r[4] === '2'));
+    expect(header.at(-1)).toBe('Supported by');
     expect(rows.length).toBeGreaterThan(10);
   });
 

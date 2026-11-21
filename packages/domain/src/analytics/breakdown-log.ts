@@ -55,6 +55,18 @@ function hoursText(row: SourcedReport): string {
   return isNoDowntime(row) ? DASH : String(effectiveHours(row.report));
 }
 
+/**
+ * Bhavin's bands for a stop's length (11 Nov platform, `renderBreakdownTable`: `dt>4 ? red : dt>1 ? amber : green`):
+ * over 4 hours a long stop, over 1 hour one to watch. Strict, so exactly 4 is "watch" and exactly 1 is neither.
+ */
+export const LONG_STOP_HOURS = 4;
+export const WATCH_STOP_HOURS = 1;
+export type StopSeverity = 'long' | 'watch' | '';
+export function severityOf(hours: number): StopSeverity {
+  if (!Number.isFinite(hours)) return '';
+  return hours > LONG_STOP_HOURS ? 'long' : hours > WATCH_STOP_HOURS ? 'watch' : '';
+}
+
 /** The coded names a row lists as people, in its own order; empty when it names nobody. */
 function peopleText(codes: readonly string[], names: ReadonlyMap<string, string>): string {
   return codes.map((code) => names.get(code) ?? code).join(', ');
@@ -114,11 +126,13 @@ export const breakdownLogFigure: Computer = ({ data, asOf }) => {
       },
     ],
     // What the log shows in a row's detail and a code's tooltip, beside the key's own page (which stays as printed):
-    // `rows` pairs with the table's rows one for one, `codes` is the plant's maintenance-code list with descriptions.
+    // `rows` pairs with the table's rows one for one (supporters, type, how long a stop it was), `codes` is the
+    // plant's maintenance-code list with descriptions.
     extra: {
       rows: entries.map((entry) => ({
         supportedBy: peopleText(entry.row.report.supportedBy, names),
         type: entry.row.report.category?.trim() ?? '',
+        severity: severityOf(effectiveHours(entry.row.report)),
       })),
       codes: described.map(({ code, label }) => ({ code, label })),
     },

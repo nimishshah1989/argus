@@ -90,10 +90,15 @@ export const REPLY_FIELDS: Record<Type, { shown: string[]; elsewhere: string[] }
 };
 
 /**
- * The load the energy figure counts, for the machines behind it: the plant's efficiency factor, which a machine's own
- * `efficiency` (0 to 100) replaces, exactly as the engine's `a5-energy` sums running load machine by machine.
+ * The load the energy figure counts, for the machines behind it. The screen brings the rule (`running`: the engine's
+ * `a5-energy` rule, applied to one machine), so this adapter only prints; null is a machine with no rated power.
  */
-export type LoadBasis = { factorPct: number };
+export type LoadBasis = {
+  running: (machine: {
+    powerKw: number | null;
+    metadata: Record<string, unknown>;
+  }) => number | null;
+};
 
 type Ctx = {
   words: RowsBehindAdapterWords;
@@ -159,23 +164,17 @@ type Built = {
 const oneDecimal = (ctx: Ctx, n: number) =>
   n.toLocaleString(ctx.words.locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-/** A machine's own efficiency when its metadata carries one (clamped 0 to 100), else the plant's factor. */
-function efficiencyOf(row: MachineRow, factorPct: number): number {
-  const own = Number(row.metadata.efficiency);
-  const has = row.metadata.efficiency !== undefined && row.metadata.efficiency !== null;
-  return has && Number.isFinite(own) ? Math.min(100, Math.max(0, own)) : factorPct;
-}
-
 /** Connected (rated) and running load of one machine; a machine with no rated power prints a dash and adds no load. */
 function loadCells(row: MachineRow, ctx: Ctx, load: LoadBasis): Record<string, RowCell> {
-  if (row.powerKw === null || !Number.isFinite(row.powerKw))
+  const rated = typeof row.powerKw === 'number' && Number.isFinite(row.powerKw);
+  const running = rated ? load.running(row) : null;
+  if (!rated || running === null)
     return {
       connectedKva: { ...text(ctx.words.none), sort: -1 },
       runningKva: { ...text(ctx.words.none), sort: -1 },
     };
-  const running = (row.powerKw * efficiencyOf(row, load.factorPct)) / 100;
   return {
-    connectedKva: { text: oneDecimal(ctx, row.powerKw), sort: row.powerKw },
+    connectedKva: { text: oneDecimal(ctx, row.powerKw as number), sort: row.powerKw as number },
     runningKva: { text: oneDecimal(ctx, running), sort: running },
   };
 }

@@ -44,6 +44,10 @@ export function printedEntry(row: WorkbookRow, srNo: number): string[] {
   ];
 }
 
+/** The engine's bands for a stop's hours (a NO DT entry counts none), spelled out for the stand-in. */
+const severityOf = (hours: number, noDowntime: boolean): 'long' | 'watch' | '' =>
+  noDowntime ? '' : hours > 4 ? 'long' : hours > 1 ? 'watch' : '';
+
 /** What the engine sends beside the page: each row's supporters and type, and the codes that have a description. */
 const extraOf = (
   entries: { row: WorkbookRow }[],
@@ -52,6 +56,7 @@ const extraOf = (
   rows: entries.map((e) => ({
     supportedBy: e.row.supportedBy?.trim() ?? '',
     type: e.row.electMech?.trim() ?? '',
+    severity: severityOf(e.row.downHrs ?? (e.row.downMin ?? 0) / 60, e.row.maintCode === 'NO DT'),
   })),
   codes: codes
     .filter((c) => c.description.trim() !== '')

@@ -183,7 +183,12 @@ describe('the cut fixes the six span figures', () => {
         ],
         // Beside the page, row for row: who supported each job (nobody) and its type. The fixture lists no codes.
         extra: {
-          rows: numbered.map(({ entry }) => ({ supportedBy: '', type: TYPE_OF[entry[2]]! })),
+          rows: numbered.map(({ entry }) => ({
+            supportedBy: '',
+            type: TYPE_OF[entry[2]]!,
+            // Over 1 hour is a stop to watch: the 2 h breakdowns of 2026 and the 3 h PM; 1 h and a NO DT dash are not.
+            severity: entry[3] !== '—' && Number(entry[3]) > 1 ? 'watch' : '',
+          })),
           codes: [],
         },
       };

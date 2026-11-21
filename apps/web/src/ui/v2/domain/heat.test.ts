@@ -40,7 +40,9 @@ describe('the heat scale', () => {
     it(`keeps the ink readable at 4.5:1 on every step in ${theme}`, () => {
       const steps = [...heatCss.matchAll(/--v2-heat-(\d):\s*(\d+)%;/g)].map((m) => Number(m[2]));
       expect(steps).toHaveLength(5);
-      const [fill, panel, ink] = ['plan-fill', 'panel', 'ink'].map((k) =>
+      // The tint is the neutral ink-3 over the panel (blue is the "planned" meaning), so that is what is measured.
+      expect(heatCss).toContain('color-mix(in srgb, var(--color-v2-ink-3) var(--v2-heat)');
+      const [fill, panel, ink] = ['ink-3', 'panel', 'ink'].map((k) =>
         resolve(set, `color-v2-${k}`),
       );
       for (const percent of steps)

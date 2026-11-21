@@ -148,7 +148,7 @@ function selectsOf(model: LogModel, change: (q: Partial<LogQuery>) => void): Sel
     // (Bhavin's filter had none); a code with what it means.
     ...(id === 'date' ? { labelOf: shortDate } : {}),
     ...(id === 'month' ? { labelOf: monthLabel } : {}),
-    ...(id === 'code' ? { labelOf: (code: string) => codeOption(model, code) } : {}),
+    ...(id === 'code' ? { labelOf: (code: string) => codeOption(model, code), compact: true } : {}),
     onChange: (value: string) => change({ filters: { ...model.query.filters, [id]: value } }),
   }));
 }
