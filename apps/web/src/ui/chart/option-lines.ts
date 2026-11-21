@@ -1,4 +1,4 @@
-import { planOf, topValue } from './chart-labels.js';
+import { endLabelRoom, planOf, topValue } from './chart-labels.js';
 import { paintOf, type Palette } from './chart-palette.js';
 import {
   axisTooltip,
@@ -31,7 +31,9 @@ export function strokeOf(
  * left off, because two lines that end close together print their names over each other and over the last point.
  */
 export function lineOption(spec: LineSpec, p: Palette): Option {
-  const longest = Math.max(...spec.series.map((s) => s.name.length));
+  const names = spec.series.map((s) => s.name);
+  const room = endLabelRoom(names, p.width);
+  const natural = endLabelRoom(names);
   if (spec.secondAxis === true && spec.series.length !== 2)
     throw new Error(`secondAxis needs exactly 2 series, got ${spec.series.length}`);
   const secondAxis = spec.secondAxis === true;
@@ -40,7 +42,7 @@ export function lineOption(spec: LineSpec, p: Palette): Option {
   const axis = titledValueAxis(spec.valueLabel, p, secondAxis ? undefined : topValue(spec.series));
   const base = baseOption(
     p,
-    legend ? 16 : 16 + 7 * longest,
+    legend ? 16 : 16 + room,
     legend,
     spec.series.map((s) => s.name),
   );
@@ -74,7 +76,13 @@ export function lineOption(spec: LineSpec, p: Palette): Option {
         symbolSize: 8,
         showAllSymbol: true,
         lineStyle: { width: 2, type: stroke.dashed ? ('dashed' as const) : ('solid' as const) },
-        endLabel: { show: !legend, formatter: '{a}', color },
+        endLabel: {
+          show: !legend,
+          formatter: '{a}',
+          color,
+          // A name wider than the room kept for it wraps there.
+          ...(room < natural ? { width: room, overflow: 'break' as const } : {}),
+        },
       };
     }),
   };

@@ -51,15 +51,29 @@ export function labelPlan(
 }
 
 /** The width a chart keeps at its right for what is not plot: a line's end labels, a second value axis. */
-export function reserveOf(spec: ChartSpec): number {
+export function reserveOf(spec: ChartSpec, width?: number): number {
   if (spec.kind === 'line')
-    return spec.legend === true ? 0 : 7 * Math.max(...spec.series.map((s) => s.name.length));
+    return spec.legend === true
+      ? 0
+      : endLabelRoom(
+          spec.series.map((s) => s.name),
+          width,
+        );
   return spec.kind === 'pareto' ? 40 : 0;
+}
+
+/**
+ * The room a line's end labels take at the right: 7 px a character of the longest name, but never more than 30 % of a
+ * box whose width is known (a long name wraps instead of squeezing the plot to nothing).
+ */
+export function endLabelRoom(names: readonly string[], width?: number): number {
+  const natural = 7 * Math.max(0, ...names.map((name) => [...name].length));
+  return width === undefined ? natural : Math.min(natural, Math.floor(width * 0.3));
 }
 
 /** The plan for a chart whose categories run along the bottom. */
 export const planOf = (spec: Exclude<ChartSpec, { kind: 'scatter' | 'heatmap' }>, width?: number) =>
-  labelPlan(spec.categories, width, reserveOf(spec));
+  labelPlan(spec.categories, width, reserveOf(spec, width));
 
 /** The share of a horizontal chart's width its category names may take before they wrap onto more lines. */
 const SIDE_SHARE = 0.4;

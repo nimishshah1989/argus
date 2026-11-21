@@ -86,12 +86,31 @@ function barSeries(spec: BarSpec, p: Palette) {
 /** Bars, side by side or stacked, vertical or horizontal; two or more series get a legend when stacked. */
 export function barOption(spec: BarSpec, p: Palette): Option {
   const horizontal = spec.horizontal === true;
-  const stacked = spec.stacked === true;
-  const legend = spec.legend ?? (stacked && spec.series.length >= 2);
   // Horizontal bars keep their long machine labels on the left: the category title is for the vertical chart.
   const title = spec.axisTitles && !horizontal ? spec.categoryLabel : undefined;
   // Down the side the names sit flat, one to a row (the box is made tall enough for every row).
   const plan = horizontal ? sidePlan(spec.categories, p.width) : planOf(spec, p.width);
+  return {
+    ...barFrame(spec, p, title, plan),
+    ...drawOption(spec.draw),
+    tooltip: barTooltip(spec.unit),
+    ...barAxes(spec, p, title, plan),
+    series: barSeries(spec, p),
+  };
+}
+
+/** The tooltip of a bar chart; a percent chart prints its unit after each value. */
+function barTooltip(unit: string | undefined): Option {
+  const tooltip = axisTooltip('shadow');
+  return unit === undefined
+    ? tooltip
+    : { ...tooltip, valueFormatter: (v: unknown) => `${String(v)}${unit}` };
+}
+
+/** The plot's margins: room for the legend, for a title under the plot, and beside it for a vertical value title. */
+function barFrame(spec: BarSpec, p: Palette, title: string | undefined, plan: LabelPlan): Option {
+  const horizontal = spec.horizontal === true;
+  const legend = spec.legend ?? (spec.stacked === true && spec.series.length >= 2);
   const base = baseOption(
     p,
     // A bar's value label sits past its end: keep room for it at the edge.
@@ -103,17 +122,7 @@ export function barOption(spec: BarSpec, p: Palette): Option {
   const underTitle =
     title !== undefined || (horizontal && spec.valueLabel !== undefined && !p.fixed);
   const titled = underTitle ? withTitleRoom(base, horizontal ? 0 : plan.room) : base;
-  const tooltip = axisTooltip('shadow');
-  return {
-    ...(spec.valueLabel === undefined || horizontal ? titled : withValueTitleRoom(titled)),
-    ...drawOption(spec.draw),
-    tooltip:
-      spec.unit === undefined
-        ? tooltip
-        : { ...tooltip, valueFormatter: (v: unknown) => `${String(v)}${spec.unit}` },
-    ...barAxes(spec, p, title, plan),
-    series: barSeries(spec, p),
-  };
+  return spec.valueLabel === undefined || horizontal ? titled : withValueTitleRoom(titled);
 }
 
 /**

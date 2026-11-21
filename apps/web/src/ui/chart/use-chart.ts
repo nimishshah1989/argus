@@ -117,22 +117,28 @@ function optionFor(el: HTMLElement, key: string, first: boolean) {
   const spec = JSON.parse(key) as ChartSpec;
   el.style.minWidth = '';
   const palette = readPalette(el);
-  const room = chartRoom(spec, palette.width);
-  // A v2 chart that needs more than the kit's own height (tilted names, a long horizontal bar) is made taller; a box
-  // with a height of its own (the v1 chart's) keeps it.
+  sizeBox(el, spec, chartRoom(spec, palette.width));
+  return frameOption(chartOption(spec, palette), { first, reduced });
+}
+
+/**
+ * Make the box the room its labels need. A v2 chart that needs more than the kit's own height (tilted names, a long
+ * horizontal bar) is made taller, and one with too many labels for its width scrolls sideways inside its card; a box
+ * with a size of its own (the v1 chart's) keeps it. A box that scrolls is a named group reachable from the keyboard.
+ */
+function sizeBox(el: HTMLElement, spec: ChartSpec, room: ReturnType<typeof chartRoom>): void {
   el.style.minHeight =
     el.classList.contains('v2-trend') && room.height > BASE_HEIGHT ? `${room.height}px` : '';
   const scroller = el.parentElement?.hasAttribute('data-chart-scroll') ? el.parentElement : null;
-  if (room.scrollWidth !== undefined && scroller) el.style.minWidth = `${room.scrollWidth}px`;
-  // A box that scrolls sideways is a named group that can be reached and scrolled from the keyboard.
-  if (room.scrollWidth !== undefined) {
-    scroller?.setAttribute('tabindex', '0');
-    scroller?.setAttribute('role', 'group');
-    scroller?.setAttribute('aria-label', spec.title);
-  } else {
-    for (const name of ['tabindex', 'role', 'aria-label']) scroller?.removeAttribute(name);
+  if (scroller === null) return;
+  if (room.scrollWidth === undefined) {
+    for (const name of ['tabindex', 'role', 'aria-label']) scroller.removeAttribute(name);
+    return;
   }
-  return frameOption(chartOption(spec, palette), { first, reduced });
+  el.style.minWidth = `${room.scrollWidth}px`;
+  scroller.setAttribute('tabindex', '0');
+  scroller.setAttribute('role', 'group');
+  scroller.setAttribute('aria-label', spec.title);
 }
 
 /**

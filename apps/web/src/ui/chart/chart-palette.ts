@@ -62,7 +62,7 @@ export function readPalette(el: HTMLElement): Palette {
     },
     surface: read('--color-v2-panel'),
     fixed,
-    width: fixed ? undefined : el.clientWidth,
+    width: fixed ? undefined : el.clientWidth || undefined,
   };
 }
 
