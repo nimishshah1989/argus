@@ -41,16 +41,17 @@ function rowOf({ cells: printed, ticketId }: LogEntry): LogRow {
   };
 }
 
-/** The log's newest entry says how fresh it is; the count says how big. Both are the engine's. */
-function verdictOf(reply: LogReply, words: LogWords, source: string): LogModel['verdict'] {
-  const newest = reply.rows[0]?.cells[3];
+/** The count says how big the log is and the date says how far its records run; both are v1's words. */
+function verdictOf(
+  reply: LogReply,
+  words: LogWords,
+  source: string,
+  asOf: string,
+): LogModel['verdict'] {
   return {
     headline: [
       {
-        text: fill(words.headline, {
-          count: whole.format(reply.count),
-          date: newest ? shortDate(newest) : DASH,
-        }),
+        text: `${fill(words.headline, { count: whole.format(reply.count) })} · ${fill(words.recordsTo, { date: shortDate(asOf) })}`,
         tone: 'strong',
       },
     ],
@@ -73,12 +74,19 @@ export function logModel(
   const words = logWords(t);
   const source = fill(words.source, { date: shortDate(asOf) });
   return {
-    verdict: verdictOf(reply, words, source),
+    verdict: verdictOf(reply, words, source, asOf),
     rows: reply.rows.map(rowOf),
     query,
     matching: reply.matching,
     count: reply.count,
     countShown: whole.format(reply.count),
+    truncated:
+      reply.held < reply.count
+        ? t('analytics.log.truncated', {
+            shown: whole.format(reply.held),
+            total: whole.format(reply.count),
+          })
+        : null,
     options: reply.options,
     source,
     words,

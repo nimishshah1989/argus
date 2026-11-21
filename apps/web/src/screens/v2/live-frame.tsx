@@ -19,6 +19,7 @@ import {
   searchForLegacyDrill,
 } from './rows-behind/legacy.js';
 import { useNav } from './nav.js';
+import { SectionTabs } from './section-tabs.js';
 import { modelToShow } from './refresh.js';
 
 /** Where a live screen sits: its group, its section of the rail and its own name. */
@@ -96,12 +97,27 @@ function useLegacyDrill(screen: string) {
   }, [search, screen, client, navigate]);
 }
 
+/**
+ * The row of screens above a page. A login that may not read the figures gets none (v1 drew no menu for it); Today's
+ * and the PM calendar's screens are the tabs of their section, every other group's are the group's own screens.
+ */
+function chromeFor(entry: LiveEntry, role: string | undefined): ReactNode {
+  if (role !== undefined && !readsAnalytics(role)) return null;
+  if (entry.group === 'today') return <TodayTabs />;
+  // eslint-disable-next-line i18next/no-literal-string -- a section id and a route, not copy
+  if (entry.group === 'pm') return <SectionTabs section="reports" current="/analytics/pm" />;
+  return <ScreenTabs group={entry.group} current={entry.screen} />;
+}
+
 /** A screen's frame: the rail by the login's role, the section's screens above, and the figures' states in place of the page. */
 export function LiveFrame({
   entry,
+  notice = null,
   children,
 }: {
   entry: LiveEntry;
+  /** A line under the row of screens, such as "Showing the last answer" while a refresh has failed. */
+  notice?: ReactNode;
   children: (nav: ReturnType<typeof useNav>) => ReactNode;
 }) {
   const role = useQuery({ queryKey: ['me'], queryFn: getMe }).data?.user.role;
@@ -113,12 +129,10 @@ export function LiveFrame({
     <WhoContext.Provider value={{ role, company: brand || t('analytics.title') }}>
       <ChromeContext.Provider
         value={
-          /* A login that may not open the analytics face sees the refusal, not the section's menu (as in v1). */
-          role !== undefined && !readsAnalytics(role) ? null : entry.group === 'today' ? (
-            <TodayTabs />
-          ) : (
-            <ScreenTabs group={entry.group} current={entry.screen} />
-          )
+          <>
+            {chromeFor(entry, role)}
+            {notice}
+          </>
         }
       >
         {children(nav)}

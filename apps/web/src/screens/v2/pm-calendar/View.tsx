@@ -1,6 +1,7 @@
 /* eslint-disable i18next/no-literal-string -- entity kinds, role names and typed unions only; every visible word comes from the model */
 import { lazy, Suspense, useContext, useState } from 'react';
 import type { CalendarRange } from '../../../ui/v2/domain/calendar-events.js';
+import { DrillAction } from '../../../ui/v2/drill-action.js';
 import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
 import { EntityOpenContext } from '../../../ui/v2/entity-chip.js';
 import { FigureTile } from '../../../ui/v2/figure-tile.js';
@@ -15,13 +16,18 @@ import { EntityShell } from '../entity/EntityShell.js';
 import { MoveFailed } from './move.js';
 import { MovePanel, useRestoreFocus } from './move-panel.js';
 import type { Judged, PmCalendarModel, PmJob, PmMoveRequest } from './model.js';
+import { leave, settleMove } from './settle.js';
 import { JobsTable, SpreadTable } from './tables.js';
 
 /** The calendar library is reached only through this `import()`: its chunk loads when a calendar is on screen. */
 const MonthCalendar = lazy(() => import('../../../ui/v2/domain/month-calendar.js'));
 
 /** What the last move said: the line of where it landed, or the reason it did not. */
-type Note = { kind: 'moved' | 'refused'; text: string } | null;
+type Note = { kind: 'moved' | 'refused'; text: string; job: string } | null;
+
+/** A refusal that belongs to the form on screen: another job's refusal is said on the page, never inside this form. */
+const ownRefusal = (note: Note, chosen: PmJob | null): boolean =>
+  note?.kind === 'refused' && chosen !== null && note.job === chosen.id;
 
 function Notes({ note }: { note: Note }) {
   if (note === null) return <div role="status" />;
@@ -78,11 +84,14 @@ function JudgedPanel({ model }: { model: PmCalendarModel }) {
 function CalendarPanel({
   model,
   loading,
+  busy,
   onRange,
   onDrop,
 }: {
   model: PmCalendarModel;
   loading: boolean;
+  /** A move is on its way: no second drag starts until it has landed, so two never carry one job's old ids. */
+  busy: boolean;
   onRange: (range: CalendarRange) => void;
   onDrop: (id: string, day: string) => Promise<void>;
 }) {
@@ -94,7 +103,7 @@ function CalendarPanel({
         <Suspense fallback={<Skeleton blocks={2} />}>
           <MonthCalendar
             events={model.events}
-            editable={model.canMove}
+            editable={model.canMove && !busy}
             initialDate={model.today}
             words={{ label: w.title, today: w.today }}
             onMove={onDrop}
@@ -111,24 +120,26 @@ function CalendarPanel({
 /** One move at a time: the drag and the keyboard form share this, and it says what happened once. */
 function useMoves(model: PmCalendarModel, onMove: (r: PmMoveRequest) => Promise<string>) {
   const [note, setNote] = useState<Note>(null);
-  const [busy, setBusy] = useState(false);
+  // Moves in flight, counted: one that lands must not say "done" while another is still on its way.
+  const [pending, setPending] = useState(0);
+  const busy = pending > 0;
   const run = async (job: PmJob, day: string): Promise<boolean> => {
     setNote(null);
-    setBusy(true);
+    setPending((n) => n + 1);
     try {
       const text = await onMove({
         ...job.handle,
         machineCode: job.machine.label,
         scheduledOn: day,
       });
-      setNote({ kind: 'moved', text });
+      setNote({ kind: 'moved', text, job: job.id });
       return true;
     } catch (error) {
       const text = error instanceof MoveFailed ? error.message : model.words.move.refused;
-      setNote({ kind: 'refused', text });
+      setNote({ kind: 'refused', text, job: job.id });
       return false;
     } finally {
-      setBusy(false);
+      setPending((n) => n - 1);
     }
   };
   const drop = async (id: string, day: string): Promise<void> => {
@@ -174,21 +185,22 @@ export function PmCalendarView({
           <FigureTile key={figure.id} figure={figure} />
         ))}
       </Row>
-      <Notes note={chosen && note?.kind === 'refused' ? null : note} />
-      <CalendarPanel model={model} loading={loading} onRange={onRange} onDrop={drop} />
+      {model.drill ? <DrillAction drill={model.drill} /> : null}
+      <Notes note={ownRefusal(note, chosen) ? null : note} />
+      <CalendarPanel model={model} loading={loading} busy={busy} onRange={onRange} onDrop={drop} />
       <JudgedPanel model={model} />
-      <SpreadTable model={model} onMove={(job, day) => void run(job, day)} />
+      <SpreadTable model={model} busy={busy} onMove={(job, day) => void run(job, day)} />
       {chosen && model.canMove ? (
         <MovePanel
+          // One form per job: its date field starts at that job's own day and takes the focus, never the last job's.
+          key={chosen.id}
           job={chosen}
           words={model.words.move}
           busy={busy}
-          refusal={note?.kind === 'refused' ? note.text : null}
-          onMove={async (job, day) => {
-            const landed = await run(job, day);
-            if (landed) setChosen(null);
-            return landed;
-          }}
+          refusal={ownRefusal(note, chosen) ? (note?.text ?? null) : null}
+          onMove={(job, day) =>
+            settleMove(run, job, day, (landed) => setChosen((now) => leave(now, landed)))
+          }
           onClose={() => setChosen(null)}
         />
       ) : null}

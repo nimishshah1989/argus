@@ -15,12 +15,14 @@ import { MttrMtbfView } from './mttr-mtbf/View.js';
 import { CellLogView } from './cell-change-log/View.js';
 import { DashboardPage } from './dashboard/Page.js';
 import { BottleneckView } from './bottleneck/View.js';
+import { BreakdownLogPage } from './breakdown-log/Page.js';
 import { EnergyView } from './energy/View.js';
 import { FixFinderView } from './fix-finder/View.js';
 import { ForecastLabView } from './forecast-lab/View.js';
 import { FootprintView } from './footprint/View.js';
 import { ManpowerView } from './manpower/View.js';
 import { RegistersView } from './machines-register/View.js';
+import { PmCalendarPage } from './pm-calendar/Page.js';
 import { ProblemAnalysisView } from './problem-analysis/View.js';
 import { ShiftKpisView } from './shift-kpis/View.js';
 import { WhyWhyLive } from './why-why/Live.js';
@@ -114,6 +116,13 @@ const screenOf = (group: GroupId, section: SectionId, screen: string) => ({
 
 const LIVE: readonly Live[] = [
   { group: 'today', section: 'today', screen: 'dashboard', page: () => <DashboardPage /> },
+  {
+    group: 'breakdowns',
+    section: 'problems',
+    screen: 'breakdown-log',
+    page: () => <BreakdownLogPage />,
+  },
+  { group: 'pm', section: 'reports', screen: 'pm-calendar', page: () => <PmCalendarPage /> },
   {
     group: 'machines',
     section: 'machines',
@@ -341,9 +350,14 @@ function unknownMachinesScreen(
 }
 
 /** The screen a group's address opens with no `?screen=`. */
-const FIRST: Record<string, string> = { machines: 'registers', today: 'dashboard' };
+const FIRST: Record<string, string> = {
+  machines: 'registers',
+  today: 'dashboard',
+  breakdowns: 'breakdown-log',
+  pm: 'pm-calendar',
+};
 /** Groups that are v2 whole: an unknown `?screen=` opens their first screen. */
-const WHOLE: ReadonlySet<string> = new Set([FORECAST, 'today']);
+const WHOLE: ReadonlySet<string> = new Set([FORECAST, 'today', 'pm', 'breakdowns']);
 
 function knownMachinesScreen(id: string): boolean {
   return (groupFor('machines')?.screens ?? []).some(

@@ -15,7 +15,7 @@ export const pmCalendarFromStandIn = (query: PmCalendarQuery): Promise<PmCalenda
         calendar: calendarFor(query.range ?? monthRange(TODAY)),
         compliance: COMPLIANCE,
         asOf: TODAY,
-        canMove: query.canMove,
+        canMove: query.canMove ?? false,
       },
       i18n.t.bind(i18n),
     ),

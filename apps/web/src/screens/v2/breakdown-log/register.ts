@@ -11,11 +11,11 @@ declare module '../data.js' {
 export const screen: ScreenEntry<'breakdown-log'> = {
   key: 'breakdown-log',
   provider: async (query, { client }) => {
-    const [{ liveReply }, { logFromFigures }] = await Promise.all([
+    const [{ liveReply }, { liveLog }] = await Promise.all([
       import('../figures/live.js'),
       import('./live.js'),
     ]);
-    return logFromFigures(await liveReply(client), query, i18n.t.bind(i18n));
+    return liveLog(await liveReply(client), query, i18n.t.bind(i18n));
   },
   frozen: (query) => import('./source.js').then((m) => m.logFromWorkbook(query)),
 };

@@ -24,7 +24,7 @@ export type SendMove = (body: PmRescheduleBody, key: string) => Promise<PmResche
  */
 export function createMover(send: SendMove, words: PmCalendarWords['move']) {
   const keys = moveKeys(idempotencyKey);
-  return async (request: PmMoveRequest): Promise<string> => {
+  const attempt = async (request: PmMoveRequest): Promise<string> => {
     // The machine's code is the status line's; the strict reschedule body carries only the ids and the day.
     const body: PmRescheduleBody = {
       machineId: request.machineId,
@@ -46,5 +46,12 @@ export function createMover(send: SendMove, words: PmCalendarWords['move']) {
       }
       throw new MoveFailed(words.offline, true);
     }
+  };
+  // One attempt at a time: a second move waits for the first, so the held key is always the key of the move in flight.
+  let queue: Promise<unknown> = Promise.resolve();
+  return (request: PmMoveRequest): Promise<string> => {
+    const next = queue.then(() => attempt(request));
+    queue = next.catch(() => undefined);
+    return next;
   };
 }

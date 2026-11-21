@@ -21,6 +21,8 @@ export type SelectFilter = {
   all: string;
   value: string;
   options: string[];
+  /** How an option reads, when its value (what the server filters by) is not how it is said (a printed date). */
+  labelOf?: (option: string) => string;
   onChange: (value: string) => void;
 };
 
@@ -98,7 +100,7 @@ function Selects({ selects }: { selects: SelectFilter[] }) {
             <option value="">{s.all}</option>
             {s.options.map((o) => (
               <option key={o} value={o}>
-                {o}
+                {s.labelOf ? s.labelOf(o) : o}
               </option>
             ))}
           </select>

@@ -43,8 +43,10 @@ export type LogWords = {
   /** The aria label of a row's ticket link, with `{srNo}`. */
   openTicket: string;
   why: string;
-  /** `{count}` entries, newest `{date}`. */
+  /** `{count}` rows (v1's own words). */
   headline: string;
+  /** `{date}`: how far the records run (v1's own words). */
+  recordsTo: string;
   /** `{count}`: the whole log, said under the table when a filter narrows it. */
   whole: string;
   intro: string;
@@ -70,6 +72,8 @@ export type LogModel = {
   count: number;
   /** The same, in Indian grouping, ready to print. */
   countShown: string;
+  /** "showing the newest X of N" when the engine printed fewer entries than it counted; null otherwise. */
+  truncated: string | null;
   options: Record<LogFilterId, string[]>;
   source: string;
   words: LogWords;

@@ -5,10 +5,11 @@ import type { LogWords } from './model.js';
 export function logWords(t: TFunction): LogWords {
   return {
     why: t('v2p.why'),
-    headline: t('v2p.bl.headline'),
+    headline: t('analytics.log.rows', { rows: '{count}' }),
+    recordsTo: t('analytics.asOf', { date: '{date}' }),
     whole: t('v2p.bl.whole'),
     intro: t('analytics.log.intro'),
-    openTicket: t('v2p.bl.openTicket'),
+    openTicket: t('analytics.log.openTicket', { srNo: '{srNo}' }),
     source: t('v2p.bl.source'),
     table: {
       title: t('v2p.bl.title'),

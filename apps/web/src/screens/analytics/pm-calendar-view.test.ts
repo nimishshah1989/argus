@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PmCalendarItem } from '@uptimo/shared';
 import {
-  eventsOf,
-  gridRange,
   loadOf,
   moveKeys,
   monthRange,
@@ -45,36 +43,7 @@ const ticket = (over: Partial<TaskTicket> = {}): TaskTicket => ({
   ...over,
 });
 
-describe('the calendar events (R2)', () => {
-  it('draws one all-day event per occurrence, titled with the machine and carrying its ids', () => {
-    const events = eventsOf([
-      item(),
-      item({
-        planId: null,
-        ticketId: '10000000-0000-4000-8000-0000000000b2',
-        machineCode: 'VC-2',
-        status: 'open',
-        scheduledOn: '2026-11-13',
-      }),
-    ]);
-    expect(events).toHaveLength(2);
-    expect(events[0]).toMatchObject({
-      id: '10000000-0000-4000-8000-000000000001',
-      title: 'VC-1',
-      start: '2026-11-12',
-      allDay: true,
-      extendedProps: {
-        status: 'planned',
-        dueOn: '2026-11-12',
-        ticketId: null,
-        load: 1,
-      },
-    });
-    // A ticket id is the occurrence's own id; two machines on one day load that day twice.
-    expect(events[1]?.id).toBe('10000000-0000-4000-8000-0000000000b2');
-    expect(events[1]?.extendedProps.load).toBe(1);
-  });
-
+describe('the day load and the month range (R2)', () => {
   it('counts every occurrence on a day as that day’s load, crowded or not', () => {
     const items = [
       item(),
@@ -85,17 +54,12 @@ describe('the calendar events (R2)', () => {
       ['2026-11-12', 2],
       ['2026-11-14', 1],
     ]);
-    expect(eventsOf(items)[1]?.extendedProps).toMatchObject({ crowded: true, load: 2 });
   });
 
-  it('turns the month and FullCalendar’s exclusive grid end into inclusive API ranges', () => {
+  it('turns the plant’s day into its month’s inclusive API range', () => {
     expect(monthRange('2026-11-19')).toEqual({ from: '2026-11-01', to: '2026-11-30' });
     expect(monthRange('2026-02-01')).toEqual({ from: '2026-02-01', to: '2026-02-28' });
     expect(monthRange('2028-02-10')).toEqual({ from: '2028-02-01', to: '2028-02-29' });
-    expect(gridRange('2026-10-26', '2026-12-07')).toEqual({
-      from: '2026-10-26',
-      to: '2026-12-06',
-    });
   });
 });
 
@@ -208,17 +172,6 @@ describe('the machine page’s task split (R9)', () => {
     );
     expect(view.open[0]?.overdue).toBe(false);
     expect(view.pm[0]?.overdue).toBe(false);
-  });
-});
-
-describe('what the grid lets a head drag', () => {
-  it('lets a movable job be dragged and holds a started one in place', () => {
-    const [free, started] = eventsOf([
-      item(),
-      item({ machineCode: 'VC-2', movable: false, status: 'open' }),
-    ]);
-    expect(free).toMatchObject({ startEditable: true, durationEditable: false });
-    expect(started).toMatchObject({ startEditable: false, durationEditable: false });
   });
 });
 

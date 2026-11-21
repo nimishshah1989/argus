@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
 import type { PmCalendarItem, PmCalendarReply } from '@uptimo/shared';
 import { fill } from '../../../i18n/fill.js';
+import type { Drill } from '../../../ui/v2/drill.js';
 import type { CalendarEvent } from '../../../ui/v2/domain/calendar-events.js';
 import type { FigureData } from '../../../ui/v2/figure-tile.js';
 import type { Point } from '../../../ui/v2/points.js';
@@ -26,6 +27,8 @@ export type PmCalendarInput = {
   compliance: unknown;
   asOf: string;
   canMove: boolean;
+  /** The control that opens the rows behind the compliance figure; null when the engine named none. */
+  drill?: Drill | null;
 };
 
 /**
@@ -55,7 +58,8 @@ export const REPLY_FIELDS = {
 
 const dayOf = (iso: string): Day => ({ shown: shortDate(iso), iso, value: dayValue(iso) });
 const count = (n: number): string => n.toLocaleString('en-IN');
-const idOf = (item: PmCalendarItem): string => item.ticketId ?? item.planId ?? item.machineId;
+/** The plant has one PM occurrence per machine, so the machine's code is a job's own key: no id is ever printed or keyed on. */
+const idOf = (item: PmCalendarItem): string => item.machineCode;
 
 function jobOf(item: PmCalendarItem, t: TFunction, words: { tolerance: string }): PmJob {
   const suggested = item.suggestedOn === null ? null : dayOf(item.suggestedOn);
@@ -257,7 +261,12 @@ export function pmCalendarModel(input: PmCalendarInput, t: TFunction): PmCalenda
   const crowdedItems = items.filter((item) => item.crowded);
   const crowdedDays = new Set(crowdedItems.map((item) => item.scheduledOn)).size;
   const tolerance = t('v2p.pm.tolerance');
-  const jobs = items.map((item) => jobOf(item, t, { tolerance }));
+  // Each job and its chip are made from the same occurrence, never paired by their place in a list.
+  const built = items.map((item) => {
+    const job = jobOf(item, t, { tolerance });
+    return { job, event: eventOf(item, job, t) };
+  });
+  const jobs = built.map((one) => one.job);
   const range = { from: calendar.from, to: calendar.to };
   const month = shownMonth(range);
   const inMonth = items.filter((item) => item.scheduledOn.startsWith(month)).length;
@@ -285,11 +294,12 @@ export function pmCalendarModel(input: PmCalendarInput, t: TFunction): PmCalenda
     range,
     month,
     today: calendar.today,
-    events: items.map((item, at) => eventOf(item, jobs[at]!, t)),
+    events: built.map((one) => one.event),
     jobs,
     spread: jobs.filter((job) => job.crowded),
     monthJobs: jobs.filter((job) => job.planned.iso.startsWith(month)),
     canMove,
+    drill: input.drill ?? null,
     calendarSub: fill(t(canMove ? 'v2p.pm.cal.sub' : 'v2p.pm.cal.subRead'), {
       count: count(items.length),
       days: count(days),

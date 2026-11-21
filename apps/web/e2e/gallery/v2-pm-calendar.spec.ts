@@ -159,6 +159,41 @@ test('PM calendar: crowded days list their nearest free day and one press moves 
   ).toBeVisible();
 });
 
+test('PM calendar: on a phone the page does not scroll sideways, so the window holds the whole month', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 393, height: 727 });
+  await page.goto('about:blank');
+  await page.goto('/gallery?view=v2-pm-calendar&theme=light');
+  await expect(page.getByRole('heading', { level: 1, name: 'PM calendar' })).toBeVisible();
+  // A table wider than the screen scrolls inside its card; a part of it that is only for a screen reader must not widen the page.
+  const widths = await page.evaluate(() => [
+    document.documentElement.scrollWidth,
+    document.documentElement.clientWidth,
+  ]);
+  expect(widths[0]).toBeLessThanOrEqual(widths[1]!);
+});
+
+test('PM calendar: a second Move to date form opens on its own job, with that job’s day and the focus', async ({
+  page,
+}) => {
+  await open(page);
+  const field = page.getByLabel('New date');
+  await jobs(page).getByRole('searchbox').fill('VC-21');
+  await jobs(page).getByRole('button', { name: 'Move to date VC-21' }).click();
+  await expect(page.getByText('Move VC-21 to a date')).toBeVisible();
+  const first = await field.inputValue();
+  // The first form is still open when the second job's button is pressed.
+  await jobs(page).getByRole('searchbox').fill('VC-13');
+  await jobs(page).getByRole('button', { name: 'Move to date VC-13' }).click();
+  await expect(page.getByText('Move VC-13 to a date')).toBeVisible();
+  await expect(page.getByText('Move VC-21 to a date')).toHaveCount(0);
+  await expect(field).toHaveValue('2026-11-13');
+  expect(first).not.toBe('2026-11-13');
+  await expect(page.getByText('Now planned for 13-Nov-2026.')).toBeVisible();
+  await expect(field).toBeFocused();
+});
+
 for (const theme of ['light', 'dark']) {
   test(`PM calendar: axe finds nothing in ${theme}, with the machine drawer open`, async ({
     page,

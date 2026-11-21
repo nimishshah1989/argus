@@ -44,11 +44,14 @@ function SpreadAction({
   job,
   words,
   canMove,
+  busy,
   onMove,
 }: {
   job: PmJob;
   words: PmCalendarWords['spread'];
   canMove: boolean;
+  /** A move is on its way: the button waits, as v1's did, so two quick presses are never two moves. */
+  busy: boolean;
   onMove: (job: PmJob, day: string) => void;
 }) {
   const free = job.suggested;
@@ -56,7 +59,9 @@ function SpreadAction({
   if (!canMove || !job.movable) return <span className="v2-sub">{free.text}</span>;
   return (
     <Own>
-      <Button onClick={() => onMove(job, free.iso)}>{free.moveLabel}</Button>
+      <Button disabled={busy} onClick={() => onMove(job, free.iso)}>
+        {free.moveLabel}
+      </Button>
     </Own>
   );
 }
@@ -67,9 +72,11 @@ function SpreadAction({
  */
 export function SpreadTable({
   model,
+  busy = false,
   onMove,
 }: {
   model: PmCalendarModel;
+  busy?: boolean;
   onMove: (job: PmJob, day: string) => void;
 }) {
   const open = useContext(EntityOpenContext);
@@ -87,7 +94,9 @@ export function SpreadTable({
       key: 'free',
       label: words.columns.free,
       sortBy: (r) => r.suggested?.value ?? 0,
-      cell: (r) => <SpreadAction job={r} words={words} canMove={model.canMove} onMove={onMove} />,
+      cell: (r) => (
+        <SpreadAction job={r} words={words} canMove={model.canMove} busy={busy} onMove={onMove} />
+      ),
     },
   ];
   return (

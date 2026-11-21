@@ -1,6 +1,7 @@
 import type { CalendarEvent, CalendarRange } from '../../../ui/v2/domain/calendar-events.js';
 import type { TableWords } from '../../../ui/v2/data-table.js';
 import type { EntityChipProps } from '../../../ui/v2/entity-chip.js';
+import type { Drill } from '../../../ui/v2/drill.js';
 import type { FigureData } from '../../../ui/v2/figure-tile.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
 
@@ -113,12 +114,17 @@ export type PmCalendarModel = {
   calendarSub: string;
   /** One line under the spread table's title: how many days hold more than one PM. */
   spreadSub: string;
+  /** The rows behind the compliance figure: a control of the page, as v1's "See the rows", only when the engine named rows. */
+  drill: Drill | null;
   source: string;
   words: PmCalendarWords;
 };
 
-/** What a screen asks the seam for: the grid's range once it has said it, `null` for the plant's own month. */
-export type PmCalendarQuery = { range: CalendarRange | null; canMove: boolean };
+/**
+ * What a screen asks the seam for: the grid's range once it has said it, `null` for the plant's own month. `canMove` is
+ * the gallery's: the live reader asks the signed-in role instead, so a screen never says who may write.
+ */
+export type PmCalendarQuery = { range: CalendarRange | null; canMove?: boolean };
 
 /** What a move asks of the server, with the machine's code only for the line that says where it landed. */
 export type PmMoveRequest = JobHandle & { machineCode: string; scheduledOn: string };
