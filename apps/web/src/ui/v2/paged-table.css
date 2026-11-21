@@ -23,7 +23,19 @@
   font: inherit;
   font-size: var(--text-v2-secondary);
 }
+.v2-select-field select[data-compact] {
+  max-width: 16rem;
+}
 .v2-select-field select:focus-visible {
   outline: 2px solid var(--color-v2-focus);
   outline-offset: 2px;
+}
+
+/* A figure with its tag beside it (a stop's hours and "Over 4 h"): one line, the tag first, the figure aligned right. */
+.v2-num-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  white-space: nowrap;
 }

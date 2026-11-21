@@ -179,6 +179,16 @@ function logFigure(): Figure {
           charts: [],
         },
       ],
+      // Beside the page, as the engine sends it: one entry per row in row order (who supported the job, its type and how
+      // long a stop it was: over 4 hours "long", over 1 hour "watch") and the plant's code list.
+      extra: {
+        rows: logRows().map((row) => ({
+          supportedBy: '',
+          type: '',
+          severity: Number(row[8]) > 4 ? 'long' : Number(row[8]) > 1 ? 'watch' : '',
+        })),
+        codes: [],
+      },
     },
     // The engine sorts a figure's drill ids; here they run against the row order on purpose, so a link that
     // paired row N with drill id N would open the wrong ticket.
@@ -247,7 +257,8 @@ async function openLog(page: Page): Promise<void> {
     log.getByRole('cell', { name: 'ATC trouble Machine Stop', exact: true }),
   ).toBeVisible();
   await expect(log.getByRole('cell', { name: '—', exact: true })).toBeVisible();
-  await expect(log.getByRole('cell', { name: '1.83', exact: true })).toBeVisible();
+  // A stop over 1 hour carries its tag, so the cell's name is the tag's word and the hours the log printed.
+  await expect(log.getByRole('cell', { name: /^Over 1 h\s*1\.83$/ })).toBeVisible();
   await expect(
     page.getByText('1,343 rows · Records to 11-Nov-2026', { exact: true }),
   ).toBeVisible();
@@ -281,7 +292,10 @@ async function exportLog(page: Page): Promise<void> {
   expect(path).toBeTruthy();
   const csv = await readFile(path as string, 'utf8');
   const lines = csv.trimEnd().split('\n');
-  expect(lines[0]).toBe('Sr No,Ticket No.,Date,Shift,Machine,Problem,Done By,Downtime (Hrs),Code');
+  // The engine's nine columns, then Supported By (so a row listed for the Team member filter shows why).
+  expect(lines[0]).toBe(
+    'Sr No,Ticket No.,Date,Shift,Machine,Problem,Done By,Downtime (Hrs),Code,Supported by',
+  );
   expect(lines).toHaveLength(2);
   expect(lines[1]).toContain('VC-15');
   expect(lines[1]).toContain('ATC trouble Machine Stop');

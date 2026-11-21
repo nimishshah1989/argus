@@ -50,8 +50,29 @@ describe('Energy from the engine reply', () => {
     }
   });
 
-  it('gives the per-machine map no drill, as v1 did', () => {
-    expect(model.grids[2]!.tiles.every((tile) => tile.drill === undefined)).toBe(true);
+  it('opens, from a tile of the per-machine map, the same machines as the cell map’s tile', () => {
+    model.grids[2]!.tiles.forEach((tile, at) => {
+      expect(tile.drill?.figure).toBe(model.grids[0]!.tiles[at]!.drill?.figure);
+      expect(tile.unit === '' || tile.unit === 'KVA/machine').toBe(true);
+    });
+  });
+
+  it('keeps every chart out of the way: the tiles lead and a map’s chart is there to be asked for', () => {
+    expect(model.grids.filter((grid) => grid.chart !== null).map((grid) => grid.id)).toEqual([
+      'cell',
+      'location',
+    ]);
+    expect(model.words.chartView).toBe('Chart view');
+  });
+
+  it('numbers the legend from the tiles the map prints', () => {
+    const tiles = engine.byCell.tiles.filter((tile) => tile.machines > 0);
+    const [min, max] = [
+      Math.min(...tiles.map((tile) => tile.connectedKva)),
+      Math.max(...tiles.map((tile) => tile.connectedKva)),
+    ];
+    expect(model.grids[0]!.scale?.low).toContain(kva(min));
+    expect(model.grids[0]!.scale?.high).toContain(kva(max));
   });
 
   it('counts every machine once across the cell tiles, so the plant total is the figure’s own rows', () => {

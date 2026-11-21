@@ -2,7 +2,7 @@ import { MAX_DRILL_IDS, type DrillReply, type DrillType } from '@uptimo/shared/a
 import type { ProviderContext } from '../data.js';
 import { catalogue, liveCodes, liveDrill, liveReply } from '../figures/live.js';
 import { rowsModel } from './model.js';
-import { parseTile, tileMachines } from './tile.js';
+import { energyLoad, parseTile, tileMachines } from './tile.js';
 
 const oneDecimal = (n: number) =>
   n.toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -35,10 +35,12 @@ export async function liveRows(figure: string, { client }: ProviderContext) {
     rowsOf(found.drill.type, ids, (type, part) => liveDrill(client, type, part)),
     liveCodes(client),
   ]);
+  const load = energyLoad(found);
   return rowsModel(
     {
       key: figure,
       value: found.value,
+      ...(load ? { load } : {}),
       reply: drill,
       asOf: reply.asOf,
       machineCode: (id) => code(id) ?? undefined,

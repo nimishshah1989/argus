@@ -108,6 +108,8 @@ export const analyticsV2MachinesEn = {
   'v2m.rows.col.to': 'To',
   'v2m.rows.col.movedOn': 'Moved on',
   'v2m.rows.col.location': 'Location',
+  'v2m.rows.col.connectedKva': 'Connected KVA',
+  'v2m.rows.col.runningKva': 'Running KVA',
   'v2m.rows.ticket.open': 'Open',
   'v2m.rows.ticket.working': 'In progress',
   'v2m.rows.ticket.waiting': 'Waiting',
