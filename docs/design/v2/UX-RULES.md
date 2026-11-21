@@ -58,6 +58,8 @@ The source of truth for how a v2 screen behaves, adapted for Argus from the rule
 31. Every chart: axis labels, a hover tooltip with exact values, a source line, an empty and a loading state.
 32. Prefer small multiples to one crowded chart. No 3D, no gradient fills on data, no pie with more than 5 slices.
 
+32a. A chart series says what it means (`meaning` on the series): a loss (breakdown hours, red), planned work (PM, blue, drawn striped or dashed so it never rests on hue alone) or a gain (green); no meaning keeps the neutral palette. Every category name is drawn, never skipped: names tilt, wrap or scroll inside their own card. A "by category" chart is a ranking (horizontal, worst first, the top three in the accent) because there are more categories than the five type colours. The value-axis title clears the tick numbers.
+
 ## 8. Motion carries information
 
 Motion is a second channel for information, not decoration. It lets a page hold more without looking denser.

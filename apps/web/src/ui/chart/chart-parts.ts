@@ -1,3 +1,4 @@
+import { labelPlan, tickWidth, type LabelPlan } from './chart-labels.js';
 import type { Palette } from './chart-palette.js';
 
 /** An ECharts option: plain data, built here and handed to `setOption` by the door. */
@@ -56,20 +57,35 @@ export function withTitleRoom(option: Option): Option {
   return { ...option, grid: { ...(option.grid as object), bottom: 36 } };
 }
 
-/** The category axis; `title` (the spec's `categoryLabel`, asked for by `axisTitles`) names it under the labels. */
-export function categoryAxis(categories: string[], p: Palette, title?: string) {
+/**
+ * The category axis; `title` (the spec's `categoryLabel`, asked for by `axisTitles`) names it under the labels. Every
+ * label is drawn (`interval: 0`), never skipped for room: `plan` tilts them when they do not fit side by side, and the
+ * title sits under the tilted labels.
+ */
+export function categoryAxis(
+  categories: string[],
+  p: Palette,
+  title?: string,
+  plan: LabelPlan = labelPlan(categories, p.width),
+) {
   return {
     type: 'category' as const,
     data: categories,
     axisTick: { show: false },
     axisLine: { lineStyle: { color: p.grid } },
-    axisLabel: { color: p.axis },
+    axisLabel: {
+      color: p.axis,
+      interval: 0,
+      hideOverlap: false,
+      ...(plan.rotate === 0 ? {} : { rotate: plan.rotate }),
+      ...(plan.wrap === undefined ? {} : { width: plan.wrap, overflow: 'break' as const }),
+    },
     ...(title === undefined
       ? {}
       : {
           name: title,
           nameLocation: 'middle' as const,
-          nameGap: 28,
+          nameGap: 28 + plan.room,
           nameTextStyle: { color: p.axis },
         }),
   };
@@ -79,19 +95,32 @@ export function valueAxis(p: Palette) {
   return {
     type: 'value' as const,
     splitLine: { lineStyle: { color: p.grid } },
-    axisLabel: { color: p.axis },
+    axisLabel: { color: p.axis, hideOverlap: true },
   };
 }
 
-/** The value axis, titled when the chart names its quantity (A9's forecast, the Lab's month hours). */
-export function titledValueAxis(label: string | undefined, p: Palette) {
+/** Space between the tick numbers and the rotated title of a vertical value axis, and the room the title takes. */
+const TITLE_GAP = 14;
+const TITLE_ROOM = 22;
+
+/**
+ * The value axis, titled when the chart names its quantity (A9's forecast, the Lab's month hours). A vertical value
+ * axis (`top` is the largest value it reaches) puts its title clear of the tick numbers, however wide they are; a
+ * horizontal one (no `top`) titles under the axis.
+ */
+export function titledValueAxis(label: string | undefined, p: Palette, top?: number, unit = '') {
   const axis = valueAxis(p);
   if (label === undefined) return axis;
   return {
     ...axis,
     name: label,
     nameLocation: 'middle' as const,
-    nameGap: 28,
+    nameGap: top === undefined ? 28 : tickWidth(top, unit) + TITLE_GAP,
     nameTextStyle: { color: p.axis },
   };
+}
+
+/** The option with room beside the plot for the title of a vertical value axis. */
+export function withValueTitleRoom(option: Option): Option {
+  return { ...option, grid: { ...(option.grid as object), left: TITLE_ROOM } };
 }

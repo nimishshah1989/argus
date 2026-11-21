@@ -1,8 +1,17 @@
 /** A design token a series or point can be drawn in; absent keeps the kit's series colour. */
 export type ChartTone = 'danger' | 'warning' | 'info' | 'hold' | 'moved' | 'ok' | 'muted';
 
+/**
+ * What a series MEANS, so a chart reads without its legend (UX-RULES 20): `loss` is hours or money lost (red), `planned`
+ * is work the plant chose to do (blue, and drawn striped or dashed so it never rests on hue alone), `gain` is good time
+ * (green). `neutral`, or no meaning, keeps the series' palette slot.
+ */
+export type ChartMeaning = 'loss' | 'planned' | 'gain' | 'neutral';
+
 export interface ChartSeries {
   name: string; // translated; end label, table header
+  /** What the series means; absent or `neutral` keeps its palette slot. A `tone` set on the series wins. */
+  meaning?: ChartMeaning;
   values: (number | undefined)[]; // one per category; a gap where the plant had no value
   /** The series' own tone (the Lab's actual line, the forecast's plan); absent keeps its palette slot. */
   tone?: ChartTone;
@@ -56,6 +65,13 @@ export type ChartSpec =
       horizontal?: true;
       /** Stack the series into one bar per category. */
       stacked?: true;
+      /**
+       * Ranked bars: the first `highlight` bars (the caller sorts, worst first) are drawn in the accent and the rest in
+       * the neutral slot, and a horizontal chart reads from the top down. One series only.
+       */
+      highlight?: number;
+      /** A unit printed after each value-axis number ("%"), for a chart of percentages. */
+      unit?: string;
     } & LegendChoice &
       DrawChoice &
       AxisTitleChoice)
