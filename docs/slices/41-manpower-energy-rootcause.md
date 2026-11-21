@@ -89,7 +89,7 @@ the platform's order with their families, the four keys load with their page/ext
 written (short form and full form, any case) to **one** `Person NN`, but the platform attributed a
 breakdown only when the team member's **full** name appeared in `Done By`/`Supported By` — so nine mentions in the
 coded `input.json` are attributed by an exact code match that the platform did not attribute. Proved against the real
-workbook (`<argus-staging>/docs/discovery/real-2026-11-13/cosmos-export-2026-11-11.xlsx`: its `Breakdown Log` versus
+workbook (`docs/discovery/real-2026-11-13/cosmos-export-2026-11-11.xlsx`: its `Breakdown Log` versus
 its own `Analytics 4 - Manpower` sheet, 1,279 rows; the real name forms are not written here, per the repo's
 no-real-personal-data rule — the ids and codes below carry the repair). Five `Done By` mentions:
 bd_muxluadanmqar and bd_muxluadbqozpr (both `Person 26`), bd_muxluadbag3ia (`Person 55`), bd_live_mw300wjpi9l77 and
