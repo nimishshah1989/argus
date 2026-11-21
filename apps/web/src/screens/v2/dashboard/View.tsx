@@ -1,9 +1,12 @@
+/* eslint-disable i18next/no-literal-string -- icon names, typed unions; every visible word comes from the model */
+import { Banner } from '../../../ui/v2/banner.js';
 import { ChartCard } from '../../../ui/v2/chart-card.js';
 import { LinkButton } from '../../../ui/v2/button.js';
 import { EngineTable } from '../../../ui/v2/domain/engine-table.js';
 import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
 import { DrillButton } from '../../../ui/v2/drill-button.js';
 import { KpiCard } from '../../../ui/v2/kpi-card.js';
+import { MoreToggle } from '../../../ui/v2/more-toggle.js';
 import { Panel } from '../../../ui/v2/panel.js';
 import { Segs } from '../../../ui/v2/points.js';
 import { Row } from '../../../ui/v2/row.js';
@@ -12,6 +15,7 @@ import type { NavItem } from '../../../ui/v2/shell.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
 import { WhyToggle } from '../../../ui/v2/why-toggle.js';
 import { EntityShell } from '../entity/EntityShell.js';
+import { Bubble } from './Bubble.js';
 import type { CostliestModel, DashboardModel, NeedsModel, WarningModel } from './model.js';
 
 /** What needs a person now: the table of tickets, or the plain line that nothing does, or that it could not be read. */
@@ -31,7 +35,12 @@ function Needs({ needs }: { needs: NeedsModel }) {
 }
 
 function Costliest({ costliest }: { costliest: CostliestModel }) {
-  const aside = costliest.drill ? <DrillButton drill={costliest.drill} /> : undefined;
+  const aside = (
+    <>
+      {costliest.drill ? <DrillButton drill={costliest.drill} /> : null}
+      <LinkButton href={costliest.link.href}>{costliest.link.label}</LinkButton>
+    </>
+  );
   if (costliest.table) return <EngineTable table={costliest.table} aside={aside} />;
   return (
     <Panel title={costliest.title} sub={costliest.sub} aside={aside}>
@@ -46,37 +55,78 @@ function Warning({ warning }: { warning: WarningModel }) {
       <p className="v2-lede">
         <Segs point={warning.headline} />
       </p>
+      {warning.more ? (
+        <MoreToggle label={warning.more.label}>
+          <p className="v2-lede">
+            <Segs point={warning.more.rest} />
+          </p>
+        </MoreToggle>
+      ) : null}
       <WhyToggle label={warning.whyLabel} points={warning.why} />
     </Panel>
   );
 }
 
-/** The Action Center's counts and the way in; nothing when no nudge is open. */
+/** The Action Center's counts and the way in, urgent when any nudge is high priority; nothing when no nudge is open. */
 export function ActionCenter({ note }: { note: DashboardModel['actionCenter'] }) {
   if (!note) return null;
   return (
-    <Panel title={note.title} aside={<LinkButton href={note.href}>{note.open}</LinkButton>}>
-      <p>{note.text}</p>
-    </Panel>
+    <Banner
+      tone={note.tone}
+      icon="decision"
+      {...(note.tag ? { tag: note.tag } : {})}
+      title={note.title}
+      href={note.href}
+      action={note.open}
+    >
+      {note.text}
+    </Banner>
   );
 }
 
-/** The page under the header, top to bottom: the answer, what needs you, the figures, the problems, the pictures. */
+/** This month's Team Focus plan: how many actions are open, the top one, and the way in; nothing when none is open. */
+function TeamFocus({ note }: { note: DashboardModel['teamFocus'] }) {
+  if (!note) return null;
+  return (
+    <Banner tone={note.tone} icon="check" title={note.title} href={note.href} action={note.open}>
+      {note.text}
+    </Banner>
+  );
+}
+
+/** A group of cards under its heading; the first card of a hero group is the lead figure, the rest beside it. */
+function Cards({ section }: { section: DashboardModel['sections'][number] }) {
+  return (
+    <section className="v2-stack v2-gap-12" aria-label={section.title}>
+      <SectionHead title={section.title} sub={section.sub} />
+      <Row hero={section.hero} cols={3}>
+        {section.kpis.map((kpi) => (
+          <KpiCard key={kpi.id} kpi={kpi} />
+        ))}
+      </Row>
+    </section>
+  );
+}
+
+/**
+ * The page under the header, top to bottom: the answer, the two banners, the headline figures with the lead one big,
+ * what needs you, where the time goes, the machine data, the problems, the pictures.
+ */
 function Body({ model }: { model: DashboardModel }) {
+  const [headline, ...rest] = model.sections;
   return (
     <>
       <Verdict verdict={model.verdict} whyLabel={model.words.why} />
+      {model.actionCenter || model.teamFocus ? (
+        <Row cols={2}>
+          <ActionCenter note={model.actionCenter} />
+          <TeamFocus note={model.teamFocus} />
+        </Row>
+      ) : null}
+      {headline ? <Cards section={headline} /> : null}
       <Needs needs={model.needs} />
-      <ActionCenter note={model.actionCenter} />
-      {model.sections.map((section) => (
-        <section key={section.id} className="v2-stack v2-gap-12" aria-label={section.title}>
-          <SectionHead title={section.title} sub={section.sub} />
-          <Row cols={section.id === 'fleet' ? 3 : 4}>
-            {section.kpis.map((kpi) => (
-              <KpiCard key={kpi.id} kpi={kpi} />
-            ))}
-          </Row>
-        </section>
+      {rest.map((section) => (
+        <Cards key={section.id} section={section} />
       ))}
       {model.costliest ? <Costliest costliest={model.costliest} /> : null}
       {model.warning ? <Warning warning={model.warning} /> : null}
@@ -87,6 +137,15 @@ function Body({ model }: { model: DashboardModel }) {
             spec={chart.spec}
             sub={chart.sub}
             aria={chart.aria}
+            drill={chart.drill}
+          />
+        ) : 'bubble' in chart ? (
+          <Bubble
+            key={chart.id}
+            title={chart.title}
+            sub={chart.sub}
+            aria={chart.aria}
+            bubble={chart.bubble}
             drill={chart.drill}
           />
         ) : (

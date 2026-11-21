@@ -7,11 +7,16 @@ import type { ReactNode } from 'react';
 export function Row({
   cols = 2,
   wide = false,
+  hero = false,
   children,
 }: {
   cols?: 2 | 3 | 4;
   wide?: boolean;
+  /** The first card is the lead figure (`hero` on its KPI): twice the width and height, the rest beside it. */
+  hero?: boolean;
   children: ReactNode;
 }) {
-  return <div className={`v2-grid v2-grid-${wide ? 'wide' : cols}`}>{children}</div>;
+  return (
+    <div className={`v2-grid v2-grid-${hero ? 'hero' : wide ? 'wide' : cols}`}>{children}</div>
+  );
 }
