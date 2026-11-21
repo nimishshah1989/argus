@@ -17,6 +17,7 @@ import {
   shortDate,
   type FiguresPart,
 } from '../printed-page/printed.js';
+import { tableNotes } from '../printed-page/notes.js';
 import { say, strong } from '../printed-page/segs.js';
 import { verdictOf } from '../printed-page/verdict.js';
 import { pageWords } from '../printed-page/words.js';
@@ -67,13 +68,19 @@ export function mttrMtbfModel(reply: FiguresPart, t: TFunction): PrintedPageMode
     ),
     figures: [],
     charts: page.charts.map((spec) => chartOf(spec, words)),
-    tables: tablesOf(page.tables, words, (table) =>
-      table.title === MACHINES
-        ? [
-            ...chipsOf(table, 1, MACHINE_CHIPS, words.all),
-            ...chipsOf(table, 2, MACHINE_CHIPS, words.all).slice(1),
-          ]
-        : [],
+    tables: tableNotes(
+      tablesOf(page.tables, words, (table) =>
+        table.title === MACHINES
+          ? [
+              ...chipsOf(table, 1, MACHINE_CHIPS, words.all),
+              ...chipsOf(table, 2, MACHINE_CHIPS, words.all).slice(1),
+            ]
+          : [],
+      ),
+      [
+        ['Month-on-Month MTTR & MTBF — Cell-wise', t('v2r.note.mm.cell')],
+        ['Month-on-Month MTTR & MTBF — Age Band-wise', t('v2r.note.mm.age')],
+      ],
     ),
     drill: seeRowsFor(reply, FIGURE, say_),
     source,

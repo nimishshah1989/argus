@@ -13,6 +13,8 @@ type WorkbookRow = {
   shift: string;
   problem: string;
   doneBy?: string;
+  supportedBy?: string;
+  electMech?: string;
   downMin?: number;
   downHrs?: number;
   maintCode?: string;
@@ -42,12 +44,34 @@ export function printedEntry(row: WorkbookRow, srNo: number): string[] {
   ];
 }
 
+/** The engine's bands for a stop's hours (a NO DT entry counts none), spelled out for the stand-in. */
+const severityOf = (hours: number, noDowntime: boolean): 'long' | 'watch' | '' =>
+  noDowntime ? '' : hours > 4 ? 'long' : hours > 1 ? 'watch' : '';
+
+/** What the engine sends beside the page: each row's supporters and type, and the codes that have a description. */
+const extraOf = (
+  entries: { row: WorkbookRow }[],
+  codes: readonly { code: string; description: string }[],
+) => ({
+  rows: entries.map((e) => ({
+    supportedBy: e.row.supportedBy?.trim() ?? '',
+    type: e.row.electMech?.trim() ?? '',
+    severity: severityOf(e.row.downHrs ?? (e.row.downMin ?? 0) / 60, e.row.maintCode === 'NO DT'),
+  })),
+  codes: codes
+    .filter((c) => c.description.trim() !== '')
+    .map((c) => ({ code: c.code, label: c.description })),
+});
+
 /**
  * The log the engine prints for the 11 November workbook, newest first by the platform's Sr No: the gallery's stand-in
  * for `GET /analytics/figures`, so the screen runs on a real plant's thirteen hundred rows. A test holds it equal to the
  * engine's own output.
  */
-export function workbookFigures(rows: readonly WorkbookRow[]): FiguresPart {
+export function workbookFigures(
+  rows: readonly WorkbookRow[],
+  codes: readonly { code: string; description: string }[] = [],
+): FiguresPart {
   const entries = rows
     .filter((row) => row.srNo !== undefined)
     .map((row) => ({ row, srNo: row.srNo as number }))
@@ -84,6 +108,7 @@ export function workbookFigures(rows: readonly WorkbookRow[]): FiguresPart {
         charts: [],
       },
     ],
+    extra: extraOf(entries, codes),
   };
   const reply = keyReply('breakdown-log', 40, value);
   const [figure] = reply.figures;
@@ -103,7 +128,7 @@ export function workbookFigures(rows: readonly WorkbookRow[]): FiguresPart {
   };
 }
 
-const figures = workbookFigures(input.breakdowns as WorkbookRow[]);
+const figures = workbookFigures(input.breakdowns as WorkbookRow[], input.settings.codes);
 
 /** The gallery's Breakdown Log for one query: the live adapter over the workbook's log. */
 export const logFromWorkbook = (query: LogQuery) =>

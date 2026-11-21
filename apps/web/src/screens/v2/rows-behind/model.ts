@@ -1,5 +1,5 @@
 import type { DrillReply } from '@uptimo/shared/analytics';
-import { rowsBehindModel } from '../../../ui/v2/domain/rows-behind-adapter.js';
+import { rowsBehindModel, type LoadBasis } from '../../../ui/v2/domain/rows-behind-adapter.js';
 import type { RowsBehindModel } from '../../../ui/v2/domain/rows-behind.js';
 import { FIGURE_LABELS, unitOf } from '../../analytics/groups.js';
 import type { Translate } from '../figures/read.js';
@@ -41,10 +41,12 @@ export function rowsModel(
     machineCode: (id: string) => string | undefined;
     /** A part of a figure (one tile of a map) names itself and its value; the figure's own label and value stand otherwise. */
     named?: { label: string; value: string };
+    /** The energy figure's machines also print their connected and running load. */
+    load?: LoadBasis;
   },
   t: Translate,
 ): RowsBehindModel | null {
-  const { key, value, reply, asOf, machineCode, named } = input;
+  const { key, value, reply, asOf, machineCode, named, load } = input;
   return rowsBehindModel({
     figure: {
       key,
@@ -55,5 +57,6 @@ export function rowsModel(
     asOf,
     machineCode,
     words: rowsWords(t).adapter,
+    ...(load ? { load } : {}),
   });
 }

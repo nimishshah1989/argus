@@ -78,6 +78,15 @@ function reply(): FiguresReply {
               charts: [],
             },
           ],
+          // Beside the page, as the engine sends it: one entry per row in row order, and the plant's code list.
+          extra: {
+            rows: rows.map((row) => ({
+              supportedBy: '',
+              type: '',
+              severity: Number(row[8]) > 4 ? 'long' : Number(row[8]) > 1 ? 'watch' : '',
+            })),
+            codes: [],
+          },
         },
         // The engine sorts a figure's drill ids (as text), so by position they are not the rows' own tickets.
         drill: { type: 'ticket', ids: rows.map((_, at) => `fake-${at}`).sort() },

@@ -21,6 +21,8 @@ export type SelectFilter = {
   all: string;
   value: string;
   options: string[];
+  /** A filter with long options takes a capped width instead of the widest option's. */
+  compact?: boolean;
   /** How an option reads, when its value (what the server filters by) is not how it is said (a printed date). */
   labelOf?: (option: string) => string;
   onChange: (value: string) => void;
@@ -96,7 +98,12 @@ function Selects({ selects }: { selects: SelectFilter[] }) {
       {selects.map((s) => (
         <label key={s.key} className="v2-select-field">
           {s.label}
-          <select aria-label={s.label} value={s.value} onChange={(e) => s.onChange(e.target.value)}>
+          <select
+            aria-label={s.label}
+            data-compact={s.compact || undefined}
+            value={s.value}
+            onChange={(e) => s.onChange(e.target.value)}
+          >
             <option value="">{s.all}</option>
             {s.options.map((o) => (
               <option key={o} value={o}>

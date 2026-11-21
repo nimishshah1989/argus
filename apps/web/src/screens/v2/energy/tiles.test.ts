@@ -47,7 +47,9 @@ describe('an energy map', () => {
     expect(first.id).toBe('cell:1');
     expect(first.value).toBe('20.0');
     expect(first.unit).toBe('Connected KVA');
-    expect(first.lines).toEqual(['Running: 12.0 KVA', '2 machines', 'avg 10.0']);
+    // The running load is the second thing a tile says, then the count and the average.
+    expect(first.running).toBe('Running: 12.0 KVA');
+    expect(first.lines).toEqual(['2 machines', 'avg 10.0']);
   });
 
   it('shows a cell with no machines as a dash with its words, and does not open it', () => {
@@ -59,8 +61,34 @@ describe('an energy map', () => {
     expect(cell.tiles[0]!.drill).toBeDefined();
   });
 
-  it('opens nothing on the per-machine average map, which v1 never drilled', () => {
-    expect(model.grids[2]!.tiles.every((tile) => tile.drill === undefined)).toBe(true);
+  it('says KVA/machine on the per-machine map and opens the cell’s machines like the first map', () => {
+    const third = model.grids[2]!;
+    const [first, none] = third.tiles;
+    expect(first!.id).toBe('machine:1');
+    expect(first!.value).toBe('10.0');
+    expect(first!.unit).toBe('KVA/machine');
+    expect(first!.running).toBeUndefined();
+    expect(first!.drill?.figure).toBe(cell.tiles[0]!.drill?.figure);
+    expect(none!.drill).toBeUndefined();
+  });
+
+  it('puts the figures at the legend’s ends and the range of each step under it', () => {
+    const wide = energyModel(
+      withCells([bucket('1', 2, 36, 20), bucket('2', 1, 513, 400), bucket('3', 4, 100, 50)]),
+      realT,
+    )!;
+    const { scale } = wide.grids[0]!;
+    expect(scale?.low).toBe('Lighter load · 36.0 KVA');
+    expect(scale?.high).toBe('Heavier load · 513.0 KVA');
+    expect(scale?.steps).toHaveLength(5);
+    expect(scale?.steps[0]).toBe('36.0 to 131.4 KVA');
+    expect(scale?.steps[4]).toBe('417.6 to 513.0 KVA');
+    expect(wide.grids[2]!.scale?.low).toContain('KVA/machine');
+  });
+
+  it('has no legend numbers when no cell holds a machine', () => {
+    const empty = energyModel(withCells([bucket('1', 0, 0, 0)]), realT)!;
+    expect(empty.grids[0]!.scale).toBeUndefined();
   });
 });
 
