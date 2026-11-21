@@ -124,9 +124,11 @@
   box-shadow: var(--shadow-v2-raised);
   font-family: var(--font-v2-num);
   font-size: var(--text-v2-label);
-  white-space: nowrap;
+  width: max-content;
+  max-width: min(260px, calc(100vw - 32px));
+  overflow-wrap: anywhere;
   pointer-events: none;
-  transform: translate(12px, -110%);
+  transform: translate(calc(12px + var(--v2-tip-shift, 0px)), -110%);
   backdrop-filter: blur(10px);
 }
 .v2-bubble-empty {
@@ -153,7 +155,7 @@
   max-width: 100%;
 }
 
-/* Past the middle of the plot the tooltip opens to the left, so on a phone it never pushes the page sideways. */
+/* Past the middle of the plot the tooltip opens to the left; its width is capped and it is shifted back inside the window by what it measures (bubble-plot.tsx), so on a phone it never pushes the page sideways. */
 .v2-bubble-tip-left {
-  transform: translate(calc(-100% - 12px), -110%);
+  transform: translate(calc(-100% - 12px + var(--v2-tip-shift, 0px)), -110%);
 }

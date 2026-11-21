@@ -19,20 +19,29 @@ const figure = (key: string, value: unknown, drill: { type: string; ids: string[
   value,
   drill,
 });
-/** Bubbles the plant does not list, so each is a dash: the right-most sits at the far edge of the plot. */
-const POINTS = [
-  { x: 5, y: 2, r: 6, id: ids(10)[0], model: 'M1', age: '3 yrs', mttr: 2.5 },
-  { x: 40, y: 9, r: 12, id: ids(10)[1], model: 'M2', age: '12 yrs', mttr: 4.4 },
-  {
-    x: 310,
-    y: 20,
-    r: 20,
-    id: ids(10)[2],
-    model: 'M3 with a long model name',
-    age: '22 yrs',
-    mttr: 15.4,
-  },
-];
+/**
+ * Twelve machines spread over the whole plot, from the origin to the far edge, alternately of a type with a very long
+ * name and a short one: a tooltip is widest where the long type sits, wherever it sits.
+ */
+const LONG_TYPE = 'Vertical Double Column Machining Center';
+const POINTS = Array.from({ length: 12 }, (_, at) => ({
+  x: [3, 12, 25, 40, 60, 85, 110, 150, 190, 230, 270, 310][at]!,
+  y: [1, 6, 3, 14, 9, 22, 12, 30, 18, 8, 24, 20][at]!,
+  r: 6 + (at % 4) * 4,
+  id: ids(12)[at]!,
+  model: at % 2 === 0 ? 'Model with a rather long name 900 H' : 'M2',
+  age: `${3 + at} yrs`,
+  mttr: 2.5 + at,
+}));
+const MACHINES = POINTS.map((p, at) => ({
+  id: p.id,
+  code: `DCMC-${String(at + 1).padStart(2, '0')}`,
+  category: at % 2 === 0 ? LONG_TYPE : 'CNC Angular Grinding',
+  cell: `${(at % 3) + 1}`,
+  segment_id: null,
+  group_id: null,
+  criticality: 'B',
+}));
 
 async function stub(page: Page): Promise<void> {
   await mockPlant(page);
@@ -46,6 +55,25 @@ async function stub(page: Page): Promise<void> {
         counts: { open: 0, ack: 0, snoozed: 0, resolved: 0 },
         bySeverity: { high: 0, med: 0, low: 0, info: 0 },
         risk: [],
+      },
+    }),
+  );
+  await page.route('**/api/v1/config', (route: Route) =>
+    route.fulfill({
+      json: {
+        features: {},
+        language: 'en',
+        timeZone: 'Asia/Kolkata',
+        lists: {},
+        segments: [],
+        groups: [],
+        machines: MACHINES,
+        people: [],
+        shifts: [],
+        severityMatrix: {},
+        i18nOverrides: {},
+        slaPolicies: [],
+        fp: 'fp',
       },
     }),
   );
@@ -68,7 +96,7 @@ async function stub(page: Page): Promise<void> {
               axes: { x: 'BD hours', y: 'Breakdowns' },
               datasets: [{ label: 'Machines', data: POINTS }],
             },
-            { type: 'machine', ids: ids(3) },
+            { type: 'machine', ids: ids(POINTS.length) },
           ),
         ],
       },
@@ -83,14 +111,32 @@ async function open(page: Page, width: number): Promise<void> {
   await expect(
     page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true }),
   ).toBeVisible();
-  await expect(page.locator('.v2-bubble-dot')).toHaveCount(3);
+  await expect(page.locator('.v2-bubble-dot')).toHaveCount(POINTS.length);
 }
 
+/**
+ * Presses a point 14 px in from a card's bottom-left corner: inside the card, clear of its rounded corner and of its
+ * value button. It waits for the fonts, so a late font swap cannot move the card under the pointer, and presses through
+ * the card's own locator, which waits for the card to hold still and checks that the card (or something in it) is what
+ * the pointer lands on: a rail or a banner in the way fails the press with its name instead of a silent miss.
+ */
 const corner = async (page: Page, name: string) => {
-  const box = await page.getByRole('region', { name, exact: true }).boundingBox();
-  expect(box).not.toBeNull();
-  // 12 px in from the bottom-left corner: inside the card, nowhere near its value button.
-  await page.mouse.click(box!.x + 12, box!.y + box!.height - 12);
+  await page.evaluate(() => document.fonts.ready);
+  const card = page.getByRole('region', { name, exact: true });
+  await expect(card).toBeVisible();
+  const box = (await card.boundingBox())!;
+  const point = { x: 14, y: Math.max(14, box.height - 14) };
+  const button = await card.locator('.v2-drill-value').boundingBox();
+  if (button) {
+    const [x, y] = [box.x + point.x, box.y + point.y];
+    const onButton =
+      x >= button.x &&
+      x <= button.x + button.width &&
+      y >= button.y &&
+      y <= button.y + button.height;
+    expect(onButton, 'the press must not be on the value button itself').toBe(false);
+  }
+  await card.click({ position: point });
 };
 
 test('a card is one target: a press on its corner opens the rows behind its figure', async ({
@@ -141,14 +187,24 @@ test('the zoom stays when the page reads again, and a filter starts the picture 
   await expect(page.getByRole('button', { name: 'Reset zoom' })).toBeDisabled();
 });
 
-test('hovering the right-most bubble on a phone never makes the page wider', async ({ page }) => {
+test('hovering any bubble on a phone, long type names included, never makes the page wider', async ({
+  page,
+}) => {
   await open(page, 360);
-  const dot = page.locator('.v2-bubble-dot').last();
-  await dot.scrollIntoViewIfNeeded();
-  await dot.hover();
-  await expect(page.locator('.v2-bubble-tip')).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
-  const tip = (await page.locator('.v2-bubble-tip').boundingBox())!;
-  expect(tip.x).toBeGreaterThanOrEqual(0);
-  expect(tip.x + tip.width).toBeLessThanOrEqual(360);
+  const dots = page.locator('.v2-bubble-dot');
+  await dots.first().scrollIntoViewIfNeeded();
+  for (let at = 0; at < POINTS.length; at += 1) {
+    await dots.nth(at).hover();
+    const tip = page.locator('.v2-bubble-tip');
+    await expect(tip).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth), `bubble ${at}`).toBe(
+      360,
+    );
+    const box = (await tip.boundingBox())!;
+    expect(box.x, `bubble ${at} tooltip left edge`).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width, `bubble ${at} tooltip right edge`).toBeLessThanOrEqual(360);
+  }
+  // The long type is really in the tooltips this ran over.
+  await dots.first().hover();
+  await expect(page.locator('.v2-bubble-tip')).toContainText(LONG_TYPE);
 });

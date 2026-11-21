@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useReducer, useRef, useState, type PointerEvent } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  type PointerEvent,
+} from 'react';
 import { fullView, inside, ticks, type View } from './bubble-math.js';
 import { plotReducer } from './bubble-state.js';
 
@@ -35,6 +43,8 @@ export type BubbleWords = {
 const FACTOR = 0.7;
 /** Pointer movement, as a share of the plot, that turns a press into a drag. */
 const DRAG_SLOP = 0.004;
+/** The least space left between a tooltip and the window's edge, in pixels. */
+const TIP_MARGIN = 8;
 
 const place = (v: number, lo: number, hi: number) =>
   `${(((v - lo) / (hi - lo)) * 100).toFixed(2)}%`;
@@ -138,8 +148,21 @@ function Grid({ view }: { view: View }) {
  */
 function Tip({ dot, view }: { dot: BubbleDot; view: View }) {
   const left = (dot.x - view.x0) / (view.x1 - view.x0) > 0.5;
+  const box = useRef<HTMLDivElement>(null);
+  // Whatever side it opens on, a long line (a machine type's full name) must not leave the window: measure it, and
+  // shift it back by the overhang.
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    el.style.setProperty('--v2-tip-shift', '0px');
+    const r = el.getBoundingClientRect();
+    const edge = document.documentElement.clientWidth - TIP_MARGIN;
+    const shift = r.right > edge ? edge - r.right : r.left < TIP_MARGIN ? TIP_MARGIN - r.left : 0;
+    el.style.setProperty('--v2-tip-shift', `${shift}px`);
+  });
   return (
     <div
+      ref={box}
       className={left ? 'v2-bubble-tip v2-bubble-tip-left' : 'v2-bubble-tip'}
       style={{ left: place(dot.x, view.x0, view.x1), bottom: place(dot.y, view.y0, view.y1) }}
     >
