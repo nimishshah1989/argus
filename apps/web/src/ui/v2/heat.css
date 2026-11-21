@@ -137,6 +137,12 @@ button.v2-heat-tile:active {
 .v2-heat-line {
   font-size: var(--text-v2-label);
 }
+/* The unit sits under the figure, so a long unit ("Connected KVA") never wraps beside it. */
+.v2-heat-value .v2-heat-line {
+  display: block;
+  font-family: var(--font-v2-text);
+  font-weight: 400;
+}
 .v2-heat-run {
   font-family: var(--font-v2-num);
   font-size: var(--text-v2-secondary);

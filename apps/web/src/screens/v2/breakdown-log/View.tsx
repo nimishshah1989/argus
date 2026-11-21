@@ -86,7 +86,7 @@ function DoneBy({ row, words }: { row: LogRow; words: LogModel['words'] }) {
 function Hours({ row, words }: { row: LogRow; words: LogModel['words'] }) {
   if (row.severity === null) return <>{row.hours}</>;
   return (
-    <span className="v2-row v2-gap-6" data-severity={row.severity}>
+    <span className="v2-num-tag" data-severity={row.severity}>
       <KeyPill
         text={row.severity === 'long' ? words.long : words.watch}
         tone={row.severity === 'long' ? 'loss' : 'risk'}
@@ -103,15 +103,15 @@ function CodeBadge({ row, words }: { row: LogRow; words: LogModel['words'] }) {
   const meaning = row.codeLabel ?? '';
   const named = meaning === '' ? row.code : `${row.code}: ${meaning}`;
   return (
-    <span title={named}>
+    <div title={named}>
       <KeyPill
         text={row.code}
         tone={row.code === 'PM' ? 'plan' : 'neutral'}
         icon={row.code === 'PM' ? 'wrench' : undefined}
       />
       {meaning === '' ? null : <span className="v2-sr">{`: ${meaning}`}</span>}
-      {row.type === '' ? null : <span className="v2-sub">{` ${words.type} ${row.type}`}</span>}
-    </span>
+      {row.type === '' ? null : <div className="v2-sub">{`${words.type} ${row.type}`}</div>}
+    </div>
   );
 }
 
