@@ -9,8 +9,9 @@ import { sentence } from '../figures/point.js';
 import { dayText, sourceLine, type Translate } from '../figures/read.js';
 import { GROUPS, NO_VALUE, changeOfCard, dash, drillOf, kpiOf, label, valueOf } from './cards.js';
 import { changeOf } from '../../analytics/today-change.js';
-import type { ChartSpec } from '../../../ui/chart/use-chart.js';
 import type { ChartModel, DashboardFacts, DashboardModel, PlantMachine } from './model.js';
+import { bubbleOf } from './bubble.js';
+import { teamFocusOf } from './banners.js';
 import { bubblePoints, costliestOf, machinesTable, needsOf, warningOf } from './tables.js';
 import { needsNow } from './needs.js';
 
@@ -72,18 +73,11 @@ export function actionCenterOf(
         text: t('analytics.actionCenter.banner', { high: banner.high, medium: banner.medium }),
         open: t('analytics.actionCenter.banner.open'),
         href: ACTION_CENTER_PATH,
+        // Bhavin's banner turned urgent when any nudge is high priority; v1 called it the "watch" tone.
+        tone: banner.high > 0 ? 'loss' : 'neutral',
+        tag: banner.high > 0 ? t('v2d.ac.urgent') : null,
       }
     : null;
-}
-
-/** A point of the bubble chart is labelled by the machine's code; one the plant no longer lists is a dash, never its id. */
-function relabelled(spec: ChartSpec, plant: readonly PlantMachine[]): ChartSpec {
-  if (spec.kind !== 'scatter') return spec;
-  const codeOf = new Map(plant.map((m) => [m.id, m.code]));
-  return {
-    ...spec,
-    points: spec.points.map((p) => ({ ...p, label: codeOf.get(p.label) ?? NO_VALUE })),
-  };
 }
 
 /**
@@ -99,7 +93,23 @@ function chartsOf(reply: FiguresReply, plant: readonly PlantMachine[], t: Transl
     const figure = reply.figures.find((f) => f.key === dash(name));
     if (!figure) return [];
     const title = label(figure.key, t);
-    const content = figure.status === 'ready' ? contentOf(figure, t as unknown as TFunction) : null;
+    const drill = drillOf(figure, t);
+    const points = name === 'bubble-chart' ? bubblePoints(figure) : [];
+    if (name === 'bubble-chart' && points.length > 0)
+      return [
+        {
+          id: figure.key,
+          title,
+          bubble: bubbleOf(points, plant, t),
+          sub: t(sub),
+          aria: t(aria),
+          ...(drill ? { drill } : {}),
+        },
+      ];
+    const content =
+      figure.status === 'ready' && name !== 'bubble-chart'
+        ? contentOf(figure, t as unknown as TFunction)
+        : null;
     if (content?.kind !== 'chart')
       return [
         {
@@ -108,12 +118,11 @@ function chartsOf(reply: FiguresReply, plant: readonly PlantMachine[], t: Transl
           note: figure.status === 'ready' ? NO_VALUE : t('v2d.notComputed'),
         },
       ];
-    const drill = drillOf(figure, t);
     return [
       {
         id: figure.key,
         title,
-        spec: relabelled(content.spec, plant),
+        spec: content.spec,
         sub: t(sub),
         aria: t(aria),
         ...(drill ? { drill } : {}),
@@ -142,6 +151,7 @@ export function dashboardModel(facts: DashboardFacts, translate: Translate): Das
     id: group.id,
     title: t(group.title),
     sub: t(group.sub),
+    hero: group.hero,
     kpis: group.keys.flatMap((name) => {
       const figure = figureOf(dash(name));
       return figure ? [kpiOf(figure, earlier(dash(name)), ctx, t)] : [];
@@ -157,6 +167,7 @@ export function dashboardModel(facts: DashboardFacts, translate: Translate): Das
     ),
     needs,
     actionCenter: actionCenterOf(board, t),
+    teamFocus: teamFocusOf(reply, t),
     sections: sections.filter((s) => s.kpis.length > 0),
     costliest: costliest
       ? costliestOf(

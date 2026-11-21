@@ -26,6 +26,7 @@ const machines: PlantMachine[] = ENGINE_DATA.machines.map((m) => ({
   id: m.id,
   code: m.code,
   category: m.category ?? null,
+  cell: m.cell ?? null,
 }));
 const dashboardKeys = real.figures.filter((f) => f.screen === 'dashboard').map((f) => f.key);
 
@@ -322,9 +323,12 @@ describe('what the engine already knows and the page now says', () => {
   });
 
   it('draws the two pictures with a sentence for those who cannot see them', () => {
+    // The bubble chart is now the kit's own explorable plot (`bubble`), the timeline still a chart spec.
     const charts = model().charts;
-    const drawn = charts.flatMap((c) => ('spec' in c ? [c] : []));
-    expect(drawn.map((c) => c.spec.kind)).toEqual(['scatter', 'mixed']);
+    const drawn = charts.flatMap((c): { kind: string; aria: string; sub: string }[] =>
+      'spec' in c ? [{ ...c, kind: c.spec.kind }] : 'bubble' in c ? [{ ...c, kind: 'bubble' }] : [],
+    );
+    expect(drawn.map((c) => c.kind)).toEqual(['bubble', 'mixed']);
     expect(drawn.every((c) => c.aria.length > 20 && c.sub.length > 10)).toBe(true);
   });
 
@@ -360,21 +364,23 @@ describe('the page', () => {
     );
   const text = (markup: string) => markup.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
 
-  it('opens on the answer, then what needs you, then the figures in three groups, then the problems and the pictures', () => {
+  it('opens on the answer, the two banners, the headline figures, then what needs you, the other figures, the problems and the pictures', () => {
     const out = render(model({ open: { tickets: [breached()], now: NOW }, board: board(1, 0) }));
     const headings = [...out.matchAll(/<h2[^>]*>(.*?)<\/h2>/g)].map((h) => text(h[1]!).trim());
-    expect(headings.slice(0, 7)).toEqual([
-      'What needs you now',
+    expect(headings.slice(0, 9)).toEqual([
       'Action Center',
-      'How the plant is running',
+      'Team Focus',
+      'Breakdown overview',
+      'What needs you now',
       'Where the time goes',
-      'The fleet',
+      'Machine data',
       'Problems costing the most downtime',
       'Failing faster than before',
+      'Bubble chart',
     ]);
     expect(text(out)).toContain('Open items that need you now: 1.');
     expect(out).toContain('Records to 11-Nov-2026');
-    expect(out.match(/class="v2-card v2-kpi"/g)).toHaveLength(17);
+    expect(out.match(/class="v2-card v2-kpi[ "]/g)).toHaveLength(17);
   });
 
   it('shows ten rows of a longer table with the way to the rest', () => {
