@@ -228,6 +228,17 @@ describe('Team Focus live adapter (TF-2, ADR 0020)', () => {
     }
   });
 
+  it('counts an action with a status it does not know as open, never as closed', () => {
+    const actions = withNotes(focusActions(VALUE), {}).map((a, i) =>
+      i === 0 ? { ...a, status: 'x' } : a,
+    );
+    const odd = teamFocusModel(actions, '2026-11-20', realT);
+    const kpi = (id: string) => odd.kpis.find((k) => k.id === id)?.value;
+    expect(kpi('open')).toBe(String(actions.length));
+    expect(kpi('progress')).toBe('0%');
+    expect(odd.actions[0]).toMatchObject({ status: 'todo' });
+  });
+
   it('answers first: what is open and at stake, who owns nothing, how much is closed, the biggest still open', () => {
     expect(model.verdict).toEqual({
       context: 'Figures as of 20-Nov-2026 · the month’s plan · whole plant',
