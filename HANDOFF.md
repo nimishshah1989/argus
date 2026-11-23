@@ -1,5 +1,7 @@
 # HANDOFF
 
+> **24 Nov 03:15 — ADR 0016 (Nimish: yes to all):** Breakdown Log Excel keeps both ticket columns, screen + CSV show one (G1.2a unblocked); draft Shift KPIs + Energy wireframes for his approval; answer key stays frozen (ties ordered by date then ticket); budget 150k; helpers = `helper` (Sonnet), never general-purpose.
+
 > **Read ADR 0012 first.** Nimish is away; the loop runs unattended. Plan decides §6 (ADR each) except answer-key changes, production, money, irreversible data steps. **ADR 0015:** M1 closed without G1.2a and Shift KPIs/Energy G1.4.
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
