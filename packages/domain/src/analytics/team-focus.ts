@@ -370,6 +370,7 @@ export const teamFocusFigure: Computer = ({ data, asOf, profile }) => {
   const value = {
     screen: 'team-focus',
     asOf,
+    period: month.key,
     pages: [page],
     extra: actions.map((item) => printedAction(item, codes)),
   };

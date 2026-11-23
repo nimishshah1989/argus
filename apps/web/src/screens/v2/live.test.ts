@@ -22,6 +22,7 @@ describe('which v2 screens are live at their v1 address', () => {
       ['forecast-scorecard', 'forecast-lab'],
       ['breakdowns', 'breakdown-log'],
       ['pm', 'pm-calendar'],
+      ['today', 'data-checklist'],
       ['today', 'team-focus'],
     ] as const)
       expect(liveScreen(group, screen), `${group} ${screen}`).not.toBeNull();
@@ -62,6 +63,7 @@ describe('which v2 screens are live at their v1 address', () => {
       key('breakdowns', 'a1-bd-pm'),
       key('breakdowns', 'a2-category-cell'),
       key('breakdowns', 'a3-mttr-mtbf'),
+      key('today', 'data-checklist'),
       key('today', 'team-focus'),
     ];
     expect(new Set(keys).size).toBe(keys.length);

@@ -93,6 +93,9 @@ and "load" (we have job titles and per-person work minutes, but no rule for "ove
 
 ## 3. Data Checklist
 
+**Cleared by DC-2 (#578): live at `/analytics/today/checklist`.** Every MISSING and changed row below now reads same,
+changed or better in `scope/data-checklist.md`, with where each is. The table below is the original audit.
+
 v1: `DataChecklist.tsx`, `checklist-view.ts`; engine `data-checklist.ts` (16 groups, lines 14–31); e2e
 `analytics.spec.ts` 320–333; parity `m4a.data-checklist`. v2: `screens/v2/data-checklist/` (12 invented checks in
 `fixture-checks.ts`).
