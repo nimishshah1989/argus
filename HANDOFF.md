@@ -1,39 +1,47 @@
 # HANDOFF
 
-> **Read ADR 0012 first.** Nimish is away; the loop runs unattended. Everything moves to v2, v1 is deleted, the 97 MISSING coverage items get built. Plan decides §6 (ADR each) except answer-key changes, production, money, irreversible data steps.
+> **Read ADR 0012 first.** Nimish is away; the loop runs unattended. Plan decides §6 (ADR each) except answer-key changes, production, money, irreversible data steps. **ADR 0015:** M1 closes without G1.2a and Shift KPIs/Energy G1.4.
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-23 · **By:** Plan · **Model:** claude-opus-5-5
-**Milestone:** M1 Stabilise (building) · **Branch:** plan/handoff-551-in-ci · **PR:** #562
+**Milestone:** M1 Stabilise (finishing) · **Branch:** plan/handoff-m1-merges
 
 ## State
 
-- **#561 = ticket #551** (case clash): reviewer PASS; CI **browser (3/5) FAILED** (run 45213725452); read `--log-failed`.
-  Merge when green (`gh pr merge 561 --squash --delete-branch`, `loop clean 551`). Every local `loop finish` fails on
-  the 10 macOS case-clash tests until it merges.
-- #552 built once by Haiku (`.loop/wt/552`); `loop finish` failed only on those case-clash tests (attempt 1 of 3 burnt).
-  After #561 merges: merge main into `plan/t552` and the build folder, then `loop finish 552`.
-- #556 (G1.5): main merged in, fragment `changes/556-*.md`, full Argus body with "No parity:"; CI was running.
-- #558 now a ticket (size:small, ADR 0014: Team Focus `mixed`). Seed `plan/t558` = #557's G1.6 tests + main + visible
-  domain test (fails today with "Figure team-focus has a value but names no rows"). #557 closed into it.
-- Not built: #553 G1.2b, #554 Dashboard, #555 Problem Analysis, #558. Docker works on this Mac now.
+- Merged: #561 (G1.1), #564 (#558, G1.6, reviewer PASS).
+- #563 (#552 G1.3) and #565 (#553 G1.2b): seeds `plan/t552`/`plan/t553` were never pushed, so builders ran without tests or fragments.
+  Pushed and merged the seeds into both PR branches; Plan-base repointed to the seed tips; bodies rewritten. #565 reviewer PASS;
+  #563 reviewer FAIL was only the missing seed (code correct). Merge both when CI is green (`loop clean 552`/`553` after).
+- #556 (G1.5): CI was running; merge when green.
+- #554: rebuilt `--fresh` (Haiku, change done, tests pass); `loop finish 554` was chained after the build. Check for its PR;
+  then `gh pr edit --body-file` with the full Argus body (incl. `## Coverage`) and review.
+- #555: seed updated (main + coverage line), not rebuilt yet: `loop prep 555 --fresh`, `loop build 555`, `loop finish 555`.
 
 ## Next step
 
-1. #561: read the browser 3/5 failure (flake → rerun; real → Don't + rebuild). #556 merge when green. 2. #552 finish (above). 3. #558, #553 build. 4. #554/#555: on `plan/t<N>` (after main
-   is merged in, since #561 also edits `scope/dashboard.md`) add the dated "Coverage re-checked for ticket #N" line to
-   `docs/design/v2/scope/<screen>.md`; then prep/build/finish; `gh pr edit` with Argus body + `## Coverage` table.
+1. Merge #556, #563, #565 when green; ship #554, #555. Tick M1 goals in PROJECT.md (ADR 0015) and mark M1 done.
+2. Start M2: `to-spec` → `loop-ticket` for Compare (S15), Data Checklist (S16), Team Focus (S17); plus a ticket for
+   Shift KPIs + Energy gallery views and fixtures (snapshots then wait for Nimish).
 
 ## Blocked / open questions
 
 - **G1.2a needs Nimish:** duplicate ticket column is pinned by the frozen answer key (`workbook-export.json`, 30 cols).
-- **G1.4 Shift KPIs + Energy:** no gallery view and not on the shared fixture seam (`screens/v2/data.ts`), so no
-  wireframe snapshot is possible yet. Needs a ticket: gallery views + fixtures; then snapshot; then Nimish approves.
+- `docs/loop/handoff/g16-money-tests.md`: Compare shows "Spares cost ₹ 0" to every role as a placeholder — product call.
+- Follow-ups: `packages/domain/test/export-no-database-ids.test.ts:48` "PM Reports / Data" exemption is stale after #553;
+  `analytics-team-focus-no-drill.test.ts:85` should also assert drill ids `[]`.
+- **G1.4 Shift KPIs + Energy:** wireframes need Nimish's `loop approve` (none exist yet).
 - Nimish (old): branch protection; answer-key last digit; support tickets 0 downtime.
 
 ## Don't repeat
 
+- After seeding, `git push origin plan/t<N>` and check `git ls-remote origin plan/t<N>` before `loop prep`: prep silently builds without a missing seed.
+- `loop finish` writes a thin PR body (fails `quality:pr`) and overwrites a full one on re-finish: always `gh pr edit --body-file` after it.
+- Builder folders are hook-protected: to refresh one from a new seed use `loop prep <N> --fresh`, not a merge.
 - Hidden tests go in a `holdout/` folder under `tools/`, `apps/web/src/` or `apps/server/test/`; `tests/holdout/` never runs.
-- Bash with `>` redirects or a long inline `gh pr create --body` is denied; use Write + `--body-file`.
-- Plan PR bodies need "No parity: <reason>" under `## Reasons` or pr-meta fails.
+- Bash `>` redirects and long inline `gh pr create --body` are denied; use Write + `--body-file`.
+- 23 Nov 23:20: loop-guard no longer counts the per-PR `changes/` note against a ticket's size budget (#568, loop 0.7.5). Resume M1: #563, #565, #567.
+- An old build folder can't take main (guard blocks orchestrator and builder): `loop clean <N>`, sync `plan/t<N>`, `loop prep`.
+- Builders: stop hook nags for HANDOFF.md in build folders — ignore it; "checks not run" under Blocked fails `loop finish`.
+- `cd` into the main checkout + git write in one Bash call → guard says "you're on main"; use separate calls.
+- PR bodies need "No parity: <reason>" or pr-meta fails; builder handoff notes need Prettier.
