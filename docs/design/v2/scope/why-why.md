@@ -36,3 +36,5 @@ v1's Why-Why page has no chart and no figure tiles (the engine sends none), so t
 | How many candidates, how many done, how many waiting  | status column | yes (counted in the adapter from the engine's status) | built                                                 |
 | The longest candidate with its problem, as the answer | first row     | yes                                                   | built                                                 |
 | A Why-Why linked to a repeat check ("this came back") | PARITY: later | no                                                    | later: recurrence check on a candidate (needs server) |
+
+Coverage re-checked for ticket #551 (file renames only, no scope change): 2026-11-23.

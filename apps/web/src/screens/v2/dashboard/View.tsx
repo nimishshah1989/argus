@@ -15,7 +15,7 @@ import type { NavItem } from '../../../ui/v2/shell.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
 import { WhyToggle } from '../../../ui/v2/why-toggle.js';
 import { EntityShell } from '../entity/EntityShell.js';
-import { Bubble } from './Bubble.js';
+import { Bubble } from './BubbleChart.js';
 import type { CostliestModel, DashboardModel, NeedsModel, WarningModel } from './model.js';
 
 /** What needs a person now: the table of tickets, or the plain line that nothing does, or that it could not be read. */
