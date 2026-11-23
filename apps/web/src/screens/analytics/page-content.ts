@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
 import type { MessageKey } from '@uptimo/shared/i18n';
 import type { ChartSeries, ChartSpec } from '../../ui/chart/use-chart.js';
+import { withMeaning } from './chart-meanings.js';
 import { specialChart } from './forecast-charts.js';
 import { screenChart } from './screen-charts.js';
 import { printableOf, tableRows } from './page-table-rows.js';
@@ -330,7 +331,7 @@ function knownChart(chart: ObjectValue, t: TFunction, tables: readonly PageTable
 function pageChart(raw: unknown, t: TFunction, tables: readonly PageTable[]): ChartSpec[] {
   const chart = isObject(raw) ? raw : null;
   if (chart === null || typeof chart.id !== 'string') return [];
-  return knownChart(chart, t, tables);
+  return withMeaning(chart.id, knownChart(chart, t, tables));
 }
 
 function catalogueChart(

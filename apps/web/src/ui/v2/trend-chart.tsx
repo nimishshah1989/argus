@@ -38,13 +38,15 @@ export function TrendChart({ data }: { data: TrendData }) {
           <p className="v2-sub">{data.sub}</p>
         </div>
       </div>
-      <div
-        ref={ref}
-        className="v2-trend"
-        role="img"
-        aria-label={data.aria}
-        data-chart-state={state}
-      />
+      <div className="v2-trend-scroll" data-chart-scroll>
+        <div
+          ref={ref}
+          className="v2-trend"
+          role="img"
+          aria-label={data.aria}
+          data-chart-state={state}
+        />
+      </div>
     </section>
   );
 }

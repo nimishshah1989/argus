@@ -46,9 +46,16 @@ describe('chart axis titles', () => {
   });
 
   it('keeps the long labels of a horizontal bar clear: only the value axis is named', () => {
-    const asked = view({ ...bar, axisTitles: true, horizontal: true } as ChartSpec);
+    let asked = view({ ...bar, axisTitles: true, horizontal: true } as ChartSpec);
     expect(asked.xAxis?.name).toBe('Hours');
     expect(asked.yAxis?.name).toBeUndefined();
+    // The value axis title sits under the plot, so the plot leaves room for it.
+    expect(asked.grid?.bottom).toBe(36);
+    // The v1 chart's box cannot grow, so it keeps its old room.
+    asked = chartOption({ ...bar, axisTitles: true, horizontal: true } as ChartSpec, {
+      ...palette,
+      fixed: true,
+    }) as unknown as View;
     expect(asked.grid?.bottom).toBe(8);
   });
 });
