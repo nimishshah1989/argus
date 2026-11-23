@@ -15,7 +15,7 @@ import type { DataChecklistModel } from './model.js';
 import { screen } from './register.js';
 import { DataChecklistView } from './View.js';
 
-/** DC-2 (#578, ADR 0019): the v2 Data Checklist is the page at /analytics/today/checklist, on the live figures. */
+/** DC-2 (ticket 578, ADR 0019): the v2 Data Checklist is the page at /analytics/today/checklist, on the live figures. */
 const live = vi.hoisted(() => ({ reply: undefined as unknown }));
 vi.mock('../figures/live.js', async (actual) => ({
   ...(await actual<typeof import('../figures/live.js')>()),
