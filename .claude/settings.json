@@ -1,11 +1,5 @@
 {
   "extraKnownMarketplaces": {
-    "cursor-plugins": {
-      "source": {
-        "source": "github",
-        "repo": "cursor/plugins"
-      }
-    },
     "loop": {
       "source": {
         "source": "github",
@@ -14,26 +8,16 @@
     }
   },
   "enabledPlugins": {
-    "pstack@cursor-plugins": true,
     "loop@loop": true
   },
   "hooks": {
     "SessionStart": [
       {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/harness/hooks/session_start.py\"",
-            "timeout": 10
-          }
-        ]
-      },
-      {
         "matcher": "compact",
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/nimishshah/.local/bin/graphify hook-guard compact",
+            "command": "graphify hook-guard compact",
             "timeout": 10
           }
         ]
@@ -41,21 +25,11 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash|Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/harness/hooks/pre_tool.py\"",
-            "timeout": 10
-          }
-        ]
-      },
-      {
         "matcher": "Bash|Grep",
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/nimishshah/.local/bin/graphify hook-guard search",
+            "command": "graphify hook-guard search",
             "timeout": 10
           }
         ]
@@ -65,31 +39,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/nimishshah/.local/bin/graphify hook-guard read",
+            "command": "graphify hook-guard read",
             "timeout": 10
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/harness/hooks/post_edit.py\"",
-            "timeout": 90
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/harness/hooks/stop.py\"",
-            "timeout": 900
           }
         ]
       }
