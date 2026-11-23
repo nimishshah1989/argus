@@ -15,7 +15,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 ## Next step
 
-After Nimish reads PROJECT.md and runs `loop approve --all`: `loop-ticket` M1 (Stabilise) into GitHub Issues, starting
+First: `gh pr checks 547`; when green, `gh pr merge 547 --squash`. Then, after Nimish reads PROJECT.md and runs `loop approve --all`: `loop-ticket` M1 (Stabilise) into GitHub Issues, starting
 with G1.1 (case-clash guard + renames) so a Mac can run the checks.
 
 ## Blocked / open questions
