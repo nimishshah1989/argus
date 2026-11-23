@@ -1,41 +1,40 @@
 # HANDOFF
 
-> **23 Nov 19:45 — read ADR 0012 first.** Nimish is away; the loop runs unattended. Everything moves to v2 and v1 is deleted; the 97 MISSING coverage items get built in v2 (not waived); Plan decides PROJECT.md §6 itself (ADR per decision) except answer-key changes, production, money and irreversible data steps. Start M1, then the M2 coverage gap.
+> **Read ADR 0012 first.** Nimish is away; the loop runs unattended. Everything moves to v2, v1 is deleted, the 97 MISSING coverage items get built. Plan decides §6 (ADR each) except answer-key changes, production, money, irreversible data steps.
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-23 · **By:** Plan · **Model:** claude-opus-5-5
-**Milestone:** M1 Stabilise (ticketing in progress) · **Branch:** plan/adr-0013-open-questions · **PR:** #550
-
-> 23 Nov 20:05 — ADR 0013 closes two §6 questions (Compare keeps health score; M2 before M3). M1 tickets being written.
+**Milestone:** M1 Stabilise (tickets written, none built) · **Branch:** plan/adr-0013-open-questions · **PR:** #550
 
 ## State
 
-- Tests: CI on #546 (Linux): fast suite `pnpm exec vitest run packages/domain packages/shared apps/web/src tools`
-  307/307 test files pass; `pnpm typecheck` passes; `pnpm lint` passes (7 warnings). On macOS 8 tests and typecheck
-  fail (case-only file name clash, see LESSONS.md). Full Postgres suite and e2e run in `ci.yml` only (Docker).
-- Last thing done: adoption: PROJECT.md (as built, M1–M5), GLOSSARY.md, 19 screen snapshots in `design/wireframes/`,
-  `docs/loop/STATE-FOR-NIMISH.md`, ADR 0011. #546 (loop init) and #547 (adoption) merged; main = ee35dde8.
+- ADR 0013 (this PR): Compare keeps its health score/scorecard/tables in v2; M2 before M3. PROJECT.md §6 updated.
+- M1 tickets (seed branches pushed, not built): #551 G1.1 case-clash guard + renames (`plan/t551`, small);
+  #552 G1.3 cell-log CSV no ids (`plan/t552`, small); #553 G1.2b PM Reports Data codes not UUIDs (`plan/t553`, small).
+- #556 (plan PR): G1.5 fix, escalation test dates the roster at the breach moment; 49/49 at 17:59:30 UTC. Needs CI and
+  merge (may conflict on HANDOFF.md; keep this file).
+- G1.4 (Dashboard, Problem Analysis "Show the numbers") and G1.6 (no-money role tests): a planner subagent was still
+  writing them when the session ended. Check `gh issue list --label M1` and `git ls-remote origin 'plan/*'` first.
 
 ## Next step
 
-Waiting on Nimish: read `docs/loop/STATE-FOR-NIMISH.md` and PROJECT.md, answer §6, run `loop approve --all`. Then
-`loop-ticket` M1 (Stabilise) into GitHub Issues, starting with G1.1 (case-clash guard + renames) so a Mac can run the
-checks. Backend-only M1 tickets need no wireframe approval and may start before it.
+1. Fix builder permissions (below), then `loop prep 551/552/553` → builder-small → `loop finish` → CI → reviewer → merge.
+2. Ticket PRs need the Argus PR body (3 sections + Q1–Q16 + "Reasons"): `gh pr edit <pr> --body-file` after
+   `loop finish`; copy #550's body. Every PR must change HANDOFF.md (loop-guard).
 
 ## Blocked / open questions
 
-- Nimish: branch protection command (session permission refused), `.claude/settings.json` clean-up (4 old hook entries and
-  the `pstack@cursor-plugins` plugin; then delete `.claude/harness/`), the decisions in PROJECT.md §6.
-- `db/schema.sql` not dumped: needs a Postgres (`pnpm migrate` then `pg_dump --schema-only`).
+- **Builders have no shell:** the session runs in don't-ask mode; `builder-small` on #551 was denied Bash (planner
+  general-purpose subagents were allowed). Needs a Bash allow rule for builders; which rule is unverified.
+- **G1.2a needs Nimish:** the duplicate ticket column is in the Excel Breakdown Log sheet
+  (`packages/domain/src/exports/plant-sheets.ts` ~L105, `Ticket ID` + `Ticket No.`), which the frozen answer key
+  `fixtures/answer-key/workbook-export.json` requires (30 columns). The v2 screen export already has one column.
+- G1.4 for Shift KPIs and Energy: no wireframe yet; Plan writes them, Nimish approves.
+- Nimish (old): branch protection; answer-key last digit; support tickets 0 downtime.
 
 ## Don't repeat
 
-- Shell commands containing `>` plus an `apps/web/...` path trip the loop's frontend guard; run them without redirects.
-- `/gallery` sections (floor, board) and `?view=desktop` don't snapshot on staging (missing or behind sign-in).
-- Wireframes were made by `/tmp` Playwright scripts against the staging gallery; re-snapshotting changes the hash and
-  voids approval.
-
-## Files touched this session
-
-- HANDOFF.md only (state refresh after #547 merged).
+- Hidden tests go in a `holdout/` folder under `tools/`, `apps/web/src/` or `apps/server/test/`; `tests/holdout/` never runs.
+- Bash with `>` redirects or a long inline `gh pr create --body` is denied; use Write + `--body-file`.
+- Re-snapshotting wireframes changes the hash and voids approval.
