@@ -5,15 +5,17 @@
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-23 · **By:** Plan · **Model:** claude-opus-5-5
-**Milestone:** adoption done (next: M1 Stabilise) · **Branch:** plan/handoff-after-adopt · **PR:** the PR for this branch
+**Milestone:** M1 Stabilise · **Branch:** plan/escalation-clock-free · **PR:** the PR for this branch
 
 ## State
 
 - Tests: CI on #546 (Linux): fast suite `pnpm exec vitest run packages/domain packages/shared apps/web/src tools`
   307/307 test files pass; `pnpm typecheck` passes; `pnpm lint` passes (7 warnings). On macOS 8 tests and typecheck
   fail (case-only file name clash, see LESSONS.md). Full Postgres suite and e2e run in `ci.yml` only (Docker).
-- Last thing done: adoption: PROJECT.md (as built, M1–M5), GLOSSARY.md, 19 screen snapshots in `design/wireframes/`,
-  `docs/loop/STATE-FOR-NIMISH.md`, ADR 0011. #546 (loop init) and #547 (adoption) merged; main = ee35dde8.
+- Last thing done: G1.5 (plan PR, test-only): `apps/server/test/escalation.test.ts` dated its roster lines by the
+  wall clock, so a breach 31 min later fell on the next IST date between 17:59 and 18:30 UTC. Roster lines are now
+  dated at the breach moment. Proof: with the process clock shifted to 17:59:30 UTC the old file fails 1/49, the new
+  one passes 49/49; at real time 49/49. G1.1 ticketed as #551 (seed `plan/t551`).
 
 ## Next step
 
@@ -36,4 +38,4 @@ checks. Backend-only M1 tickets need no wireframe approval and may start before 
 
 ## Files touched this session
 
-- HANDOFF.md only (state refresh after #547 merged).
+- `apps/server/test/escalation.test.ts` (roster lines dated at the breach), `changes/902-escalation-clock-free.md`, HANDOFF.md.
