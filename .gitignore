@@ -49,3 +49,9 @@ graphify-out/
 
 # Extracted legacy workbooks live here; real names, never committed.
 .agents/data/
+.loop/
+*.graphify-bak
+__pycache__/
+.venv/
+.pytest_cache/
+.ruff_cache/

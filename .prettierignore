@@ -9,6 +9,10 @@ pnpm-lock.yaml
 .claude/docs
 .claude/vendor
 
+# Written by tools (the loop's init and `loop approve`, graphify), not by hand.
+.claude/settings.json
+design/approved.json
+
 # Canonical product docs are kept in their authored layout.
 docs/spec/SPEC.md
 docs/spec/DOMAIN.md

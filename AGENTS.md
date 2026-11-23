@@ -1,13 +1,5 @@
 # Instructions for AI coding agents
 
-For agents that read AGENTS.md (Codex, Cursor, OpenCode and others). The rules are the same for every agent:
-
-1. `CLAUDE.md`: how work is planned, built, reviewed and merged here (pstack, D23).
-2. `docs/plan/MILESTONES.md`: the one plan (68 tickets, goals, blockers, status).
-3. `docs/LEAN.md`: the anti-bloat ladder and hard budgets; `docs/QUALITY-BAR.md`: the senior scorecard.
-4. `docs/DATA-MAP.md`: read before any design. `docs/DESIGN.md`: for anything a person looks at.
-5. `docs/spec/SPEC.md`: the product source of truth; `docs/HANDOFF.md`: where things stand now.
-
-Where they name Claude-only tools (skills, hooks, plugins), follow their intent with the tools you have.
-
-Routing and budgets: `docs/decisions/D31-third-regime-routing-and-quality.md`. The instruction files here must not name build processes other than pstack; point at the decision instead.
+For agents that read AGENTS.md (Codex, Cursor, OpenCode and others): the rules are in `CLAUDE.md`. This repo runs the
+loop: `PROJECT.md` is the blueprint, `HANDOFF.md` is where the last session stopped, `GLOSSARY.md` holds the domain
+terms. Where those files name Claude-only tools, follow their intent with the tools you have.

@@ -1,0 +1,80 @@
+{
+  "test_command": "pnpm exec vitest run packages/domain packages/shared apps/web/src tools",
+  "typecheck_command": "pnpm typecheck",
+  "lint_command": "pnpm lint",
+  "coverage_command": "",
+  "setup_command": "pnpm install --frozen-lockfile",
+  "models": {
+    "small": "haiku",
+    "standard": "sonnet",
+    "plan": "opus",
+    "rescue": "fable"
+  },
+  "main_branches": ["main", "master"],
+  "protected": [
+    "PROJECT.md",
+    "CLAUDE.md",
+    ".loop.json",
+    "db/schema.sql",
+    "packages/db/migrations/**",
+    "docs/DESIGN.md",
+    "docs/design/v2/**",
+    "apps/web/src/ui/**",
+    "prisma/schema.prisma",
+    "**/schema.prisma",
+    "docs/adr/**",
+    ".github/workflows/**",
+    "design/**"
+  ],
+  "tests": [
+    "tests/**",
+    "test/**",
+    "**/__tests__/**",
+    "**/test_*.py",
+    "**/*_test.py",
+    "**/*.test.*",
+    "**/*.spec.*",
+    "**/*_test.go"
+  ],
+  "frontend": [
+    "app/**/*.tsx",
+    "src/app/**",
+    "src/components/**",
+    "src/pages/**",
+    "apps/web/**",
+    "components/**",
+    "**/*.tsx",
+    "**/*.jsx",
+    "**/*.vue",
+    "**/*.svelte",
+    "**/*.css"
+  ],
+  "token_files": ["design/**", "**/tokens.css", "**/brand.css"],
+  "brand_overridable": [
+    "--accent",
+    "--accent-2",
+    "--accent-soft",
+    "--accent-rule",
+    "--wash-1",
+    "--wash-2",
+    "--wash-3",
+    "--font-serif",
+    "--font-sans"
+  ],
+  "max_attempts": 3,
+  "default_budget": {
+    "files": 3,
+    "lines": 200
+  },
+  "holdout": ["tests/holdout/**", "**/holdout/**"],
+  "context_budget": 150000,
+  "release": {
+    "staging_migrate": "",
+    "staging_deploy": "",
+    "staging_smoke": "",
+    "prod_migrate": "",
+    "prod_deploy": "",
+    "prod_smoke": "",
+    "require_go": true
+  }
+}
