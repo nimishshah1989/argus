@@ -26,7 +26,8 @@ export interface FigureDef {
    * kind, or its counts can be honestly zero with no row behind them. The data checklist is the first (machine
    * records have no ticket to drill to); `pm-compliance` is the second (a window with no planned work order still
    * has a true answer, and no ticket to open); `dashboard.breakdown-free` is the third (a plant where every machine
-   * broke down in the last 30 days answers "0 of N" and has no breakdown-free machine to open).
+   * broke down in the last 30 days answers "0 of N" and has no breakdown-free machine to open); Team Focus is the
+   * fourth (its data-lane actions name no machine, so they travel in the value).
    */
   mixed?: true;
   /**
@@ -119,7 +120,7 @@ const DEFS: readonly FigureDef[] = [
   screen(42, 'forecast-lab', 'Forecast Lab', 'machine'),
   screen(43, 'compare', 'Compare machines and health score', 'machine'),
   moneyTile(43, 'compare', 'spares-cost', 'Compare: spares cost'),
-  screen(43, 'team-focus', 'Team Focus', 'machine'),
+  { ...screen(43, 'team-focus', 'Team Focus', 'machine'), mixed: true },
   moneyTile(43, 'team-focus', 'cost', 'Team Focus: cost'),
   { ...screen(43, 'money-matters', 'Money Matters', 'ticket'), money: true },
   screen(43, 'fix-finder', 'Fix Finder', 'ticket'),
