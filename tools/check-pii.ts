@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { closeSync, openSync, readFileSync, readSync } from 'node:fs';
+import { closeSync, existsSync, openSync, readFileSync, readSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
@@ -170,6 +170,8 @@ function isBinary(full: string): boolean {
 export function scanFiles(root: string, paths: string[], deny: DenyList): string[] {
   return paths.flatMap((path) => {
     const full = join(root, path);
+    // A loop build folder is a sparse checkout without the holdout tests; git still lists them.
+    if (!existsSync(full)) return [];
     return isBinary(full) ? [] : scanText(path, readFileSync(full, 'utf8'), deny);
   });
 }
