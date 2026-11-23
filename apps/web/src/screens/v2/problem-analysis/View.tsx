@@ -64,7 +64,7 @@ export function ProblemAnalysisView({
       </Panel>
       <Row cols={2}>
         {model.charts.map((chart) => (
-          <ChartCard key={chart.id} spec={chart.spec} sub={chart.sub} aria={chart.aria} />
+          <ChartCard key={chart.id} spec={chart.spec} sub={chart.sub} aria={chart.aria} numbers />
         ))}
       </Row>
       <Tables model={model} />

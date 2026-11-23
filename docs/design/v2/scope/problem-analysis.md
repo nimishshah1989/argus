@@ -37,3 +37,5 @@ the frozen engine answer `fixtures/answer-key/a10-problems.json`.
 | Repeat offenders open the machine drawer                                                 | repeat table                               | yes                           | built                                         |
 | Rupees the top problem costs                                                             | breakdown hours times throughput (profile) | yes for heads (Money Matters) | later: a money figure on this page, head-only |
 | "Failing faster" early warning for a problem group                                       | reliability trend                          | no                            | later: a trend per group                      |
+
+Coverage re-checked for ticket #555 (charts gain their "Show the numbers" tables; nothing removed): 2026-11-23.
