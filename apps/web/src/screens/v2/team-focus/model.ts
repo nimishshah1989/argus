@@ -25,6 +25,8 @@ export type ActionRow = {
   statusLabel: string;
   /** Breakdown hours a month it wins back: the engine's figure, and the number that sorts it. */
   hours: { shown: string; value: number };
+  /** The note the team saved against it; empty when there is none (ADR 0020). */
+  note: string;
 };
 
 /** One person and what they carry. */
@@ -34,7 +36,8 @@ export type PersonLoad = {
   open: number;
   hours: { shown: string; value: number };
   done: number;
-  load: Load;
+  /** Null while there is no rule for "overloaded" (ADR 0020 §5); the load cell then stays empty. */
+  load: Load | null;
   loadLabel: string;
 };
 

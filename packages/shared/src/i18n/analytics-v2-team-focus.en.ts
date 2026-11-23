@@ -1,0 +1,76 @@
+/**
+ * The v2 Team Focus (TF-2, ADR 0020): the words the live adapter prints around the engine's own action titles. Lane
+ * names, lane hints and the four status words keep v1's `analytics.teamFocus.*` keys. `{n}`, `{total}`, `{from}` and
+ * `{to}` are filled by the kit; `{{…}}` by the adapter.
+ */
+export const analyticsV2TeamFocusEn = {
+  'v2tf.why': 'Why?',
+  'v2tf.allOwned': 'Every open action has an owner.',
+  'v2tf.decisions.title': 'Needs an owner',
+  'v2tf.decisions.waiting': '{n} waiting · biggest first',
+  'v2tf.decisions.done': '{n} of {total} taken',
+  'v2tf.perMonth': 'a month',
+  'v2tf.perYear': 'a year',
+  'v2tf.last90': 'Last 90 days',
+  'v2tf.stripCaption': 'Breakdowns, last 90 days',
+  'v2tf.worth': 'What it wins back',
+  'v2tf.showing': '{from}–{to} of {total}',
+  'v2tf.open': 'Open',
+
+  'v2tf.people.title': 'Who is carrying what',
+  'v2tf.people.search_one': 'Search {{count}} person',
+  'v2tf.people.search_other': 'Search {{count}} people',
+  'v2tf.people.noResults': 'No one matches this filter.',
+  'v2tf.people.col.person': 'Person',
+  'v2tf.people.col.open': 'Open actions',
+  'v2tf.people.col.hours': 'Hours a month',
+  'v2tf.people.col.done': 'Closed',
+  'v2tf.people.col.load': 'Load',
+  'v2tf.people.filter.all': 'All',
+  'v2tf.people.filter.over': 'Overloaded',
+  'v2tf.people.filter.room': 'Has room',
+
+  'v2tf.actions.title': 'Every action this month',
+  'v2tf.actions.search_one': 'Search {{count}} action',
+  'v2tf.actions.search_other': 'Search {{count}} actions',
+  'v2tf.actions.noResults': 'No action matches this filter.',
+  'v2tf.actions.col.action': 'Action',
+  'v2tf.actions.col.owner': 'Owner',
+  'v2tf.actions.col.status': 'Status',
+  'v2tf.actions.col.hours': 'Hours a month',
+  'v2tf.actions.filter.all': 'All',
+  'v2tf.actions.filter.noOwner': 'No owner',
+  'v2tf.actions.filter.doing': 'In progress',
+  'v2tf.actions.filter.done': 'Done',
+  'v2tf.actions.noOwner': 'Nobody yet',
+
+  'v2tf.hours': '{{hours}} h',
+  'v2tf.noOwner': 'No owner',
+  'v2tf.ownerNone': 'Nobody owns it yet',
+  'v2tf.take': 'I’ll take it',
+  'v2tf.taken': 'Taken by you',
+
+  'v2tf.kpi.open.label': 'Open actions',
+  'v2tf.kpi.open.meaning': 'Planned work not yet done',
+  'v2tf.kpi.open.more': '{{doing}} in progress, {{todo}} not started',
+  'v2tf.kpi.stake.label': 'At stake a month',
+  'v2tf.kpi.stake.meaning': 'Breakdown hours a month the open actions win back',
+  'v2tf.kpi.stake.more': 'The engine’s hours at stake, added up over the open actions',
+  'v2tf.kpi.unowned.label': 'No owner yet',
+  'v2tf.kpi.unowned.meaning': 'Open actions nobody has taken',
+  'v2tf.kpi.unowned.more': 'The biggest: {{title}}',
+  'v2tf.kpi.unowned.none': 'Every open action has an owner',
+  'v2tf.kpi.progress.label': 'Done',
+  'v2tf.kpi.progress.meaning': 'Share of the month’s actions done or not needed',
+  'v2tf.kpi.progress.more': '{{done}} done, {{skip}} marked not needed',
+
+  'v2tf.context': 'Figures as of {{date}} · the month’s plan · whole plant',
+  'v2tf.headline': 'Open actions: {{open}}, {{hours}} a month at stake. No owner yet: {{unowned}}.',
+  'v2tf.headline.allClosed': 'Every action of the month is done or not needed.',
+  'v2tf.why.unowned':
+    '{{unowned}} of {{open}} open actions have no owner: {{hours}} a month waits for a name',
+  'v2tf.why.closed': '{{closed}} of {{total}} actions are done or not needed ({{pct}}%)',
+  'v2tf.why.biggest': 'The biggest still open: {{title}}, {{hours}} a month',
+  'v2tf.source':
+    'Figures as of {{date}} · source: the engine’s Team Focus plan and the notes your team saved',
+};
