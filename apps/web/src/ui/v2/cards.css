@@ -146,6 +146,29 @@
   width: 100%;
   min-height: 220px;
 }
+/*
+ * A chart with more category labels than its card is wide is given the width it needs and scrolls sideways inside its
+ * own card (never the page); the edge shadows and the scrollbar say there is more to see.
+ */
+.v2-trend-scroll {
+  min-width: 0;
+  overflow-x: hidden;
+  background:
+    linear-gradient(to right, var(--color-v2-panel) 30%, transparent) left / 24px 100% no-repeat
+      local,
+    linear-gradient(to left, var(--color-v2-panel) 30%, transparent) right / 24px 100% no-repeat
+      local,
+    linear-gradient(to right, var(--color-v2-line), transparent) left / 10px 100% no-repeat scroll,
+    linear-gradient(to left, var(--color-v2-line), transparent) right / 10px 100% no-repeat scroll;
+}
+/* Only a box the chart widened on purpose scrolls, and it is given a keyboard stop (tabindex) in the same step. */
+.v2-trend-scroll[tabindex] {
+  overflow-x: auto;
+}
+.v2-trend-scroll:focus-visible {
+  outline: 2px solid var(--color-v2-focus);
+  outline-offset: 2px;
+}
 /* ECharts builds the tooltip box before it first shows it; until then it has no style of its own, and stays hidden. */
 .v2-glass-tip:not([style]) {
   display: none;

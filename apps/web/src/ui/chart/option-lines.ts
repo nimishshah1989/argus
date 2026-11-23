@@ -1,4 +1,5 @@
-import { seriesColor, toneColor, type Palette } from './chart-palette.js';
+import { endLabelRoom, planOf, topValue } from './chart-labels.js';
+import { paintOf, type Palette } from './chart-palette.js';
 import {
   axisTooltip,
   baseOption,
@@ -6,25 +7,49 @@ import {
   drawOption,
   titledValueAxis,
   withTitleRoom,
+  withValueTitleRoom,
   type Option,
 } from './chart-parts.js';
-import type { LineSpec } from './chart-spec.js';
+import type { ChartSeries, LineSpec } from './chart-spec.js';
 
-/** Lines on one axis or two; an end label names each line, a legend does too when the spec asks. */
+/**
+ * How a line is drawn apart from its colour (UX-RULES 21). A loss is solid with round marks; planned and gain lines are
+ * dashed with triangles, so no two meanings differ by hue alone. A line with no meaning keeps the kit's own order: the
+ * first solid, the rest dashed, the marks alternating round and triangle.
+ */
+export function strokeOf(
+  s: Pick<ChartSeries, 'meaning'>,
+  index: number,
+): { symbol: 'circle' | 'triangle'; dashed: boolean } {
+  if (s.meaning === 'loss') return { symbol: 'circle', dashed: false };
+  if (s.meaning === 'planned' || s.meaning === 'gain') return { symbol: 'triangle', dashed: true };
+  return { symbol: index % 2 === 0 ? 'circle' : 'triangle', dashed: index > 0 };
+}
+
+/**
+ * Lines on one axis or two. An end label names each line, unless a legend does: with a legend the end labels are
+ * left off, because two lines that end close together print their names over each other and over the last point.
+ */
 export function lineOption(spec: LineSpec, p: Palette): Option {
-  const longest = Math.max(...spec.series.map((s) => s.name.length));
+  const names = spec.series.map((s) => s.name);
+  const room = endLabelRoom(names, p.width);
+  const natural = endLabelRoom(names);
   if (spec.secondAxis === true && spec.series.length !== 2)
     throw new Error(`secondAxis needs exactly 2 series, got ${spec.series.length}`);
   const secondAxis = spec.secondAxis === true;
-  const axis = titledValueAxis(spec.valueLabel, p);
+  const legend = spec.legend === true;
+  // The second axis has its own scale: only a single-axis chart's title is cleared of the tick numbers by its width.
+  const axis = titledValueAxis(spec.valueLabel, p, secondAxis ? undefined : topValue(spec.series));
   const base = baseOption(
     p,
-    16 + 7 * longest,
-    spec.legend === true,
+    legend ? 16 : 16 + room,
+    legend,
     spec.series.map((s) => s.name),
   );
+  const plan = planOf(spec, p.width);
+  const titled = spec.axisTitles ? withTitleRoom(base, plan.room) : base;
   return {
-    ...(spec.axisTitles ? withTitleRoom(base) : base),
+    ...(spec.valueLabel === undefined || secondAxis ? titled : withValueTitleRoom(titled)),
     ...drawOption(spec.draw),
     tooltip: spec.tooltipClass
       ? {
@@ -36,23 +61,29 @@ export function lineOption(spec: LineSpec, p: Palette): Option {
           extraCssText: 'box-shadow:none;',
         }
       : axisTooltip('line'),
-    xAxis: categoryAxis(spec.categories, p, spec.axisTitles ? spec.categoryLabel : undefined),
+    xAxis: categoryAxis(spec.categories, p, spec.axisTitles ? spec.categoryLabel : undefined, plan),
     yAxis: secondAxis ? [axis, { ...axis, splitLine: { show: false } }] : axis,
-    series: spec.series.map((s, i) => ({
-      type: 'line' as const,
-      name: s.name,
-      data: s.values,
-      color: toneColor(s.tone, p, seriesColor(p, i)),
-      ...(secondAxis && i === 1 ? { yAxisIndex: 1 } : {}),
-      symbol: (['circle', 'triangle'] as const)[i % 2],
-      symbolSize: 8,
-      showAllSymbol: true,
-      lineStyle: { width: 2, type: (i === 0 ? 'solid' : 'dashed') as 'solid' | 'dashed' },
-      endLabel: {
-        show: true,
-        formatter: '{a}',
-        color: toneColor(s.tone, p, seriesColor(p, i)),
-      },
-    })),
+    series: spec.series.map((s, i) => {
+      const stroke = strokeOf(s, i);
+      const color = paintOf(s, p, i);
+      return {
+        type: 'line' as const,
+        name: s.name,
+        data: s.values,
+        color,
+        ...(secondAxis && i === 1 ? { yAxisIndex: 1 } : {}),
+        symbol: stroke.symbol,
+        symbolSize: 8,
+        showAllSymbol: true,
+        lineStyle: { width: 2, type: stroke.dashed ? ('dashed' as const) : ('solid' as const) },
+        endLabel: {
+          show: !legend,
+          formatter: '{a}',
+          color,
+          // A name wider than the room kept for it wraps there.
+          ...(room < natural ? { width: room, overflow: 'break' as const } : {}),
+        },
+      };
+    }),
   };
 }

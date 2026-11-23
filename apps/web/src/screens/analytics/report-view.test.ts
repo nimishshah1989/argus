@@ -288,7 +288,7 @@ describe('the annual report screen', () => {
         title: 'Where the downtime comes from',
         categoryLabel: 'Machine',
         categories: pareto!.labels,
-        bars: [series[0]!],
+        bars: [{ ...series[0]!, meaning: 'loss' }],
         line: series[1]!,
       },
     ]);
