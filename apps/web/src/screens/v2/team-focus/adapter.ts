@@ -67,7 +67,7 @@ export function withNotes(
   });
 }
 
-const isOpen = (action: FocusAction) => action.status === 'open' || action.status === 'prog';
+const isOpen = (action: FocusAction) => action.status !== 'done' && action.status !== 'skip';
 /** Hours added up; rounded so a sum of two-place stakes never prints float dust. */
 const sumOf = (actions: readonly FocusAction[]) =>
   Math.round(actions.reduce((total, action) => total + action.stake, 0) * 100) / 100;
