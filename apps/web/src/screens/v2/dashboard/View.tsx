@@ -138,6 +138,7 @@ function Body({ model }: { model: DashboardModel }) {
             sub={chart.sub}
             aria={chart.aria}
             drill={chart.drill}
+            numbers
           />
         ) : 'bubble' in chart ? (
           <Bubble
