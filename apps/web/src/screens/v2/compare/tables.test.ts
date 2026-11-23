@@ -13,7 +13,7 @@ import type { CompareModel } from './model.js';
 import { CompareView } from './View.js';
 
 /**
- * Ticket 586 (ADR 0020 §3): Compare draws v1's six tables, whole, under the weekly chart — the engine's frozen page for
+ * Ticket 586 (ADR 0021 §3): Compare draws v1's six tables, whole, under the weekly chart — the engine's frozen page for
  * VC-28 and VC-22 through the shared `tablesOf`, as the live adapter will hand them over.
  */
 

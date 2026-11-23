@@ -25,7 +25,7 @@ export type CompareModel = {
   differences: { title: string; points: Point[]; action: string; doneText: string; done: boolean };
   trend: TrendData;
   /**
-   * v1's six tables, whole (ticket 586, ADR 0020 §3): scorecard, health checkup with the category average, specifications,
+   * v1's six tables, whole (ticket 586, ADR 0021 §3): scorecard, health checkup with the category average, specifications,
    * each machine's longest breakdowns, by shift — drawn under the weekly chart, each sortable and searchable. The live
    * model always has them; the gallery fixture has none.
    */
