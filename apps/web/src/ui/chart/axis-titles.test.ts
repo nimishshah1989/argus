@@ -51,8 +51,11 @@ describe('chart axis titles', () => {
     expect(asked.yAxis?.name).toBeUndefined();
     // The value axis title sits under the plot, so the plot leaves room for it.
     expect(asked.grid?.bottom).toBe(36);
-    // Without the titles asked for, the same chart keeps its old room.
-    asked = view({ ...bar, horizontal: true } as ChartSpec);
+    // The v1 chart's box cannot grow, so it keeps its old room.
+    asked = chartOption({ ...bar, axisTitles: true, horizontal: true } as ChartSpec, {
+      ...palette,
+      fixed: true,
+    }) as unknown as View;
     expect(asked.grid?.bottom).toBe(8);
   });
 });
