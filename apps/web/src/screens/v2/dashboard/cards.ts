@@ -21,23 +21,33 @@ export const NO_VALUE = '—';
 const ENGINE_DIGITS = 2;
 export const dash = (key: string) => `dashboard.${key}`;
 
-/** The three groups of cards, in the order v1 listed the figures; the picture and the table are drawn apart. */
+/**
+ * The three groups of cards, as Bhavin's page grouped them: the headline (breakdown overview, its lead figure first),
+ * where the time goes, and the machine data. The picture and the table are drawn apart.
+ */
 export const GROUPS = [
   {
     id: 'running',
     title: 'v2d.section.running',
     sub: 'v2d.section.running.sub',
-    keys: ['fleet-availability', 'plant-bd-pct', 'total-downtime-hours', 'total-breakdowns'],
+    hero: true,
+    keys: [
+      'fleet-availability',
+      'plant-bd-pct',
+      'total-downtime-hours',
+      'total-breakdowns',
+      'breakdown-free',
+    ],
   },
   {
     id: 'time',
     title: 'v2d.section.time',
     sub: 'v2d.section.time.sub',
+    hero: false,
     keys: [
       'pm-hours',
       'no-downtime-hours',
       'plant-events',
-      'breakdown-free',
       'avg-complaints-per-day',
       'avg-bd-hours-per-day',
       'avg-bd-hours-per-machine',
@@ -47,6 +57,7 @@ export const GROUPS = [
     id: 'fleet',
     title: 'v2d.section.fleet',
     sub: 'v2d.section.fleet.sub',
+    hero: false,
     keys: [
       'total-machines',
       'utilities',
@@ -57,6 +68,32 @@ export const GROUPS = [
     ],
   },
 ] as const;
+
+/**
+ * What kind of number each card holds, where its direction of good is KNOWN: availability is a gain, breakdown share,
+ * downtime and breakdown count are losses. PM hours and no-downtime hours stay neutral (which way is good for them is
+ * an open product question), and so does every count of machines.
+ */
+const TONE: Record<string, NonNullable<KpiData['tone']>> = {
+  'fleet-availability': 'gain',
+  'plant-bd-pct': 'loss',
+  'total-downtime-hours': 'loss',
+  'total-breakdowns': 'loss',
+};
+
+/** The lead figure of the headline group. */
+const HERO = 'fleet-availability';
+
+/** The register each count of machines opens: the Machines register's own page ids (the total has no page of its own). */
+const REGISTER: Record<string, string> = {
+  utilities: 'util',
+  'dg-sets': 'dg',
+  'cnc-machines': 'machines',
+  'conventional-machines': 'conv',
+  'process-machines': 'proc',
+};
+export const registerHref = (page: string) =>
+  `/analytics/machines?screen=registers&register=${page}`;
 
 const ICON: Record<string, IconName> = {
   'fleet-availability': 'gauge',
@@ -195,6 +232,39 @@ export function valueOf(
   };
 }
 
+/** The line on what a card means: what it covers and counts, and for no-downtime hours how many entries that is. */
+function meaningOf(figure: Figure, name: string, t: Translate): string {
+  const line = fill(t('v2d.line'), {
+    cover: t(COVER[name] ?? 'v2d.cover.log'),
+    what: t(WHAT[name] ?? ''),
+  });
+  return name === 'no-downtime-hours'
+    ? `${line} · ${fill(t('v2d.fig.no-downtime-hours.entries'), { n: figure.drill.ids.length })}`
+    : line;
+}
+
+/**
+ * What a card says about itself beyond its figure: the kind of number it is (where the direction of good is known), the
+ * lead figure's meter (the engine's percent, drawn), and the register a count of machines opens.
+ */
+function lookOf(figure: Figure, name: string, held: boolean, t: Translate): Partial<KpiData> {
+  const tone = TONE[name];
+  const register = REGISTER[name];
+  const scalar = scalarOf(figure);
+  const meter =
+    name === HERO && !held && scalar !== null && figureMeasure(figure.key).unit === 'percent'
+      ? scalar / 100
+      : undefined;
+  return {
+    ...(tone ? { tone } : {}),
+    ...(name === HERO ? { hero: true } : {}),
+    ...(meter === undefined ? {} : { meter }),
+    ...(register && !held
+      ? { link: { href: registerHref(register), label: t('v2d.link.register') } }
+      : {}),
+  };
+}
+
 /** One figure as a card: its value as the engine printed it, what it covers, its change and the rows behind it. */
 export function kpiOf(
   figure: Figure,
@@ -204,7 +274,6 @@ export function kpiOf(
 ): KpiData {
   const name = figure.key.replace(/^dashboard\./, '');
   const { value, held } = valueOf(figure, name, t);
-  const cover = t(COVER[name] ?? 'v2d.cover.log');
   const change = held ? undefined : changeOf(figure, prior, ctx.sameYear);
   const drill = held ? undefined : drillOf(figure, t);
   return {
@@ -213,10 +282,9 @@ export function kpiOf(
     icon: ICON[name] ?? 'machines',
     value,
     ...changeOfCard(change, ctx.priorDay, t),
-    meaning: held
-      ? t('v2d.notComputed')
-      : fill(t('v2d.line'), { cover, what: t(WHAT[name] ?? '') }),
+    meaning: held ? t('v2d.notComputed') : meaningOf(figure, name, t),
     more: held ? '' : t(MORE[name] ?? 'v2d.fig.count.more'),
     ...(drill ? { drill } : {}),
+    ...lookOf(figure, name, held, t),
   };
 }

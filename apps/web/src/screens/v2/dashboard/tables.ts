@@ -20,6 +20,9 @@ import { breachOf, clocksBreached, needsNow } from './needs.js';
 
 type Figure = FiguresReply['figures'][number];
 
+/** Problem Analysis, where the costliest problems are taken apart (the breakdowns section's own screen). */
+const PROBLEM_ANALYSIS_PATH = '/analytics/breakdowns?screen=a10-problems';
+
 const oneDecimal = new Intl.NumberFormat('en-IN', {
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
@@ -32,6 +35,8 @@ const twoDecimals = new Intl.NumberFormat('en-IN', {
 
 /** One row per problem: hours, share (a dash when the engine sent none) and breakdowns. */
 function costliestRows(rows: unknown[]): Cell[][] {
+  const hoursOf = (raw: unknown) => Number((raw as { hours?: unknown }).hours);
+  const longest = Math.max(0, ...rows.map(hoursOf).filter(Number.isFinite));
   return rows.flatMap((raw): Cell[][] => {
     const row = raw as {
       problem?: unknown;
@@ -46,7 +51,11 @@ function costliestRows(rows: unknown[]): Cell[][] {
     return [
       [
         { text: problem, sort: problem },
-        { text: oneDecimal.format(hours), sort: hours },
+        {
+          text: oneDecimal.format(hours),
+          sort: hours,
+          ...(longest > 0 ? { bar: hours / longest } : {}),
+        },
         { text: share === null ? NO_VALUE : `${twoDecimals.format(share)}%`, sort: share ?? -1 },
         { text: whole.format(Number(row.breakdowns)), sort: Number(row.breakdowns) },
       ],
@@ -103,6 +112,7 @@ export function costliestOf(
             words: { ...tableWords(commonWords(t), title, cells.length), sub },
           },
     ...(drill ? { drill } : {}),
+    link: { href: PROBLEM_ANALYSIS_PATH, label: t('v2d.costliest.link') },
   };
 }
 
@@ -110,6 +120,8 @@ export type BubblePoint = {
   id: string;
   x: number;
   y: number;
+  /** The bubble's radius as the engine sized it, in pixels. */
+  r: number;
   model: string | null;
   age: string | null;
   mttr: number | null;
@@ -129,6 +141,7 @@ export function bubblePoints(figure: Figure | undefined): BubblePoint[] {
           id: p.id,
           x,
           y,
+          r: Number.isFinite(Number(p.r)) ? Number(p.r) : 6,
           model: typeof p.model === 'string' ? p.model : null,
           age: typeof p.age === 'string' ? p.age : null,
           mttr: typeof p.mttr === 'number' && Number.isFinite(p.mttr) ? p.mttr : null,
@@ -286,6 +299,7 @@ export function warningOf(
     })
     .sort((a, b) => b.beta - a.beta);
   const shown = worse.slice(0, MOST_SHOWN);
+  const rest = worse.slice(MOST_SHOWN);
   const lead =
     worse.length === 0
       ? t('v2d.warn.none')
@@ -300,6 +314,16 @@ export function warningOf(
         { text: m.code, entity: machineChip(m.code, m.category ?? undefined) },
       ]),
     ],
+    more:
+      rest.length === 0
+        ? null
+        : {
+            label: fill(t('v2d.warn.more'), { n: rest.length }),
+            rest: rest.flatMap(({ m }) => [
+              { text: ' ' },
+              { text: m.code, entity: machineChip(m.code, m.category ?? undefined) },
+            ]),
+          },
     why: [[{ text: t('v2d.warn.why') }]],
     whyLabel: t('v2m.why'),
   };

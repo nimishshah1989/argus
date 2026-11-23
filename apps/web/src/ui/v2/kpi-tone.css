@@ -1,0 +1,118 @@
+/* KPI cards that are a way in, that say what kind of number they hold, and the lead card of a group (kpi-card.tsx). Tokens only. */
+
+.v2-kpi {
+  position: relative;
+  border-top: 3px solid var(--color-v2-line);
+}
+
+/* The whole card is the target: the value button, or the link at the foot, stretches to the card's edges. */
+.v2-kpi[data-open] {
+  cursor: pointer;
+}
+.v2-kpi[data-stretch='drill'] .v2-drill-value {
+  position: static;
+}
+.v2-kpi[data-stretch='drill'] .v2-drill-value::after,
+.v2-kpi[data-stretch='link'] .v2-kpi-link::after {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  content: '';
+}
+.v2-kpi[data-stretch='link'] .v2-drill-value {
+  z-index: 1;
+}
+/* A transform makes the button the containing block of its stretched target: while pressed the card's corner would
+   leave the button and no click would fire. The press shows on the card instead. */
+.v2-kpi[data-stretch='drill'] .v2-drill-value:active {
+  transform: none;
+}
+.v2-kpi[data-stretch='drill']:active {
+  box-shadow: var(--shadow-v2-rest);
+}
+.v2-kpi-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 6px;
+  font-size: var(--text-v2-label);
+  font-weight: 600;
+}
+
+/* Where the direction of good is known the card says what kind of number it is: a thin rule and a tinted icon. */
+.v2-kpi[data-tone='loss'] {
+  border-top-color: var(--color-v2-loss-fill);
+}
+.v2-kpi[data-tone='gain'] {
+  border-top-color: var(--color-v2-gain-fill);
+}
+.v2-kpi[data-tone='risk'] {
+  border-top-color: var(--color-v2-risk-fill);
+}
+.v2-kpi[data-tone='plan'] {
+  border-top-color: var(--color-v2-plan-fill);
+}
+.v2-kpi[data-tone='loss'] .v2-kpi-icon {
+  background: var(--color-v2-loss-tint);
+  color: var(--color-v2-loss);
+}
+.v2-kpi[data-tone='gain'] .v2-kpi-icon {
+  background: var(--color-v2-gain-tint);
+  color: var(--color-v2-gain);
+}
+.v2-kpi[data-tone='risk'] .v2-kpi-icon {
+  background: var(--color-v2-risk-tint);
+  color: var(--color-v2-risk);
+}
+.v2-kpi[data-tone='plan'] .v2-kpi-icon {
+  background: var(--color-v2-plan-tint);
+  color: var(--color-v2-plan);
+}
+
+/* The lead figure: twice as wide and as tall as the cards beside it, with a meter under the value. */
+.v2-grid-hero {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.v2-grid-hero > .v2-kpi-hero {
+  display: flex;
+  grid-column: span 2;
+  grid-row: span 2;
+  flex-direction: column;
+  justify-content: center;
+  padding: 24px var(--space-v2-pad);
+}
+.v2-kpi-meter {
+  height: 8px;
+  margin-top: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-v2-track);
+}
+.v2-kpi-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-v2-mark);
+}
+.v2-kpi[data-tone='gain'] .v2-kpi-meter > span {
+  background: var(--color-v2-gain-fill);
+}
+.v2-kpi[data-tone='loss'] .v2-kpi-meter > span {
+  background: var(--color-v2-loss-fill);
+}
+@media (max-width: 1180px) {
+  .v2-grid-hero {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .v2-grid-hero > .v2-kpi-hero {
+    grid-row: auto;
+  }
+}
+@media (max-width: 560px) {
+  .v2-grid-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .v2-grid-hero > .v2-kpi-hero {
+    grid-column: auto;
+  }
+}
