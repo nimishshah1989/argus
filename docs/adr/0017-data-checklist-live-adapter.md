@@ -45,6 +45,12 @@ tickets behind `bd_*` / `ww`, which the engine already names) and to the machine
 missing`), so v1's "names its date and machine" stays. A log gap has no machine; its entity is a `decision` chip
 labelled with the date range. DC-2's view must print that chip as text, not open a drawer.
 
+**Unregistered machine.** When a report fails `bd_mach` (its machine id is not in the register), every record of that
+report (`bd_*|<id>`, `ww|<id>`) gets a `decision` chip labelled `—` instead of a machine chip, and its machine is left
+out of the check's state chips. A chip must never carry an id nor drill to a machine that does not exist (review of
+#574). The record text keeps the engine's words, which name the id the import could not match: that is the fix the admin
+needs.
+
 ## Consequences
 
 DC-1 changes batch1 coverage rows to built in the adapter: the three section counts, the 11 MISSING checks, each

@@ -217,4 +217,24 @@ describe('Data Checklist live adapter (DC-1)', () => {
       },
     });
   });
+
+  it('never chips a machine the register does not know (bd_mach): a dash, no id, no drill', () => {
+    const LOST = 'f3c2a1d0-0000-4000-8000-00000000abcd';
+    const lost: ChecklistItem[] = [
+      { group: 'bd_mach', key: 'bd_mach|r9', plain: `12-11-2026 · ${LOST} — machine ID "${LOST}" not found` },
+      { group: 'bd_hrs', key: 'bd_hrs|r9', plain: `12-11-2026 · ${LOST} — downtime hours missing` },
+      { group: 'ww', key: 'ww|r9', plain: `12-11-2026 · ${LOST} — 9.0 hrs, Why-Why not done` },
+      { group: 'bd_hrs', key: 'bd_hrs|r1', plain: '10-11-2026 · VC-1 — downtime hours missing' },
+    ];
+    const m = checklistModel(lost, '2026-11-20', realT);
+    for (const id of ['bd_mach|r9', 'bd_hrs|r9', 'ww|r9']) {
+      const record = m.records.find((r) => r.id === id)!;
+      expect(record.entity).toEqual({ kind: 'decision', id, label: '—' });
+      expect(record.open).toEqual({ shown: '8 days', value: 8 });
+    }
+    const allChips = m.groups.flatMap((g) => g.checks.flatMap((c) => chips(c.state)));
+    expect(allChips).toEqual(['VC-1']);
+    expect(allChips.join(' ')).not.toContain(LOST);
+    expect(m.records.find((r) => r.id === 'bd_hrs|r1')!.entity.kind).toBe('machine');
+  });
 });
