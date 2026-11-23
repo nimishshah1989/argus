@@ -25,6 +25,7 @@ import {
 import { withTenant } from '../../kernel/index.js';
 import { requireAuth } from '../identity/index.js';
 import { actorOf, forbidden, plantToday, registerResource } from '../plant/index.js';
+import { registerFocusNoteRoutes } from './focus-notes.js';
 import { loadEngineData } from './load.js';
 import { registerNudgeRoutes, type NudgeBoardOf } from './nudges.js';
 import { profileResource, readProfile } from './profile.js';
@@ -167,6 +168,7 @@ function drillProblem(error: ZodError) {
 export function registerAnalyticsRoutes(app: FastifyInstance, pool: Pool): void {
   registerResource(app, pool, profileResource);
   registerNudgeRoutes(app, pool, boardOf);
+  registerFocusNoteRoutes(app, pool);
   app.get('/api/v1/analytics/figures', async (request, reply) => {
     const ctx = await requireAuth(pool, request, reply);
     if (!ctx) return;

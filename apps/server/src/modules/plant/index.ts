@@ -5,6 +5,7 @@ export {
   hasShifts,
   removeNudgeAck,
   saveNudgeAck,
+  selectFocusNotes,
   selectNudgeAck,
   selectNudgeAcks,
   setMachineCriticality,
