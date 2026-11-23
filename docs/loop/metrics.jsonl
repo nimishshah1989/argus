@@ -6,3 +6,7 @@
 {"issue": 572, "size": "standard", "model": "sonnet", "attempts": 3, "result": "pr", "ts": "2026-11-24T01:31:31"}
 {"issue": 578, "size": "standard", "model": "sonnet", "attempts": 2, "result": "pr", "ts": "2026-11-24T02:03:20"}
 {"issue": 579, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-24T02:55:02"}
+{"issue": 579, "size": "standard", "model": "sonnet", "attempts": 2, "result": "pr", "ts": "2026-11-24T03:27:52"}
+{"issue": 580, "size": "standard", "model": "sonnet", "attempts": 2, "result": "pr", "ts": "2026-11-24T03:58:37"}
+{"issue": 580, "size": "standard", "model": "sonnet", "attempts": 3, "result": "pr", "ts": "2026-11-24T04:13:47"}
+{"issue": 580, "size": "standard", "model": "sonnet", "attempts": 4, "result": "pr", "ts": "2026-11-24T04:50:08"}
