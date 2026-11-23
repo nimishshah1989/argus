@@ -1,5 +1,8 @@
 # Where things stand — handoff for the next session (human or model)
 
+> **Superseded on 23 Nov 2026 (ADR 0010, 0011):** the repo runs the loop. Current state is the root `HANDOFF.md`, the
+> blueprint and milestones are `PROJECT.md`. This page is kept as the record of the pstack sessions up to 21 Nov.
+
 **The one plan is `docs/plan/MILESTONES.md` (ticket 91 is the redesign); everything else is detail under it.** Read this, the tail of `docs/plan/ledger.md`, then `docs/slices/v2-build.md` (section 5) (queue, recipe, ready-to-paste briefs). `git log
 origin/main` and the PR list beat this text. As of 02:05 UTC, 21 Nov 2026. **Second orchestrator session running.** Staging deploys on every merge (`https://cosmos.3-108-95-203.sslip.io/api/v1/health` shows the commit).
 
