@@ -132,3 +132,5 @@ time between failures as headline cards, "PM on time", a machine "idle, no job l
 for Today (targets, a value per decision and job data are not collected), none was in v1, and none is printed.
 
 Coverage re-checked for ticket #551 (file renames only, no scope change): 2026-11-23.
+
+Coverage re-checked for ticket #554 (the chart gains its "Show the numbers" table; nothing removed): 2026-11-23.
