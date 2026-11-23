@@ -3,7 +3,7 @@
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-23 · **By:** Plan · **Model:** claude-opus-5-5
-**Milestone:** adoption (next: M1 Stabilise) · **Branch:** plan/loop-adopt · **PR:** the PR for this branch
+**Milestone:** adoption done (next: M1 Stabilise) · **Branch:** plan/handoff-after-adopt · **PR:** the PR for this branch
 
 ## State
 
@@ -11,12 +11,13 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
   307/307 test files pass; `pnpm typecheck` passes; `pnpm lint` passes (7 warnings). On macOS 8 tests and typecheck
   fail (case-only file name clash, see LESSONS.md). Full Postgres suite and e2e run in `ci.yml` only (Docker).
 - Last thing done: adoption: PROJECT.md (as built, M1–M5), GLOSSARY.md, 19 screen snapshots in `design/wireframes/`,
-  `docs/loop/STATE-FOR-NIMISH.md`, ADR 0011. #546 (loop init) merged.
+  `docs/loop/STATE-FOR-NIMISH.md`, ADR 0011. #546 (loop init) and #547 (adoption) merged; main = ee35dde8.
 
 ## Next step
 
-First: `gh pr checks 547`; when green, `gh pr merge 547 --squash`. Then, after Nimish reads PROJECT.md and runs `loop approve --all`: `loop-ticket` M1 (Stabilise) into GitHub Issues, starting
-with G1.1 (case-clash guard + renames) so a Mac can run the checks.
+Waiting on Nimish: read `docs/loop/STATE-FOR-NIMISH.md` and PROJECT.md, answer §6, run `loop approve --all`. Then
+`loop-ticket` M1 (Stabilise) into GitHub Issues, starting with G1.1 (case-clash guard + renames) so a Mac can run the
+checks. Backend-only M1 tickets need no wireframe approval and may start before it.
 
 ## Blocked / open questions
 
@@ -33,5 +34,4 @@ with G1.1 (case-clash guard + renames) so a Mac can run the checks.
 
 ## Files touched this session
 
-- PROJECT.md, GLOSSARY.md, LESSONS.md, HANDOFF.md, design/wireframes/S01–S19, docs/adr/0011, docs/loop/STATE-FOR-NIMISH.md,
-  docs/HANDOFF.md (superseded note), .prettierignore
+- HANDOFF.md only (state refresh after #547 merged).
