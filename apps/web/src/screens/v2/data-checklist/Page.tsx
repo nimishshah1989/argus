@@ -7,7 +7,7 @@ import type { DataChecklistModel } from './model.js';
 import { DataChecklistView } from './View.js';
 
 /**
- * The live Data Checklist inside `ModelPage` (DC-2, #578): `DataChecklistView` with each check's fix button wired by
+ * The live Data Checklist inside `ModelPage` (DC-2, ticket 578): `DataChecklistView` with each check's fix button wired by
  * `fixTarget(checkId, model.drill)` — a drill opens through `DrillOpenContext`, a path through `useNavigate()`. No Undo
  * (nothing stores a fix, ADR 0017 (e)).
  */

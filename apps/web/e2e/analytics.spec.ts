@@ -296,7 +296,7 @@ test('a head opens the analytics face, its Guide, and edits the plant profile', 
 });
 
 /**
- * The data checklist has its own route, a tab of Today: the v2 screen on the live figures (DC-2, #578), v1's tile
+ * The data checklist has its own route, a tab of Today: the v2 screen on the live figures (DC-2, ticket 578), v1's tile
  * gone. It counts every open item the engine computed, and opens the tickets behind the gaps in the drawer.
  */
 async function expectChecklist(page: Page, reply: FiguresReply) {

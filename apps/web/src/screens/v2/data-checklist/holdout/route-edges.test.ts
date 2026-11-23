@@ -8,7 +8,7 @@ import { realReply } from '../../figures/real-reply.js';
 import { liveScreen } from '../../live.js';
 import { screen } from '../register.js';
 
-/** DC-2 (#578) edges: the states v1 had, a figure that counted no tickets, and Today's other screens untouched. */
+/** DC-2 (ticket 578) edges: the states v1 had, a figure that counted no tickets, and Today's other screens untouched. */
 const live = vi.hoisted(() => ({ reply: undefined as unknown, offline: false }));
 vi.mock('../../figures/live.js', async (actual) => ({
   ...(await actual<typeof import('../../figures/live.js')>()),
