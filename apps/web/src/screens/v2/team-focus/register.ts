@@ -9,11 +9,12 @@ declare module '../data.js' {
 
 export const screen: ScreenEntry<'team-focus'> = {
   key: 'team-focus',
+  frozen: () => import('./fixture.js').then((m) => m.teamFocusFixture),
   provider: async (_, { client }) => {
     const [{ default: i18n }, { focusNotesQuery }, figures, live, { drillFor }] = await Promise.all(
       [
         import('i18next'),
-        import('../../../api.js'),
+        import('../../../api-team-focus.js'),
         import('../figures/live.js'),
         import('./live.js'),
         import('../rows-behind/drill.js'),

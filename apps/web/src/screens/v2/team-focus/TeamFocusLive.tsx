@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getMe, saveFocusNote, useAnalyticsFigures } from '../../../api.js';
+import { getMe, useAnalyticsFigures } from '../../../api.js';
+import { saveFocusNote } from '../../../api-team-focus.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
 import { shownName } from '../why-why/record.js';
 import { focusPeriod } from './live.js';
