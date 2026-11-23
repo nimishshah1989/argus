@@ -8,6 +8,7 @@ import {
 } from './analytics.js';
 import { boardTodayReplySchema } from './board.js';
 import { focusNotesReplySchema } from './team-focus-notes.js';
+import { compareReplySchema } from './compare-pair.js';
 import { signoffFeedReplySchema } from './signoff.js';
 import {
   actingChoicesReplySchema,
@@ -253,6 +254,7 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   [`POST ${P}/analytics/action-center/nudges/:key/ticket`]: nudgeTicketReplySchema,
   [`GET ${P}/analytics/team-focus/notes`]: focusNotesReplySchema,
   [`PUT ${P}/analytics/team-focus/notes`]: focusNotesReplySchema,
+  [`GET ${P}/analytics/compare`]: compareReplySchema,
   [`PUT ${P}/machines/:id/production-data`]: machineProductionReplySchema,
   [`GET ${P}/machines/:id/moves`]: z.array(machineMoveReplySchema),
   [`PATCH ${P}/machines/:id/moves/:moveId`]: z.object({ move: machineMoveReplySchema }).strict(),
