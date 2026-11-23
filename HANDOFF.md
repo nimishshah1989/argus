@@ -5,40 +5,35 @@
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-23 · **By:** Plan · **Model:** claude-opus-5-5
-**Milestone:** M1 Stabilise (building) · **Branch:** plan/local-checks-portable · **PR:** #560
+**Milestone:** M1 Stabilise (building) · **Branch:** plan/handoff-551-in-ci · **PR:** #562
 
 ## State
 
-- `loop build <N>` (builder as its own session) works unattended: #551 built by Haiku and committed. Its local
-  `loop finish` failed only on Mac-only checks; this PR fixes them (pii scan skips sparse-checkout holdout files;
-  `dump.sh` test skips on macOS, CI Linux still runs it). Remaining local fast-suite failures (6) are #551's case clash.
-
-- ADR 0013 (this PR): Compare keeps its health score/scorecard/tables in v2; M2 before M3. PROJECT.md §6 updated.
-- M1 tickets (seed branches pushed, not built): #551 G1.1 case-clash guard + renames (`plan/t551`, small);
-  #552 G1.3 cell-log CSV no ids (`plan/t552`, small); #553 G1.2b PM Reports Data codes not UUIDs (`plan/t553`, small).
-- #556 (plan PR): G1.5 fix, escalation test dates the roster at the breach moment; 49/49 at 17:59:30 UTC. Needs CI and
-  merge (may conflict on HANDOFF.md; keep this file).
-- G1.4: #554 Dashboard (`plan/t554`, small) and #555 Problem Analysis (`plan/t555`, small), one `numbers` prop each.
-  G1.6: plan PR #557 (tests only; no route leaks today); server tests unproven locally (no Docker), CI api shards decide.
-- Open (Plan may decide): Compare's non-money figure shows two "Spares cost" rows always `₹ 0` to every role
-  (`packages/domain/src/analytics/compare.ts` L98–99); move under `compare.spares-cost` or drop.
+- **#561 = ticket #551** (case clash): reviewer PASS; CI **browser (3/5) FAILED** (run 45213725452); read `--log-failed`.
+  Merge when green (`gh pr merge 561 --squash --delete-branch`, `loop clean 551`). Every local `loop finish` fails on
+  the 10 macOS case-clash tests until it merges.
+- #552 built once by Haiku (`.loop/wt/552`); `loop finish` failed only on those case-clash tests (attempt 1 of 3 burnt).
+  After #561 merges: merge main into `plan/t552` and the build folder, then `loop finish 552`.
+- #556 (G1.5): main merged in, fragment `changes/556-*.md`, full Argus body with "No parity:"; CI was running.
+- #558 now a ticket (size:small, ADR 0014: Team Focus `mixed`). Seed `plan/t558` = #557's G1.6 tests + main + visible
+  domain test (fails today with "Figure team-focus has a value but names no rows"). #557 closed into it.
+- Not built: #553 G1.2b, #554 Dashboard, #555 Problem Analysis, #558. Docker works on this Mac now.
 
 ## Next step
 
-1. Fix builder permissions (below), then `loop prep 551/552/553` → builder-small → `loop finish` → CI → reviewer → merge.
-2. Ticket PRs need the Argus PR body (3 sections + Q1–Q16 + "Reasons"): `gh pr edit <pr> --body-file` after
-   `loop finish`; copy #550's body. Every PR must change HANDOFF.md (loop-guard).
+1. #561: read the browser 3/5 failure (flake → rerun; real → Don't + rebuild). #556 merge when green. 2. #552 finish (above). 3. #558, #553 build. 4. #554/#555: on `plan/t<N>` (after main
+   is merged in, since #561 also edits `scope/dashboard.md`) add the dated "Coverage re-checked for ticket #N" line to
+   `docs/design/v2/scope/<screen>.md`; then prep/build/finish; `gh pr edit` with Argus body + `## Coverage` table.
 
 ## Blocked / open questions
 
-- **G1.2a needs Nimish:** the duplicate ticket column is in the Excel Breakdown Log sheet
-  (`packages/domain/src/exports/plant-sheets.ts` ~L105, `Ticket ID` + `Ticket No.`), which the frozen answer key
-  `fixtures/answer-key/workbook-export.json` requires (30 columns). The v2 screen export already has one column.
-- G1.4 for Shift KPIs and Energy: no wireframe yet; Plan writes them, Nimish approves.
+- **G1.2a needs Nimish:** duplicate ticket column is pinned by the frozen answer key (`workbook-export.json`, 30 cols).
+- **G1.4 Shift KPIs + Energy:** no gallery view and not on the shared fixture seam (`screens/v2/data.ts`), so no
+  wireframe snapshot is possible yet. Needs a ticket: gallery views + fixtures; then snapshot; then Nimish approves.
 - Nimish (old): branch protection; answer-key last digit; support tickets 0 downtime.
 
 ## Don't repeat
 
 - Hidden tests go in a `holdout/` folder under `tools/`, `apps/web/src/` or `apps/server/test/`; `tests/holdout/` never runs.
 - Bash with `>` redirects or a long inline `gh pr create --body` is denied; use Write + `--body-file`.
-- Re-snapshotting wireframes changes the hash and voids approval.
+- Plan PR bodies need "No parity: <reason>" under `## Reasons` or pr-meta fails.

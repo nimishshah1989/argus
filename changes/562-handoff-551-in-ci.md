@@ -1,0 +1,1 @@
+- Process: session handoff; ticket #551 (case-clash fix) is in CI as #561. Nothing changes for a plant user.
