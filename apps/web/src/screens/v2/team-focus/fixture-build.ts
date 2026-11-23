@@ -84,6 +84,7 @@ export function actionRows(raw: Raw[]): ActionRow[] {
     status: r.status,
     statusLabel: STATUS[r.status],
     hours: { shown: hoursText(r.tenths), value: r.tenths / 10 },
+    note: '',
   }));
 }
 
