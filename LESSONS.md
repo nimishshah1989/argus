@@ -28,3 +28,5 @@ _One line per failure, newest first. Written by the orchestrator whenever review
 
 - 2026-11-24 · spec · TF-1 seed added two routes but left `reply-contract.test.ts` at 152 → api red. Fix: a seed that adds routes bumps that count; a seed changed after a build goes in by `/tmp` PR-branch merge + new Plan-base, or `loop prep --fresh` (HANDOFF don't-repeat).
   | 2026-11-24 | process | Builders and plan PRs keep failing on Prettier/changelog for docs files | Tickets name `pnpm exec prettier --write docs/loop/handoff/<N>.md`; every PR carries `changes/<N>-*.md` |
+- 2026-11-24 · proof · loop-guard's raw-colour regex flagged `#578` in seed comments (3 hex digits) → #582 red. Fix: seeds write "ticket N", never `#N`, in code files (HANDOFF don't-repeat).
+- 2026-11-24 · spec · TF-2 seed touched `screens/v2/team-focus/tables.tsx` but its coverage file sat only in TF-3's seed → pr-meta red. Fix: any seed touching a v2 screen `.tsx` carries `scope/<screen>.md`.

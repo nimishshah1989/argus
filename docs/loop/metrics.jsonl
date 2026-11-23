@@ -4,3 +4,5 @@
 {"issue": 572, "size": "standard", "model": "sonnet", "attempts": 2, "result": "pr", "ts": "2026-11-24T00:40:11"}
 {"issue": 573, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-24T01:15:47"}
 {"issue": 572, "size": "standard", "model": "sonnet", "attempts": 3, "result": "pr", "ts": "2026-11-24T01:31:31"}
+{"issue": 578, "size": "standard", "model": "sonnet", "attempts": 2, "result": "pr", "ts": "2026-11-24T02:03:20"}
+{"issue": 579, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-24T02:55:02"}
