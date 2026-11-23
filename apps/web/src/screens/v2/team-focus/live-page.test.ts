@@ -137,10 +137,13 @@ describe('the live Team Focus page (TF-3)', () => {
   it('opens an owner from the chip: every action that owner has this month, nothing of anyone else', () => {
     const out = drawer(`person:${encodeURIComponent('owner:Meera K')}`);
     expect(out).toMatch(/<aside[^>]*aria-label="Meera K"/);
-    const said = text(out);
+    const aside = /<aside[\s\S]*?<\/aside>/.exec(out)?.[0] ?? '';
+    const said = text(aside);
     expect(said).toContain('What Meera K owns this month');
     expect(said).toContain(SPINDLE.title);
     expect(said).toContain(SAW.title);
     expect(said).not.toContain(COOLANT.title);
+    // the page's own table keeps listing every action of the month, not just this owner's
+    expect(text(out.replace(aside, ''))).toContain(COOLANT.title);
   });
 });
