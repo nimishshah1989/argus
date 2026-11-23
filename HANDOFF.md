@@ -14,8 +14,10 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
   #552 G1.3 cell-log CSV no ids (`plan/t552`, small); #553 G1.2b PM Reports Data codes not UUIDs (`plan/t553`, small).
 - #556 (plan PR): G1.5 fix, escalation test dates the roster at the breach moment; 49/49 at 17:59:30 UTC. Needs CI and
   merge (may conflict on HANDOFF.md; keep this file).
-- G1.4 (Dashboard, Problem Analysis "Show the numbers") and G1.6 (no-money role tests): a planner subagent was still
-  writing them when the session ended. Check `gh issue list --label M1` and `git ls-remote origin 'plan/*'` first.
+- G1.4: #554 Dashboard (`plan/t554`, small) and #555 Problem Analysis (`plan/t555`, small), one `numbers` prop each.
+  G1.6: plan PR #557 (tests only; no route leaks today); server tests unproven locally (no Docker), CI api shards decide.
+- Open (Plan may decide): Compare's non-money figure shows two "Spares cost" rows always `₹ 0` to every role
+  (`packages/domain/src/analytics/compare.ts` L98–99); move under `compare.spares-cost` or drop.
 
 ## Next step
 
