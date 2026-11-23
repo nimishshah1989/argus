@@ -23,7 +23,11 @@ import {
   type PmRescheduleReply,
 } from '@uptimo/shared';
 import type { BoardToday } from '@uptimo/shared/board';
-import type { FocusNoteBody, FocusNotesReply } from '@uptimo/shared/team-focus-notes';
+import {
+  focusNotesReplySchema,
+  type FocusNoteBody,
+  type FocusNotesReply,
+} from '@uptimo/shared/team-focus-notes';
 import { drillReplySchema, type DrillReply, type DrillType } from '@uptimo/shared/analytics';
 import type { User } from '@uptimo/shared/auth';
 import type {
@@ -223,16 +227,20 @@ export const saveWhyWhy = (ticketId: string, body: WhyWhyWrite): Promise<WhyWhyP
 export const focusNotesQuery = (period: string) => ({
   queryKey: ['team-focus-notes', period],
   queryFn: async (): Promise<FocusNotesReply> => {
-    void period;
-    throw new Error('not implemented');
+    return focusNotesReplySchema.parse(
+      await http('/api/v1/analytics/team-focus/notes?period=' + encodeURIComponent(period)),
+    );
   },
 });
 
 /** `PUT /analytics/team-focus/notes`: one action's note; the month's fresh notes answer, parsed. */
-export const saveFocusNote = async (body: FocusNoteBody): Promise<FocusNotesReply> => {
-  void body;
-  throw new Error('not implemented');
-};
+export const saveFocusNote = async (body: FocusNoteBody): Promise<FocusNotesReply> =>
+  focusNotesReplySchema.parse(
+    await http('/api/v1/analytics/team-focus/notes', {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  );
 
 /** `GET /board/signoff`: closed tickets still waiting for production, the longest wait first. */
 export const getSignoffFeed = (): Promise<SignoffFeed> => signoffFeed.one();

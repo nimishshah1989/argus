@@ -157,7 +157,8 @@ export type ModelKey =
   | 'bd-pm'
   | 'category-cell'
   | 'mttr-mtbf'
-  | 'data-checklist';
+  | 'data-checklist'
+  | 'team-focus';
 
 export type PageConfig<K extends ModelKey> = {
   entry: LiveEntry;
