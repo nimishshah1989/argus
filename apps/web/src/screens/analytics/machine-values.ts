@@ -203,7 +203,7 @@ export function cellLogCsv(
   ];
   const rows = moves.map((move) => [
     displayDay(move.date),
-    codeOf(move.machineId) ?? move.machineId,
+    codeOf(move.machineId) ?? '—',
     move.fromCell ?? '',
     move.toCell ?? '',
     move.fromLocation ?? '',
