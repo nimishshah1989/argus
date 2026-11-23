@@ -24,7 +24,7 @@ export const analyticsCompareEn = {
   'analytics.money.refusedBody':
     'The money figures are held back from this login; the analytics profile hides its money settings too. Ask a head or an admin to open this page.',
 
-  // v2 Compare, live (ticket 587, ADR 0020). `v2cmp.say.*` are sentence templates for `say()`: each single-brace
+  // v2 Compare, live (ticket 587, ADR 0021). `v2cmp.say.*` are sentence templates for `say()`: each single-brace
   // `{name}` becomes a chip or a toned segment. Every other key is an ordinary i18next string.
   'v2cmp.context': '{{date}} · this year so far · {{category}}',
   'v2cmp.say.headline': '{worse} loses {ratio} than {better} doing the same work.',

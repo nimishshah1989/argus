@@ -10,7 +10,7 @@ export type ComparedReply = CompareReply & {
 };
 
 /**
- * Everything the live Compare prints (ticket 587, ADR 0020 §2–5): verdict, picker, key figures, the two boxes,
+ * Everything the live Compare prints (ticket 587, ADR 0021 §2–5): verdict, picker, key figures, the two boxes,
  * "What is different", the weekly chart, v1's six tables and the source line, from the pair's years so far and the
  * engine's page. The rules are the ticket's "How it must behave"; every word is a `v2cmp.*` catalogue key.
  */

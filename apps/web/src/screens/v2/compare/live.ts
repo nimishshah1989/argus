@@ -3,7 +3,7 @@ import type { CompareReply } from '@uptimo/shared/compare-pair';
 import type { CompareModel, CompareParams } from './model.js';
 
 /**
- * Compare's live read (ticket 587, ADR 0020): `GET /api/v1/analytics/compare` for the asked pair, parsed with
+ * Compare's live read (ticket 587, ADR 0021): `GET /api/v1/analytics/compare` for the asked pair, parsed with
  * `compareReplySchema` at this boundary. An empty `a` or `b` asks for the engine's own pair (no query string at all);
  * otherwise `?a=<code>&b=<code>`, each `encodeURIComponent`-ed. Query key: `['analytics-compare', a, b]`.
  */

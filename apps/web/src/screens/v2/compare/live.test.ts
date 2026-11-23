@@ -13,7 +13,7 @@ vi.mock('../../../data/index.js', async (actual) => ({
 }));
 
 /**
- * Ticket 587 (ADR 0020 §2–5): the live Compare model from `GET /analytics/compare`. The page is the engine's frozen
+ * Ticket 587 (ADR 0021 §2–5): the live Compare model from `GET /analytics/compare`. The page is the engine's frozen
  * VC-28 / VC-22 page; the years are invented so every figure is easy to check by hand (rate ₹ 2,000 an hour).
  */
 
