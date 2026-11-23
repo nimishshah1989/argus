@@ -104,20 +104,20 @@ _Every later milestone is a vertical slice Nimish can click through. Goals are y
 - **Test gaps:** `apps/server/test/escalation.test.ts` fails between 17:59 and 18:30 UTC (wall clock); two flaky tests (`who-is-acting`, `sla-timers`) are allowed one re-run; no DOM test runner (reviews found bugs unit tests cannot see); the money rule has no per-screen test (a v2 rupee leak to every role was found by audit, not by a test).
 - **Developer machines:** on macOS, `Bubble.tsx`/`bubble.ts` and `Live.tsx`/`live.ts` clash by case, so typecheck and 8 fast tests fail on a Mac (6 from the clash, 2 backup-script tests not traced). Linux CI is green.
 
-### M1 — Stabilise · Not started
+### M1 — Stabilise · Done (2026-11-24; ADR 0015 carries G1.2a and Shift KPIs/Energy G1.4)
 
 - **Delivers:** the known bugs above fixed, so the redesign continues on solid ground. For users: correct exports and the missing "Show the numbers".
 - **Goals (yes/no):**
-  - [ ] G1.1 `pnpm typecheck` and the fast suite pass on macOS — test: a guard in `tools/` that fails when two files in `apps/` differ only by case.
-  - [ ] G1.2 Breakdown Log export has one ticket-number column and PM Reports Data shows codes, not UUIDs — test: export tests in `apps/web/src/screens/v2/breakdown-log/`.
-  - [ ] G1.3 Cell change log CSV never prints a database id — test: its CSV test.
-  - [ ] G1.4 "Show the numbers" on Shift KPIs, Energy, Problem Analysis and Dashboard charts — test: each screen's test finds the table behind each chart.
-  - [ ] G1.5 `escalation.test.ts` passes at any wall-clock time — test: run with the clock fixed at 18:00 UTC.
-  - [ ] G1.6 Rupees never reach a role without money rights on any v2 figures route — test: one server test per route with a no-money role.
+  - [x] G1.1 `pnpm typecheck` and the fast suite pass on macOS — test: a guard in `tools/` that fails when two files in `apps/` differ only by case.
+  - [~] G1.2 (b done #565; a waits for Nimish, ADR 0015) Breakdown Log export has one ticket-number column and PM Reports Data shows codes, not UUIDs — test: export tests in `apps/web/src/screens/v2/breakdown-log/`.
+  - [x] G1.3 Cell change log CSV never prints a database id — test: its CSV test.
+  - [~] G1.4 (Dashboard #567, Problem Analysis #569 done; Shift KPIs + Energy moved to M2) "Show the numbers" on Shift KPIs, Energy, Problem Analysis and Dashboard charts — test: each screen's test finds the table behind each chart.
+  - [x] G1.5 `escalation.test.ts` passes at any wall-clock time — test: run with the clock fixed at 18:00 UTC.
+  - [x] G1.6 Rupees never reach a role without money rights on any v2 figures route — test: one server test per route with a no-money role.
 - **Screens:** S01, S06 and the no-snapshot screens G1.4 touches (their wireframes first).
 - **Depends on:** M0.
 
-### M2 — Finish the analytics redesign · Not started
+### M2 — Finish the analytics redesign · Building
 
 - **Delivers:** Compare, Data Checklist and Team Focus live in v2 with clean coverage tables; then Money Matters, Monthly, Annual, Guide and Settings redesigned and live, each deleting its v1 page.
 - **Goals (yes/no):**
