@@ -1,94 +1,84 @@
-# How work is done here (pstack)
+# CLAUDE.md — this repo runs the loop
 
-Product spec: `docs/spec/SPEC.md`. Current state: `docs/HANDOFF.md` (read first). The one plan:
-`docs/plan/MILESTONES.md` (the road to v1, every ticket, its numeric goals, blockers and live status). Anti-bloat: `docs/LEAN.md` (400-line file, 60-line function, no
-new dependency without an ADR). Quality bar: `docs/QUALITY-BAR.md`. Data model: `docs/DATA-MAP.md`. Design:
-`docs/DESIGN.md`. Discovery in `docs/discovery/` is reference only, never code to copy.
+Personal rules (honesty, Karpathy, reuse, tokens) live in `~/.claude/CLAUDE.md`. This file is only how work happens here.
 
-## Model routing and budgets
+## 0. Start of every session
 
-Development and testing run on the hosted coder; goal drafting, planning, final review and compliance run on
-the reasoning model. The routes, the one-word route probe, the review tiers and the two hard budgets are fixed
-in `docs/decisions/D31-third-regime-routing-and-quality.md`. Never switch a model silently, never exceed a
-budget stop, and never let the writer review its own work.
+The SessionStart hook has already given you your role, HANDOFF.md, PROJECT.md §1–4, the current milestone and the wireframe approvals. Don't re-read them. State in 2 lines: the goal, and your first step. For code context, `graphify query "<question>"` before opening files.
 
-## Who decides
+## 1. Files (the whole memory system)
 
-- Nimish answers product and business questions only, and tests previews. Never ask him a technology question.
-  Settle a technical fork by running something (pstack's Prototype playbook), then report the choice.
-- Report to him in plain English: what changed for a user, what he can try, what you need him to decide.
+- `PROJECT.md` — locked blueprint: product, architecture, data model, screens, milestones with yes/no goals.
+- `db/schema.sql` (or ORM schema) — the data model as runnable code. `GLOSSARY.md` — domain terms; use them exactly.
+- `docs/adr/` — one file per decision and why. GitHub Issues — tickets from `to-tickets`.
+- `design/` — `tokens.css` + `DESIGN.md` (global kit, never edited here), `brand.css` (this project's ~20%), `wireframes/`, `approved.json` (Nimish's approvals).
+- `HANDOFF.md` — where the last session stopped. Overwritten and committed every session.
+- `LESSONS.md` — every failure, the layer it came from, and the durable fix. Corrections live in files, never only in chat.
 
-## The loop
+## 2. How work runs
 
-1. **Shape** (new feature or open product question): `grill-with-docs`, product questions only, then
-   `to-spec` and `to-tickets`. The existing backlog in `docs/plan/MILESTONES.md` is already shaped.
-2. **Build** one ticket: `/poteto-mode` with the ticket. It runs the Feature, Bug fix or Refactoring
-   playbook: understand (`how`), design from the data shape (`architect`), delegate code, verify on the real
-   surface, small ordered commits.
-3. **Review** the PR: `ponytail-review` on the diff, plus `/interrogate` when the ticket touches the
-   schema, auth or permissions, tenancy, or deletes or rewrites data. CI green + no blocking finding: merge.
-4. **Gate** each milestone: one short gate report (under 30 lines), then Nimish's go. CI already runs the full
-   suite on every PR; run `ponytail-audit` only when the milestone changed schema, auth or tenancy widely.
+Every session here is the loop. Nimish asks for something (or types `/loop:run`); the main session (Opus) follows the `loop-run` skill. He's needed only for product questions, `loop approve <screen>`, and escalations.
 
-## Rules that are not negotiable
+| Who                         | Model                | Does                                                                                                                          |
+| --------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| main session (orchestrator) | Opus                 | PROJECT.md, schema, ADRs, wireframes, tickets, skeletons, visible + hidden tests, merge decisions. Never writes product code. |
+| `builder` subagent          | Sonnet               | Builds one ticket in `.loop/wt/<N>/` until its tests pass                                                                     |
+| `builder-small` subagent    | Haiku                | Same, for tickets labelled `size:small`                                                                                       |
+| `reviewer` subagent         | Opus (fresh context) | PASS/FAIL review of a ticket PR                                                                                               |
+| `rescuer` subagent          | Fable                | One last try after 3 failed attempts, then escalate                                                                           |
 
-- Read `docs/DATA-MAP.md` before any design. A new table or module must say in the PR why an existing one does
-  not fit. Reusing or changing a shared table is normal work, not scope creep. The table budget is D17.
-- Tests check behaviour a user or caller can observe, never table or column names.
-- Never delete, skip or weaken a test to go green. A bug gets a failing test first, then a root-cause fix.
-- Modules talk only through their published interfaces (`pnpm boundaries`).
-- No secrets and no real personal data anywhere: code, tests, fixtures, screenshots, logs.
-- A migration that alters or deletes existing data needs a backup step run before it.
-- One build at a time per file area; at most five builders in parallel (two orchestrator lanes), each in its own worktree.
-- Pause for a person before anything irreversible: production deploys, data deletion, messages to customers.
-- When you catch an agent repeating a mistake, run `/correct` so a check blocks it next time.
-- **A redesign never reduces scope (Nimish, 20 Nov).** How a screen shows things may change; the detail, figures,
-  filters, drill-downs, exports, explanations and insights the plant had before (v1 and `docs/spec/SPEC.md`) may not
-  shrink, and each screen should say more than v1 could with the data we hold (rankings, comparisons, trends, early
-  warnings, causes, money). Every screen PR carries a coverage table (`docs/design/v2/COVERAGE.md`): each v1 and spec
-  item and where it lives in v2. "Not built" needs Nimish's written yes; neither a builder nor the orchestrator decides
-  it. A screen with a MISSING row does not pass its gate and does not go live.
-- **A v2 screen goes live in the PR that ships it, and its old v1 page is deleted in that same PR (Nimish, 20 Nov: he has
-  said this repeatedly).** No gallery-only screens, no "Old view" or classic link, no two copies, no dead code. The v1 code
-  (screen, helpers only it used, its route, its unit tests) goes; v1's e2e assertions are ported to the v2 screen, never
-  dropped. A screen is live only when its coverage table is clean; if a v1 feature needs a server or kit change, that
-  change is part of the same work, not a later ticket. The gallery is for kit demos and tests only.
+Build folders have no `tests/holdout/` (hidden tests); CI runs them. Hooks keep each role in its lane.
 
-## Orchestrating the plan
+## 3. Order (fixed)
 
-- **Frontier:** a ticket is ready when every ticket it is "Blocked by" is merged to `main`. Work the frontier;
-  at most three tickets at once, each in its own worktree, branch and PR, with write areas that do not overlap.
-  Schema-changing tickets run one at a time. Merges go one at a time: CI green, then merge.
-- **Parallel agents** do not message each other. They share the frozen interfaces in each slice plan
-  (`docs/slices/<issue>.md`), `main`, and the ledger (`docs/plan/ledger.md`, one line per dispatch, ruling or merge).
-- **Two lanes (Nimish, 14 Nov):** a frontend orchestrator (apps/web, infra, staging, MILESTONES, HANDOFF) with up
-  to three builders and a backend orchestrator (apps/server, packages, scripts) with up to two. One migration in
-  flight across both lanes: the backend lane asks the frontend lane for the lock. Backend work may run ahead of the
-  milestone gates on configurable defaults. Screens are built only from mockups Nimish approved (`docs/design/LOCK.md`).
-- **Gate:** when a milestone's tickets are merged, write `docs/plan/gates/<M>.md` (under 30 lines: goals met, the
-  evidence links, what Nimish checks), then stop for his go.
-- **Timebox:** a ticket reaches its PR in about an hour; past two, cut scope. Record every ruling in the ledger
-  (`Ruling: what, why, cost if wrong`).
-- **Resume:** read `docs/HANDOFF.md`, the ledger and `docs/plan/MILESTONES.md`; never re-dispatch a ticket the
-  tracker marks done. Start an orchestrator with: "Orchestrate `docs/plan/MILESTONES.md` per `CLAUDE.md`."
+1. **M0 = data model**: schema, migrations, invariant tests. Nothing else until it's merged.
+2. **Wireframes** for a milestone's screens → Nimish approves each with `loop approve <id>`. No frontend code before that; editing a wireframe voids its approval.
+3. Each milestone is a vertical slice (API → UI → tests) Nimish can click through.
+4. After his approval, `loop-release`: staging → his go → production → live check. Merged isn't done; live is done.
 
-## Git
+## 4. Building rules
 
-Work on a branch. Never push to main, never force-push, never `--no-verify`. One ticket per PR, with one
-`changes/<issue>-<slug>.md` fragment. The PR body says what changed for a user, which tests prove it, and how
-to try the preview. Before every push run `pnpm precheck`, except for a PR that touches only `apps/web`, `docs` and
-`changes/` (Nimish, 20 Nov: frontend checks stay light): then run `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm ui:check`,
-`pnpm pii:scan`, `pnpm changelog:check` and the tests you touched, and skip the rest (CI runs the full suite on the PR).
-Any change outside those folders gets the full `pnpm precheck`.
+- One ticket = one seed branch `plan/t<N>` (skeleton + tests, by the orchestrator) → one build branch → one PR, opened by `loop finish` with the ticket's `Budget:` and `Screens:` lines. CI fails PRs >20% over budget.
+- Never edit or delete a test to make it pass. 3 failed attempts → one Fable rescue → `escalated`, back to plan.
+- UI uses design tokens only (`var(--…)` / the Tailwind preset). No raw hex, rgb, or arbitrary `[..px]` values; CI rejects them.
+- Spec looks wrong mid-build → stop, write it under "Blocked" in `docs/loop/handoff/<N>.md`. Never quietly build something different.
+- Review passes and CI is green → the orchestrator merges and ticks the goal in PROJECT.md.
 
-## Memory
+## 5. Nothing important lives only in chat
 
-- `docs/HANDOFF.md`: where things stand, under 50 lines. Rewrite it when the state changes.
-- `wiki/`: one page per topic the code cannot say for itself; `wiki/log.md` is append-only.
-- Decisions: `docs/decisions/`, one short file each, with what was rejected and why.
-- `/recall` to pick up a session; `/ketchup` to catch Nimish up.
+- A decision made in conversation becomes an ADR in the same session. A new term goes in GLOSSARY.md. Progress goes in HANDOFF.md. If it isn't in a file, assume the next session won't know it.
+- One task per session. At the context budget (default 150k) the hook stops you: write the handoff and end; the next session continues from it.
 
-## Hooks (`.claude/harness/hooks/`)
+## 6. Proof, not opinion
 
-Session start loads the handoff. Before a tool runs, secrets, pushes to main, force-pushes, `--no-verify` and
-test deletion are blocked. Edits are formatted. Stop runs the fast tests when source files changed.
+Done means outside evidence: tests, CI, a working URL, a traced number. A model reviewing its own work is not a check. Anything you couldn't verify, list it as unverified.
+
+## 7. End of every session
+
+Overwrite HANDOFF.md from its template and commit it. New decisions → ADR. Update issue status. (Hooks won't let you stop with a stale handoff after committing; CI fails a PR without one.)
+
+## Enforcement you can't switch off
+
+Hooks + CI `loop-guard`: no commits to main, no `--no-verify`; protected files and existing tests are plan-only; approvals are Nimish-only; frontend needs approved wireframes; raw styles rejected; PROJECT.md/schema changes need an ADR; every PR leaves a handoff (HANDOFF.md, or `docs/loop/handoff/<N>.md` for ticket PRs). Blocked? Don't look for a way around it — write it down and stop.
+
+## Project specifics
+
+- **Stack:** TypeScript, pnpm 10.30.3 workspace, Node ≥24. `apps/server` Fastify 5 + raw SQL on `pg` + pg-boss jobs; `apps/web` React 19 + Vite, react-router, TanStack Query, ECharts, i18next (English + Gujarati); `packages/domain` (pure rules, analytics engine), `packages/shared` (contracts), `packages/db` (migrations + tenant helper).
+- **Commands:** setup `pnpm install --frozen-lockfile` · fast tests `pnpm exec vitest run packages/domain packages/shared apps/web/src tools` · full suite `pnpm test` (needs Docker: Testcontainers Postgres) · e2e `pnpm test:e2e` · `pnpm typecheck` · `pnpm lint` · all repo guards `pnpm precheck`.
+- **Folders:** schema truth `packages/db/migrations/*.sql`, applied in order by `pnpm migrate` (there is no `db/schema.sql`); server modules `apps/server/src/modules/<module>/`; v2 screens `apps/web/src/screens/v2/<screen>/{model.ts,View.tsx,fixture.ts}`; kit `apps/web/src/ui/` (tokens `apps/web/src/ui/tokens.css`); repo guards `tools/`; infra `infra/`; product docs `docs/` (spec `docs/spec/SPEC.md`, data `docs/DATA-MAP.md`, design `docs/DESIGN.md` + `docs/design/v2/`).
+- **Design system:** the repo's own (`docs/DESIGN.md`, `apps/web/src/ui/tokens.css`, the v2 kit), not the global kit. `pnpm ui:check` enforces kit-only screens.
+- **Data rules:** every table has `tenant_id` + row-level security in the same migration; never edit a merged migration (`pnpm migrations:immutable`); a migration that alters or deletes data needs a backup step first; modules talk only through published interfaces (`pnpm boundaries`); no secrets or real personal data anywhere (`pnpm pii:scan`, gitleaks).
+- **Screen rules (Nimish, 20 Nov):** a redesign never reduces scope — every v2 screen PR carries a coverage table (`docs/design/v2/COVERAGE.md`), and "not built" needs Nimish's written yes. A v2 screen goes live in the PR that ships it and deletes its v1 page in that same PR.
+- **Deploy:** merge to `main` deploys staging (`.github/workflows/deploy.yml`, AWS ap-south-1); health at `https://cosmos.3-108-95-203.sslip.io/api/v1/health`.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+
+- When graphify-out/graph.json exists, run `graphify query "<question>"` before your first grep, search or source-file read for a codebase question, and put this rule in every subagent prompt that explores code. Read raw files only for lines the graph or an earlier read already located. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+- A committed graphify-out/graph.json is rewritten whole on every build, so a large diff to it in a pull request is expected. Do not flag it as churn or suggest skipping the graph rebuild or its hooks.

@@ -11,3 +11,4 @@ One page per irreversible or expensive-to-reverse decision. Each records the con
 - `0007-claude-for-ai-and-onboarding.md` — Claude (option C) for AI features, with the data-protection note; a Claude session only to clean Cosmos's history
 - `0008-workbook-writer.md` — our own data-only xlsx writer (zipped OOXML), not SheetJS CE or ExcelJS
 - `0009-fullcalendar.md` — FullCalendar 7.1.5 (MIT), lazily loaded, for the PM calendar; the prototype and the no-dependency fallback
+- `0010-adopt-the-loop.md` — the build process moves from pstack to the loop; the repo's own design system stays

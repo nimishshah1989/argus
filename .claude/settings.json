@@ -5,10 +5,17 @@
         "source": "github",
         "repo": "cursor/plugins"
       }
+    },
+    "loop": {
+      "source": {
+        "source": "github",
+        "repo": "nimishshah1989/loop"
+      }
     }
   },
   "enabledPlugins": {
-    "pstack@cursor-plugins": true
+    "pstack@cursor-plugins": true,
+    "loop@loop": true
   },
   "hooks": {
     "SessionStart": [
@@ -17,6 +24,16 @@
           {
             "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/harness/hooks/session_start.py\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/nimishshah/.local/bin/graphify hook-guard compact",
             "timeout": 10
           }
         ]
@@ -29,6 +46,26 @@
           {
             "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/harness/hooks/pre_tool.py\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/nimishshah/.local/bin/graphify hook-guard search",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/nimishshah/.local/bin/graphify hook-guard read",
             "timeout": 10
           }
         ]

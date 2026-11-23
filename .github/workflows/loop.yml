@@ -1,0 +1,52 @@
+name: loop
+on:
+  pull_request:
+
+jobs:
+  guard:
+    name: loop-guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Enforce loop rules on this PR
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: python3 .github/loop/check_pr.py "origin/${{ github.base_ref }}" "${{ github.head_ref }}"
+
+  tests:
+    name: loop-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Runtime setup is picked from the files in the repo. Add services (Postgres…) here if needed.
+      - if: hashFiles('pyproject.toml', 'requirements*.txt') != ''
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - if: hashFiles('pyproject.toml', 'uv.lock') != ''
+        uses: astral-sh/setup-uv@v6
+      # Argus: pnpm 10.30.3 and Node 24, the same as ci.yml.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Setup — from .loop.json
+        run: bash -c "$(python3 -c 'import json; print(json.load(open(".loop.json")).get("setup_command") or "true")')"
+      - name: Tests (including hidden holdout tests), typecheck, lint, coverage — from .loop.json
+        run: |
+          python3 - <<'PY' > /tmp/loop_cmds.sh
+          import json, shlex
+          c = json.load(open(".loop.json"))
+          if not c.get("test_command"):
+              print('echo "::error::Set test_command in .loop.json"; exit 1')
+          for name in ("test_command", "typecheck_command", "lint_command", "coverage_command"):
+              cmd = c.get(name)
+              if cmd:
+                  print(f'echo "::group::{name}: {cmd}"; bash -c {shlex.quote(cmd)} || exit 1; echo "::endgroup::"')
+          PY
+          bash /tmp/loop_cmds.sh
