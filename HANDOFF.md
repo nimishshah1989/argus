@@ -11,7 +11,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 - Merged this session (reviewer PASS, CI green): **#574** DC-1 adapter (#572 closed), **#575** TF-1 notes server (#573 closed), #577 handoff.
 - **#578 DC-2** (Data Checklist goes live, deletes v1; ADR 0019 on seed `plan/t578`, rebased onto main at `bbd1905b`): attempt 1 failed only on Prettier of `docs/loop/handoff/578.md`; attempt 2 passed local checks → PR **#582**, CI red on loop-guard + pr-meta (not read yet; likely stale `Plan-base` (seed was rebased to `bbd1905b`) and the thin PR body). Fix body (copy #574), set `Plan-base: bbd1905b…`, empty commit from a `/tmp` worktree, `loop ci 582`, reviewer, merge.
-- **TF-2** (Team Focus screen reads/writes notes, deletes v1): a planner subagent was writing the issue + seed `plan/t<N>` when the session ended. Check `gh issue list --label M2` and `git ls-remote origin 'plan/t*'`; if missing or half-done, re-plan it (facts in git history of this file, 24 Nov evening).
+- **TF-2 #579** (adapter, not routed; seed `plan/t579` `acada198`, files<=5 lines<=320) and **TF-3 #580** (route + save status/owner/note + v1 delete; seed `plan/t580` `8f81206f` on top of t579, blocked by #579). ADR 0020 on the seeds. **Check first:** the planner says it _changed the answer-key test_ so the engine can publish `period` without regenerating the frozen key — answer-key changes are Nimish-only (ADR 0012); verify that test change doesn't weaken the key check before building #579. Overlaps with #582: i18n index, `live.tsx`, `live-frame.tsx`, `live.test.ts`, `today-tabs.test.ts`, `Analytics.tsx` (keep both sides). Open: Dashboard banner counts all actions open; overload/suggested-owner rules need Nimish.
 
 ## Next step
 
