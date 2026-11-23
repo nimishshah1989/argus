@@ -3,6 +3,7 @@ import { useContext } from 'react';
 import { DataTable, type Column, type FilterChip } from '../../../ui/v2/data-table.js';
 import { CheckRow } from '../../../ui/v2/domain/check-row.js';
 import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
+import { DrillAction } from '../../../ui/v2/drill-action.js';
 import { EntityChip, EntityOpenContext } from '../../../ui/v2/entity-chip.js';
 import { KpiCard } from '../../../ui/v2/kpi-card.js';
 import { Panel } from '../../../ui/v2/panel.js';
@@ -71,7 +72,7 @@ function recordColumns(words: DataChecklistWords['records']): Column<RecordRow>[
       sortBy: (r) => r.entity.id,
       cell: (r) => (
         <div className="v2-who">
-          <EntityChip {...r.entity} />
+          {r.entity.kind === 'decision' ? r.entity.label : <EntityChip {...r.entity} />}
           <div className="v2-who-name">{r.what}</div>
         </div>
       ),
@@ -105,6 +106,7 @@ function Body({ model, act }: { model: DataChecklistModel; act: Acts }) {
   return (
     <>
       <Verdict verdict={model.verdict} whyLabel={words.why} />
+      {model.drill ? <DrillAction drill={model.drill} /> : null}
       <Row cols={4}>
         {model.kpis.map((k) => (
           <KpiCard key={k.id} kpi={k} />
@@ -125,7 +127,9 @@ function Body({ model, act }: { model: DataChecklistModel; act: Acts }) {
         text={(r) => `${r.entity.label} ${r.what} ${r.area.label} ${r.owner.label}`}
         words={words.records}
         initialSort={{ key: 'open', dir: 'desc' }}
-        onOpen={(r) => open({ kind: r.entity.kind, id: r.entity.id })}
+        onOpen={(r) => {
+          if (r.entity.kind !== 'decision') open({ kind: r.entity.kind, id: r.entity.id });
+        }}
       />
       <Panel title={words.passingTitle} sub={words.passingSub}>
         <Points points={model.passing} />

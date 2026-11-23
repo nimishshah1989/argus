@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 import type { ScreenEntry } from '../data.js';
 import type { DataChecklistModel } from './model.js';
 
@@ -13,6 +14,12 @@ declare module '../data.js' {
  */
 export const screen: ScreenEntry<'data-checklist'> = {
   key: 'data-checklist',
-  provider: () => Promise.reject(new Error('not built: DC-2 live provider (#578)')),
+  provider: async (_query, { client }) => {
+    const [{ liveReply }, { liveChecklist }] = await Promise.all([
+      import('../figures/live.js'),
+      import('./live.js'),
+    ]);
+    return liveChecklist(await liveReply(client), i18n.t.bind(i18n));
+  },
   frozen: () => import('./fixture.js').then((m) => m.dataChecklistFixture),
 };
