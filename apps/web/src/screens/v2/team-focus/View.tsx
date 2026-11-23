@@ -13,15 +13,9 @@ import type { NavItem } from '../../../ui/v2/shell.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
 import { EntityShell } from '../entity/EntityShell.js';
 import { useEntityParam } from '../entity/url.js';
-import { OWNER_PREFIX } from './adapter.js';
 import { localAction, type Acts } from './local.js';
 import type { TeamFocusActions, TeamFocusModel } from './model.js';
 import { ActionTable, PeopleTable } from './tables.js';
-import { ownerRows } from './writes.js';
-
-/** What an open person drawer narrows the list to: an owner's actions; a real person (not free text) narrows nothing. */
-const ownerRowsOr = (model: TeamFocusModel, id: string) =>
-  id.startsWith(OWNER_PREFIX) ? ownerRows(model, id) : model.actions;
 
 const ignore = () => {};
 
@@ -86,12 +80,7 @@ function Body({ model, act }: { model: TeamFocusModel; act: Acts }) {
       ) : (
         <PeopleTable people={model.people} words={words.people} {...person} />
       )}
-      {/* An open owner narrows the list to what they hold; any other drawer leaves it whole. */}
-      <ActionTable
-        actions={current?.kind === 'person' ? ownerRowsOr(model, current.id) : model.actions}
-        words={words.actions}
-        {...machine}
-      />
+      <ActionTable actions={model.actions} words={words.actions} {...machine} />
       {model.drill ? (
         <div>
           <DrillAction drill={model.drill} />

@@ -109,7 +109,7 @@ export function ActionDetail({
         {tally ? <p className="v2-sub">{t('analytics.teamFocus.openOf', tally)}</p> : null}
       </DetailSection>
       {canSave ? (
-        <EditForm key={`${row.status}|${row.owner?.label}|${row.note}`} row={row} onSave={onSave} />
+        <EditForm key={row.id} row={row} onSave={onSave} />
       ) : (
         <p className="v2-sub">{t('v2tf.edit.noMonth')}</p>
       )}

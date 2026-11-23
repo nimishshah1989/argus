@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getMe, useAnalyticsFigures } from '../../../api.js';
 import { saveFocusNote } from '../../../api-team-focus.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
@@ -14,6 +16,7 @@ import { noteBody } from './writes.js';
  */
 export function TeamFocusLive(props: { model: TeamFocusModel; nav: NavItem[]; title: string }) {
   const { model } = props;
+  const { t } = useTranslation();
   const client = useQueryClient();
   const user = useQuery({ queryKey: ['me'], queryFn: getMe }).data?.user;
   const figures = useAnalyticsFigures().data;
@@ -30,13 +33,28 @@ export function TeamFocusLive(props: { model: TeamFocusModel; nav: NavItem[]; ti
     const body = period === null ? null : noteBody(model, period, id, change);
     if (body !== null) await save.mutateAsync(body);
   };
+  // The one-click owner changes have no form to say Could not save, so the page does.
+  const [failed, setFailed] = useState(false);
+  const quick = (id: string, owner: string) => {
+    setFailed(false);
+    onSave(id, { owner }).catch(() => setFailed(true));
+  };
+  const name = shownName(user);
   return (
-    <TeamFocusView
-      {...props}
-      canSave={period !== null}
-      onSave={onSave}
-      onAssign={(id) => void onSave(id, { owner: shownName(user) }).catch(() => undefined)}
-      onUnassign={(id) => void onSave(id, { owner: '' }).catch(() => undefined)}
-    />
+    <>
+      {failed ? (
+        <p role="alert" className="v2-sub v2-seg-loss">
+          {t('v2tf.edit.failed')}
+        </p>
+      ) : null}
+      <TeamFocusView
+        {...props}
+        canSave={period !== null}
+        onSave={onSave}
+        // Until the signed-in person is known "I’ll take it" saves nothing, never an empty owner.
+        onAssign={name === '' ? undefined : (id) => quick(id, name)}
+        onUnassign={(id) => quick(id, '')}
+      />
+    </>
   );
 }
