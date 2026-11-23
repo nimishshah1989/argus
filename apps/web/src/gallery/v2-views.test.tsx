@@ -26,7 +26,6 @@ describe('the gallery views of the v2 screens', () => {
       'v2-dashboard',
       'v2-team-focus',
       'v2-compare',
-      'v2-machine',
       'v2-action-center',
       'v2-data-checklist',
     ])

@@ -98,9 +98,6 @@ const shownDay = (day: string): string => {
   return `${date}-${MONTHS[Number(month) - 1]}-${year}`;
 };
 
-/** The machine page (still v1's) prints a day as DD-MM-YYYY. */
-const machinePageDay = (day: string): string => day.split('-').reverse().join('-');
-
 const PM_HEADING = { level: 1, name: 'PM calendar', exact: true } as const;
 const spreadOf = (page: Page) => page.getByRole('region', { name: 'Spread the load', exact: true });
 const jobsOf = (page: Page) => page.getByRole('region', { name: 'Jobs this month', exact: true });
@@ -307,7 +304,7 @@ async function openTasks(page: Page, machine: { id: string; code: string }): Pro
   await expect(page.getByRole('link', { name: 'WR-PMC3', exact: true })).toBeVisible();
   await expect(page.getByText('Overdue', { exact: true })).toBeVisible();
   await expect(
-    page.getByText(`Scheduled ${machinePageDay(calendarDay(-2))}`, { exact: true }),
+    page.getByText(`Scheduled ${shownDay(calendarDay(-2))}`, { exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole('heading', { name: 'PM visits and hours', exact: true }),

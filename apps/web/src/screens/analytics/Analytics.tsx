@@ -4,7 +4,8 @@ import { ActionCenterPage } from '../v2/action-center/Page.js';
 import { DataChecklist } from './DataChecklist.js';
 import { GroupPage } from './GroupPage.js';
 import { GuidePage } from './GuidePage.js';
-import { MachinePage } from './MachinePage.js';
+import { MachinePage } from '../v2/machine/Page.js';
+import { LiveFrame } from '../v2/live-frame.js';
 import { MachinesPage } from './MachinesPage.js';
 import { MoneyPage } from './MoneyPage.js';
 import { TodayRest } from './TodayRest.js';
@@ -28,14 +29,14 @@ export function ActionCenterRoute() {
   return <ActionCenterPage />;
 }
 
-/** One machine's page: inside the Machines group's shell, with that group's menu entry marked. */
+/** One machine's page (`/analytics/machines/:id`, an id or a code): the v2 screen, in the v2 shell. */
 export function MachinePageRoute() {
-  const machines = groupFor('machines');
-  if (!machines) return <Navigate to="/analytics/today" replace />;
+  const { id = '' } = useParams();
   return (
-    <AnalyticsShell>
-      <MachinePage group={machines} />
-    </AnalyticsShell>
+    // eslint-disable-next-line i18next/no-literal-string -- a group, a section and a screen id, not copy
+    <LiveFrame entry={{ group: 'machines', section: 'machines', screen: 'machine-page' }}>
+      {(nav) => <MachinePage id={id} nav={nav} />}
+    </LiveFrame>
   );
 }
 

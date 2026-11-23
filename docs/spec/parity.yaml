@@ -1242,6 +1242,8 @@ rows:
     status: todo
     evidence:
       - fixtures/answer-key/machine-page.json
+      - 'apps/web/src/screens/v2/machine/machine.test.ts :: the eight headline figures, each work figure opening its rows'
+      - 'apps/web/e2e/analytics-machine-reliability.spec.ts :: a head reads one machine’s fit, its parts, and drills from each'
     source: docs/plan/m4a-triage.md
     screen: machine-pages
     ticket: '39'

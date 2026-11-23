@@ -134,31 +134,6 @@
   font-weight: 650;
 }
 
-/* One thing's facts: a label over its value, as many to a row as fit. */
-.rg-facts {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-  gap: var(--spacing-step-3);
-  margin: 0;
-}
-.rg-facts div {
-  min-width: 0;
-}
-.rg-facts dt {
-  color: var(--color-neutral-600);
-  font-size: var(--text-caption);
-}
-.rg-facts dd {
-  margin: 0;
-  font-weight: 650;
-  overflow-wrap: anywhere;
-}
-.rg-facts dd.rg-fact-note {
-  color: var(--color-neutral-600);
-  font-size: var(--text-caption);
-  font-weight: 400;
-}
-
 .rg-link {
   display: inline-flex;
   align-items: center;
@@ -181,78 +156,4 @@
   flex-direction: column;
   gap: var(--spacing-step-3);
   min-width: 0;
-}
-
-/* A figure tile that opens its rows: the whole tile is the link. */
-.rg-tile {
-  position: relative;
-  height: 100%;
-  min-width: 0;
-}
-.rg-tile-link {
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius-tile);
-}
-.rg-tile-link:hover,
-.rg-tile-link:focus-visible {
-  outline: 2px solid var(--color-accent);
-}
-
-/* A titled block of the entity page: its heading names it, its way to the rows sits on the heading's line. */
-.rg-block {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-step-3);
-  min-width: 0;
-}
-.rg-block-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--spacing-step-2);
-}
-.rg-block-head h3 {
-  margin: 0;
-  font-size: var(--text-title3);
-  font-weight: 650;
-}
-
-/* The lines of a short list: one row each, a hairline between. */
-.rg-rows {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.rg-rows li {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-step-2);
-  padding: var(--spacing-step-2) 0;
-  border-top: 1px solid var(--color-neutral-200);
-}
-.rg-rows li:first-child {
-  border-top: 0;
-}
-.rg-sub {
-  display: block;
-  color: var(--color-neutral-600);
-  font-size: var(--text-caption);
-  overflow-wrap: anywhere;
-}
-.rg-pair {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--spacing-step-2);
-}
-.rg-subhead {
-  margin: 0;
-  font-size: var(--text-body);
-  font-weight: 650;
 }

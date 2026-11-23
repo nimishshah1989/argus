@@ -2,7 +2,14 @@ import i18n from 'i18next';
 import type { QueryClient } from '@tanstack/react-query';
 import type { DrillReply, DrillType, FiguresReply } from '@uptimo/shared/analytics';
 import type { Config } from '@uptimo/shared/replies';
-import { analyticsFiguresQuery, getConfig, getDrill, getMe, getState } from '../../../api.js';
+import {
+  analyticsFiguresQuery,
+  getConfig,
+  getDrill,
+  getMe,
+  getState,
+  listTickets,
+} from '../../../api.js';
 import { isOwnCopy } from '../../../data/index.js';
 import { isLostConnection, LiveOffline } from './live-error.js';
 import type { Translate } from './read.js';
@@ -74,3 +81,12 @@ export const liveDrill = (
   ids: readonly string[],
 ): Promise<DrillReply> =>
   read(client, { queryKey: ['analytics-drill', type, ids], queryFn: () => getDrill(type, ids) });
+
+/** One machine's open tickets (open, working, waiting), the first page of 200 as v1's Tasks block reads them. */
+export const liveMachineTickets = async (client: Client, machineId: string) =>
+  (
+    await read(client, {
+      queryKey: ['v2-machine-tickets', machineId],
+      queryFn: () => listTickets({ machineId, status: ['open', 'working', 'waiting'], limit: 200 }),
+    })
+  ).items;

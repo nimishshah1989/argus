@@ -1,6 +1,7 @@
 import { MAX_DRILL_IDS, type DrillReply, type DrillType } from '@uptimo/shared/analytics';
 import type { ProviderContext } from '../data.js';
 import { catalogue, liveCodes, liveDrill, liveReply } from '../figures/live.js';
+import { machineDrill } from './machine.js';
 import { rowsModel } from './model.js';
 import { energyLoad, parseTile, tileMachines } from './tile.js';
 
@@ -28,14 +29,13 @@ async function rowsOf(
 export async function liveRows(figure: string, { client }: ProviderContext) {
   const reply = await liveReply(client);
   const tile = parseTile(figure);
-  const found = reply.figures.find((candidate) => candidate.key === (tile?.figure ?? figure));
-  const ids = found && tile ? tileMachines(found, tile) : (found?.drill.ids ?? []);
-  if (found?.status !== 'ready' || ids.length === 0) return null;
+  const counted = countedBy(figure, tile, reply);
+  if (counted === null) return null;
+  const { found, ids, load } = counted;
   const [drill, code] = await Promise.all([
     rowsOf(found.drill.type, ids, (type, part) => liveDrill(client, type, part)),
     liveCodes(client),
   ]);
-  const load = energyLoad(found);
   return rowsModel(
     {
       key: figure,
@@ -48,6 +48,24 @@ export async function liveRows(figure: string, { client }: ProviderContext) {
     },
     catalogue,
   );
+}
+
+/**
+ * The figure the address names and the ids it counted; null when it is not ready or counted nothing. A block of one
+ * machine's page counts that machine's own rows, not a whole figure's.
+ */
+function countedBy(
+  figure: string,
+  tile: ReturnType<typeof parseTile>,
+  reply: Awaited<ReturnType<typeof liveReply>>,
+) {
+  const own = machineDrill(figure, reply);
+  const listed = reply.figures.find((candidate) => candidate.key === (tile?.figure ?? figure));
+  const found = own === null ? listed : { status: 'ready' as const, drill: own, value: null };
+  const ids = listed && tile ? tileMachines(listed, tile) : (found?.drill.ids ?? []);
+  if (found?.status !== 'ready' || ids.length === 0) return null;
+  const load = own === null && listed ? energyLoad(listed) : undefined;
+  return { found, ids, load };
 }
 
 /** What a tile of the energy map is called in the drawer, with its connected load: the words v1's panel had. */
