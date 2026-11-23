@@ -1,5 +1,7 @@
 import type { TFunction } from 'i18next';
-import type { FiguresPart } from '../printed-page/printed.js';
+import { NotComputed } from '../figures/live-error.js';
+import { figureOf, type FiguresPart } from '../printed-page/printed.js';
+import { checklistModel, itemsOf } from './adapter.js';
 import type { DataChecklistModel } from './model.js';
 
 /** The engine figure the screen is built from. */
@@ -10,7 +12,7 @@ export const KEY = 'data-checklist';
  * missing or not `ready` throws `NotComputed` ("Not computed yet"), never an empty plant (ADR 0017).
  */
 export function liveChecklist(reply: FiguresPart, t: TFunction): DataChecklistModel {
-  void reply;
-  void t;
-  throw new Error('not built');
+  const figure = figureOf(reply, KEY);
+  if (figure === undefined || figure.status !== 'ready') throw new NotComputed();
+  return checklistModel(itemsOf(figure.value), reply.asOf, t);
 }
