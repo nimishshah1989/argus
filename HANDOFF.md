@@ -33,6 +33,8 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 ## Don't repeat
 
+- 23 Nov 23:20: loop-guard no longer counts the per-PR `changes/` note against a ticket's size budget (#568, loop 0.7.5). Resume M1: #563, #565, #567.
+
 - An old build folder can't take main (guard blocks orchestrator and builder): `loop clean <N>`, sync `plan/t<N>`, `loop prep`.
 - Builders: stop hook nags for HANDOFF.md in build folders — ignore it; "checks not run" under Blocked fails `loop finish`.
 - `cd` into the main checkout + git write in one Bash call → guard says "you're on main"; use separate calls.

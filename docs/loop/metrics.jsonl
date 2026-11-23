@@ -1,6 +1,2 @@
 {"issue": 551, "size": "small", "model": "haiku", "attempts": 1, "result": "pr", "ts": "2026-11-23T21:25:56"}
 {"issue": 551, "size": "small", "model": "haiku", "attempts": 1, "result": "pr", "ts": "2026-11-23T21:41:42"}
-{"issue": 552, "size": "small", "model": "haiku", "attempts": 1, "result": "pr", "ts": "2026-11-23T22:05:32"}
-{"issue": 558, "size": "small", "model": "haiku", "attempts": 1, "result": "pr", "ts": "2026-11-23T22:08:51"}
-{"issue": 553, "size": "small", "model": "haiku", "attempts": 2, "result": "pr", "ts": "2026-11-23T22:15:04"}
-{"issue": 554, "size": "small", "model": "haiku", "attempts": 1, "result": "pr", "ts": "2026-11-23T22:23:52"}
