@@ -5,7 +5,7 @@
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-23 · **By:** Plan · **Model:** claude-opus-5-5
-**Milestone:** M1 Stabilise (building) · **Branch:** plan/local-checks-portable · **PR:** this one
+**Milestone:** M1 Stabilise (building) · **Branch:** plan/local-checks-portable · **PR:** #560
 
 ## State
 
