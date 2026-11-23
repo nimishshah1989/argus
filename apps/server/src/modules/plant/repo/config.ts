@@ -71,8 +71,12 @@ export async function selectNudgeAcks(tx: Db): Promise<StoredSetting[]> {
  * The Team Focus notes of one focus month (ADR 0018): every row whose key starts with `focus:<period>|`, ordered by
  * key. The period is a validated `YYYY-MM`; bind the pattern, never build it into the SQL text.
  */
-export async function selectFocusNotes(_tx: Db, _period: string): Promise<StoredSetting[]> {
-  throw new Error('not built');
+export async function selectFocusNotes(tx: Db, period: string): Promise<StoredSetting[]> {
+  return (
+    await tx.query('SELECT id, key, value FROM setting WHERE key LIKE $1 ORDER BY key', [
+      `focus:${period}|%`,
+    ])
+  ).rows;
 }
 
 /** One nudge's stored acknowledgement, or undefined when the nudge was never acted on. */
