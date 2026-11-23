@@ -9,35 +9,31 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 ## State
 
-- Unattended building works: `loop prep` → `loop build <N>` (builder as its own session) → `loop finish`. #560 merged
-  (Mac-only check fixes). The builder ends "BLOCKED: stop hook wants HANDOFF.md": ignore it, its ticket handoff is committed.
-- **#561 = ticket #551** (G1.1 case clash): built twice by Haiku, local checks pass, CI running on the second build.
-  Seed now carries the coverage re-check lines; issue Budget files<=8, Screens S01-dashboard, S11-why-why; PR body set.
-- Not built yet: #552 G1.3 (`plan/t552`), #553 G1.2b (`plan/t553`), #554 G1.4 Dashboard, #555 G1.4 Problem Analysis.
-- #556 (plan PR, G1.5 escalation test): pr-meta red; needs merge of main (HANDOFF conflict), fragment renamed
-  `changes/556-*.md`, full Argus body (Q1–Q16, "Reasons"). #557 (G1.6 money-rights tests) red on purpose until #558.
-- #558 (bug): figures route 500s when Team Focus has a value but no drill; needs a ticket (make team-focus `mixed`).
-- Open (Plan may decide): Compare's non-money figure has two "Spares cost" rows always `₹ 0` (`compare.ts` L98–99).
+- **#561 = ticket #551** (case clash): reviewer PASS; CI green except 2 browser shards still queued at session end.
+  Merge when green (`gh pr merge 561 --squash --delete-branch`, `loop clean 551`). Every local `loop finish` fails on
+  the 10 macOS case-clash tests until it merges.
+- #552 built once by Haiku (`.loop/wt/552`); `loop finish` failed only on those case-clash tests (attempt 1 of 3 burnt).
+  After #561 merges: merge main into `plan/t552` and the build folder, then `loop finish 552`.
+- #556 (G1.5): main merged in, fragment `changes/556-*.md`, full Argus body with "No parity:"; CI was running.
+- #558 now a ticket (size:small, ADR 0014: Team Focus `mixed`). Seed `plan/t558` = #557's G1.6 tests + main + visible
+  domain test (fails today with "Figure team-focus has a value but names no rows"). #557 closed into it.
+- Not built: #553 G1.2b, #554 Dashboard, #555 Problem Analysis, #558. Docker works on this Mac now.
 
 ## Next step
 
-1. `gh pr checks 561`; green → reviewer subagent → merge → `loop clean 551`. Red → read failing lines only.
-2. Before building any ticket that changes a v2 screen `.tsx` (#554, #555): on `plan/t<N>` add a dated "Coverage
-   re-checked for ticket #N" line to `docs/design/v2/scope/<screen>.md`; set the issue's `Screens:` and a budget that
-   counts renames twice plus the changes note. Then `loop prep`/`build`/`finish`; then `gh pr edit` with the Argus
-   body including `## Coverage` (table with a `v2` column), keeping the `Plan-base:` line `loop finish` wrote.
-3. Then #552, #553, #556, a ticket for #558.
+1. Merge #561, #556 when green. 2. #552 finish (above). 3. #558, #553 build. 4. #554/#555: on `plan/t<N>` (after main
+   is merged in, since #561 also edits `scope/dashboard.md`) add the dated "Coverage re-checked for ticket #N" line to
+   `docs/design/v2/scope/<screen>.md`; then prep/build/finish; `gh pr edit` with Argus body + `## Coverage` table.
 
 ## Blocked / open questions
 
-- **G1.2a needs Nimish:** the duplicate ticket column is in the Excel Breakdown Log sheet
-  (`packages/domain/src/exports/plant-sheets.ts` ~L105, `Ticket ID` + `Ticket No.`), which the frozen answer key
-  `fixtures/answer-key/workbook-export.json` requires (30 columns). The v2 screen export already has one column.
-- G1.4 for Shift KPIs and Energy: no wireframe yet; Plan writes them, Nimish approves.
+- **G1.2a needs Nimish:** duplicate ticket column is pinned by the frozen answer key (`workbook-export.json`, 30 cols).
+- **G1.4 Shift KPIs + Energy:** no gallery view and not on the shared fixture seam (`screens/v2/data.ts`), so no
+  wireframe snapshot is possible yet. Needs a ticket: gallery views + fixtures; then snapshot; then Nimish approves.
 - Nimish (old): branch protection; answer-key last digit; support tickets 0 downtime.
 
 ## Don't repeat
 
 - Hidden tests go in a `holdout/` folder under `tools/`, `apps/web/src/` or `apps/server/test/`; `tests/holdout/` never runs.
 - Bash with `>` redirects or a long inline `gh pr create --body` is denied; use Write + `--body-file`.
-- Re-snapshotting wireframes changes the hash and voids approval.
+- Plan PR bodies need "No parity: <reason>" under `## Reasons` or pr-meta fails.
