@@ -162,7 +162,7 @@ _Later (parked, from the old plan): finish the M4b loop (monthly scorecard), Int
 ## 6. Open questions (Plan resolves before the milestone they block)
 
 - May the frozen answer key move by a last digit (52.70 → 52.69) so the engine orders ties across days? — blocks M3.
-- Compare: keep v1's health score and its two tables? — blocks M2.
-- Order: finish the analytics redesign (M2) before loading history (M3), or the other way round? Defaulted to M2 first because the redesign was "the one job" on 20 Nov. — blocks M2/M3.
+- ~~Compare: keep v1's health score and its two tables?~~ Yes, rebuilt in v2 (ADR 0013).
+- ~~Order: M2 before M3?~~ Yes (ADR 0012, ADR 0013).
 - Does the TV board read in Gujarati? — blocks M4.
 - Do `support` tickets count 0 downtime (Bhavin to confirm)? — blocks M3.
