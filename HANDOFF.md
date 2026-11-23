@@ -16,8 +16,8 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 - ADR 0013 (this PR): Compare keeps its health score/scorecard/tables in v2; M2 before M3. PROJECT.md §6 updated.
 - M1 tickets (seed branches pushed, not built): #551 G1.1 case-clash guard + renames (`plan/t551`, small);
   #552 G1.3 cell-log CSV no ids (`plan/t552`, small); #553 G1.2b PM Reports Data codes not UUIDs (`plan/t553`, small).
-- #556 (plan PR): G1.5 fix, escalation test dates the roster at the breach moment; 49/49 at 17:59:30 UTC. Needs CI and
-  merge (may conflict on HANDOFF.md; keep this file).
+- #556 (plan PR): G1.5 fix, escalation test dates the roster at the breach moment; 49/49 at 17:59:30 UTC. Main merged
+  in, changes note renamed `changes/556-*.md`, full Argus body; merge when green.
 - G1.4: #554 Dashboard (`plan/t554`, small) and #555 Problem Analysis (`plan/t555`, small), one `numbers` prop each.
   G1.6: plan PR #557 (tests only; no route leaks today); server tests unproven locally (no Docker), CI api shards decide.
 - Open (Plan may decide): Compare's non-money figure shows two "Spares cost" rows always `₹ 0` to every role
