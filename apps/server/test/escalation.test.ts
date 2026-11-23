@@ -260,11 +260,12 @@ const notices = async (id: string) =>
 
 const told = (plant: Plant, ...names: string[]) => names.map((n) => plant.people[n]).sort();
 
-const rosterLine = (plant: Plant, name: string, level: string) =>
+/** A roster line on the plant date of `at`: date it at the breach, not the wall clock (a breach 31 minutes on can be tomorrow). */
+const rosterLine = (plant: Plant, name: string, level: string, at = new Date()) =>
   admin.query(
     `INSERT INTO roster_entry (tenant_id, date, shift_id, person_id, level)
-     SELECT $1, (now() AT TIME ZONE 'Asia/Kolkata')::date, s.id, $2, $3 FROM shift s WHERE s.tenant_id = $1`,
-    [plant.id, plant.people[name], level],
+     SELECT $1, ($4::timestamptz AT TIME ZONE 'Asia/Kolkata')::date, s.id, $2, $3 FROM shift s WHERE s.tenant_id = $1`,
+    [plant.id, plant.people[name], level, at],
   );
 
 describe('missed acknowledge', () => {
@@ -358,24 +359,16 @@ describe('missed acknowledge', () => {
 
 describe('who is told', () => {
   it('the people on the roster for the shift running, not every supervisor', async () => {
-    await admin.query(
-      `INSERT INTO roster_entry (tenant_id, date, shift_id, person_id, level)
-       SELECT $1, (now() AT TIME ZONE 'Asia/Kolkata')::date, s.id, $2, 'L2' FROM shift s WHERE s.tenant_id = $1`,
-      [A.id, A.people.tester2],
-    );
     const { id, at } = await raise(A);
+    await rosterLine(A, 'tester2', 'L2', plus(at, 6));
     await breach(A, id, 'ack', plus(at, 6));
     expect((await steps(id))[0]!.toldPersonIds).toEqual(told(A, 'tester2'));
     await admin.query('DELETE FROM roster_entry WHERE tenant_id = $1', [A.id]);
   });
 
   it('a rostered person who has been switched off is skipped, and the role answers instead', async () => {
-    await admin.query(
-      `INSERT INTO roster_entry (tenant_id, date, shift_id, person_id, level)
-       SELECT $1, (now() AT TIME ZONE 'Asia/Kolkata')::date, s.id, $2, 'L2' FROM shift s WHERE s.tenant_id = $1`,
-      [A.id, A.people.gone],
-    );
     const { id, at } = await raise(A);
+    await rosterLine(A, 'gone', 'L2', plus(at, 6));
     await breach(A, id, 'ack', plus(at, 6));
     expect([...(await steps(id))[0]!.toldPersonIds!].sort()).toEqual(told(A, 'tester', 'tester2'));
     await admin.query('DELETE FROM roster_entry WHERE tenant_id = $1', [A.id]);
@@ -511,12 +504,8 @@ describe('the ladder is the head’s to edit', () => {
     expect((await steps(first.id))[0]!.noLadder).toBeUndefined();
 
     await admin.query('UPDATE person SET active = false WHERE id = $1', [E.people.pravin]);
-    await admin.query(
-      `INSERT INTO roster_entry (tenant_id, date, shift_id, person_id, level)
-       SELECT $1, (now() AT TIME ZONE 'Asia/Kolkata')::date, s.id, $2, 'L3' FROM shift s WHERE s.tenant_id = $1`,
-      [E.id, E.people.tester],
-    );
     const rostered = await raise(E);
+    await rosterLine(E, 'tester', 'L3', plus(rostered.at, 31));
     await breach(E, rostered.id, 'restore', plus(rostered.at, 31));
     expect((await steps(rostered.id))[0]!.toldPersonIds).toEqual(told(E, 'tester'));
 
@@ -680,8 +669,8 @@ describe('escalation state on a ticket reply', () => {
       lastAt: null,
     });
 
-    await rosterLine(S, 'tester', 'L2');
     const { id, at } = await raise(S);
+    await rosterLine(S, 'tester', 'L2', plus(at, 6));
     await breach(S, id, 'ack', plus(at, 6));
     const stepAt = plus(at, 6).toISOString();
     const waiting = { pendingLevels: ['L2'], lastLevel: 'L2', lastAt: stepAt };
@@ -1054,8 +1043,8 @@ describe('review fixes', () => {
   });
 
   it('the roster names only people with a login of their own, as the role does', async () => {
-    await rosterLine(A, 'nologin', 'L2');
     const { id, at } = await raise(A);
+    await rosterLine(A, 'nologin', 'L2', plus(at, 6));
     await breach(A, id, 'ack', plus(at, 6));
     expect([...(await steps(id))[0]!.toldPersonIds!].sort()).toEqual(told(A, 'tester', 'tester2'));
     await admin.query('DELETE FROM roster_entry WHERE tenant_id = $1', [A.id]);

@@ -30,6 +30,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 - `docs/loop/handoff/g16-money-tests.md`: Compare shows "Spares cost ₹ 0" to every role as a placeholder — product call.
 - Follow-ups: `packages/domain/test/export-no-database-ids.test.ts:48` "PM Reports / Data" exemption is stale after #553;
   `analytics-team-focus-no-drill.test.ts:85` should also assert drill ids `[]`.
+- **G1.4 Shift KPIs + Energy:** wireframes need Nimish's `loop approve` (none exist yet).
 - Nimish (old): branch protection; answer-key last digit; support tickets 0 downtime.
 
 ## Don't repeat
@@ -39,3 +40,8 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 - Builder folders are hook-protected: to refresh one from a new seed use `loop prep <N> --fresh`, not a merge.
 - Hidden tests go in a `holdout/` folder under `tools/`, `apps/web/src/` or `apps/server/test/`; `tests/holdout/` never runs.
 - Bash `>` redirects and long inline `gh pr create --body` are denied; use Write + `--body-file`.
+- 23 Nov 23:20: loop-guard no longer counts the per-PR `changes/` note against a ticket's size budget (#568, loop 0.7.5). Resume M1: #563, #565, #567.
+- An old build folder can't take main (guard blocks orchestrator and builder): `loop clean <N>`, sync `plan/t<N>`, `loop prep`.
+- Builders: stop hook nags for HANDOFF.md in build folders — ignore it; "checks not run" under Blocked fails `loop finish`.
+- `cd` into the main checkout + git write in one Bash call → guard says "you're on main"; use separate calls.
+- PR bodies need "No parity: <reason>" or pr-meta fails; builder handoff notes need Prettier.
