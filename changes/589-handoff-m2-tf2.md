@@ -1,0 +1,1 @@
+- Handoff: Data Checklist v2 live (#582); TF-2 in CI; lessons on seed comments and coverage files.
