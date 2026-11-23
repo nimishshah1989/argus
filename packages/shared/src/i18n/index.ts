@@ -100,6 +100,8 @@ import { analyticsV2MachinesEn } from './analytics-v2-machines.en.js';
 import { analyticsV2MachinesGu } from './analytics-v2-machines.gu.js';
 import { analyticsV2ProblemsEn } from './analytics-v2-problems.en.js';
 import { analyticsV2ProblemsGu } from './analytics-v2-problems.gu.js';
+import { analyticsV2ChecklistEn } from './analytics-v2-checklist.en.js';
+import { analyticsV2ChecklistGu } from './analytics-v2-checklist.gu.js';
 import { analyticsV2ReliabilityEn } from './analytics-v2-reliability.en.js';
 import { analyticsV2ReliabilityGu } from './analytics-v2-reliability.gu.js';
 import { analyticsV2TodayEn } from './analytics-v2-today.en.js';
@@ -158,6 +160,7 @@ export const NAMESPACES: Record<string, Record<string, string>> = {
   'analytics-v2-forecast': analyticsV2ForecastEn,
   'analytics-v2-machines': analyticsV2MachinesEn,
   'analytics-v2-problems': analyticsV2ProblemsEn,
+  'analytics-v2-checklist': analyticsV2ChecklistEn,
   'analytics-v2-reliability': analyticsV2ReliabilityEn,
   'analytics-v2-today': analyticsV2TodayEn,
 };
@@ -215,6 +218,7 @@ export const en = {
   ...analyticsV2ForecastEn,
   ...analyticsV2MachinesEn,
   ...analyticsV2ProblemsEn,
+  ...analyticsV2ChecklistEn,
   ...analyticsV2ReliabilityEn,
   ...analyticsV2TodayEn,
 };
@@ -274,6 +278,7 @@ export const gu = {
   ...analyticsV2ForecastGu,
   ...analyticsV2MachinesGu,
   ...analyticsV2ProblemsGu,
+  ...analyticsV2ChecklistGu,
   ...analyticsV2ReliabilityGu,
   ...analyticsV2TodayGu,
 };
