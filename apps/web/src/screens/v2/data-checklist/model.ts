@@ -1,4 +1,5 @@
 import type { CheckData, CheckWords } from '../../../ui/v2/domain/check-row.js';
+import type { Drill } from '../../../ui/v2/drill.js';
 import type { TableWords } from '../../../ui/v2/data-table.js';
 import type { EntityChipProps } from '../../../ui/v2/entity-chip.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
@@ -37,6 +38,11 @@ export type RecordRow = {
  */
 export type DataChecklistModel = {
   verdict: VerdictData;
+  /**
+   * v1's "See the rows": the page's own control for the tickets behind the breakdown and Why-Why gaps (engine
+   * `drillIds`). Only when the engine named any; never on a card, since no card counts exactly those tickets (ADR 0019).
+   */
+  drill?: Drill;
   /** Two to four key figures. */
   kpis: KpiData[];
   /** Parts of the data that have something to fix, the one with the most gaps first. */

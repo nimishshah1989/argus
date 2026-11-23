@@ -7,7 +7,12 @@ declare module '../data.js' {
   }
 }
 
+/**
+ * The app runs the live checklist (DC-2, ADR 0019): `liveChecklist(await liveReply(client), i18n.t.bind(i18n))`, both
+ * loaded with `import()` as `breakdown-log/register.ts` does. The gallery keeps the approved fixture as its frozen answer.
+ */
 export const screen: ScreenEntry<'data-checklist'> = {
   key: 'data-checklist',
-  provider: () => import('./fixture.js').then((m) => m.dataChecklistFixture),
+  provider: () => Promise.reject(new Error('not built: DC-2 live provider (#578)')),
+  frozen: () => import('./fixture.js').then((m) => m.dataChecklistFixture),
 };
