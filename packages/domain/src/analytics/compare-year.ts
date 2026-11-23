@@ -2,7 +2,7 @@ import type { SourcedReport } from './rows.js';
 import type { MachineRow } from './types.js';
 
 /**
- * One machine's year so far, for the v2 Compare screen (ticket 584, ADR 0020 §2): what its boxes, key figures, "What is
+ * One machine's year so far, for the v2 Compare screen (ticket 584, ADR 0021 §2): what its boxes, key figures, "What is
  * different" and weekly chart print. Read from the same history rows v1's Compare reads; preventive maintenance
  * (`isPm`) is never a breakdown. Hours are `effectiveHours` (a `NO DT` entry counts as a breakdown with 0 hours), summed
  * unrounded: the screen rounds.

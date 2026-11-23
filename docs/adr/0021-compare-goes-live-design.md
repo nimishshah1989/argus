@@ -1,4 +1,4 @@
-# ADR 0020 — Compare goes live: a chosen pair from the server, the year so far, v1's six tables, money for heads
+# ADR 0021 — Compare goes live: a chosen pair from the server, the year so far, v1's six tables, money for heads
 
 Date: 2026-11-24 · Status: accepted (Plan, under ADR 0012 §3; Nimish away)
 

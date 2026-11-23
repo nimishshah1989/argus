@@ -7,7 +7,7 @@ import { comparePair, type ComparePairResult } from '../src/index.js';
 import { ENGINE_DATA, read, type FigureKey } from './answer-key/fixture.js';
 
 /**
- * Ticket 584 (ADR 0020 §1–2): Compare any two machines of one category, and each machine's year so far. The frozen
+ * Ticket 584 (ADR 0021 §1–2): Compare any two machines of one category, and each machine's year so far. The frozen
  * 11 November plant: the engine's own pair is VC-28 and VC-22 of the Vertical Machining Center category (52 machines).
  */
 

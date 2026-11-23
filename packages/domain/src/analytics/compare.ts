@@ -297,7 +297,7 @@ function charts(a: Compared, b: Compared) {
   ];
 }
 
-/** Two machines asked for by code (ADR 0020 §1). */
+/** Two machines asked for by code (ADR 0021 §1). */
 export type ComparePair = { a: string; b: string };
 
 /**
@@ -320,7 +320,7 @@ export type ComparePairResult =
   | { kind: 'unknown'; field: 'a' | 'b' };
 
 /**
- * Compare any two machines of one category (ADR 0020 §1). No `pair`: the engine's own pair, exactly as
+ * Compare any two machines of one category (ADR 0021 §1). No `pair`: the engine's own pair, exactly as
  * `compareFigure` picks it. The category average column is machine A's category.
  */
 export function comparePair(input: ComputeInput, pair?: ComparePair): ComparePairResult {
