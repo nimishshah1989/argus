@@ -1,3 +1,4 @@
+import { canonicalOrder } from './canonical-order.js';
 import { dataAsOf } from './as-of.js';
 import { a9RiskCore } from './a9-bottleneck.js';
 import {
@@ -61,11 +62,12 @@ export interface FrozenForecast {
  * One row per production machine in fleet order; `[]` when the plant has no production breakdown to observe.
  */
 export function frozenForMonth(
-  data: EngineData,
+  loaded: EngineData,
   profile: { prodHrsPerDay: number; workDaysPerYear: number },
   month: string,
   runs: number = FC_RUNS,
 ): FrozenForecast[] {
+  const data = canonicalOrder(loaded);
   if (dayNumber(month) === null) throw new RangeError(`not a plant date: ${month}`);
   if (!month.endsWith('-01')) throw new RangeError(`a frozen month is its 1st: ${month}`);
   const cut = dataAsOf(data, month);
@@ -126,7 +128,8 @@ export interface ForecastOutcome {
  * non-PM report dated in the month adds its effective hours; every merged episode whose first day is in the month
  * counts once. A machine with no activity in the month has no entry (the caller reads it as 0 hours, 0 episodes).
  */
-export function monthActuals(data: EngineData, month: string): Map<string, ForecastActual> {
+export function monthActuals(loaded: EngineData, month: string): Map<string, ForecastActual> {
+  const data = canonicalOrder(loaded);
   if (dayNumber(month) === null) throw new RangeError(`not a plant date: ${month}`);
   if (!month.endsWith('-01')) throw new RangeError(`a scored month is its 1st: ${month}`);
   const start = dayNumber(month) as number;

@@ -1,7 +1,7 @@
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import type { Machine } from '@uptimo/shared/config';
 import type { Ticket } from '@uptimo/shared/replies';
-import { machineRecord, type MachineRecord } from '../../analytics/machine-record.js';
+import { machineIdOf, machineRecord, type MachineRecord } from '../../analytics/machine-record.js';
 import { reliabilityOf } from '../../analytics/reliability-values.js';
 import { sentence } from '../figures/point.js';
 import { dayText, machineChip, sourceLine, type Translate } from '../figures/read.js';
@@ -117,8 +117,9 @@ export function machinePageModel(
   t: Translate,
 ): MachinePageModel | null {
   const machine = facts.machines.find((m) => m.id === facts.param || m.code === facts.param);
-  const machineId = machine?.id ?? facts.param;
   const page = reply.figures.find((figure) => figure.key === 'machine-page');
+  // A machine off the plant's list is still found by its code in the engine's own record.
+  const machineId = machine?.id ?? machineIdOf(page?.value, facts.param);
   const record = page?.status === 'ready' ? machineRecord(page.value, machineId) : null;
   if (record === null) return null;
   const { view, note } = reliabilityFor(reply, machineId, t);

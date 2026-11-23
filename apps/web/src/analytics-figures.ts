@@ -16,7 +16,7 @@ export const analyticsFiguresQuery = {
   queryFn: () => analyticsFigures.one(),
 } as const;
 export const useAnalyticsFigures = () => useQuery(analyticsFiguresQuery);
-/** The same figures as they stood on an earlier plant day, for a change against it. */
+/** The same figures as they stood on an earlier plant day (a figure's change is against that day). */
 export const analyticsFiguresAtQuery = (asOf: string) => ({
   queryKey: ['analytics-figures', 'at', asOf],
   queryFn: () => analyticsFigures.list({ asOf }) as unknown as Promise<FiguresReply>,

@@ -1,3 +1,4 @@
+import { canonicalOrder } from './canonical-order.js';
 import {
   ACTION_CENTER_TYPES,
   SEVERITY_WEIGHT,
@@ -170,9 +171,10 @@ function coreOf(input: ComputeInput): Core {
 }
 
 /** The page's one table: the risk rows, the machine cell a space and the model. */
-function nudgeTable(risk: readonly RiskRow[]) {
+function nudgeTable(risk: readonly RiskRow[], data: EngineData) {
+  const codes = new Map(data.machines.map((machine) => [machine.id, machine.code]));
   const rows = risk.map((row) => [
-    `${row.machine} ${row.model}`.trim(),
+    `${codes.get(row.machine) ?? row.machine} ${row.model}`.trim(),
     String(row.score),
     row.why,
   ]);
@@ -201,7 +203,7 @@ export const actionCenterFigure: Computer = (input) => {
         page: 'ac',
         title: 'Action Center',
         kpis: [],
-        tables: [nudgeTable(core.risk)],
+        tables: [nudgeTable(core.risk, input.data)],
         charts: [],
       },
     ],
@@ -219,7 +221,8 @@ export const actionCenterFigure: Computer = (input) => {
  * The screen's board: every current nudge with its status, its evidence, whether it is wholly outside production
  * data and the stored ack, plus the status and severity counts and the same risk rows the page prints.
  */
-export function actionCenterBoard(input: ComputeInput): ActionCenterBoard {
+export function actionCenterBoard(loaded: ComputeInput): ActionCenterBoard {
+  const input = { ...loaded, data: canonicalOrder(loaded.data) };
   const core = coreOf(input);
   const excluded = new Set(
     input.data.machines

@@ -1,4 +1,4 @@
-import { actionCenterKey } from './action-center-model.js';
+import { actionCenterKey, codeOf } from './action-center-model.js';
 import type { ActionCenterRecord, ActionContext } from './action-center-model.js';
 import { dayNumber } from './plant-date.js';
 import type { AmcLine, LegalLine } from './types.js';
@@ -114,7 +114,7 @@ export function amcNudges(ctx: ActionContext): ActionCenterRecord[] {
       key: actionCenterKey.amc(line.id, isoOf(end)),
       rule: 'amc',
       sev: days <= 7 ? 'high' : 'med',
-      title: line.machineId + ': ' + type + ' ' + amcWhen(days),
+      title: codeOf(ctx, line.machineId) + ': ' + type + ' ' + amcWhen(days),
       machines: [line.machineId],
       entries: 0,
       ev: null,
@@ -155,7 +155,7 @@ export function legalNudges(ctx: ActionContext): ActionCenterRecord[] {
       key: actionCenterKey.legal(line.id, isoOf(due)),
       rule: 'legal',
       sev: days <= 7 ? 'high' : 'med',
-      title: line.machineId + ': ' + name + form + ' ' + legalWhen(days),
+      title: codeOf(ctx, line.machineId) + ': ' + name + form + ' ' + legalWhen(days),
       machines: [line.machineId],
       entries: 0,
       ev: null,

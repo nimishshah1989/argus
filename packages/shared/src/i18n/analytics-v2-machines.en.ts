@@ -80,6 +80,9 @@ export const analyticsV2MachinesEn = {
   'v2m.entity.jobs': 'Jobs closed',
   'v2m.entity.hoursWorked': 'Hours worked',
   'v2m.entity.hoursUnit': '{n} h',
+  'v2m.savedCopy': 'You are offline. These figures are the copy saved on {date}.',
+  'v2m.savedAfterCorrection':
+    'Your correction was saved. You are offline, so this list is still the copy saved on {date} and shows the earlier date.',
   'v2m.refused': 'Your login cannot open this page. Ask the maintenance head for access.',
   'v2m.rows.title': 'The rows',
   'v2m.rows.search': 'Search these rows',
@@ -105,6 +108,8 @@ export const analyticsV2MachinesEn = {
   'v2m.rows.col.to': 'To',
   'v2m.rows.col.movedOn': 'Moved on',
   'v2m.rows.col.location': 'Location',
+  'v2m.rows.col.connectedKva': 'Connected KVA',
+  'v2m.rows.col.runningKva': 'Running KVA',
   'v2m.rows.ticket.open': 'Open',
   'v2m.rows.ticket.working': 'In progress',
   'v2m.rows.ticket.waiting': 'Waiting',

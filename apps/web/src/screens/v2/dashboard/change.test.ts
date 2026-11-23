@@ -7,8 +7,9 @@ import {
   roundMove,
   toneOfChange,
 } from '../../../ui/meaning/index.js';
-import { problemRows } from './adapter.js';
-import { changeOf, priorDate } from './change.js';
+import { changeOf, priorDate } from '../../analytics/today-change.js';
+import { NO_VALUE } from './cards.js';
+import { costliestOf } from './tables.js';
 
 type Figure = FiguresReply['figures'][number];
 const figure = (key: string, value: unknown, status: Figure['status'] = 'ready'): Figure => ({
@@ -128,9 +129,17 @@ describe('the problems line', () => {
       totalHours: 4,
     });
 
+  const t = (key: string) => key;
+  const flat = {
+    delta: { text: '', flat: true, good: false },
+    period: '',
+  } as unknown as Parameters<typeof costliestOf>[1];
+  const row = (share: unknown) =>
+    costliestOf(costliest(share), flat, t).table?.rows[0]?.map((cell) => cell.text);
+
   it('keeps a missing share missing, so a screen prints a dash and never 0.00%', () => {
-    expect(problemRows(costliest(null))[0]?.share).toBeNull();
-    expect(problemRows(costliest(undefined))[0]?.share).toBeNull();
-    expect(problemRows(costliest(19.2))[0]).toMatchObject({ share: 19.2, breakdowns: 2 });
+    expect(row(null)?.[2]).toBe(NO_VALUE);
+    expect(row(undefined)?.[2]).toBe(NO_VALUE);
+    expect(row(19.2)).toEqual(['Spindle', '4.0', '19.20%', '2']);
   });
 });

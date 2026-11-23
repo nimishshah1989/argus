@@ -1,16 +1,16 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { FROZEN, PROVIDERS, frozenOf, load, providersOf } from './data.js';
-import type { DashboardModel } from './dashboard/model.js';
+import { FROZEN, PROVIDERS, frozenOf, load, providersOf, type ScreenModel } from './data.js';
+import { compareFixture, DEFAULT_PAIR } from './compare/fixture.js';
 
-/** Any model will do: the seam hands back whatever its provider returns. */
-const dashboardFixture = { source: 'frozen' } as unknown as DashboardModel;
+/** Any model will do: the seam only carries it. */
+const served = { source: 'the engine' } as unknown as ScreenModel<'dashboard'>;
 
 describe('the v2 screen data seam', () => {
   it('is ready with the model a provider returns', async () => {
-    expect(await load<'dashboard'>(() => Promise.resolve(dashboardFixture), {})).toEqual({
+    expect(await load<'dashboard'>(() => Promise.resolve(served), {})).toEqual({
       state: 'ready',
-      model: dashboardFixture,
+      model: served,
     });
   });
 
@@ -78,8 +78,8 @@ describe('the v2 screen registry', () => {
     expect(unregistered).toEqual([]);
   });
 
-  it('shows a screen that reads the server as an error, not a crash, when there is no connection to ask', async () => {
-    const provider = PROVIDERS.dashboard as Parameters<typeof load<'dashboard'>>[0];
-    expect(await load<'dashboard'>(provider, {})).toEqual({ state: 'error' });
+  it('serves the fixture of a registered screen', async () => {
+    const provider = PROVIDERS.compare as (pair: typeof DEFAULT_PAIR) => Promise<unknown>;
+    expect(await provider(DEFAULT_PAIR)).toEqual(compareFixture(DEFAULT_PAIR));
   });
 });

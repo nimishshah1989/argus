@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { countedText, printedNumber, stakeText } from './team-focus-actions.js';
+import { countedText, focusActions, printedNumber, stakeText } from './team-focus-actions.js';
 
 describe('Team Focus figures', () => {
   it('prints the hours at stake as the engine gave them, at least one decimal', () => {
@@ -26,5 +26,28 @@ describe('Team Focus figures', () => {
     expect(countedText('31', 31)).toBe('31');
     expect(countedText('2,145.5 hrs', 2145.5)).toBe('2,145.5 hrs');
     expect(countedText('—', 5)).toBe('—');
+  });
+});
+
+describe('the machine a Team Focus action names', () => {
+  const UUID = '3f1c2a9e-5b7d-4c68-9a10-2e4d6f8a0b12';
+  const raw = {
+    key: `ovh|${UUID}`,
+    lane: 'C',
+    title: 'TC-3 (Turning Center): decide on overhaul or replacement',
+    stake: 4,
+    status: 'open',
+    owner: '',
+    note: '',
+  };
+
+  it('prints the machine code, never the database id the card opens it by', () => {
+    const [action] = focusActions({ extra: [{ ...raw, machine: UUID, machineCode: 'TC-3' }] });
+    expect(action?.machine).toBe('TC-3');
+  });
+
+  it('still reads an older figure that carries the machine alone', () => {
+    const [action] = focusActions({ extra: [{ ...raw, machine: 'TC-3' }] });
+    expect(action?.machine).toBe('TC-3');
   });
 });

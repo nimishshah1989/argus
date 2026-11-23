@@ -1,39 +1,149 @@
 /**
- * The v2 Today section and the machine page (go-live of the Dashboard, the Action Center and the Machine page): only
- * the sentences the v2 screens add. Every word v1 already had (figure names, nudge types, nameplate facts) keeps its
- * `analytics.` key, so one phrase is never translated twice. `{name}` gaps are filled by the screen.
+ * The v2 Dashboard (Today). Its own namespace, so a v2 screen never edits another screen's catalogue. `{name}` gaps are
+ * filled by the screen. Figure labels, the needs-now words and the Action Center banner keep their v1 keys; only what
+ * the redesign added is here.
  */
 export const analyticsV2TodayEn = {
-  'v2t.ac.why1':
-    'A nudge is a rule firing on the breakdown log, the PM entries, the machines or the team. High, medium and low ask a person to act; good news only tells you.',
-  'v2t.ac.why2':
-    'A machine scores 3 for each high, 2 for each medium and 1 for each low nudge open on it.',
-  'v2t.ac.clear': 'No nudge is open right now.',
-  'v2t.ac.nudges': 'Nudges',
-  'v2t.dash.headline':
-    'Fleet availability is {availability}. {breakdowns} breakdowns have cost {hours}, and {problem} costs the most.',
-  'v2t.dash.headlineFew': 'The plant as of {date}: some of the figures are not computed yet.',
-  'v2t.dash.why1':
-    "These are the engine's own figures for the whole log to date; a change is against the same figure 30 days earlier.",
-  'v2t.dash.why2':
-    "Fleet availability counts breakdown, PM and plant-event hours as lost, against the production fleet's available hours.",
-  'v2t.dash.vs': 'vs {{date}}',
-  'v2t.dash.others': 'All other problems',
-  'v2t.dash.costliestWhy':
-    'The three problems that cost the most downtime, and everything else together.',
-  'v2t.dash.bubbleSub':
-    'Each bubble is a machine: its downtime hours, its breakdowns, sized by repair time.',
-  'v2t.dash.bubbleAria':
-    'A bubble for every machine: downtime hours across, breakdowns up, repair time as size.',
-  'v2t.dash.timelineSub': 'Machines added each year by type, and the fleet size to date.',
-  'v2t.dash.timelineAria':
-    'Machines added each year as stacked bars, with the cumulative fleet size as a line.',
-  'v2t.dash.share': 'Share of breakdown hours',
-  'v2t.mp.headline':
-    '{code} has had {count} breakdowns costing {hours}, and a repair takes {mttr} on average.',
-  'v2t.mp.headlineNone': '{code} has no breakdown figures yet.',
-  'v2t.mp.why1':
-    "These are the engine's own figures for this machine over its whole history, as of the day shown.",
-  'v2t.mp.why2':
-    'The reliability fit counts working hours between failures; with too few failures it borrows the machine type.',
-};
+  'v2d.headline.some': 'Open items that need you now: {n}.',
+  'v2d.headline.none': 'Nothing needs you now.',
+  'v2d.headline.unknown': 'What needs you now could not be loaded.',
+  'v2d.headline.fleet': 'Fleet availability so far this year: {availability}.',
+  'v2d.excluded.one': '1 machine is not counted in production data',
+  'v2d.excluded.many': '{n} machines are not counted in production data',
+  'v2d.why.cover':
+    'Each figure says what it covers: the year so far, or every record to date. Changes are always against the same figure 30 days earlier, on the date shown.',
+  'v2d.why.needs':
+    'Needs you now means a breached acknowledge or restore clock, a paused breakdown waiting on someone, or a follow-up task past its date.',
+  'v2d.vs': 'vs {date}',
+  'v2d.added': 'added in {days} days',
+  'v2d.cover.ytd': 'Year to date',
+  'v2d.cover.log': 'All records to date',
+  'v2d.cover.now': 'On the register today',
+  'v2d.cover.clean': 'Last 30 days',
+  'v2d.line': '{cover} · {what}',
+  'v2d.notComputed': 'Not computed yet',
+  'v2d.section.running': 'Breakdown overview',
+  'v2d.section.running.sub':
+    'The production fleet, planned maintenance left out of breakdowns. Availability and the breakdown share cover the year so far; the totals cover every record to date.',
+  'v2d.section.time': 'Where the time goes',
+  'v2d.section.time.sub':
+    'Planned maintenance, repairs outside production time, plant events, and the average day.',
+  'v2d.section.fleet': 'Machine data',
+  'v2d.section.fleet.sub':
+    'Fleet size by segment, on the register today. Press a card to open its register.',
+  'v2d.fig.fleet-availability.what': 'share of available hours the production fleet ran',
+  'v2d.fig.fleet-availability.more':
+    'Breakdowns, planned maintenance and plant events all count as lost hours.',
+  'v2d.fig.plant-bd-pct.what': 'breakdown hours as a share of available hours',
+  'v2d.fig.plant-bd-pct.more':
+    'The same available hours as fleet availability; only breakdowns count here.',
+  'v2d.fig.total-breakdowns.what': 'breakdowns logged, planned maintenance left out',
+  'v2d.fig.total-breakdowns.more': 'Counted over every record in the log, not just this year.',
+  'v2d.fig.total-downtime-hours.what': 'hours machines were stopped by breakdowns',
+  'v2d.fig.total-downtime-hours.more': 'Summed over every record in the log, not just this year.',
+  'v2d.fig.pm-hours.what': 'hours spent on planned maintenance',
+  'v2d.fig.pm-hours.more': 'Summed over every record in the log.',
+  'v2d.fig.no-downtime-hours.what': 'breakdown hours repaired outside production time',
+  'v2d.fig.no-downtime-hours.more':
+    'These breakdowns cost no production hours, so they are kept apart from downtime.',
+  'v2d.fig.plant-events.what': 'machine-hours lost to power and air failures',
+  'v2d.fig.plant-events.more': 'Counted as lost time in fleet availability, never as breakdowns.',
+  'v2d.fig.breakdown-free.what': 'CNC machines with no breakdown for 30 days or more',
+  'v2d.fig.breakdown-free.value': '{clean} of {total}',
+  'v2d.fig.breakdown-free.more':
+    'Out of the CNC machines in service on the date shown; planned maintenance is not a breakdown.',
+  'v2d.fig.avg-complaints-per-day.what': 'breakdowns logged each day the log covers',
+  'v2d.fig.avg-complaints-per-day.more': 'Days with no records are left out of the count.',
+  'v2d.fig.avg-bd-hours-per-day.what': 'breakdown hours each day the log covers',
+  'v2d.fig.avg-bd-hours-per-day.more': 'Days with no records are left out of the count.',
+  'v2d.fig.avg-bd-hours-per-machine.what': 'downtime hours divided by the CNC machines',
+  'v2d.fig.avg-bd-hours-per-machine.more': 'Whole log, so it only rises as the log grows.',
+  'v2d.fig.total-machines.what': 'CNC, conventional and process machines together',
+  'v2d.fig.utilities.what': 'utility machines',
+  'v2d.fig.dg-sets.what': 'diesel generator sets',
+  'v2d.fig.cnc-machines.what': 'CNC machines',
+  'v2d.fig.conventional-machines.what': 'conventional machines',
+  'v2d.fig.process-machines.what': 'process machines',
+  'v2d.fig.count.more': 'Counted from the machines register; open the rows to see each machine.',
+  'v2d.needs.sub': '{items} open · {clocks} clocks breached',
+  'v2d.needs.unavailable': 'What needs you now could not be loaded. Try again in a moment.',
+  'v2d.needs.col.machine': 'Machine',
+  'v2d.needs.col.ticket': 'Ticket',
+  'v2d.needs.col.problem': 'Problem',
+  'v2d.needs.col.kind': 'What it is',
+  'v2d.needs.col.time': 'Time',
+  'v2d.needs.col.clock': 'Clock',
+  'v2d.needs.open': 'Open {ref}',
+  'v2d.ac.title': 'Action Center',
+  'v2d.ac.urgent': 'High priority',
+  'v2d.ac.watch': 'Watch',
+  'v2d.month.1': 'January',
+  'v2d.month.2': 'February',
+  'v2d.month.3': 'March',
+  'v2d.month.4': 'April',
+  'v2d.month.5': 'May',
+  'v2d.month.6': 'June',
+  'v2d.month.7': 'July',
+  'v2d.month.8': 'August',
+  'v2d.month.9': 'September',
+  'v2d.month.10': 'October',
+  'v2d.month.11': 'November',
+  'v2d.month.12': 'December',
+  'v2d.tf.title': 'Team Focus',
+  'v2d.tf.text': '{n} actions open.',
+  'v2d.tf.text.one': '1 action open.',
+  'v2d.tf.text.month': '{n} actions open for {month}.',
+  'v2d.tf.text.month.one': '1 action open for {month}.',
+  'v2d.tf.top': 'Top: {title}',
+  'v2d.tf.open': 'Open Team Focus',
+  'v2d.link.register': 'Open register',
+  'v2d.fig.no-downtime-hours.entries': 'Entries: {n}',
+  'v2d.costliest.link': 'View Problem Analysis',
+  'v2d.warn.more': 'and {n} more',
+  'v2d.costliest.title': 'Problems costing the most downtime',
+  'v2d.costliest.empty': 'No problems to rank yet.',
+  'v2d.warn.title': 'Failing faster than before',
+  'v2d.warn.sub': 'The engine’s own trend test on every machine’s breakdown history.',
+  'v2d.warn.some': '{n} machines are failing faster than before:',
+  'v2d.warn.one': '1 machine is failing faster than before:',
+  'v2d.warn.none': 'No machine is failing faster than before.',
+  'v2d.warn.why':
+    'A machine is called worsening only when the rise in its breakdown rate is clear, more than two standard errors; it is a signal to inspect, not a forecast.',
+  'v2d.bubble.sub':
+    'Each bubble is a machine: downtime hours across, breakdowns up, bubble size is its repair time, colour is its type. Press a bubble to open the machine; zoom with the buttons or Ctrl and the wheel, drag to move. Every record to date.',
+  'v2d.bubble.aria':
+    'A bubble chart of every machine: downtime hours across, number of breakdowns up, bubble size is the time to repair.',
+  'v2d.bubble.zoomIn': 'Zoom in',
+  'v2d.bubble.zoomOut': 'Zoom out',
+  'v2d.bubble.zoomReset': 'Reset zoom',
+  'v2d.bubble.empty': 'No machine matches these filters.',
+  'v2d.bubble.all': 'All',
+  'v2d.bubble.filter.cell': 'Cell',
+  'v2d.bubble.filter.category': 'Type',
+  'v2d.bubble.filter.age': 'Age',
+  'v2d.bubble.filter.reset': 'Reset filters',
+  'v2d.bubble.shown': '{n} machines shown',
+  'v2d.bubble.age.0': '0 to 5 years',
+  'v2d.bubble.age.1': '5 to 10 years',
+  'v2d.bubble.age.2': '10 to 15 years',
+  'v2d.bubble.age.3': '15 to 20 years',
+  'v2d.bubble.age.4': '20 years and over',
+  'v2d.bubble.age.u': 'Age not known',
+  'v2d.bubble.tip.type': 'Type: {value}',
+  'v2d.bubble.tip.model': 'Model: {value}',
+  'v2d.bubble.tip.age': 'Age: {value}',
+  'v2d.bubble.tip.breakdowns': 'Breakdowns: {value}',
+  'v2d.bubble.tip.hours': 'Downtime hours: {value}',
+  'v2d.bubble.tip.mttr': 'Repair time: {value} hrs',
+  'v2d.timeline.sub': 'Machines added each year by type, with the running total.',
+  'v2d.timeline.aria':
+    'A chart of the machines added to the plant each year, by type, and the running total.',
+  'v2d.machines.title': 'Machines by downtime',
+  'v2d.machines.col.machine': 'Machine',
+  'v2d.machines.col.model': 'Model',
+  'v2d.machines.col.age': 'Age',
+  'v2d.machines.col.hours': 'Downtime hours',
+  'v2d.machines.col.breakdowns': 'Breakdowns',
+  'v2d.machines.col.mttr': 'Repair time (hrs)',
+  'v2d.machines.hint': 'Worst first. Every record to date; the rows are the bubble chart’s own.',
+} as const;

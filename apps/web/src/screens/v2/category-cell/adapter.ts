@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
 import type { Point } from '../../../ui/v2/points.js';
 import { fill } from '../../../i18n/fill.js';
+import type { Translate } from '../figures/read.js';
 import type { PageTable } from '../../analytics/page-content.js';
 import {
   byTitle,
@@ -19,12 +20,14 @@ import {
   shortDate,
   type FiguresPart,
 } from '../printed-page/printed.js';
+import { chartNotes } from '../printed-page/notes.js';
 import { say, strong } from '../printed-page/segs.js';
 import { printedTable, type PrintedTable } from '../printed-page/table.js';
 import { verdictOf } from '../printed-page/verdict.js';
 import { pageWords } from '../printed-page/words.js';
+import { seeRowsFor } from '../rows-behind/drill.js';
 
-const KEY = 'a2-category-cell';
+export const FIGURE = 'a2-category-cell';
 const CATEGORIES = 'By Category — Detail';
 const CELLS = 'By Cell — Detail';
 const MACHINES = 'Machine-Level Detail';
@@ -103,10 +106,11 @@ function behind(categories: PageTable | undefined, cells: PageTable | undefined,
  * the engine's order gives each. The answer is read from the printed rows: the category and cell with the most hours.
  */
 export function categoryCellModel(reply: FiguresPart, t: TFunction): PrintedPageModel | null {
-  const page = pageOf(figureOf(reply, KEY), t);
+  const page = pageOf(figureOf(reply, FIGURE), t);
   if (page === null) return null;
   const words = pageWords(t, 'v2r.cc.source');
   const source = fill(words.source, { date: shortDate(reply.asOf) });
+  const say_: Translate = (key, values) => t(key, { ...values }) as string;
   const categories = byTitle(page, CATEGORIES);
   const detail = page.tables
     .filter((table) => table.title === MACHINES)
@@ -119,7 +123,15 @@ export function categoryCellModel(reply: FiguresPart, t: TFunction): PrintedPage
       source,
     ),
     figures: [],
-    charts: page.charts.map((spec) => chartOf(spec, words)),
+    charts: chartNotes(
+      page.charts.map((spec) => chartOf(spec, words)),
+      {
+        [t('analytics.content.a2.catAvgHrsChart')]: t('v2r.note.cc.catAvgHrs'),
+        [t('analytics.content.a2.catAvgCountChart')]: t('v2r.note.cc.catAvgCount'),
+        [t('analytics.content.a2.cellAvgHrsChart')]: t('v2r.note.cc.cellAvgHrs'),
+        [t('analytics.content.a2.cellAvgCountChart')]: t('v2r.note.cc.cellAvgCount'),
+      },
+    ),
     tables: [
       ...tablesOf(
         page.tables.filter((table) => table.title !== MACHINES),
@@ -127,6 +139,7 @@ export function categoryCellModel(reply: FiguresPart, t: TFunction): PrintedPage
       ),
       ...(merged ? [merged] : tablesOf(detail, words)),
     ],
+    drill: seeRowsFor(reply, FIGURE, say_),
     source,
     words,
   };

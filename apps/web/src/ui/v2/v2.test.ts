@@ -2,12 +2,13 @@
 import { createElement, type ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { dashboardFixture as model } from '../../screens/v2/fixtures/plant-fixture.js';
+import { dashboardFixture as model } from '../../screens/v2/dashboard/fixture.js';
 import { BulletBar, place } from './bullet-bar.js';
 import { DataTable } from './data-table.js';
 import { Drawer } from './drawer.js';
 import { KpiCard } from './kpi-card.js';
 import { Pareto, paretoMismatch } from './pareto.js';
+import { SavedCopyNotice, ScreenStates } from './screen-states.js';
 import { Points } from './points.js';
 import { Shell } from './shell.js';
 import { tablePage } from './table-model.js';
@@ -172,6 +173,20 @@ describe('v2 shell and drawer', () => {
     expect(all(out, /<h1[^>]*>(.*?)<\/h1>/g)).toEqual(['Dashboard']);
     expect(out.match(/<main/g)).toHaveLength(1);
   });
+  it('names the rail, offers the search only when it has pages to search, and shows the plant beside the title', () => {
+    const bare = html(createElement(Shell, { nav, title: 'Dashboard', children: 'x' }));
+    expect(bare).toMatch(/<nav class="v2-rail" aria-label="[^"]+"/);
+    expect(bare).not.toMatch(/aria-haspopup="dialog"/);
+    const search = [{ to: '/c', text: 'Reports', hint: 'Section', match: 'Reports' }];
+    const out = html(
+      createElement(Shell, { nav, title: 'Dashboard', plant: 'Plant 7', search, children: 'x' }),
+    );
+    expect(out).toMatch(
+      /<button[^>]*aria-haspopup="dialog"[^>]*aria-keyshortcuts="Control\+K Meta\+K"/,
+    );
+    expect(all(out, /<p class="v2-plant">(.*?)<\/p>/g)).toEqual(['Plant 7']);
+    expect(out).not.toContain('role="dialog"'); // the palette is closed until asked for
+  });
   it('keeps a closed drawer out of reach, and gives an open one its name and a close button', () => {
     expect(html(createElement(Drawer, { drawer: null }))).toMatch(/<aside[^>]*inert=""/);
     const open = html(
@@ -180,5 +195,25 @@ describe('v2 shell and drawer', () => {
     expect(open).toMatch(/<aside[^>]*aria-label="VC-8"/);
     expect(open).not.toMatch(/inert/);
     expect(open).toMatch(/<button[^>]*aria-label="[^"]+"/);
+  });
+});
+
+describe('v2 screen states', () => {
+  const states = (state: Parameters<typeof ScreenStates>[0]['loaded']['state']) =>
+    html(
+      createElement(ScreenStates<string>, {
+        loaded: { state, retry: () => {} },
+        children: () => null,
+      }),
+    );
+  it('says "not computed" in its own state, apart from an empty one', () => {
+    expect(states('notComputed')).toMatch(/data-state="not-computed"/);
+    expect(states('empty')).toMatch(/data-state="empty"/);
+    expect(states('notComputed')).not.toBe(states('empty'));
+  });
+  it('shows a saved copy as one line the reader can hear', () => {
+    const out = html(createElement(SavedCopyNotice, { text: 'You are offline.' }));
+    expect(out).toMatch(/role="status"/);
+    expect(text(out)).toBe('You are offline.');
   });
 });

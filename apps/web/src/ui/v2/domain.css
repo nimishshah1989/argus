@@ -428,3 +428,6 @@ button.v2-tile:hover:not(:disabled) {
 .v2-bar-drill:hover {
   background: var(--color-v2-hover);
 }
+.v2-drill-action {
+  margin: 0;
+}

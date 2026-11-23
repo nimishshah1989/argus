@@ -222,47 +222,81 @@ async function stubFigures(page: Page): Promise<void> {
   await page.route('**/api/v1/analytics/figures', (route) => route.fulfill({ json: reply }));
 }
 
+/** The Manpower table's first data row, read as the screen prints it: the person's chip. */
 async function firstManpowerName(page: Page): Promise<string> {
-  const table = page.getByRole('table', { name: 'Manpower Table', exact: true });
+  const table = page.getByRole('region', { name: 'Manpower Table', exact: true });
   return (await table.getByRole('row').nth(1).getByRole('cell').first().innerText()).trim();
 }
 
-/** A4: the key page, the sortable Manpower table (mouse then keyboard), the toggle, the drill. */
+/** A4: the page, its three figures, the chart and every table of the key, in the v2 look at v1's address. */
 async function openA4(page: Page): Promise<void> {
   await page.goto('/analytics/breakdowns?screen=a4-manpower');
-  const nav = page.getByRole('navigation', { name: 'Breakdowns screens', exact: true });
-  await expect(nav.getByRole('link', { name: 'A4 manpower', exact: true })).toHaveAttribute(
-    'aria-current',
-    'page',
+  const tabs = page.getByRole('group', { name: 'Breakdowns screens', exact: true });
+  await expect(tabs.getByRole('button', { name: 'A4 manpower', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
   );
-  await expect(
-    page.getByRole('heading', { name: 'Manpower Efficiency', exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Manpower' })).toBeVisible();
   for (const kpi of A4_KPIS) {
-    await expect(page.getByText(kpi.label, { exact: true })).toBeVisible();
-    await expect(page.getByText(kpi.value, { exact: true }).first()).toBeVisible();
+    const tile = page.getByRole('region', { name: kpi.label, exact: true }).first();
+    await expect(tile).toBeVisible();
+    await expect(tile.getByText(kpi.value, { exact: true })).toBeVisible();
   }
-  for (const title of A4_TABLE_TITLES)
-    await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
-  await expect(page.getByRole('cell', { name: '469.40', exact: true })).toBeVisible();
-  await expect(page.getByRole('cell', { name: '15.40%', exact: true })).toBeVisible();
-  const charts = page.getByTestId('chart');
+  // The Manpower table, the Specialization card and the two month tables are named by the engine's own titles; the PM
+  // matrix is one table for jobs and one for hours.
+  for (const title of [
+    A4_TABLE_TITLES[0],
+    A4_TABLE_TITLES[2],
+    A4_TABLE_TITLES[3],
+    A4_TABLE_TITLES[4],
+  ])
+    await expect(page.getByRole('region', { name: title, exact: true })).toBeVisible();
+  for (const measure of ['# PM jobs', 'PM hours'])
+    await expect(
+      page.getByRole('region', { name: `${A4_TABLE_TITLES[1]} · ${measure}`, exact: true }),
+    ).toBeVisible();
+  const manpower = page.getByRole('region', { name: 'Manpower Table', exact: true });
+  await expect(manpower.getByRole('cell', { name: '469.40', exact: true })).toBeVisible();
+  await expect(manpower.getByRole('cell', { name: '15.40%', exact: true })).toBeVisible();
+  // Every row of the key is in the table: three people, three rows.
+  await expect(manpower.getByText(/^1–3 of 3$/)).toBeVisible();
+  const charts = page.locator('[data-chart-state]');
   await expect(charts).toHaveCount(1);
   await expect(charts).toHaveAttribute('data-chart-state', 'ready');
-  await expect(page.getByText('Breakdowns handled — Done By', { exact: true })).toBeVisible();
+  await expect(
+    page.getByText('Breakdowns handled — Done By', { exact: true }).first(),
+  ).toBeVisible();
+  // The answer: who handled the most breakdowns, read from the printed table.
+  await expect(
+    page.getByText('Person 11 handled the most breakdowns: 197 of 1279 (15.40%).'),
+  ).toBeVisible();
 }
 
+/** The Manpower table sorts on a numeric column (mouse then keyboard) and filters to a person type. */
 async function sortManpower(page: Page): Promise<void> {
-  const table = page.getByRole('table', { name: 'Manpower Table', exact: true });
+  const table = page.getByRole('region', { name: 'Manpower Table', exact: true });
   const header = table.getByRole('columnheader', { name: '# BD (Done By)', exact: true });
-  await expect(header).toHaveAttribute('aria-sort', 'none');
+  await expect(header).not.toHaveAttribute('aria-sort', /ascending|descending/);
   expect(await firstManpowerName(page)).toBe('Person 11');
   await header.getByRole('button').click();
-  await expect(header).toHaveAttribute('aria-sort', 'ascending');
-  expect(await firstManpowerName(page)).toBe('Imptex Team');
-  await header.getByRole('button').press('Enter');
   await expect(header).toHaveAttribute('aria-sort', 'descending');
   expect(await firstManpowerName(page)).toBe('Person 11');
+  await header.getByRole('button').press('Enter');
+  await expect(header).toHaveAttribute('aria-sort', 'ascending');
+  expect(await firstManpowerName(page)).toBe('Imptex Team');
+  await table.getByRole('button', { name: 'Vendor', exact: true }).click();
+  await expect(table.getByRole('row')).toHaveCount(2);
+  await expect(table.getByRole('row').nth(1)).toContainText('Imptex Team');
+  await table.getByRole('button', { name: 'All', exact: true }).click();
+}
+
+/** A person in the table is a chip that opens their drawer; Back closes it. */
+async function personOpensDrawer(page: Page): Promise<void> {
+  const table = page.getByRole('region', { name: 'Manpower Table', exact: true });
+  await table.getByRole('button', { name: 'Person 79', exact: true }).first().click();
+  await expect(page).toHaveURL(/[?&]drawer=person:person-79/);
+  await page.goBack();
+  await expect(page).not.toHaveURL(/drawer=/);
 }
 
 async function toggleSpecialization(page: Page): Promise<void> {
@@ -281,15 +315,14 @@ async function toggleSpecialization(page: Page): Promise<void> {
   await expect(page.getByRole('cell', { name: 'Person 79', exact: true }).first()).toBeVisible();
 }
 
-/** A5: both heat grids, the average grid, every cell tile's drill and every location tile's empty drill. */
+/** A5: both heat maps, the average map, every cell tile's drawer and every location tile with no machines behind it. */
 async function openA5(page: Page): Promise<void> {
   await page.goto('/analytics/machines?screen=a5-energy');
-  const nav = page.getByRole('navigation', { name: 'Machines screens', exact: true });
-  await expect(nav.getByRole('link', { name: 'A5 energy heatmap', exact: true })).toHaveAttribute(
-    'aria-current',
-    'page',
-  );
-  await expect(page.getByRole('heading', { name: 'Energy Heatmap', exact: true })).toBeVisible();
+  const tabs = page.getByRole('group', { name: 'Machines screens', exact: true });
+  await expect(
+    tabs.getByRole('button', { name: 'A5 energy heatmap', exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('heading', { level: 1, name: 'Energy Heatmap' })).toBeVisible();
   for (const title of [
     'Load by Cell — Connected & Running',
     'Load by Location — Connected & Running',
@@ -302,31 +335,31 @@ async function openA5(page: Page): Promise<void> {
   const first = page.locator('[data-tile="cell:1"]');
   await expect(first).toContainText('Connected KVA');
   await expect(first).toContainText('Running: 20.0 KVA');
+  // A tile's tint is never the only sign: it prints its figure and is named by it for a screen reader.
+  await expect(first).toHaveAttribute('data-level', /^[1-5]$/);
+  await expect(first).toHaveAttribute('aria-label', /^Cell 1: 100\.0 Connected KVA/);
 }
 
 async function drillEveryCell(page: Page): Promise<void> {
+  const drawer = page.locator('aside.v2-drawer');
   for (const cell of A5_CELLS) {
     await page.locator(`[data-tile="cell:${cell.key}"]`).click();
+    await expect(page).toHaveURL(/[?&]drawer=figure:a5-energy%3Acell%3A/);
     await expect(
-      page.getByRole('heading', { name: `Machine-wise Load — Cell ${cell.key}`, exact: true }),
+      drawer.getByText(`Machine-wise Load — Cell ${cell.key}`, { exact: true }).first(),
     ).toBeVisible();
-    const table = page.getByRole('table');
-    await expect(table.getByRole('row')).toHaveCount(cell.codes.length + 1);
     for (const code of cell.codes)
-      await expect(table.getByRole('link', { name: code, exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Back to the overview', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'Energy Heatmap', exact: true })).toBeVisible();
+      await expect(drawer.getByRole('button', { name: code, exact: true })).toBeVisible();
+    await page.goBack();
+    await expect(page).not.toHaveURL(/drawer=/);
   }
 }
 
-async function drillEveryLocation(page: Page): Promise<void> {
+/** A location the plant recorded no machines for has no rows to open: its tile prints its load and is not a button. */
+async function everyLocationHasNoRows(page: Page): Promise<void> {
   for (const key of A5_LOCATIONS) {
-    await page.locator(`[data-tile="location:${key}"]`).click();
-    await expect(
-      page.getByRole('heading', { name: `Machine-wise Load — Location ${key}`, exact: true }),
-    ).toBeVisible();
-    await expect(page.getByText('No rows.', { exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Back to the overview', exact: true }).click();
+    await expect(page.locator(`[data-tile="location:${key}"]`)).toBeVisible();
+    await expect(page.locator(`button[data-tile="location:${key}"]`)).toHaveCount(0);
   }
 }
 
@@ -340,29 +373,54 @@ test('a head opens A4, sorts and toggles it, then A5 and drills every tile and a
   await openA4(page);
   await sortManpower(page);
   await toggleSpecialization(page);
-  await page.getByRole('link', { name: 'See the rows', exact: true }).click();
-  await expect(page).toHaveURL(/drill=ticket%3A/);
+  await personOpensDrawer(page);
+  // The page action opens the tickets the figure counted, in the drawer; Back closes them.
+  await page.getByRole('button', { name: /Show the rows behind A4 manpower/ }).click();
+  await expect(page).toHaveURL(/[?&]drawer=figure:a4-manpower$/);
   await expect(
-    page.getByRole('heading', { name: 'The rows behind this figure', exact: true }),
+    page.locator('aside.v2-drawer').getByRole('link', { name: tickets.first.ref, exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole('cell', { name: tickets.first.ref, exact: true })).toBeVisible();
+  await page.goBack();
+  // An old v1 address with the figure's tickets in it opens the same rows on the v2 page, and the old parameter goes.
+  const link = encodeURIComponent(`ticket:${tickets.first.id},${tickets.second.id}`);
+  await page.goto(`/analytics/breakdowns?screen=a4-manpower&drill=${link}`);
+  await expect(page).toHaveURL(/[?&]drawer=figure:a4-manpower$/);
+  await expect(page).not.toHaveURL(/drill=/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Manpower' })).toBeVisible();
 
   await openA5(page);
   await drillEveryCell(page);
-  await drillEveryLocation(page);
+  await everyLocationHasNoRows(page);
 
+  // A machine in a tile's rows opens its own drawer on top of them; Back returns to the rows.
   await page.locator('[data-tile="cell:1"]').click();
-  await expect(
-    page.getByRole('table').getByRole('link', { name: 'VC-1', exact: true }),
-  ).toHaveAttribute('href', new RegExp(`/analytics/machines/${MACHINES[0]?.id}$`));
-  await page.getByRole('table').getByRole('link', { name: 'VC-1', exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`/analytics/machines/${MACHINES[0]?.id}$`));
+  const drawer = page.locator('aside.v2-drawer');
+  await drawer.getByRole('button', { name: 'VC-1', exact: true }).click();
+  await expect(page).toHaveURL(/[?&]drawer=machine:VC-1/);
 
-  await page.goto('/analytics/machines?screen=a5-energy');
-  await page.getByRole('link', { name: 'See the rows', exact: true }).click();
-  await expect(page).toHaveURL(/drill=machine%3A/);
+  // An old v1 address with the figure's rows in it opens those rows, and the old parameter goes.
+  await page.goto(
+    `/analytics/machines?screen=a5-energy&drill=${encodeURIComponent(`machine:${A5_MACHINE_IDS.join(',')}`)}`,
+  );
+  await expect(page).toHaveURL(/[?&]drawer=figure:a5-energy$/);
+  await expect(page).not.toHaveURL(/drill=/);
   await expect(
-    page.getByRole('heading', { name: 'The rows behind this figure', exact: true }),
+    page.locator('aside.v2-drawer').getByText(new RegExp(`of ${A5_MACHINE_IDS.length}$`)),
   ).toBeVisible();
-  await expect(page.getByRole('table').getByRole('row')).toHaveCount(A5_MACHINE_IDS.length + 1);
+
+  // The page action opens every machine the figure counted.
+  await page.goto('/analytics/machines?screen=a5-energy');
+  await page.getByRole('button', { name: /Show the rows behind A5 energy heatmap/ }).click();
+  await expect(page).toHaveURL(/[?&]drawer=figure:a5-energy$/);
+  await expect(
+    page.locator('aside.v2-drawer').getByText(new RegExp(`of ${A5_MACHINE_IDS.length}$`)),
+  ).toBeVisible();
+});
+
+test('an operator is refused the manpower screen', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await signIn(page, 'op');
+  await page.goto('/analytics/breakdowns?screen=a4-manpower');
+  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Manpower Table', exact: true })).toHaveCount(0);
 });

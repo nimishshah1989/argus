@@ -1,3 +1,4 @@
+import { canonicalOrder } from './canonical-order.js';
 import type { AnalyticsProfile } from '@uptimo/shared';
 import { addedTable, tableOf, teamTable, type Table } from './monthly-report-tables.js';
 import {
@@ -313,10 +314,11 @@ function pageOf(
  * names every October breakdown ticket in read order; the engine dedupes and sorts them.
  */
 export function monthlyReport(
-  data: EngineData,
+  loaded: EngineData,
   profile: AnalyticsProfile,
   asOf: string,
 ): { value: FigureValue | null; drillIds: string[] } {
+  const data = canonicalOrder(loaded);
   const machines = productionMachines(data);
   const entries = reportEntries(data);
   const period = monthlyPeriod(asOf);

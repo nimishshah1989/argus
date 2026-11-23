@@ -15,12 +15,10 @@ export const analyticsMachinesEn = {
     "The platform's own split of each register: how many machines, their connected load and age, and the controller or make breakdown the Guide describes. The rows behind each page are the register's machines.",
   'analytics.registers.seeMachines': 'See the machines',
   'analytics.registers.notReady': 'This register has not been computed yet.',
-  'analytics.registers.missingPage': 'This register page is not in the reply.',
   'analytics.machines.nav': 'Machines screens',
   'analytics.cellLog.title': 'Cell / Location Change Log',
   'analytics.cellLog.intro':
     'Every recorded move, latest first. A breakdown before a move stays with the old cell; from the move date on it belongs to the new cell.',
-  'analytics.cellLog.lede': '{{asOf}} · {{intro}}',
   'analytics.cellLog.export': 'Export to CSV',
   'analytics.cellLog.exportError': 'Could not export the cell change log.',
   'analytics.cellLog.empty': 'No cell or location moves logged yet.',

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Ticket } from '../../../api.js';
-import { clocksBreached, needsNow } from './needs-now.js';
+import { clocksBreached, needsNow } from './needs.js';
 
 /**
  * The Today strip's picking rules: a breached acknowledgement or restore clock, a paused breakdown, or a

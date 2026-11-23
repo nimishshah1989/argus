@@ -5,214 +5,279 @@ import {
   type ActionCenterBoardReply,
   type BoardNudgeReply,
   type NudgeSeverity,
+  type NudgeStatus,
 } from '@uptimo/shared';
-import type { MessageKey } from '@uptimo/shared/i18n';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
-import type { IconName } from '../../../ui/v2/icons.js';
+import type { Point } from '../../../ui/v2/points.js';
+import type { VerdictData } from '../../../ui/v2/verdict.js';
 import { plantDayOf } from '../../analytics/action-center.js';
 import { dayText, machineChip, sourceLine, type Translate } from '../figures/read.js';
-import { commonWords } from '../figures/words.js';
-import type { ActionCenterModel, NudgeAction, NudgeCard, RiskRow } from './model.js';
+import type {
+  ActionCenterModel,
+  ActionCenterWords,
+  NudgeAck,
+  NudgeAction,
+  NudgeRow,
+  RiskRow,
+} from './model.js';
+import { nudgeRef, plainTitle, slugOf, titlePoint, type Names } from './text.js';
 
-/** What the plant knows beside the board: the machines the nudges name (codes, not ids) and the people who may own one. */
-export type ActionFacts = {
+/** What the plant knows: the engine's board, its machines and people, and the zone its days are told in. */
+export type BoardFacts = {
+  board: ActionCenterBoardReply;
   machines: readonly { id: string; code: string; category: string | null }[];
   people: readonly { id: string; name: string; active: boolean }[];
   timeZone: string;
 };
 
-/** The words the catalogue already holds for each priority, nudge type and status (one phrase, one key). */
-const SEVERITY: Record<NudgeSeverity, MessageKey> = {
-  high: 'analytics.actionCenter.tile.high',
-  med: 'analytics.actionCenter.tile.med',
-  low: 'analytics.actionCenter.tile.low',
-  info: 'analytics.actionCenter.tile.info',
-};
-const RULE = (rule: string) => `analytics.actionCenter.rule.${rule}`;
-const TAB = (status: string) => `analytics.actionCenter.tab.${status}`;
-const ICON: Record<NudgeSeverity, IconName> = {
-  high: 'alert',
-  med: 'clock',
-  low: 'list',
-  info: 'check',
-};
-const NEEDS_WORD: Partial<Record<NudgeSeverity, MessageKey>> = {
-  high: 'analytics.actionCenter.verdict.high',
-  med: 'analytics.actionCenter.verdict.med',
-};
-const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g;
+const WEIGHT: Record<NudgeSeverity, number> = { high: 3, med: 2, low: 1, info: 0 };
+const KPI_ICON = { high: 'alert', med: 'clock', low: 'list', info: 'check' } as const;
+const DAY_MS = 86_400_000;
 
-/** What one card can do: good news only informs, a stored status only reopens, an open nudge takes the three writes. */
+/** What a card can do: good news has no button, a stored status only reopens, an open nudge takes the three writes. */
 function actionsOf(nudge: BoardNudgeReply): NudgeAction[] {
   if (nudge.sev === 'info') return [];
   return nudge.status === 'open' ? ['ack', 'snooze', 'resolved'] : ['reopen'];
 }
 
-/** What was done to a stored nudge, one phrase each: the status, the owner, the due day and the note. */
-function savedOf(nudge: BoardNudgeReply, zone: string, t: Translate): string[] {
-  const ack = nudge.ack;
-  if (nudge.status === 'open' || ack === null) return [];
-  const until = ack.until === undefined ? '' : dayText(plantDayOf(ack.until, zone));
-  return [
-    nudge.status === 'snoozed'
-      ? t('analytics.actionCenter.status.snoozed', { date: until })
-      : t(`analytics.actionCenter.status.${nudge.status}`),
-    ...(ack.owner === '' ? [] : [t('analytics.actionCenter.owner', { owner: ack.owner })]),
-    ...(ack.due === '' ? [] : [t('analytics.actionCenter.due', { date: dayText(ack.due) })]),
-    ...(ack.note === '' ? [] : [t('analytics.actionCenter.note', { note: ack.note })]),
-  ];
-}
+const dayNumber = (day: string | null): number =>
+  day === null ? -1 : Math.round(Date.parse(`${day}T00:00:00Z`) / DAY_MS);
 
-/** The board names machines by id; the plant reads codes. A code is never a UUID, so no id reaches the screen. */
-function namer(facts: ActionFacts) {
-  const byId = new Map(facts.machines.map((machine) => [machine.id, machine]));
+/** The plant's lists as the chips and sentences need them: a code for an id, a chip for a machine, a person, a cell. */
+function namesOf(facts: BoardFacts, t: Translate): Names {
+  const byId = new Map(facts.machines.map((m) => [m.id, m]));
+  const byCode = new Map(facts.machines.map((m) => [m.code, m]));
+  const people = new Map(facts.people.map((p) => [p.name.trim().toLowerCase(), p]));
   return {
-    code: (id: string) => byId.get(id)?.code ?? id,
-    chip: (id: string) => {
-      const machine = byId.get(id);
-      return machineChip(machine?.code ?? id, machine?.category ?? undefined);
+    codeOf: (id) => byId.get(id)?.code ?? null,
+    machine: (code) => machineChip(code, byCode.get(code)?.category ?? undefined),
+    person: (name) => {
+      const person = people.get(name.trim().toLowerCase());
+      return person ? { kind: 'person', id: slugOf(person.name), label: person.name } : null;
     },
-    text: (printed: string) => printed.replace(UUID, (id) => byId.get(id)?.code ?? id),
+    cell: (name) => ({ kind: 'cell', id: name, label: name }),
+    dash: t('v2m.none'),
   };
 }
 
-function cardOf(
+/** A stored acknowledgement as it prints; the owner is a person's chip when the plant lists them. */
+function ackOf(
   nudge: BoardNudgeReply,
-  facts: ActionFacts,
-  names: ReturnType<typeof namer>,
+  names: Names,
+  facts: BoardFacts,
   t: Translate,
-): NudgeCard {
+): NudgeAck | null {
+  const ack = nudge.ack;
+  if (ack === null) return null;
+  const chip = ack.owner === '' ? null : names.person(ack.owner);
+  const owner: Point = chip
+    ? [{ text: chip.label, entity: chip }]
+    : ack.owner === ''
+      ? []
+      : [{ text: ack.owner }];
   return {
-    key: nudge.key,
+    owner,
+    due: ack.due === '' ? '' : t('analytics.actionCenter.due', { date: dayText(ack.due) }),
+    note: ack.note === '' ? '' : t('analytics.actionCenter.note', { note: ack.note }),
+    until: ack.until === undefined ? '' : dayText(plantDayOf(ack.until, facts.timeZone)),
+  };
+}
+
+const STATUS_KEY = {
+  open: 'analytics.actionCenter.tab.open',
+  ack: 'analytics.actionCenter.status.ack',
+  snoozed: 'analytics.actionCenter.tab.snoozed',
+  resolved: 'analytics.actionCenter.status.resolved',
+} as const;
+
+/** "Open", "Acknowledged", "Snoozed until 18-Nov-2026" (the day it opens again) or "Resolved". */
+function statusLabel(status: NudgeStatus, ack: NudgeAck | null, t: Translate): string {
+  if (status === 'snoozed' && ack?.until)
+    return t('analytics.actionCenter.status.snoozed', { date: ack.until });
+  return t(STATUS_KEY[status]);
+}
+
+function rowOf(nudge: BoardNudgeReply, facts: BoardFacts, names: Names, t: Translate): NudgeRow {
+  const title = titlePoint(nudge, names);
+  const titleText = plainTitle(nudge.title, nudge.machines, names);
+  const ack = ackOf(nudge, names, facts, t);
+  const codes = nudge.machines.flatMap((id) => names.codeOf(id) ?? []);
+  const ruleLabel = t(`analytics.actionCenter.rule.${nudge.rule}`);
+  return {
+    id: nudgeRef(nudge.key, names.codeOf),
+    writeKey: nudge.key,
     rule: nudge.rule,
     severity: nudge.sev,
-    type: t(RULE(nudge.rule)),
-    title: names.text(nudge.title),
-    machines: nudge.machines.map(names.chip),
+    status: nudge.status,
+    weight: WEIGHT[nudge.sev],
+    ruleLabel,
+    severityLabel: t(`analytics.actionCenter.tile.${nudge.sev}`),
+    statusLabel: statusLabel(nudge.status, ack, t),
+    title,
+    titleText,
+    machines: codes.map(names.machine),
+    count: nudge.entries,
     entries: t('analytics.actionCenter.entries', { count: nudge.entries }),
-    evidence:
+    latest: {
+      shown: nudge.ev === null ? names.dash : dayText(nudge.ev),
+      value: dayNumber(nudge.ev),
+    },
+    latestText:
       nudge.ev === null ? '' : t('analytics.actionCenter.latestEntry', { date: dayText(nudge.ev) }),
     reopened: nudge.reopened,
     excluded: nudge.excluded,
-    status: nudge.status,
-    saved: savedOf(nudge, facts.timeZone, t),
+    ack,
     actions: actionsOf(nudge),
+    text: `${titleText} ${codes.join(' ')} ${ruleLabel}`,
   };
 }
 
-/** A risk row's machine cell is "id model"; the board sends them apart, and the plant reads the code. */
-function riskOf(board: ActionCenterBoardReply, names: ReturnType<typeof namer>): RiskRow[] {
-  return board.risk.map((row) => ({
-    machine: names.chip(row.machine),
-    model: row.model,
-    score: { shown: String(row.score), value: row.score },
-    why: row.why,
+function riskOf(board: ActionCenterBoardReply, names: Names): RiskRow[] {
+  return board.risk.map((row) => {
+    const code = names.codeOf(row.machine);
+    return {
+      machine: code === null ? null : names.machine(code),
+      model: row.model,
+      score: { shown: String(row.score), value: row.score },
+      why: row.why,
+      text: `${code ?? ''} ${row.model} ${row.why}`,
+    };
+  });
+}
+
+function kpisOf(board: ActionCenterBoardReply, t: Translate): KpiData[] {
+  const meaning = (sev: NudgeSeverity, count: number): string => {
+    if (count === 0) return t('v2a.kpi.none');
+    return sev === 'high'
+      ? t('analytics.actionCenter.verdict.high')
+      : sev === 'med'
+        ? t('analytics.actionCenter.verdict.med')
+        : t(`v2a.kpi.${sev}`);
+  };
+  return NUDGE_SEVERITIES.map((sev) => ({
+    id: sev,
+    label: t(`analytics.actionCenter.tile.${sev}`),
+    icon: KPI_ICON[sev],
+    value: String(board.bySeverity[sev]),
+    delta: { text: '', up: false, good: sev === 'info' },
+    period: '',
+    meaning: meaning(sev, board.bySeverity[sev]),
+    more: t('v2a.kpi.more'),
   }));
 }
 
-function tileOf(board: ActionCenterBoardReply, severity: NudgeSeverity, t: Translate): KpiData {
-  const meaning = NEEDS_WORD[severity];
+/** The answer first: what needs a person now, and which machine tops the engine's own ranking. */
+function verdictOf(board: ActionCenterBoardReply, names: Names, t: Translate): VerdictData {
+  const { high, med } = board.bySeverity;
+  const open = board.counts.open;
+  const sentence =
+    open === 0
+      ? t('analytics.actionCenter.emptyOpen')
+      : high + med === 0
+        ? t('v2a.verdict.calm', { n: open })
+        : t('analytics.actionCenter.banner', { high, medium: med });
+  const top = riskOf(board, names)[0];
+  const why: Point[] = [];
+  if (top?.machine)
+    why.push([
+      { text: top.machine.label, entity: top.machine },
+      { text: t('v2a.why.top', { score: top.score.shown, why: top.why }) },
+    ]);
+  why.push([{ text: t('v2a.why.scope') }]);
   return {
-    id: severity,
-    label: t(SEVERITY[severity]),
-    icon: ICON[severity],
-    value: String(board.bySeverity[severity]),
-    delta: { text: '', up: false, good: true, flat: true },
-    period: '',
-    meaning: meaning !== undefined && board.bySeverity[severity] > 0 ? t(meaning) : '',
-    more: '',
+    context: t('analytics.actionCenter.intro', { date: dayText(board.asOf) }),
+    headline: [{ text: sentence, tone: high > 0 ? 'loss' : med > 0 ? 'risk' : 'strong' }],
+    why,
   };
 }
 
-/** Every word the screen prints beside the board's own, in the reader's language. */
-function wordsOf(snoozeDays: number, t: Translate): ActionCenterModel['words'] {
-  const common = commonWords(t);
+function tableWords(title: string, search: string, empty: string, t: Translate) {
+  return { title, search, showing: t('v2m.showing'), noResults: empty, open: t('v2m.open') };
+}
+
+const formWords = (t: Translate): ActionCenterWords['form'] => ({
+  title: t('analytics.actionCenter.form'),
+  ownerLabel: t('analytics.actionCenter.ownerLabel'),
+  ownerNone: t('analytics.actionCenter.ownerNone'),
+  dueLabel: t('analytics.actionCenter.dueLabel'),
+  noteLabel: t('analytics.actionCenter.noteLabel'),
+  save: t('analytics.actionCenter.save'),
+  cancel: t('analytics.actionCenter.cancel'),
+});
+
+function wordsOf(t: Translate, snoozeDays: number): ActionCenterWords {
+  const sev = (s: NudgeSeverity) => t(`analytics.actionCenter.tile.${s}`);
+  const search = t('analytics.actionCenter.search');
   return {
-    why: common.why,
+    why: t('v2m.why'),
     tabsLabel: t('analytics.actionCenter.tabs'),
-    nudgesTitle: t('v2t.ac.nudges'),
     priorityLabel: t('analytics.actionCenter.priorityLabel'),
-    allPriorities: t('analytics.actionCenter.priority'),
+    priorityAll: t('analytics.actionCenter.priority'),
     typeLabel: t('analytics.actionCenter.typeLabel'),
-    allTypes: t('analytics.actionCenter.type'),
-    search: t('analytics.actionCenter.search'),
-    snooze: t('analytics.actionCenter.snooze', { days: snoozeDays }),
-    acknowledge: t('analytics.actionCenter.acknowledge'),
-    resolve: t('analytics.actionCenter.resolve'),
-    reopen: t('analytics.actionCenter.reopen'),
-    reopened: t('analytics.actionCenter.reopened'),
-    excluded: t('analytics.actionCenter.excluded'),
-    saveFailed: t('analytics.actionCenter.saveFailed'),
+    typeAll: t('analytics.actionCenter.type'),
+    priorities: { high: sev('high'), med: sev('med'), low: sev('low'), info: sev('info') },
+    table: tableWords(t('v2a.table.title'), search, t('analytics.actionCenter.empty'), t),
     emptyOpen: t('analytics.actionCenter.emptyOpen'),
-    empty: t('analytics.actionCenter.empty'),
-    form: {
-      title: t('analytics.actionCenter.form'),
-      owner: t('analytics.actionCenter.ownerLabel'),
-      ownerNone: t('analytics.actionCenter.ownerNone'),
-      due: t('analytics.actionCenter.dueLabel'),
-      note: t('analytics.actionCenter.noteLabel'),
-      save: t('analytics.actionCenter.save'),
-      cancel: t('analytics.actionCenter.cancel'),
+    emptyOther: t('analytics.actionCenter.empty'),
+    columns: {
+      priority: t('v2a.col.priority'),
+      nudge: t('v2a.col.nudge'),
+      type: t('analytics.actionCenter.typeLabel'),
+      entries: t('v2a.col.entries'),
+      latest: t('v2a.col.latest'),
+      status: t('v2a.col.status'),
     },
     risk: {
-      title: t('analytics.actionCenter.risk.title'),
-      search: t('analytics.actionCenter.search'),
-      showing: common.showing,
-      noResults: t('analytics.actionCenter.table.empty'),
-      open: common.open,
-      all: common.all,
-      columns: {
-        machine: t('analytics.actionCenter.risk.machine'),
-        score: t('analytics.actionCenter.risk.score'),
-        why: t('analytics.actionCenter.risk.why'),
-      },
+      table: tableWords(
+        t('analytics.actionCenter.risk.title'),
+        search,
+        t('analytics.actionCenter.table.empty'),
+        t,
+      ),
+      machine: t('analytics.actionCenter.risk.machine'),
+      score: t('analytics.actionCenter.risk.score'),
+      why: t('analytics.actionCenter.risk.why'),
     },
+    detail: {
+      about: t('v2a.detail.about'),
+      latest: t('v2a.col.latest'),
+      stored: t('v2a.detail.stored'),
+      actions: t('v2a.detail.actions'),
+      machines: t('v2a.detail.machines'),
+    },
+    owner: t('analytics.actionCenter.ownerLabel'),
+    ownerNone: t('v2a.owner.none'),
+    reopened: t('analytics.actionCenter.reopened'),
+    excluded: t('analytics.actionCenter.excluded'),
+    actions: {
+      acknowledge: t('analytics.actionCenter.acknowledge'),
+      snooze: t('analytics.actionCenter.snooze', { days: snoozeDays }),
+      resolve: t('analytics.actionCenter.resolve'),
+      reopen: t('analytics.actionCenter.reopen'),
+    },
+    form: formWords(t),
+    saveFailed: t('analytics.actionCenter.saveFailed'),
   };
 }
 
-/**
- * The Action Center from the board the server answers (`GET /analytics/action-center`): every nudge with its status,
- * the counts the server worked out, and the risk rows. Nothing is derived beyond words: there is no value per decision
- * and no money on this screen, because the engine holds none.
- */
-export function actionCenterModel(
-  board: ActionCenterBoardReply,
-  facts: ActionFacts,
-  t: Translate,
-): ActionCenterModel {
-  const names = namer(facts);
-  const common = commonWords(t);
-  const { high, med } = board.bySeverity;
+/** The Action Center from the engine's board: every nudge, count and risk row it sent, in the reader's words. */
+export function actionCenterModel(facts: BoardFacts, t: Translate): ActionCenterModel {
+  const { board } = facts;
+  const names = namesOf(facts, t);
   return {
-    verdict: {
-      headline: [
-        board.counts.open === 0
-          ? { text: t('v2t.ac.clear') }
-          : {
-              text: t('analytics.actionCenter.banner', { high, medium: med }),
-              tone: high > 0 ? 'loss' : 'risk',
-            },
-      ],
-      why: [[{ text: t('v2t.ac.why1') }], [{ text: t('v2t.ac.why2') }]],
-      context: t('analytics.actionCenter.intro', { date: dayText(board.asOf) }),
-    },
-    tiles: NUDGE_SEVERITIES.map((severity) => tileOf(board, severity, t)),
-    tabs: NUDGE_STATUSES.map((status) => ({
-      status,
-      label: t(TAB(status)),
-      count: board.counts[status],
+    verdict: verdictOf(board, names, t),
+    kpis: kpisOf(board, t),
+    tabs: NUDGE_STATUSES.map((key) => ({
+      key,
+      label: t(`analytics.actionCenter.tab.${key}`),
+      count: board.counts[key],
     })),
-    priorities: NUDGE_SEVERITIES.map((key) => ({ key, label: t(SEVERITY[key]) })),
-    types: NUDGE_RULES.map((key) => ({ key, label: t(RULE(key)) })),
+    types: NUDGE_RULES.map((key) => ({ key, label: t(`analytics.actionCenter.rule.${key}`) })),
+    nudges: board.nudges.map((nudge) => rowOf(nudge, facts, names, t)),
     risk: riskOf(board, names),
-    nudges: board.nudges.map((nudge) => cardOf(nudge, facts, names, t)),
-    people: facts.people
-      .filter((person) => person.active)
-      .map((person) => ({ id: person.id, name: person.name })),
-    severityLabels: Object.fromEntries(
-      NUDGE_SEVERITIES.map((key) => [key, t(SEVERITY[key])]),
-    ) as ActionCenterModel['severityLabels'],
-    source: sourceLine(common.source, board.asOf),
-    words: wordsOf(board.snoozeDays, t),
+    people: facts.people.filter((p) => p.active).map((p) => p.name),
+    snoozeDays: board.snoozeDays,
+    source: sourceLine(t('v2m.source'), board.asOf),
+    words: wordsOf(t, board.snoozeDays),
   };
 }

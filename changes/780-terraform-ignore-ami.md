@@ -1,0 +1,1 @@
+Infra only: the staging server is no longer rebuilt every time Amazon publishes a new Linux image (the Terraform plan ignores the image id; a newer image is chosen on purpose with terraform apply -replace=aws_instance.server).

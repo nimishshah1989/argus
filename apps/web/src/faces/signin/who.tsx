@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { ApiError, chooseActing, getActingChoices, getMe } from '../../api.js';
+import { ApiError, getActingChoices, getMe } from '../../api.js';
 import { SignOutSheet } from '../../components/AccountSheet.js';
 import { StateNotice } from '../../patterns/frame.js';
 import { WizardPage } from '../../patterns/wizard-page.js';
@@ -10,9 +10,8 @@ import { Card } from '../../ui/card.js';
 import { Label, Select } from '../../ui/input.js';
 import { Page, Stack } from '../../ui/layout.js';
 import { Text } from '../../ui/text.js';
-import { ensurePushBinding } from '../../push.js';
-import { replayOutbox } from '../../offline/replay.js';
 import { landingPath } from '../../roles.js';
+import { actAs } from './act-as.js';
 import { Notice } from './parts.js';
 
 /** "Signed in as" the login, and that it is a shared phone. */
@@ -67,20 +66,14 @@ export function Who() {
   const [confirming, setConfirming] = useState(false);
   async function send(): Promise<false> {
     setError('');
+    let me: Awaited<ReturnType<typeof actAs>>;
     try {
-      await chooseActing(personId);
+      me = await actAs(queryClient, personId);
     } catch (caught) {
       if (!(caught instanceof ApiError && caught.field === 'actingPersonId')) throw caught;
       setError(t('signin.chooseName'));
       return false;
     }
-    const me = await getMe();
-    // A shared phone that already allows alerts follows the person now using it, and only them.
-    await ensurePushBinding(personId).catch(() => undefined);
-    // What this person queued earlier on this phone goes now (review of PR 225); others' stays held.
-    await replayOutbox().catch(() => undefined);
-    for (const key of ['me', 'config', 'state', 'tickets'])
-      await queryClient.invalidateQueries({ queryKey: [key] });
     navigate(landingPath(me.user.role));
     return false;
   }

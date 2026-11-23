@@ -62,7 +62,7 @@ test('the Dashboard opens at its v1 address with the engine’s figures; a machi
 
   // A machine chip opens the plant's own machine; Back closes it.
   const strip = page.getByRole('region', { name: 'What needs you now' });
-  await strip.getByRole('button', { name: MACHINE.code, exact: true }).click();
+  await strip.getByRole('button', { name: MACHINE.code, exact: true }).first().click();
   await expect(page).toHaveURL(new RegExp(`[?&]drawer=machine:${MACHINE.code}`));
   const drawer = page.locator('aside.v2-drawer');
   await expect(drawer).not.toHaveAttribute('inert', '');

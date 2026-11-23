@@ -135,8 +135,8 @@ function checkCell(row: Check, a: number | null, b: number | null, isA: boolean)
 function checkupTable(a: Compared, b: Compared, reference: Reference) {
   const header = [
     'Parameter',
-    a.machine.id,
-    b.machine.id,
+    a.machine.code,
+    b.machine.code,
     reference.same ? 'Category average' : 'Plant average',
   ];
   const rows = CHECKS.map((row) => {
@@ -168,7 +168,7 @@ function scorecardTable(a: Compared, b: Compared) {
   });
   return {
     title: 'Health scorecard (0–10, adjusted for age)',
-    header: ['Part', a.machine.id, b.machine.id],
+    header: ['Part', a.machine.code, b.machine.code],
     rows,
     rowCount: rows.length,
   };
@@ -211,7 +211,7 @@ function specificationsTable(a: Compared, b: Compared, asOf: string) {
   ]);
   return {
     title: 'Specifications',
-    header: ['Item', a.machine.id, b.machine.id],
+    header: ['Item', a.machine.code, b.machine.code],
     rows,
     rowCount: rows.length,
   };
@@ -228,7 +228,7 @@ function longestTable(stats: Compared) {
       fixed(effectiveHours(row.report), 1),
     ]);
   return {
-    title: `${stats.machine.id} — longest breakdowns`,
+    title: `${stats.machine.code} — longest breakdowns`,
     header: ['Date', 'Problem', 'Code', 'Hrs'],
     rows,
     rowCount: rows.length,
@@ -247,7 +247,7 @@ function shiftTable(a: Compared, b: Compared) {
     ]);
   return {
     title: 'By shift',
-    header: ['Shift', `${a.machine.id} breakdowns`, 'hrs', `${b.machine.id} breakdowns`, 'hrs'],
+    header: ['Shift', `${a.machine.code} breakdowns`, 'hrs', `${b.machine.code} breakdowns`, 'hrs'],
     rows,
     rowCount: rows.length,
   };
@@ -278,8 +278,8 @@ function charts(a: Compared, b: Compared) {
       tickLabels,
       labels: codes.map((code) => (code === '—' ? 'No code' : code)),
       datasets: [
-        { label: a.machine.id, data: codes.map((code) => round1(union.get(code)?.x ?? 0)) },
-        { label: b.machine.id, data: codes.map((code) => round1(union.get(code)?.y ?? 0)) },
+        { label: a.machine.code, data: codes.map((code) => round1(union.get(code)?.x ?? 0)) },
+        { label: b.machine.code, data: codes.map((code) => round1(union.get(code)?.y ?? 0)) },
       ],
     },
     {
@@ -289,8 +289,8 @@ function charts(a: Compared, b: Compared) {
       tickLabels,
       labels: keys.map((key) => `${MONTHS[key % 100]} ${String(Math.floor(key / 100)).slice(2)}`),
       datasets: [
-        { label: a.machine.id, data: keys.map((key) => round1(a.months[key] ?? 0)) },
-        { label: b.machine.id, data: keys.map((key) => round1(b.months[key] ?? 0)) },
+        { label: a.machine.code, data: keys.map((key) => round1(a.months[key] ?? 0)) },
+        { label: b.machine.code, data: keys.map((key) => round1(b.months[key] ?? 0)) },
       ],
     },
   ];
@@ -334,7 +334,7 @@ export const compareFigure: Computer = ({ data, asOf, profile }) => {
   const ordered = [...pool].sort(
     (left, right) =>
       left.score - right.score ||
-      left.machine.id.localeCompare(right.machine.id, undefined, { numeric: true }),
+      left.machine.code.localeCompare(right.machine.code, undefined, { numeric: true }),
   );
   const a = ordered[0];
   const b = ordered[1];

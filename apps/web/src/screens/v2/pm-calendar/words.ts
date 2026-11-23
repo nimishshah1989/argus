@@ -34,15 +34,15 @@ function jobsWords(t: TFunction, n: number): PmCalendarWords['jobs'] {
 }
 
 const moveWords = (t: TFunction): PmCalendarWords['move'] => ({
-  title: t('v2p.pm.move.title'),
-  now: t('v2p.pm.move.now'),
-  label: t('v2p.pm.move.label'),
-  confirm: t('v2p.pm.move.confirm'),
+  title: t('pm.calendar.moveSheet.title', { machine: '{machine}' }),
+  now: t('pm.calendar.moveSheet.now', { date: '{date}' }),
+  label: t('pm.calendar.moveSheet.label'),
+  confirm: t('pm.calendar.moveSheet.confirm'),
   cancel: t('v2p.pm.move.cancel'),
   saving: t('v2p.pm.move.saving'),
   needDate: t('v2p.pm.move.needDate'),
-  moved: t('v2p.pm.move.moved'),
-  refused: t('v2p.pm.move.refused'),
+  moved: t('pm.calendar.moved', { machine: '{machine}', date: '{date}' }),
+  refused: t('pm.calendar.refused'),
   offline: t('v2p.pm.move.offline'),
 });
 

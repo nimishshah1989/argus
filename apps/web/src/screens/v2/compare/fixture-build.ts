@@ -2,7 +2,7 @@ import type { KpiData } from '../../../ui/v2/kpi-card.js';
 import type { Point } from '../../../ui/v2/points.js';
 import type { TrendData } from '../../../ui/v2/trend-chart.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
-import { glue, pt } from '../fixtures/text.js';
+import { glue, pt } from '../dashboard/fixture-text.js';
 import { hours, lakh, rupees, weekly, type Stats } from './fixture-stats.js';
 import { RATE } from './fixture-rows.js';
 

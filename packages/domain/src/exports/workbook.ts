@@ -1,3 +1,4 @@
+import { canonicalOrder } from '../analytics/canonical-order.js';
 import { metadataNumber } from '../analytics/format.js';
 import { machineAge } from '../analytics/machine-facts.js';
 import type { MachineRow } from '../analytics/types.js';
@@ -39,7 +40,7 @@ function machineRow(
   if (kind === 'dg') {
     return [
       index + 1,
-      machine.id,
+      machine.code,
       text(machine.make),
       text(machine.model),
       text(machine.serial),
@@ -55,7 +56,7 @@ function machineRow(
   }
   const base = [
     index + 1,
-    machine.id,
+    machine.code,
     text(machine.category),
     text(machine.make),
     text(machine.model),
@@ -71,7 +72,7 @@ function machineRow(
   }
   return [
     index + 1,
-    machine.id,
+    machine.code,
     text(machine.segment),
     ...base.slice(2),
     text(machine.controller),
@@ -107,7 +108,8 @@ function registerSheet(data: ExportData, spec: RegisterSpec): ExportSheet {
   };
 }
 
-export function workbookSheets(data: ExportData): ExportSheet[] {
+export function workbookSheets(loaded: ExportData): ExportSheet[] {
+  const data = { ...loaded, data: canonicalOrder(loaded.data) };
   const machines = data.data.machines;
   return [
     registerSheet(data, {

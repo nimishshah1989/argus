@@ -218,13 +218,10 @@ export function KeyChart({ spec }: { spec: ChartSpec }) {
 export function KeyBody({
   tables,
   charts,
-  renderTable,
   fits,
 }: {
   tables: readonly PageTable[];
   charts: readonly ChartSpec[];
-  /** A screen's own card for one table (A4's Specialization); every other table keeps the shared one. */
-  renderTable?: (table: PageTable) => ReactNode;
   /** Leave a table's pager out when its rows fit on one page. */
   fits?: boolean;
 }): ReactNode {
@@ -237,7 +234,7 @@ export function KeyBody({
       ))}
       {tables.map((table, at) => (
         <div key={`${table.title}-${at}`} data-span="full">
-          {renderTable?.(table) ?? <KeyTable table={table} fits={fits} />}
+          <KeyTable table={table} fits={fits} />
         </div>
       ))}
     </>

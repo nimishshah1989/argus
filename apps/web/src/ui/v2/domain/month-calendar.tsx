@@ -8,7 +8,12 @@ import '@fullcalendar/react/themes/classic/theme.css';
 import '@fullcalendar/react/themes/classic/palette.css';
 import type { EventDisplayInfo, EventDropInfo } from '@fullcalendar/react';
 import { Icon } from '../icons.js';
-import type { CalendarEvent, CalendarRange, CalendarWords } from './calendar-events.js';
+import {
+  gridRange,
+  type CalendarEvent,
+  type CalendarRange,
+  type CalendarWords,
+} from './calendar-events.js';
 import './month-skin.css';
 
 /**
@@ -32,12 +37,6 @@ export type MonthCalendarProps = {
   /** A chip was pressed: the screen opens that machine. */
   onOpen: (code: string) => void;
 };
-
-/** The grid's inclusive range: the library's `end` is exclusive, ours is not. */
-function gridRange(start: string, endExclusive: string): CalendarRange {
-  const end = new Date(Date.parse(`${endExclusive.slice(0, 10)}T00:00:00Z`) - 86_400_000);
-  return { from: start.slice(0, 10), to: end.toISOString().slice(0, 10) };
-}
 
 /** One chip: the code in view, an icon for its state, and its date and status for a screen reader. */
 function Chip({ info }: { info: EventDisplayInfo }) {

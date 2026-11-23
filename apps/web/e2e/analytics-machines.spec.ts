@@ -73,9 +73,35 @@ const FIGURES: FiguresReply = {
             fromLocation: '434',
             toLocation: '841-B',
           },
+          // v1's printed-data check kept: a machine that came from nowhere prints dashes; a location that stayed says so.
+          {
+            id: '10000000-0000-4000-8000-00000000a002',
+            machineId: PARTIAL.id,
+            date: '2026-07-05',
+            fromCell: null,
+            toCell: '2',
+            fromLocation: null,
+            toLocation: 'Bay B',
+          },
+          {
+            id: '10000000-0000-4000-8000-00000000a003',
+            machineId: FULL.id,
+            date: '2026-06-10',
+            fromCell: '2',
+            toCell: '6',
+            fromLocation: '434',
+            toLocation: '434',
+          },
         ],
       },
-      drill: { type: 'move', ids: ['10000000-0000-4000-8000-00000000a001'] },
+      drill: {
+        type: 'move',
+        ids: [
+          '10000000-0000-4000-8000-00000000a001',
+          '10000000-0000-4000-8000-00000000a002',
+          '10000000-0000-4000-8000-00000000a003',
+        ],
+      },
     },
     {
       key: 'machine-page',
@@ -199,11 +225,16 @@ async function correctFirstMove(page: Page): Promise<void> {
   await expect(page.getByRole('cell', { name: '03-Aug-2026', exact: true })).toHaveCount(0);
 }
 
-/** A register page drills to the machines behind it (v1's "See the machines"), and each row opens its machine. */
+/**
+ * A register page drills to the machines behind it from the page's own "See the machines" (v1's page action; no count
+ * on the page equals the whole register, so none carries the drill), and each row opens its machine.
+ */
 async function drillRegister(page: Page, code: string): Promise<void> {
-  await page.getByRole('button', { name: /Show the rows behind Registers and splits/ }).click();
+  await expect(page.getByRole('button', { name: /Show the rows behind/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'See the machines', exact: true }).click();
   await expect(page).toHaveURL(/[?&]drawer=figure:registers$/);
   const rows = page.locator('aside.v2-drawer');
+  await expect(rows.locator('tbody tr')).toHaveCount(2);
   await expect(rows.getByRole('button', { name: code, exact: true })).toBeVisible();
   await rows.getByRole('button', { name: code, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`[?&]drawer=machine:${code}$`));
@@ -211,6 +242,17 @@ async function drillRegister(page: Page, code: string): Promise<void> {
   await expect(page).toHaveURL(/[?&]drawer=figure:registers$/);
   await page.goBack();
   await expect(page).not.toHaveURL(/drawer=/);
+}
+
+/** What v1 printed for the log, kept: the heading, each machine by its code (the id mapped through the plant's list), a
+ * missing cell or location as a dash, a location that stayed as "No change", and the correction on every row for a head. */
+async function expectWhatV1Printed(page: Page, second: string): Promise<void> {
+  await expect(page.getByRole('heading', { level: 1, name: 'Cell change log' })).toBeVisible();
+  await expect(page.getByRole('button', { name: second, exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: '— → Cell 2', exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: '— → Bay B', exact: true })).toBeVisible();
+  await expect(page.getByRole('cell', { name: 'No change', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Correct date', exact: true })).toHaveCount(3);
 }
 
 test('a head opens a register page, the cell change log and a machine page that is honest about gaps', async ({
@@ -243,6 +285,7 @@ test('a head opens a register page, the cell change log and a machine page that 
   await expect(page).toHaveURL(/screen=cell-change-log/);
   await expect(page.getByRole('cell', { name: '03-Aug-2026', exact: true })).toBeVisible();
   await expect(page.getByRole('cell', { name: 'Cell 4 → Cell 2', exact: true })).toBeVisible();
+  await expectWhatV1Printed(page, PARTIAL.code);
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export to CSV', exact: true }).click();
   const file = await download;
@@ -345,9 +388,9 @@ function keyFigure(name: string, drill: FiguresReply['figures'][number]['drill']
   return { key: name, screen: name, owner: 39, status: 'ready' as const, value, drill };
 }
 
-for (const [screen, heading] of [
-  ['a8-age', 'Age'],
-  ['a7-footprint', 'Footprint'],
+for (const [screen, heading, control] of [
+  ['a8-age', 'Age', /^See the machines$/],
+  ['a7-footprint', 'Footprint', /Show the rows behind/],
 ] as const) {
   test(`${heading} is live at its v1 address: a figure opens the machines behind it, and Back closes them`, async ({
     page,
@@ -358,10 +401,7 @@ for (const [screen, heading] of [
     await signIn(page, 'head');
     await page.goto(`/analytics/machines?screen=${screen}`);
     await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
-    await page
-      .getByRole('button', { name: /Show the rows behind/ })
-      .first()
-      .click();
+    await page.getByRole('button', { name: control }).first().click();
     await expect(page).toHaveURL(new RegExp(`[?&]drawer=figure:${screen}$`));
     await expect(
       page.locator('aside.v2-drawer').getByRole('button', { name: FULL.code, exact: true }),
@@ -370,3 +410,56 @@ for (const [screen, heading] of [
     await expect(page).not.toHaveURL(/drawer=/);
   });
 }
+
+test('an old v1 link keeps its rows: ?drill= opens them in the panel, an unknown screen opens the register', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await stubFigures(page, FIGURES);
+  await signIn(page, 'head');
+  const ids = encodeURIComponent(`machine:${FULL.id},${PARTIAL.id}`);
+  await page.goto(`/analytics/machines?drill=${ids}`);
+  await expect(page).toHaveURL(/[?&]drawer=figure:registers$/);
+  await expect(page).not.toHaveURL(/drill=/);
+  const rows = page.locator('aside.v2-drawer');
+  await expect(rows.locator('tbody tr')).toHaveCount(2);
+  await expect(rows.getByRole('button', { name: FULL.code, exact: true })).toBeVisible();
+
+  await page.goto('/analytics/machines?screen=bogus');
+  await expect(page).toHaveURL(/screen=registers/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Machines register' })).toBeVisible();
+});
+
+test('a figure the engine has not computed says "Not computed yet", not "nothing to show"', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const figures = structuredClone(FIGURES);
+  figures.figures = figures.figures.map((figure) =>
+    figure.key === 'registers'
+      ? { ...figure, status: 'not_computed' as const, value: null }
+      : figure,
+  );
+  await stubFigures(page, figures);
+  await signIn(page, 'head');
+  await page.goto('/analytics/machines');
+  await expect(page.getByText('Not computed yet', { exact: true })).toBeVisible();
+  await expect(page.getByText('Nothing to show here yet')).toHaveCount(0);
+});
+
+test('“Open full page” from a machine drawer opens that machine’s record, not an empty page', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await stubFigures(page);
+  await signIn(page, 'head');
+  await page.goto('/analytics/machines?screen=cell-change-log');
+  await page.getByRole('button', { name: FULL.code, exact: true }).first().click();
+  const drawer = page.locator('aside.v2-drawer');
+  await expect(drawer.getByRole('heading', { level: 2, name: 'Cosmos CVM-800' })).toBeVisible();
+  await drawer.getByRole('link', { name: 'Open full page', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/analytics/machines/${FULL.code}$`));
+  await expect(page.getByRole('heading', { name: FULL.code, exact: true })).toBeVisible();
+  await expect(page.getByRole('main').getByText('Cosmos', { exact: true })).toBeVisible();
+  await expect(page.getByText('10 of 10 fields', { exact: true })).toBeVisible();
+});

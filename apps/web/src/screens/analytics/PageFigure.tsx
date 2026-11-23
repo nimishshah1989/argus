@@ -12,8 +12,8 @@ export type PageContent = Extract<FigureContent, { kind: 'page' }>;
  * A key-shaped engine page (packet 40e-1, extended by 41e-1): its KPIs, tables and charts in the kit's own
  * pieces, so the log, A1 and A4 share one renderer. The page title, KPI labels, table titles and cells are the
  * engine's printed data; the charts carry catalogue titles because the engine sends only their id. A table the
- * mapper marks sortable opens in the one sortable table; `renderTable` lets a screen own one card (A4's
- * Specialization) without forking the renderer.
+ * mapper marks sortable opens in the one sortable table; `renderTable` lets a screen own one card
+ * without forking the renderer.
  */
 export function PageFigure({
   content,

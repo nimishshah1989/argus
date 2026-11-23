@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { TFunction } from 'i18next';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { en, gu, type MessageKey } from '@uptimo/shared/i18n';
+import { pointName } from '../../ui/chart/chart-spec.js';
 import { contentKind, contentOf } from './figure-content.js';
 
 /** The frozen A5 key, read as data: every tile is pinned against it, raw floats included. */
@@ -118,6 +119,29 @@ describe('the bubble chart figure', () => {
       'analytics.content.bubble.yLabel',
       'analytics.content.bubble.mttrLabel',
     ]);
+  });
+});
+
+describe('the bubble chart on a plant whose machine ids are UUIDs', () => {
+  it('keeps the id as the label a screen looks the machine up by, and carries the code beside it', () => {
+    const uuid = '3f1c2a9e-5b7d-4c68-9a10-2e4d6f8a0b12';
+    const value = {
+      ...BUBBLE,
+      datasets: [
+        {
+          label: 'Machines',
+          data: [{ x: 12.5, y: 3, r: 10.2, id: uuid, code: 'CNC-01', model: '—', mttr: 4.1667 }],
+        },
+      ],
+    };
+    const content = contentOf(figure('dashboard.bubble-chart', value), translator().t);
+    if (content?.kind !== 'chart' || content.spec.kind !== 'scatter') {
+      throw new Error('expected a scatter chart');
+    }
+    expect(content.spec.points.map((point) => [point.label, point.code])).toEqual([
+      [uuid, 'CNC-01'],
+    ]);
+    expect(content.spec.points.map(pointName)).toEqual(['CNC-01']);
   });
 });
 

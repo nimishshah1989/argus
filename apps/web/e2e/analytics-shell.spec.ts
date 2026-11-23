@@ -3,8 +3,8 @@ import { signIn } from './fixtures.js';
 
 /**
  * Ticket 86a: the approved navigation map on the real analytics screens. The shell is a frame: the screens
- * inside keep their own journeys (the other analytics specs), so this one checks the frame alone. It opens the Data
- * checklist, a Today screen that is still v1's: the Dashboard and the Action Center now run in the v2 shell.
+ * inside keep their own journeys (the other analytics specs), so this one checks the frame alone. It stands on Reports,
+ * a page still in this frame: Today is a v2 screen in the v2 shell, which analytics.spec.ts checks.
  */
 const SECTIONS = [
   'Today',
@@ -22,12 +22,12 @@ test('a head sees the six sections and the Guide, tabs inside a section, and a p
   const wide = testInfo.project.name === 'chromium';
   if (wide) await page.setViewportSize({ width: 1440, height: 900 });
   await signIn(page, 'head');
-  await page.goto('/analytics/today/checklist');
+  await page.goto('/analytics/reports');
   if (!wide) await page.getByRole('button', { name: 'Menu', exact: true }).click();
 
   const menu = page.getByRole('navigation', { name: 'Analytics', exact: true });
   await expect(menu.getByRole('link')).toHaveText([...SECTIONS, 'Desk']);
-  await expect(menu.getByRole('link', { name: 'Today', exact: true })).toHaveAttribute(
+  await expect(menu.getByRole('link', { name: 'Reports', exact: true })).toHaveAttribute(
     'aria-current',
     'page',
   );
@@ -53,7 +53,7 @@ test('a head sees the six sections and the Guide, tabs inside a section, and a p
 test('Ctrl K opens a search over the real routes and Enter goes there', async ({ page }, info) => {
   if (info.project.name === 'chromium') await page.setViewportSize({ width: 1440, height: 900 });
   await signIn(page, 'head');
-  await page.goto('/analytics/today/checklist');
+  await page.goto('/analytics/reports');
 
   // Wait for the shell to mount so the key listener exists. A phone has no keyboard, so it clicks Search.
   const search = page.getByRole('button', { name: /^Search/ });
@@ -67,7 +67,16 @@ test('Ctrl K opens a search over the real routes and Enter goes there', async ({
   await expect(palette.getByRole('option')).toHaveCount(1);
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/analytics\/breakdowns\?screen=a3-mttr-mtbf$/);
-  await expect(page.getByRole('heading', { name: 'Problems', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'MTTR and MTBF' })).toBeVisible();
+  // On a phone the rail lives in the menu drawer: open it first.
+  if (info.project.name !== 'chromium')
+    await page.getByRole('button', { name: 'Menu', exact: true }).click();
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Analytics', exact: true })
+      .getByRole('link', { name: 'Problems', exact: true }),
+  ).toHaveAttribute('aria-current', 'page');
+  if (info.project.name !== 'chromium') await page.keyboard.press('Escape');
 
   // Esc closes it and the focus goes back to the Search button.
   await page.getByRole('button', { name: /^Search/ }).click();
@@ -80,7 +89,7 @@ test('Ctrl K opens a search over the real routes and Enter goes there', async ({
 test('on a phone the menu is a drawer that closes on a choice and on Escape', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 });
   await signIn(page, 'head');
-  await page.goto('/analytics/today/checklist');
+  await page.goto('/analytics/reports');
 
   const menu = page.getByRole('navigation', { name: 'Analytics', exact: true });
   await expect(menu).toBeHidden();

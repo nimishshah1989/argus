@@ -76,3 +76,16 @@ the screen does not go live yet, and the PR says what blocks it. The gallery hol
 - Model for the work: a cheaper model for copying a screen, adapters and fixtures; a stronger one for the coverage inventory, URL and
   history logic, CI changes and the final read of a coverage table against the v1 code.
 - Checks before a push (web and docs only): `pnpm format:check`, `lint`, `typecheck`, `ui:check`, `pii:scan`, `changelog:check`; run Prettier on every file edited by script. Anything else: full `pnpm precheck`.
+
+## 6. Lessons from the independent reviews of 20 to 21 Nov (every one shipped once; do not ship it again)
+
+- A drill belongs to the figure it counts: run the engine over `fixtures/answer-key/` and check the rows a drill opens equal that card's number. If v1 put the link on a page action, the v2 control is a page action.
+- The answer-key fixture sets every machine's id equal to its code, which hides bugs: re-key the fixture to UUIDs in tests and assert that no UUID reaches a screen, chip, link, title, chart label or export. Look up by id, print the code.
+- A figure the engine did not compute says "Not computed yet", never "Nothing to show"; a held figure still gets its tile. A person-scoped answer never reaches another login (cache keyed by login and acting person).
+- Keep v1's 30 s refresh. Every v2 screen is the same component in the same place: key pages by screen, and key forms and write state by the row's business key (the ticket, or machine code and day), never by position or by what was typed before.
+- A write is paired with its own row by business key; a slow write landing must not close or change another row's form; moves are sent one at a time; the same idempotency key is resent after a dropped connection and a fresh one after any server answer.
+- Never delete, rewrite or weaken a v1 assertion: port it to the v2 screen on the real server (`apps/web/e2e/`), and list every assertion that changed in `Tests removed`. A dropped assertion with no equivalent fails the ticket. Check `docs/spec/parity.yaml` cites no deleted test.
+- Words: new strings are catalogue keys in en and gu; where v1 had a translated string, reuse its key (a blank Gujarati string on a screen v1 translated is a regression).
+- Phone: a wide table must clip its screen-reader text inside its scroll card (a hidden label made a page 686 px wide on a 393 px phone and broke a pointer drag); check 360 px with every disclosure open.
+- The real-server e2e needs Docker and runs first in CI; gallery specs run anywhere with a local Chromium (`GALLERY_PROD=off npx playwright test -c <config> <spec>`). A draft PR runs no CI; marking it ready starts it and a push restarts it, so make one push per fix round.
+- gitleaks flags a long string literal beside the word `key`: name constants `FIGURE`. The `who-is-acting` /floor ERR_ABORTED and `sla-timers` failures are unrelated flakes (one re-run); `apps/server/test/escalation.test.ts` fails in the half hour before midnight IST (it depends on the clock).

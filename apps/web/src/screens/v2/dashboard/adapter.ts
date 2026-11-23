@@ -1,354 +1,176 @@
 import type { TFunction } from 'i18next';
-import type { ActionCenterBoardReply } from '@uptimo/shared';
 import type { FiguresReply } from '@uptimo/shared/analytics';
-import type { MessageKey } from '@uptimo/shared/i18n';
-import type { Ticket } from '@uptimo/shared/replies';
-import type { ScatterPoint } from '../../../ui/chart/use-chart.js';
-import type { IconName } from '../../../ui/v2/icons.js';
-import type { KpiData } from '../../../ui/v2/kpi-card.js';
-import type { ParetoData } from '../../../ui/v2/pareto.js';
-import {
-  describeChange,
-  figureMeasure,
-  figurePlaces,
-  formatFigure,
-  roundMove,
-  splitFigure,
-} from '../../../ui/meaning/index.js';
 import { fill } from '../../../i18n/fill.js';
-import type { Drill } from '../../../ui/v2/drill.js';
-import { drillFor } from '../rows-behind/drill.js';
 import { bannerOf } from '../../analytics/action-center.js';
-import { FIGURE_LABELS } from '../../analytics/groups.js';
 import { contentOf } from '../../analytics/figure-content.js';
 import { ACTION_CENTER_PATH } from '../../analytics/groups.js';
+import { COMPARE_DAYS, priorDate } from '../../analytics/today-change.js';
 import { sentence } from '../figures/point.js';
 import { dayText, sourceLine, type Translate } from '../figures/read.js';
-import { engineTable } from '../figures/table.js';
-import { commonWords, tableWords } from '../figures/words.js';
-import { COMPARE_DAYS, changeOf, priorDate, scalarOf, type Change } from './change.js';
-import { needsNowModel } from './needs-now.js';
-import type { DashboardChart, DashboardModel } from './model.js';
+import { GROUPS, NO_VALUE, changeOfCard, dash, drillOf, kpiOf, valueOf } from './cards.js';
+import { changeOf } from '../../analytics/today-change.js';
+import type { ChartModel, DashboardFacts, DashboardModel, PlantMachine } from './model.js';
+import { bubbleOf } from './bubble.js';
+import { teamFocusOf } from './banners.js';
+import { bubblePoints, costliestOf, machinesTable, needsOf, warningOf } from './tables.js';
+import { needsNow } from './needs.js';
 
 type Figure = FiguresReply['figures'][number];
 
-/** The figure mapper (v1's, shared) asks for i18next's own function; the catalogue is the same one. */
-const asT = (t: Translate): TFunction => t as unknown as TFunction;
-
-/** What the plant knows beside the engine's reply: the desk's open tickets, the machines, the Action Center's counts and the earlier reply. */
-export type DashFacts = {
-  machines: readonly { id: string; code: string; category: string | null }[];
-  /** Null when the desk's tickets could not be read. */
-  state: { open: readonly Ticket[]; now: string } | null;
-  board: ActionCenterBoardReply | null;
-  before: Pick<FiguresReply, 'figures'> | null;
-};
-
-const ICON: Record<string, IconName> = {
-  'dashboard.total-machines': 'machines',
-  'dashboard.utilities': 'machines',
-  'dashboard.dg-sets': 'machines',
-  'dashboard.cnc-machines': 'machines',
-  'dashboard.conventional-machines': 'machines',
-  'dashboard.process-machines': 'machines',
-  'dashboard.total-breakdowns': 'alert',
-  'dashboard.total-downtime-hours': 'clock',
-  'dashboard.pm-hours': 'wrench',
-  'dashboard.no-downtime-hours': 'pause',
-  'dashboard.breakdown-free': 'check',
-  'dashboard.fleet-availability': 'gauge',
-  'dashboard.plant-events': 'alert',
-  'dashboard.plant-bd-pct': 'gauge',
-  'dashboard.avg-complaints-per-day': 'list',
-  'dashboard.avg-bd-hours-per-day': 'clock',
-  'dashboard.avg-bd-hours-per-machine': 'machines',
-};
-
-/** The figures that are a picture, a sentence or a short list; every other one is a number. */
-const isNumber = (figure: Figure): boolean =>
-  figure.status !== 'ready' || figure.value === null || typeof figure.value === 'number';
-
-const label = (key: string, t: Translate): string =>
-  t(FIGURE_LABELS[key] ?? ('analytics.figure.unknown' satisfies MessageKey));
-
-/** What a figure carries beside its value: its change against 30 days earlier and the rows behind it, when it has them. */
-type Per = { change: Change | undefined; drill: Drill | undefined };
-
-/** The change against 30 days earlier, as a card prints it: a verdict for a rate, a quiet amount for a running total. */
-function deltaOf(change: Change | undefined, t: Translate): KpiData['delta'] {
-  if (change === undefined) return { text: '', up: false, good: true, flat: true };
-  const move = roundMove(change.delta);
-  if (change.added) {
-    const sign = move > 0 ? '+' : '';
-    const amount = `${sign}${formatFigure(change.measure, move, 2, figurePlaces(change.measure, move))}`;
-    return {
-      text: t('analytics.today.added', { amount, days: COMPARE_DAYS }),
-      up: move > 0,
-      good: true,
-      flat: true,
-    };
-  }
-  const { tone, text, word } = describeChange(change.measure, move);
-  const shown =
-    change.measure.unit === 'percent'
-      ? `${move > 0 ? '+' : move < 0 ? '-' : ''}${formatFigure({ ...change.measure, unit: 'count' }, Math.abs(move))} ${t('analytics.unit.points')}`
-      : text;
-  return {
-    text: `${shown} ${word}`,
-    up: move > 0,
-    good: tone === 'good',
-    flat: tone === 'neutral',
-  };
-}
-
-/** One number figure as a card: the engine's exact value with its unit, or a dash that says it is not computed. */
-function numberCard(figure: Figure, per: Per, period: string, t: Translate): KpiData {
-  const measure = figureMeasure(figure.key);
-  const value = figure.status === 'ready' ? scalarOf(figure) : null;
-  const places = value === null ? 0 : figurePlaces(measure, value);
-  const { text, unit } =
-    value === null ? { text: '—', unit: '' } : splitFigure(measure, value, places, places);
-  return {
-    id: figure.key,
-    label: label(figure.key, t),
-    icon: ICON[figure.key] ?? 'list',
-    value: unit ? `${text} ${unit}` : text,
-    delta: deltaOf(per.change, t),
-    period,
-    meaning: value === null ? t('analytics.notComputed') : '',
-    more: '',
-    drill: value === null ? undefined : per.drill,
-  };
-}
-
-/** The breakdown-free sentence as a card: "53 of 125 machines", and its change in clean machines. */
-function cleanCard(figure: Figure, per: Per, period: string, t: Translate): KpiData {
-  const content = contentOf(figure, asT(t));
-  const text = content?.kind === 'text' ? content.text : null;
-  return {
-    id: figure.key,
-    label: label(figure.key, t),
-    icon: ICON[figure.key] ?? 'check',
-    value: text ?? '—',
-    delta: deltaOf(per.change, t),
-    period,
-    meaning: text === null ? t('analytics.notComputed') : '',
-    more: '',
-    drill: text === null ? undefined : per.drill,
-  };
-}
-
-type ProblemRow = { problem: string; hours: number; share: number | null; breakdowns: number };
-
-/** The engine's costliest problems; a missing share stays missing, never 0. */
-export function problemRows(figure: Figure): ProblemRow[] {
-  const value = figure.value as { rows?: unknown } | null;
-  const rows = Array.isArray(value?.rows) ? (value.rows as unknown[]) : [];
-  return rows.flatMap((raw) => {
-    const row = raw as Record<string, unknown>;
-    const hours = Number(row.hours);
-    if (!Number.isFinite(hours)) return [];
-    return [
-      {
-        problem: String(row.problem ?? ''),
-        hours,
-        share: typeof row.share === 'number' && Number.isFinite(row.share) ? row.share : null,
-        breakdowns: Number(row.breakdowns),
-      },
-    ];
-  });
-}
-
-const DASH = '—';
-
-/** The three costliest problems and everything else, as bars that add up to the engine's total, and the table of the rows. */
-function costliestOf(figure: Figure, per: Per, t: Translate): DashboardModel['costliest'] {
-  const rows = problemRows(figure);
-  const total = scalarOf(figure);
-  if (rows.length === 0 || total === null) return null;
-  const measure = figureMeasure('dashboard.costliest-problems');
-  const hours = (n: number) => formatFigure(measure, n);
-  const common = commonWords(t);
-  const { drill } = per;
-  const rest = total - rows.reduce((sum, row) => sum + row.hours, 0);
-  const bars: ParetoData['bars'] = [
-    ...rows.map((row) => ({
-      label: row.problem,
-      hours: row.hours,
-      shown: hours(row.hours),
-      drill,
-    })),
-    ...(rest > 0.05 ? [{ label: t('v2t.dash.others'), hours: rest, shown: hours(rest) }] : []),
-  ];
-  const moved = deltaOf(per.change, t).text;
-  const title = label(figure.key, t);
-  const caption = t('analytics.content.costliest.caption', {
-    hours: formatFigure({ ...measure, unit: 'count' }, total),
-  });
-  return {
-    title,
-    pareto: {
-      bars,
-      top: rows.length,
-      total,
-      aria: `${title}. ${caption}`,
-      conclusion: [{ text: moved ? `${caption} · ${moved}` : caption, tone: 'strong' }],
-      why: [[{ text: t('v2t.dash.costliestWhy') }]],
-    },
-    table: engineTable(
-      {
-        title,
-        header: [
-          t('analytics.content.costliest.problem'),
-          t('analytics.content.costliest.hours'),
-          t('analytics.content.costliest.share'),
-          t('analytics.content.costliest.breakdowns'),
-        ],
-        rows: rows.map((row) => [
-          row.problem,
-          hours(row.hours),
-          row.share === null ? DASH : `${row.share.toFixed(2)}%`,
-          String(row.breakdowns),
-        ]),
-      },
-      { id: 'costliest', title, words: tableWords(common, title, rows.length) },
-    ),
-  };
-}
-
-/** A bubble is labelled with its machine id on the server; the plant reads the code. */
-function codeLabels(
-  figure: Figure,
-  t: Translate,
-  codeOf: (id: string) => string,
-): ReturnType<typeof contentOf> {
-  const content = contentOf(figure, asT(t));
-  if (content?.kind !== 'chart' || content.spec.kind !== 'scatter') return content;
-  const points: ScatterPoint[] = content.spec.points.map((point) => ({
-    ...point,
-    label: codeOf(point.label),
-  }));
-  return { kind: 'chart', spec: { ...content.spec, points } };
-}
-
-function chartOf(
-  figure: Figure,
-  drill: Drill | undefined,
-  t: Translate,
-  codeOf: (id: string) => string,
-): DashboardChart | null {
-  const content = codeLabels(figure, t, codeOf);
-  if (content?.kind !== 'chart') return null;
-  const bubble = figure.key === 'dashboard.bubble-chart';
-  return {
-    id: figure.key,
-    spec: content.spec,
-    sub: t(bubble ? 'v2t.dash.bubbleSub' : 'v2t.dash.timelineSub'),
-    aria: t(bubble ? 'v2t.dash.bubbleAria' : 'v2t.dash.timelineAria'),
-    drill,
-  };
-}
-
-/** The answer first, in the engine's own words and figures: availability, the cost of the breakdowns, the costliest problem. */
 function verdictOf(
-  figures: Figure[],
-  asOf: string,
-  context: string,
+  figure: Figure | undefined,
+  open: DashboardFacts['open'],
+  ctx: { reply: FiguresReply; prior: FiguresReply | undefined; priorDay: string },
   t: Translate,
-): DashboardModel['verdict'] {
-  const byKey = (key: string) => figures.find((figure) => figure.key === key);
-  const printed = (key: string): string | null => {
-    const figure = byKey(key);
-    const value = figure === undefined ? null : scalarOf(figure);
-    if (value === null) return null;
-    const measure = figureMeasure(key);
-    const places = figurePlaces(measure, value);
-    return formatFigure(measure, value, places, places);
-  };
-  const availability = printed('dashboard.fleet-availability');
-  const breakdowns = printed('dashboard.total-breakdowns');
-  const hours = printed('dashboard.total-downtime-hours');
-  const costliest = byKey('dashboard.costliest-problems');
-  const top = costliest === undefined ? undefined : problemRows(costliest)[0];
-  const whole = availability && breakdowns && hours && top;
+) {
+  const items = open === null ? null : needsNow(open.tickets, open.now).length;
+  const first =
+    items === null
+      ? t('v2d.headline.unknown')
+      : items === 0
+        ? t('v2d.headline.none')
+        : fill(t('v2d.headline.some'), { n: items });
+  const available = figure === undefined ? null : valueOf(figure, 'fleet-availability', t);
+  const fleet =
+    available === null || available.value === NO_VALUE
+      ? []
+      : [{ text: ' ' }, ...sentence(t('v2d.headline.fleet'), { availability: available.value })];
+  const excluded = ctx.reply.excludedMachines;
+  const parts = [
+    t('analytics.asOf', { date: dayText(ctx.reply.asOf) }),
+    excluded > 0
+      ? fill(t(excluded === 1 ? 'v2d.excluded.one' : 'v2d.excluded.many'), { n: excluded })
+      : null,
+    ctx.prior ? t('analytics.today.vs', { date: ctx.priorDay, days: COMPARE_DAYS }) : null,
+  ].filter((part) => part !== null);
   return {
-    headline: whole
-      ? sentence(t('v2t.dash.headline'), { availability, breakdowns, hours, problem: top.problem })
-      : [{ text: fill(t('v2t.dash.headlineFew'), { date: dayText(asOf) }) }],
-    why: [[{ text: t('v2t.dash.why1') }], [{ text: t('v2t.dash.why2') }]],
-    context,
+    headline: [{ text: first, ...(items ? { tone: 'risk' as const } : {}) }, ...fleet],
+    context: parts.join(' · '),
+    why: [[{ text: t('v2d.why.cover') }], [{ text: t('v2d.why.needs') }]],
   };
 }
 
-/** The line under the verdict: the day the records run to, the machines left out, and the day the changes are against. */
-function contextOf(reply: FiguresReply, compared: boolean, t: Translate): string {
-  return [
-    t('analytics.asOf', { date: dayText(reply.asOf) }),
-    reply.excludedMachines > 0
-      ? t('analytics.excludedMachines', { count: reply.excludedMachines })
-      : null,
-    compared
-      ? t('analytics.today.vs', { date: dayText(priorDate(reply.asOf)), days: COMPARE_DAYS })
-      : null,
-  ]
-    .filter((part) => part !== null)
-    .join(' · ');
+/** The 30-day change of the costliest problems' total hours, as v1 showed it under the table. */
+function costliestChange(
+  figure: Figure,
+  before: Figure | undefined,
+  ctx: { sameYear: boolean; priorDay: string },
+  t: Translate,
+) {
+  const change = figure.status === 'ready' ? changeOf(figure, before, ctx.sameYear) : undefined;
+  return changeOfCard(change, ctx.priorDay, t);
+}
+
+/** The Action Center's open high and medium counts with the way in; none when no nudge is open. */
+export function actionCenterOf(
+  board: DashboardFacts['board'],
+  t: Translate,
+): DashboardModel['actionCenter'] {
+  const banner = board === null ? null : bannerOf(board);
+  return banner
+    ? {
+        title: t('v2d.ac.title'),
+        text: t('analytics.actionCenter.banner', { high: banner.high, medium: banner.medium }),
+        open: t('analytics.actionCenter.banner.open'),
+        href: ACTION_CENTER_PATH,
+        // Bhavin's banner is red whenever it shows, v1's was the "watch" tone: urgent with any high nudge, a watch otherwise.
+        tone: banner.high > 0 ? 'loss' : 'risk',
+        tag: banner.high > 0 ? t('v2d.ac.urgent') : t('v2d.ac.watch'),
+      }
+    : null;
+}
+
+/** The pictures keep v1's chart titles, which the e2e and every reader know them by (the figures' own labels differ). */
+const PICTURES = [
+  ['bubble-chart', 'analytics.content.bubble.title', 'v2d.bubble.sub', 'v2d.bubble.aria'],
+  [
+    'expansion-timeline',
+    'analytics.content.timeline.title',
+    'v2d.timeline.sub',
+    'v2d.timeline.aria',
+  ],
+] as const;
+
+/** One picture's card: the explorable bubble plot, the chart, or the line that stands where it would be. */
+function pictureOf(
+  [name, titleKey, subKey, ariaKey]: (typeof PICTURES)[number],
+  figure: Figure,
+  plant: readonly PlantMachine[],
+  t: Translate,
+): ChartModel {
+  const base = { id: figure.key, title: t(titleKey) };
+  const drill = drillOf(figure, t);
+  const words = { sub: t(subKey), aria: t(ariaKey), ...(drill ? { drill } : {}) };
+  const points = name === 'bubble-chart' ? bubblePoints(figure) : [];
+  if (points.length > 0) return { ...base, bubble: bubbleOf(points, plant, t), ...words };
+  const content =
+    figure.status === 'ready' && name === 'expansion-timeline'
+      ? contentOf(figure, t as unknown as TFunction)
+      : null;
+  if (content?.kind === 'chart') return { ...base, spec: content.spec, ...words };
+  return { ...base, note: figure.status === 'ready' ? NO_VALUE : t('v2d.notComputed') };
 }
 
 /**
- * The Dashboard from the engine's reply and what the plant holds beside it. Every `dashboard.*` figure the engine sent
- * is on the page in its own period: a number is a card, the clean machines a card, the costliest problems a chart and a
- * table, the bubble and the timeline pictures. A figure the engine has not computed says so and claims no value. Null
- * when the reply holds no Dashboard figure at all.
+ * The bubble chart and the expansion timeline as v1 drew them, each with its rows behind it. A figure the engine has not
+ * computed, or computed as nothing (a plant with no history), keeps its card and says so, as v1's tile did.
  */
-export function dashboardModel(
-  reply: FiguresReply,
-  facts: DashFacts,
-  t: Translate,
-): DashboardModel | null {
-  const figures = reply.figures.filter((figure) => figure.screen === 'dashboard');
-  if (figures.length === 0) return null;
-  const compared = facts.before !== null;
-  const sameYear = priorDate(reply.asOf).slice(0, 4) === reply.asOf.slice(0, 4);
-  const perOf = (figure: Figure): Per => ({
-    change: changeOf(
-      figure,
-      facts.before?.figures.find((other) => other.key === figure.key),
-      sameYear,
-    ),
-    drill: drillFor(reply, figure.key, t),
+function chartsOf(reply: FiguresReply, plant: readonly PlantMachine[], t: Translate): ChartModel[] {
+  return PICTURES.flatMap((picture): ChartModel[] => {
+    const figure = reply.figures.find((f) => f.key === dash(picture[0]));
+    return figure ? [pictureOf(picture, figure, plant, t)] : [];
   });
-  const period = compared ? t('v2t.dash.vs', { date: dayText(priorDate(reply.asOf)) }) : '';
-  const codeOf = (id: string) => facts.machines.find((machine) => machine.id === id)?.code ?? id;
-  const banner = facts.board === null ? null : bannerOf(facts.board);
-  const costliest = figures.find((figure) => figure.key === 'dashboard.costliest-problems');
-  const free = figures.find((figure) => figure.key === 'dashboard.breakdown-free');
-  return {
-    verdict: verdictOf(figures, reply.asOf, contextOf(reply, compared, t), t),
-    banner:
-      banner === null
-        ? null
-        : {
-            text: t('analytics.actionCenter.banner', { high: banner.high, medium: banner.medium }),
-            href: ACTION_CENTER_PATH,
-          },
-    needs: facts.state === null ? null : needsNowModel(facts.state, facts.machines, t),
-    kpis: [
-      ...figures.filter(isNumber).map((figure) => numberCard(figure, perOf(figure), period, t)),
-      ...(free === undefined ? [] : [cleanCard(free, perOf(free), period, t)]),
-    ],
-    costliest: costliest === undefined ? null : costliestOf(costliest, perOf(costliest), t),
-    charts: figures.flatMap((figure) => {
-      const chart = ['dashboard.bubble-chart', 'dashboard.expansion-timeline'].includes(figure.key)
-        ? chartOf(figure, perOf(figure).drill, t, codeOf)
-        : null;
-      return chart === null ? [] : [chart];
+}
+
+/**
+ * The Dashboard from the engine's reply (the same 20 figures v1 printed, each over the span v1 used and each with its
+ * rows behind it), the desk's open tickets (what needs a person now) and the Action Center's counts. Pure: the reply
+ * and the words go in, the model comes out. Nothing here recomputes a figure; it formats, orders and words.
+ */
+export function dashboardModel(facts: DashboardFacts, translate: Translate): DashboardModel {
+  const t = translate;
+  const { reply, prior, open, board, machines } = facts;
+  const figureOf = (key: string) => reply.figures.find((f) => f.key === key);
+  const earlier = (key: string) => prior?.figures.find((f) => f.key === key);
+  const priorDay = priorDate(reply.asOf);
+  const ctx = {
+    sameYear: priorDay.slice(0, 4) === reply.asOf.slice(0, 4),
+    priorDay: dayText(priorDay),
+  };
+  const needs = needsOf(open, machines, t);
+  const sections = GROUPS.map((group) => ({
+    id: group.id,
+    title: t(group.title),
+    sub: t(group.sub),
+    hero: group.hero,
+    kpis: group.keys.flatMap((name) => {
+      const figure = figureOf(dash(name));
+      return figure ? [kpiOf(figure, earlier(dash(name)), ctx, t)] : [];
     }),
-    source: sourceLine(commonWords(t).source, reply.asOf),
-    words: {
-      why: commonWords(t).why,
-      whyThese: t('v2t.dash.share'),
-      openActionCenter: t('analytics.actionCenter.banner.open'),
-    },
+  }));
+  const costliest = figureOf(dash('costliest-problems'));
+  return {
+    verdict: verdictOf(
+      figureOf(dash('fleet-availability')),
+      open,
+      { reply, prior, priorDay: ctx.priorDay },
+      t,
+    ),
+    needs,
+    actionCenter: actionCenterOf(board, t),
+    teamFocus: teamFocusOf(reply, t),
+    sections: sections.filter((s) => s.kpis.length > 0),
+    costliest: costliest
+      ? costliestOf(
+          costliest,
+          costliestChange(costliest, earlier(dash('costliest-problems')), ctx, t),
+          t,
+        )
+      : null,
+    warning: warningOf(reply, machines, t),
+    charts: chartsOf(reply, machines, t),
+    machines: machinesTable(bubblePoints(figureOf(dash('bubble-chart'))), machines, t),
+    source: sourceLine(t('v2m.source'), reply.asOf),
+    words: { why: t('v2m.why') },
   };
 }

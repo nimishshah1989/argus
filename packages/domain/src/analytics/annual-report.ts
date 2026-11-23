@@ -1,3 +1,4 @@
+import { canonicalOrder } from './canonical-order.js';
 import type { AnalyticsProfile } from '@uptimo/shared';
 import {
   addedTable,
@@ -274,10 +275,11 @@ function paretoChart(stats: ReportStats, machines: ReadonlyMap<string, MachineRo
  * names every breakdown ticket in the year; the engine dedupes and sorts them.
  */
 export function annualReport(
-  data: EngineData,
+  loaded: EngineData,
   profile: AnalyticsProfile,
   asOf: string,
 ): { value: FigureValue | null; drillIds: string[] } {
+  const data = canonicalOrder(loaded);
   const machines = productionMachines(data);
   const entries = reportEntries(data);
   const period = annualPeriod(asOf);

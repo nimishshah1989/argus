@@ -1,137 +1,51 @@
 /* eslint-disable i18next/no-literal-string -- screen ids and routes only; every visible word goes through t() */
-import type { MessageKey } from '@uptimo/shared/i18n';
-import { useRef, type ReactElement, type ReactNode } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Fragment, useEffect, useRef, useState, type ReactElement } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { correctMove, getMe } from '../../api.js';
+import { correctMove } from '../../api.js';
 import { ApiError, isOffline } from '../../data/index.js';
-import { Segmented } from '../../ui/v2/segmented.js';
 import { ScreenStates } from '../../ui/v2/screen-states.js';
 import { correctionError } from '../analytics/machine-values.js';
-import { SCREEN_LABELS, groupFor, type GroupId } from '../analytics/groups.js';
-import { ActionCenterPage } from './action-center/Page.js';
+import { groupFor, type GroupId } from '../analytics/groups.js';
 import { AgeView } from './age/View.js';
+import { BdPmView } from './bd-pm/View.js';
+import { CategoryCellView } from './category-cell/View.js';
+import { MttrMtbfView } from './mttr-mtbf/View.js';
 import { CellLogView } from './cell-change-log/View.js';
 import { DashboardPage } from './dashboard/Page.js';
+import { BottleneckView } from './bottleneck/View.js';
+import { BreakdownLogPage } from './breakdown-log/Page.js';
+import { EnergyView } from './energy/View.js';
 import { FixFinderView } from './fix-finder/View.js';
+import { ForecastLabView } from './forecast-lab/View.js';
 import { FootprintView } from './footprint/View.js';
-import { MachinePage } from './machine/Page.js';
+import { ManpowerView } from './manpower/View.js';
 import { RegistersView } from './machines-register/View.js';
+import { PmCalendarPage } from './pm-calendar/Page.js';
 import { ProblemAnalysisView } from './problem-analysis/View.js';
+import { ShiftKpisView } from './shift-kpis/View.js';
+import { WhyWhyLive } from './why-why/Live.js';
 import type { CellLogModel } from './cell-change-log/model.js';
 import { useScreenModel, type ScreenModel, type ScreenParams } from './data.js';
-import { ChromeContext, EntityShell } from './entity/EntityShell.js';
-import { useNav } from './nav.js';
-import type { NavItem } from '../../ui/v2/shell.js';
-import { SECTIONS, type SectionId } from '../analytics/shell/shell-data.js';
-import { ACTION_CENTER_PATH } from '../analytics/groups.js';
+import { savedFigures } from './figures/live.js';
+import { EntityShell } from './entity/EntityShell.js';
+import {
+  FORECAST,
+  LiveFrame,
+  ModelFrame,
+  type LiveEntry,
+  type ModelKey,
+  type PageConfig,
+} from './live-frame.js';
+import { useRefreshOnFigures } from './refresh.js';
+import type { SectionId } from '../analytics/shell/shell-data.js';
 
 /**
  * The v2 screens that are live: each renders at the URL its v1 page had, inside the v2 shell, with the data and the role
  * rules v1 used. `AnalyticsFace` asks here first and falls back to v1's page for any screen not listed.
  */
-type Live = { group: GroupId; section: SectionId; screen: string; page: () => ReactElement };
-
-const NAV_LABEL: Partial<Record<GroupId, MessageKey>> = {
-  machines: 'analytics.machines.nav',
-  breakdowns: 'analytics.breakdowns.nav',
-};
-
-/** The other screens of the group, as one row above the page, so the section stays reachable from a v2 screen. */
-function ScreenTabs({ group, current }: { group: GroupId; current: string }) {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const screens = (groupFor(group)?.screens ?? []).filter((screen) => screen !== 'machine-page');
-  return (
-    <Segmented
-      label={t(NAV_LABEL[group] ?? 'analytics.menu')}
-      options={screens.map((screen) => ({
-        key: screen,
-        label: t(SCREEN_LABELS[screen] ?? 'analytics.screen.unknown'),
-      }))}
-      value={current}
-      onChange={(screen) => navigate(`/analytics/${group}?screen=${screen}`)}
-    />
-  );
-}
-
-/** The Today section's screens as one row above the page; each is a real route of the section. */
-function TodayTabs({ current }: { current: string }) {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const tabs = SECTIONS.find((section) => section.id === 'today')?.tabs ?? [];
-  return (
-    <Segmented
-      label={t('ashell.section.today')}
-      options={tabs.map((tab) => ({ key: tab.to, label: t(tab.label) }))}
-      value={current}
-      onChange={(to) => navigate(to)}
-    />
-  );
-}
-
-/** A screen's frame: the rail by the login's role, the section's screens above, and the figures' states in place of the page. */
-function Frame({
-  section,
-  chrome,
-  children,
-}: {
-  section: SectionId;
-  chrome: ReactNode;
-  children: (nav: ReturnType<typeof useNav>) => ReactNode;
-}) {
-  const role = useQuery({ queryKey: ['me'], queryFn: getMe }).data?.user.role;
-  const nav = useNav(section, role);
-  return <ChromeContext.Provider value={chrome}>{children(nav)}</ChromeContext.Provider>;
-}
-
-function LiveFrame({
-  entry,
-  children,
-}: {
-  entry: Pick<Live, 'group' | 'section' | 'screen'>;
-  children: (nav: ReturnType<typeof useNav>) => ReactNode;
-}) {
-  return (
-    <Frame
-      section={entry.section}
-      chrome={<ScreenTabs group={entry.group} current={entry.screen} />}
-    >
-      {children}
-    </Frame>
-  );
-}
-
-/** The Action Center, at the address v1 had (`/analytics/today/action-center`). */
-export function ActionCenterLive() {
-  const { t } = useTranslation();
-  return (
-    <Frame section="today" chrome={<TodayTabs current={ACTION_CENTER_PATH} />}>
-      {(nav) => <ActionCenterPage nav={nav} title={t('analytics.screen.action-center')} />}
-    </Frame>
-  );
-}
-
-/** One machine's page, at the address v1 had (`/analytics/machines/:id`). */
-export function MachinePageLive() {
-  const { id = '' } = useParams();
-  return (
-    <LiveFrame entry={{ group: 'machines', section: 'machines', screen: 'machine-page' }}>
-      {(nav) => <MachinePage id={id} nav={nav} />}
-    </LiveFrame>
-  );
-}
-
-/** The Dashboard, at the address v1 had (`/analytics/today`, and `?screen=dashboard`). */
-function DashboardLive() {
-  const { t } = useTranslation();
-  return (
-    <Frame section="today" chrome={<TodayTabs current="/analytics/today" />}>
-      {(nav) => <DashboardPage nav={nav} title={t('analytics.screen.dashboard')} />}
-    </Frame>
-  );
-}
+type Live = LiveEntry & { page: () => ReactElement };
 
 /** One head's or admin's correction of a move's date: the server's words on a refusal; never offline. */
 function useCorrect(afterwards: () => void) {
@@ -152,8 +66,19 @@ function useCorrect(afterwards: () => void) {
 
 function CellChangeLogPage() {
   const { t } = useTranslation();
+  const client = useQueryClient();
   const loaded = useScreenModel('cell-change-log', {});
-  const correct = useCorrect(() => loaded.retry());
+  const [corrected, setCorrected] = useState(false);
+  const correct = useCorrect(() => {
+    setCorrected(true);
+    loaded.retry();
+  });
+  // The list is the saved copy when the refresh failed; after a correction it says so, so the old date is not read as the new.
+  const saved = loaded.state === 'ready' && savedFigures(client);
+  const stale = saved ? (corrected ? 'afterCorrection' : 'saved') : undefined;
+  useEffect(() => {
+    if (loaded.state === 'ready' && !saved) setCorrected(false);
+  }, [loaded.state, saved]);
   const last = useRef<CellLogModel>(undefined);
   if (loaded.state === 'ready' && loaded.model) last.current = loaded.model;
   const model = loaded.model ?? (loaded.state === 'loading' ? last.current : undefined);
@@ -162,7 +87,7 @@ function CellChangeLogPage() {
     <LiveFrame entry={{ group: 'machines', section: 'machines', screen: 'cell-change-log' }}>
       {(nav) =>
         model ? (
-          <CellLogView model={model} nav={nav} title={title} onCorrect={correct} />
+          <CellLogView model={model} nav={nav} title={title} onCorrect={correct} stale={stale} />
         ) : (
           <EntityShell nav={nav} title={title}>
             <ScreenStates loaded={loaded}>{() => null}</ScreenStates>
@@ -174,35 +99,13 @@ function CellChangeLogPage() {
 }
 
 /** A screen that only draws its model: the model through the shared seam, the states in the shell until it is ready. */
-function ModelPage<
-  K extends 'machines-register' | 'age' | 'footprint' | 'fix-finder' | 'problem-analysis',
->({
-  entry,
-  screen,
-  title,
-  draw,
-}: {
-  entry: Pick<Live, 'group' | 'section' | 'screen'>;
-  screen: K;
-  title: MessageKey;
-  draw: (model: ScreenModel<K>, shell: { nav: NavItem[]; title: string }) => ReactElement;
-}) {
-  const { t } = useTranslation();
-  const loaded = useScreenModel(screen, {} as ScreenParams<K>);
-  const heading = t(title);
-  return (
-    <LiveFrame entry={entry}>
-      {(nav) =>
-        loaded.state === 'ready' && loaded.model ? (
-          draw(loaded.model, { nav, title: heading })
-        ) : (
-          <EntityShell nav={nav} title={heading}>
-            <ScreenStates loaded={loaded}>{() => null}</ScreenStates>
-          </EntityShell>
-        )
-      }
-    </LiveFrame>
-  );
+function ModelPage<K extends ModelKey>(config: PageConfig<K>) {
+  const loaded = useScreenModel(config.screen, {} as ScreenParams<K>);
+  useRefreshOnFigures(loaded.retry);
+  /** The screen stays as it was while a refresh loads or fails: the figures refresh every 30 seconds, as they did in v1. */
+  const last = useRef<ScreenModel<K>>(undefined);
+  if (loaded.state === 'ready' && loaded.model) last.current = loaded.model;
+  return <ModelFrame {...config} loaded={loaded} lastGood={last.current} />;
 }
 
 const screenOf = (group: GroupId, section: SectionId, screen: string) => ({
@@ -212,7 +115,14 @@ const screenOf = (group: GroupId, section: SectionId, screen: string) => ({
 });
 
 const LIVE: readonly Live[] = [
-  { group: 'today', section: 'today', screen: 'dashboard', page: () => <DashboardLive /> },
+  { group: 'today', section: 'today', screen: 'dashboard', page: () => <DashboardPage /> },
+  {
+    group: 'breakdowns',
+    section: 'problems',
+    screen: 'breakdown-log',
+    page: () => <BreakdownLogPage />,
+  },
+  { group: 'pm', section: 'reports', screen: 'pm-calendar', page: () => <PmCalendarPage /> },
   {
     group: 'machines',
     section: 'machines',
@@ -284,11 +194,175 @@ const LIVE: readonly Live[] = [
       />
     ),
   },
+  {
+    group: 'machines',
+    section: 'machines',
+    screen: 'a5-energy',
+    page: () => (
+      <ModelPage
+        entry={screenOf('machines', 'machines', 'a5-energy')}
+        screen="energy"
+        empty="analytics.notComputed"
+        title="v2e.title"
+        draw={(model, shell) => <EnergyView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'breakdowns',
+    section: 'problems',
+    screen: 'shift-kpis',
+    page: () => (
+      <ModelPage
+        entry={screenOf('breakdowns', 'problems', 'shift-kpis')}
+        screen="shift-kpis"
+        empty="analytics.notComputed"
+        title="analytics.screen.shift-kpis"
+        draw={(model, shell) => <ShiftKpisView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'breakdowns',
+    section: 'problems',
+    screen: 'a4-manpower',
+    page: () => (
+      <ModelPage
+        entry={screenOf('breakdowns', 'problems', 'a4-manpower')}
+        screen="manpower"
+        empty="analytics.notComputed"
+        title="v2r.mp.title"
+        draw={(model, shell) => <ManpowerView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'breakdowns',
+    section: 'problems',
+    screen: 'a6-why-why',
+    page: () => (
+      <ModelPage
+        entry={screenOf('breakdowns', 'problems', 'a6-why-why')}
+        screen="why-why"
+        empty="analytics.notComputed"
+        title="v2r.ww.title"
+        draw={(model, shell) => <WhyWhyLive model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'breakdowns',
+    section: 'problems',
+    screen: 'a1-bd-pm',
+    page: () => (
+      <ModelPage
+        entry={screenOf('breakdowns', 'problems', 'a1-bd-pm')}
+        screen="bd-pm"
+        empty="analytics.notComputed"
+        title="v2r.bd.title"
+        draw={(model, shell) => <BdPmView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'breakdowns',
+    section: 'problems',
+    screen: 'a2-category-cell',
+    page: () => (
+      <ModelPage
+        entry={screenOf('breakdowns', 'problems', 'a2-category-cell')}
+        screen="category-cell"
+        empty="analytics.notComputed"
+        title="v2r.cc.title"
+        draw={(model, shell) => <CategoryCellView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'breakdowns',
+    section: 'problems',
+    screen: 'a3-mttr-mtbf',
+    page: () => (
+      <ModelPage
+        entry={screenOf('breakdowns', 'problems', 'a3-mttr-mtbf')}
+        screen="mttr-mtbf"
+        empty="analytics.notComputed"
+        title="v2r.mm.title"
+        draw={(model, shell) => <MttrMtbfView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: FORECAST,
+    section: 'reliability',
+    screen: 'a9-bottleneck-forecast',
+    page: () => (
+      <ModelPage
+        entry={screenOf(FORECAST, 'reliability', 'a9-bottleneck-forecast')}
+        screen="bottleneck"
+        empty="analytics.notComputed"
+        title="v2b.title"
+        draw={(model, shell) => <BottleneckView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: FORECAST,
+    section: 'reliability',
+    screen: 'forecast-lab',
+    page: () => (
+      <ModelPage
+        entry={screenOf(FORECAST, 'reliability', 'forecast-lab')}
+        screen="forecast-lab"
+        empty="analytics.notComputed"
+        title="analytics.screen.forecast-lab"
+        draw={(model, shell) => <ForecastLabView model={model} {...shell} />}
+      />
+    ),
+  },
 ];
 
-/** The live v2 page for a group's screen (`?screen=`, or the group's first), or null when that screen is still v1's. */
+/**
+ * The live v2 page for a group's screen (`?screen=`, or the group's first), or null when that screen is still v1's. A
+ * Machines screen the group does not have (a bookmark, a typo, the machine page's id) goes to the register, the
+ * group's first v2 screen: there is no v1 copy of it to fall back to. The Reliability and forecast group is v2 whole,
+ * so an unknown `?screen=` there opens its first screen, Bottleneck.
+ */
 export function liveScreen(group: string | undefined, screen: string | null): ReactElement | null {
-  const named =
-    screen ?? (group === 'machines' ? 'registers' : group === 'today' ? 'dashboard' : null);
-  return LIVE.find((entry) => entry.group === group && entry.screen === named)?.page() ?? null;
+  // Today: Team Focus keeps its v1 page; anything else (no ?screen=, an unknown one) is the Dashboard, as in v1.
+  if (group === 'today' && screen === 'team-focus') return null;
+  const named = screen ?? FIRST[group ?? ''] ?? null;
+  const found =
+    LIVE.find((entry) => entry.group === group && entry.screen === named) ??
+    (WHOLE.has(group ?? '') ? LIVE.find((entry) => entry.group === group) : undefined);
+  if (found) return <Fragment key={`${found.group}:${found.screen}`}>{found.page()}</Fragment>;
+  return unknownMachinesScreen(group, named);
 }
+
+/** A Machines screen the group does not have goes to the register; every other miss is the v1 page's. */
+function unknownMachinesScreen(
+  group: string | undefined,
+  named: string | null,
+): ReactElement | null {
+  return group === 'machines' && named !== null && !knownMachinesScreen(named) ? (
+    <Navigate to="/analytics/machines?screen=registers" replace />
+  ) : null;
+}
+
+/** The screen a group's address opens with no `?screen=`. */
+const FIRST: Record<string, string> = {
+  machines: 'registers',
+  today: 'dashboard',
+  breakdowns: 'breakdown-log',
+  pm: 'pm-calendar',
+};
+/** Groups that are v2 whole: an unknown `?screen=` opens their first screen. */
+const WHOLE: ReadonlySet<string> = new Set([FORECAST, 'today', 'pm', 'breakdowns']);
+
+function knownMachinesScreen(id: string): boolean {
+  return (groupFor('machines')?.screens ?? []).some(
+    (known) => known === id && known !== 'machine-page',
+  );
+}
+
+export { ModelFrame };

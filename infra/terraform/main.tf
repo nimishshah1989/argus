@@ -372,6 +372,11 @@ resource "aws_instance" "server" {
     http_put_response_hop_limit = 1
   }
   tags = { Name = "${var.app}-server" }
+  # The image is looked up as "the newest Amazon Linux 2023", so every release Amazon publishes would otherwise make the
+  # next plan rebuild the server. Move to a newer image on purpose: terraform apply -replace=aws_instance.server
+  lifecycle {
+    ignore_changes = [ami]
+  }
 }
 
 resource "aws_eip" "server" {

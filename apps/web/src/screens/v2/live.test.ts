@@ -1,3 +1,4 @@
+import { Navigate } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { liveScreen } from './live.js';
 
@@ -10,15 +11,94 @@ describe('which v2 screens are live at their v1 address', () => {
       ['machines', 'a7-footprint'],
       ['breakdowns', 'fix-finder'],
       ['breakdowns', 'a10-problems'],
+      ['machines', 'a5-energy'],
+      ['breakdowns', 'shift-kpis'],
+      ['breakdowns', 'a4-manpower'],
+      ['breakdowns', 'a6-why-why'],
+      ['breakdowns', 'a1-bd-pm'],
+      ['breakdowns', 'a2-category-cell'],
+      ['breakdowns', 'a3-mttr-mtbf'],
+      ['forecast-scorecard', 'a9-bottleneck-forecast'],
+      ['forecast-scorecard', 'forecast-lab'],
+      ['breakdowns', 'breakdown-log'],
+      ['pm', 'pm-calendar'],
     ] as const)
-      expect(liveScreen(group, screen)).not.toBeNull();
+      expect(liveScreen(group, screen), `${group} ${screen}`).not.toBeNull();
     expect(liveScreen('machines', null)).not.toBeNull();
   });
 
-  it('leaves every other screen to the v1 page', () => {
+  it('opens a group whose first screen is v2 on that screen for an unknown address, never on a v1 page', () => {
+    expect(liveScreen('machines', 'no-such-screen')).not.toBeNull();
+    expect(liveScreen('forecast-scorecard', 'no-such-screen')).not.toBeNull();
+    expect(liveScreen('forecast-scorecard', null)).not.toBeNull();
+  });
+
+  it('serves the Dashboard at Today’s address, with or without ?screen= or an unknown one, and leaves Team Focus to v1', () => {
+    expect(liveScreen('today', null)).not.toBeNull();
+    expect(liveScreen('today', 'dashboard')).not.toBeNull();
+    expect(liveScreen('today', 'no-such-screen')).not.toBeNull();
+    expect(liveScreen('today', 'cell-change-log')).not.toBeNull();
+    expect(liveScreen('today', 'team-focus')).toBeNull();
+  });
+
+  it('keys every page by its group and screen, so a change of ?screen= remounts and one screen never draws the model of the one before', () => {
+    const key = (group: string, screen: string | null) => liveScreen(group, screen)?.key;
+    expect(key('today', null)).toBe('today:dashboard');
+    expect(key('today', 'bogus')).toBe('today:dashboard');
+    expect(key('machines', null)).toBe('machines:registers');
+    const keys = [
+      key('today', null),
+      key('machines', 'registers'),
+      key('machines', 'a8-age'),
+      key('machines', 'a7-footprint'),
+      key('machines', 'cell-change-log'),
+      key('breakdowns', 'fix-finder'),
+      key('breakdowns', 'a10-problems'),
+      key('breakdowns', 'breakdown-log'),
+      key('pm', 'pm-calendar'),
+      key('breakdowns', 'a4-manpower'),
+      key('breakdowns', 'a6-why-why'),
+      key('breakdowns', 'a1-bd-pm'),
+      key('breakdowns', 'a2-category-cell'),
+      key('breakdowns', 'a3-mttr-mtbf'),
+    ];
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it('opens the Breakdowns group on its log, for no ?screen= and for a name it does not know, as v1’s page did', () => {
+    for (const screen of [null, 'breakdown-log', 'no-such-screen', 'cell-change-log', ''])
+      expect(liveScreen('breakdowns', screen)?.key, String(screen)).toBe(
+        'breakdowns:breakdown-log',
+      );
+  });
+
+  it('opens the PM group on its calendar, whatever ?screen= says', () => {
+    for (const screen of [null, 'pm-calendar', 'bogus'])
+      expect(liveScreen('pm', screen)?.key, String(screen)).toBe('pm:pm-calendar');
+  });
+
+  it('leaves only the screens that are still a v1 page to it: Compare, and Team Focus on Today', () => {
     expect(liveScreen('machines', 'compare')).toBeNull();
-    expect(liveScreen('breakdowns', null)).toBeNull();
-    expect(liveScreen('breakdowns', 'cell-change-log')).toBeNull();
-    expect(liveScreen('today', 'cell-change-log')).toBeNull();
+    expect(liveScreen('today', 'team-focus')).toBeNull();
+    // The Breakdowns group is v2 whole: each of its screens is live.
+    for (const screen of [
+      'breakdown-log',
+      'a1-bd-pm',
+      'a2-category-cell',
+      'a3-mttr-mtbf',
+      'a4-manpower',
+      'a6-why-why',
+    ])
+      expect(liveScreen('breakdowns', screen), screen).not.toBeNull();
+  });
+
+  it('sends an unknown Machines screen to the register, never to a v1 copy of it', () => {
+    for (const bogus of ['bogus', 'machine-page', '']) {
+      const sent = liveScreen('machines', bogus);
+      expect(sent?.type, bogus).toBe(Navigate);
+      expect((sent?.props as { to: string }).to, bogus).toBe(
+        '/analytics/machines?screen=registers',
+      );
+    }
   });
 });

@@ -23,6 +23,12 @@ export type CalendarEvent = {
 /** The grid's six weeks, both ends inclusive plant days. */
 export type CalendarRange = { from: string; to: string };
 
+/** The grid's inclusive range from the library's own dates: its `end` is exclusive, ours is not. */
+export function gridRange(start: string, endExclusive: string): CalendarRange {
+  const end = new Date(Date.parse(`${endExclusive.slice(0, 10)}T00:00:00Z`) - 86_400_000);
+  return { from: start.slice(0, 10), to: end.toISOString().slice(0, 10) };
+}
+
 export type CalendarWords = {
   /** The grid's name for a screen reader. */
   label: string;

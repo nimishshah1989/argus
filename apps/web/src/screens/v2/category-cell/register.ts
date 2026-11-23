@@ -9,5 +9,12 @@ declare module '../data.js' {
 
 export const screen: ScreenEntry<'category-cell'> = {
   key: 'category-cell',
-  provider: () => import('./source.js').then((m) => m.categoryCellModelFromKey()),
+  provider: async (_, { client }) => {
+    const [{ liveReply }, { categoryCellFromReply }] = await Promise.all([
+      import('../figures/live.js'),
+      import('./live.js'),
+    ]);
+    return categoryCellFromReply(await liveReply(client));
+  },
+  frozen: () => import('./source.js').then((m) => m.categoryCellModelFromKey()),
 };

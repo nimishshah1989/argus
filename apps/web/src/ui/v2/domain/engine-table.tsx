@@ -1,4 +1,4 @@
-import { Fragment, useContext } from 'react';
+import { Fragment, useContext, type ReactNode } from 'react';
 import { Button } from '../button.js';
 import { DataTable, type Column, type FilterChip, type TableWords } from '../data-table.js';
 import { EntityChip, EntityOpenContext, type EntityChipProps } from '../entity-chip.js';
@@ -16,6 +16,10 @@ export type Cell = {
   action?: string;
   /** A word the engine printed beside the thing (a machine marked "NOT IN PRODUCTION DATA"). */
   note?: string;
+  /** A link out of the page (a ticket on the desk): `text` is what it says. */
+  href?: string;
+  /** A bar under the text, its length this share (0 to 1) of the longest in its column: length is the message. */
+  bar?: number;
 };
 
 export type EngineTableWords = TableWords & { all: string };
@@ -63,6 +67,23 @@ function columnsOf(table: TableModel, onAction?: (id: string) => void): Column<R
             <EntityChip {...chip} />
           </Fragment>
         ));
+      if (cell.bar !== undefined)
+        return (
+          <span className="v2-cellbar">
+            {cell.text}
+            <span className="v2-cellbar-track" aria-hidden="true">
+              <span
+                style={{ width: `${Math.min(100, Math.max(0, cell.bar * 100)).toFixed(1)}%` }}
+              />
+            </span>
+          </span>
+        );
+      if (cell.href)
+        return (
+          <a className="v2-ref" href={cell.href} onClick={(e) => e.stopPropagation()}>
+            {cell.text}
+          </a>
+        );
       if (!cell.chip) return cell.text;
       return (
         <>
@@ -81,9 +102,12 @@ function columnsOf(table: TableModel, onAction?: (id: string) => void): Column<R
 export function EngineTable({
   table,
   onAction,
+  aside,
 }: {
   table: TableModel;
   onAction?: (id: string) => void;
+  /** Beside the title (the way to the rows behind the table's figure). */
+  aside?: ReactNode;
 }) {
   const open = useContext(EntityOpenContext);
   const rows: Row[] = table.rows.map((cells, i) => ({ id: String(i), cells }));
@@ -105,6 +129,7 @@ export function EngineTable({
       filters={filters}
       text={(row) => row.cells.map((c) => c.text).join(' ')}
       words={table.words}
+      aside={aside}
       onOpen={
         named
           ? (row) => {

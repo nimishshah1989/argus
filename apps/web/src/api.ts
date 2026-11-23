@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { cacheFirst, readConfig, readState, saveConfig, saveState } from './offline/cache.js';
 import { correctionBody } from './screens/analytics/machine-values.js';
 import {
@@ -159,8 +159,8 @@ export function getState(): Promise<State> {
 export const getBoardToday = (): Promise<BoardToday> => boardToday.one('today');
 
 export {
-  analyticsFiguresAtQuery,
   analyticsFiguresQuery,
+  analyticsFiguresAtQuery,
   useAnalyticsFigures,
 } from './analytics-figures.js';
 
@@ -168,16 +168,13 @@ export {
  * `GET /pm/calendar?from&to` (50c): the six-week grid's occurrences, parsed at this boundary. The range is the
  * calendar's own, so the query key carries it and a month change refetches.
  */
-export const usePmCalendar = (range: { from: string; to: string }) =>
-  useQuery({
-    queryKey: ['pm-calendar', range.from, range.to],
-    // The grid stays drawn on the month it shows while the next month loads.
-    placeholderData: keepPreviousData,
-    queryFn: async (): Promise<PmCalendarReply> => {
-      const query = `from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`;
-      return pmCalendarReplySchema.parse(await http(`/api/v1/pm/calendar?${query}`));
-    },
-  });
+export const pmCalendarQuery = (range: { from: string; to: string }) => ({
+  queryKey: ['pm-calendar', range.from, range.to],
+  queryFn: async (): Promise<PmCalendarReply> => {
+    const query = `from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`;
+    return pmCalendarReplySchema.parse(await http(`/api/v1/pm/calendar?${query}`));
+  },
+});
 
 /**
  * `POST /pm/reschedule` (50c): the one move. A refusal is an `ApiError` whose message the page shows (a full day

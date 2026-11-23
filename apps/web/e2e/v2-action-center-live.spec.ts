@@ -42,13 +42,18 @@ test('the Action Center opens at its v1 address on the real server; a machine op
   // The real board: nothing open, and no error.
   await page.goto('/analytics/today/action-center');
   await expect(page.getByRole('heading', { level: 1, name: 'Action Center' })).toBeVisible();
-  await expect(page.getByText('Nothing needs attention with the current limits.')).toBeVisible();
+  await expect(
+    page.getByText('Nothing needs attention with the current limits.').first(),
+  ).toBeVisible();
   await expect(page.getByRole('alert')).toHaveCount(0);
 
   // One nudge on a real machine: its chip opens that machine, and Back closes it.
   await page.route('**/api/v1/analytics/action-center', (route) => route.fulfill({ json: BOARD }));
   await page.goto('/analytics/today/action-center');
-  const nudge = page.locator('[data-nudge="freq|VC-1"]');
+  const list = page.getByRole('region', { name: 'Nudges', exact: true });
+  const nudge = list
+    .getByRole('row')
+    .filter({ hasText: 'VC-1 has broken down 12 times in 30 days' });
   await nudge.getByRole('button', { name: MACHINE.code, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`[?&]drawer=machine:${MACHINE.code}`));
   const drawer = page.locator('aside.v2-drawer');
@@ -63,6 +68,8 @@ test('an operator is refused the Action Center', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await signIn(page, 'op');
   await page.goto('/analytics/today/action-center');
-  await expect(page.getByRole('alert')).toBeVisible();
-  await expect(page.locator('[data-nudge]')).toHaveCount(0);
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Only a supervisor, head, plant head or admin' }),
+  ).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Nudges', exact: true })).toHaveCount(0);
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { testT } from '../printed-page/test-support.js';
+import { realT, testT } from '../printed-page/test-support.js';
 import { everyMatchOf, logFromFigures, printedLog } from './live.js';
 import { EMPTY_QUERY, type LogQuery } from './model.js';
 import { workbookLog } from './source.js';
@@ -63,20 +63,24 @@ describe('the Breakdown Log pages on the server and never holds more than one pa
     expect(first!.machine).toMatchObject({ kind: 'machine' });
     expect(first!.doneBy[0]).toMatchObject({ kind: 'person' });
     expect(first!.ticket).toBe(LOG.rows[0]![2]);
-    expect(ask({ sort: { key: 'srNo', dir: 'asc' } }).rows[0]!.ticket).toBe('—');
+    // An imported entry carries its workbook id there: never printed as a ticket number, said as where it came from.
+    const imported = ask({ sort: { key: 'srNo', dir: 'asc' } }).rows[0]!;
+    expect(imported.ticket).toBe('Imported');
+    expect(imported.ticket).not.toBe(LOG.rows.find((r) => r[1] === imported.srNo)![2]);
   });
 
-  it('opens the answer with the engine count and the newest date', () => {
-    expect(ask().verdict.headline[0]!.text).toBe(
-      '1,343 entries in the breakdown log, newest 07-Nov-2026.',
-    );
+  it('opens the answer with the engine count and how far the records run, in v1’s words', () => {
+    const model = logFromFigures(workbookLog, EMPTY_QUERY, realT)!;
+    expect(model.verdict.headline[0]!.text).toBe('1,343 rows · Records to 11-Nov-2026');
   });
 
   it('exports the whole narrowed log, not just the page shown', () => {
     const query = { ...EMPTY_QUERY, filters: { ...EMPTY_QUERY.filters, shift: '2' } };
     const { header, rows } = everyMatchOf(workbookLog, query, testT);
     expect(header[1]).toBe('Sr No');
-    expect(rows).toEqual(LOG.rows.filter((r) => r[4] === '2'));
+    // The engine's own columns, then Supported By.
+    expect(rows.map((r) => r.slice(0, 10))).toEqual(LOG.rows.filter((r) => r[4] === '2'));
+    expect(header.at(-1)).toBe('Supported by');
     expect(rows.length).toBeGreaterThan(10);
   });
 

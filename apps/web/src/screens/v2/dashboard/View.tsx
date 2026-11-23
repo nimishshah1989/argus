@@ -1,58 +1,170 @@
-/* eslint-disable i18next/no-literal-string -- typed keys only; every visible word comes from the model */
-import { Link } from 'react-router-dom';
+/* eslint-disable i18next/no-literal-string -- icon names, typed unions; every visible word comes from the model */
+import { Banner } from '../../../ui/v2/banner.js';
 import { ChartCard } from '../../../ui/v2/chart-card.js';
-import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
+import { LinkButton } from '../../../ui/v2/button.js';
 import { EngineTable } from '../../../ui/v2/domain/engine-table.js';
-import { EntityChip } from '../../../ui/v2/entity-chip.js';
-import { KeyPill } from '../../../ui/v2/key-pill.js';
+import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
+import { DrillButton } from '../../../ui/v2/drill-button.js';
 import { KpiCard } from '../../../ui/v2/kpi-card.js';
+import { MoreToggle } from '../../../ui/v2/more-toggle.js';
 import { Panel } from '../../../ui/v2/panel.js';
-import { Pareto } from '../../../ui/v2/pareto.js';
+import { Segs } from '../../../ui/v2/points.js';
 import { Row } from '../../../ui/v2/row.js';
+import { SectionHead } from '../../../ui/v2/section-head.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
+import { WhyToggle } from '../../../ui/v2/why-toggle.js';
 import { EntityShell } from '../entity/EntityShell.js';
-import type { DashboardModel, NeedItem, NeedsNowModel } from './model.js';
+import { Bubble } from './Bubble.js';
+import type { CostliestModel, DashboardModel, NeedsModel, WarningModel } from './model.js';
 
-/** One ticket that needs a person: where, what it is, how long, which clock ran out, and the way to its page. */
-function Need({ item, open }: { item: NeedItem; open: string }) {
+/** What needs a person now: the table of tickets, or the plain line that nothing does, or that it could not be read. */
+function Needs({ needs }: { needs: NeedsModel }) {
+  if (needs.state === 'unavailable')
+    return (
+      <Panel title={needs.title}>
+        <p role="status">{needs.text}</p>
+      </Panel>
+    );
+  if (needs.table) return <EngineTable table={needs.table} />;
   return (
-    <li className="v2-item" data-need={item.id}>
-      <div className="v2-row v2-gap-8">
-        {item.where.chip ? <EntityChip {...item.where.chip} /> : <span>{item.where.text}</span>}
-        <span className="v2-sub">{item.ref}</span>
-        {item.breach ? <KeyPill text={item.breach} tone="loss" icon="alert" /> : null}
-      </div>
-      <p>{item.problem}</p>
-      <p className="v2-sub">{item.line}</p>
-      <Link className="v2-btn v2-btn-ghost" to={item.href}>
-        {open}
-      </Link>
-    </li>
-  );
-}
-
-/** What needs a person now: the count line, then each ticket, or the all-clear. */
-function NeedsNow({ needs }: { needs: NeedsNowModel }) {
-  return (
-    <Panel title={needs.title} sub={needs.counts} flush>
-      {needs.items.length === 0 ? (
-        <p className="v2-sub v2-item">{needs.empty}</p>
-      ) : (
-        <ul className="v2-list">
-          {needs.items.map((item) => (
-            <Need key={item.id} item={item} open={needs.open} />
-          ))}
-        </ul>
-      )}
+    <Panel title={needs.title} sub={needs.counts}>
+      <p>{needs.empty}</p>
     </Panel>
   );
 }
 
+function Costliest({ costliest }: { costliest: CostliestModel }) {
+  const aside = (
+    <>
+      {costliest.drill ? <DrillButton drill={costliest.drill} /> : null}
+      <LinkButton href={costliest.link.href}>{costliest.link.label}</LinkButton>
+    </>
+  );
+  if (costliest.table) return <EngineTable table={costliest.table} aside={aside} />;
+  return (
+    <Panel title={costliest.title} sub={costliest.sub} aside={aside}>
+      <p>{costliest.empty}</p>
+    </Panel>
+  );
+}
+
+function Warning({ warning }: { warning: WarningModel }) {
+  return (
+    <Panel title={warning.title} sub={warning.sub}>
+      <p className="v2-lede">
+        <Segs point={warning.headline} />
+      </p>
+      {warning.more ? (
+        <MoreToggle label={warning.more.label}>
+          <p className="v2-lede">
+            <Segs point={warning.more.rest} />
+          </p>
+        </MoreToggle>
+      ) : null}
+      <WhyToggle label={warning.whyLabel} points={warning.why} />
+    </Panel>
+  );
+}
+
+/** The Action Center's counts and the way in, urgent when any nudge is high priority; nothing when no nudge is open. */
+export function ActionCenter({ note }: { note: DashboardModel['actionCenter'] }) {
+  if (!note) return null;
+  return (
+    <Banner
+      tone={note.tone}
+      icon="decision"
+      {...(note.tag ? { tag: note.tag } : {})}
+      title={note.title}
+      href={note.href}
+      action={note.open}
+    >
+      {note.text}
+    </Banner>
+  );
+}
+
+/** This month's Team Focus plan: how many actions are open, the top one, and the way in; nothing when none is open. */
+function TeamFocus({ note }: { note: DashboardModel['teamFocus'] }) {
+  if (!note) return null;
+  return (
+    <Banner tone={note.tone} icon="check" title={note.title} href={note.href} action={note.open}>
+      {note.text}
+    </Banner>
+  );
+}
+
+/** A group of cards under its heading; the first card of a hero group is the lead figure, the rest beside it. */
+function Cards({ section }: { section: DashboardModel['sections'][number] }) {
+  return (
+    <section className="v2-stack v2-gap-12" aria-label={section.title}>
+      <SectionHead title={section.title} sub={section.sub} />
+      <Row hero={section.hero} cols={3}>
+        {section.kpis.map((kpi) => (
+          <KpiCard key={kpi.id} kpi={kpi} />
+        ))}
+      </Row>
+    </section>
+  );
+}
+
 /**
- * The Dashboard on the engine's own figures: the verdict, the Action Center's counts, what needs a person now, every
- * `dashboard.*` figure as a card in its own period with its change and the rows behind it, the costliest problems, and
- * the two pictures. A chip opens that machine in the drawer, which lives in the URL.
+ * The page under the header, top to bottom: the answer, the two banners, the headline figures with the lead one big,
+ * what needs you, where the time goes, the machine data, the problems, the pictures.
+ */
+function Body({ model }: { model: DashboardModel }) {
+  const [headline, ...rest] = model.sections;
+  return (
+    <>
+      <Verdict verdict={model.verdict} whyLabel={model.words.why} />
+      {model.actionCenter || model.teamFocus ? (
+        <Row cols={2}>
+          <ActionCenter note={model.actionCenter} />
+          <TeamFocus note={model.teamFocus} />
+        </Row>
+      ) : null}
+      {headline ? <Cards section={headline} /> : null}
+      <Needs needs={model.needs} />
+      {rest.map((section) => (
+        <Cards key={section.id} section={section} />
+      ))}
+      {model.costliest ? <Costliest costliest={model.costliest} /> : null}
+      {model.warning ? <Warning warning={model.warning} /> : null}
+      {model.charts.map((chart) =>
+        'spec' in chart ? (
+          <ChartCard
+            key={chart.id}
+            spec={chart.spec}
+            sub={chart.sub}
+            aria={chart.aria}
+            drill={chart.drill}
+          />
+        ) : 'bubble' in chart ? (
+          <Bubble
+            key={chart.id}
+            title={chart.title}
+            sub={chart.sub}
+            aria={chart.aria}
+            bubble={chart.bubble}
+            drill={chart.drill}
+          />
+        ) : (
+          <Panel key={chart.id} title={chart.title}>
+            <p role="status">{chart.note}</p>
+          </Panel>
+        ),
+      )}
+      {model.machines ? <EngineTable table={model.machines} /> : null}
+      <SourceLine text={model.source} />
+    </>
+  );
+}
+
+/**
+ * The Dashboard: the answer first, what needs a person now with the ticket behind each item, every figure v1 printed
+ * with what it covers, its change against 30 days earlier and the rows behind it, the problems that cost the most, the
+ * machines the engine says are failing faster, and the two pictures with the machines they are drawn from. A machine,
+ * a cell or a person opens in the drawer, which lives in the URL.
  */
 export function DashboardView({
   model,
@@ -63,45 +175,9 @@ export function DashboardView({
   nav: NavItem[];
   title: string;
 }) {
-  const { words } = model;
   return (
     <EntityShell nav={nav} title={title}>
-      <Verdict verdict={model.verdict} whyLabel={words.why} />
-      {model.banner ? (
-        <div className="v2-card v2-pad v2-row v2-gap-8" data-banner="action-center">
-          <KeyPill text={model.banner.text} tone="risk" icon="alert" />
-          <Link className="v2-btn v2-btn-primary" to={model.banner.href}>
-            {words.openActionCenter}
-          </Link>
-        </div>
-      ) : null}
-      {model.needs ? <NeedsNow needs={model.needs} /> : null}
-      <Row cols={4}>
-        {model.kpis.map((kpi) => (
-          <KpiCard key={kpi.id} kpi={kpi} />
-        ))}
-      </Row>
-      {model.costliest ? (
-        <div className="v2-stack" data-kpi="dashboard.costliest-problems">
-          <Panel title={model.costliest.title}>
-            <Pareto data={model.costliest.pareto} whyLabel={words.why} actions={null} />
-          </Panel>
-          <EngineTable table={model.costliest.table} />
-        </div>
-      ) : null}
-      <Row>
-        {model.charts.map((chart) => (
-          <ChartCard
-            key={chart.id}
-            spec={chart.spec}
-            sub={chart.sub}
-            aria={chart.aria}
-            drill={chart.drill}
-            id={chart.id}
-          />
-        ))}
-      </Row>
-      <SourceLine text={model.source} />
+      <Body model={model} />
     </EntityShell>
   );
 }

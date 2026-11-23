@@ -9,8 +9,8 @@ import type {
 import i18n from 'i18next';
 import '../../../i18n/index.js';
 import { bannerOf, dmy, plantDayOf } from '../../analytics/action-center.js';
-import { actionCenterModel } from './adapter.js';
-import { keep } from './filter.js';
+import { actionCenterModel, type BoardFacts } from './adapter.js';
+import { nudgeView, type NudgeAsk } from './scope.js';
 
 /**
  * v1's Action Center mapping assertions (44d), ported to the v2 adapter: pinned against the frozen 11 November key and one
@@ -136,29 +136,49 @@ const BOARD: ActionCenterBoardReply = {
 
 const t = (key: string, values?: Record<string, string | number>) =>
   i18n.t(key, { ...values }) as string;
+/** The key's own plant: every machine it names, its database id the same as its code. */
+const CODES = [
+  ...new Set([...BOARD.nudges.flatMap((n) => n.machines), ...BOARD.risk.map((r) => r.machine)]),
+];
 const FACTS = {
-  machines: [] as { id: string; code: string; category: string | null }[],
-  people: [{ id: 'p1', name: 'Asha', active: true }],
+  machines: CODES.map((code) => ({ id: code, code, category: null as string | null })),
+  people: [
+    { id: 'p1', name: 'Asha', active: true },
+    { id: 'p2', name: 'Hari', active: true },
+  ],
   timeZone: 'Asia/Kolkata',
 };
-const VIEW = actionCenterModel(BOARD, FACTS, t);
-const OPEN = { status: 'open' as const, severity: '' as const, rule: '' as const, query: '' };
+const factsOf = (board: ActionCenterBoardReply, extra: Partial<BoardFacts> = {}): BoardFacts => ({
+  ...FACTS,
+  board,
+  ...extra,
+});
+const VIEW = actionCenterModel(factsOf(BOARD), t);
+const ASK: NudgeAsk = { status: 'open', type: '', query: '', priority: '', page: 1 };
+/** Every row an ask leaves, across all its pages, in the engine's order. */
+const allRows = (ask: Partial<NudgeAsk>) => {
+  const first = nudgeView(VIEW.nudges, { ...ASK, ...ask });
+  const pages = Math.max(1, Math.ceil(first.total / 10));
+  return Array.from({ length: pages }, (_, i) =>
+    nudgeView(VIEW.nudges, { ...ASK, ...ask, page: i + 1 }).rows.map((r) => r.writeKey),
+  ).flat();
+};
 
 describe('the Action Center model maps the key whole', () => {
-  it('pins the four tiles and the four tabs from the key counts', () => {
-    expect(VIEW.tiles.map((tile) => [tile.id, tile.value])).toEqual([
+  it('pins the four priority counts and the four tab counts from the key', () => {
+    expect(VIEW.kpis.map((kpi) => [kpi.id, kpi.value])).toEqual([
       ['high', '6'],
       ['med', '25'],
       ['low', '2'],
       ['info', '0'],
     ]);
-    expect(VIEW.tiles.map((tile) => tile.label)).toEqual([
+    expect(VIEW.kpis.map((kpi) => kpi.label)).toEqual([
       'High priority',
       'Medium',
       'Low',
       'Good news',
     ]);
-    expect(VIEW.tabs.map((tab) => [tab.status, tab.count])).toEqual([
+    expect(VIEW.tabs.map((tab) => [tab.key, tab.count])).toEqual([
       ['open', 33],
       ['ack', 1],
       ['snoozed', 1],
@@ -171,7 +191,7 @@ describe('the Action Center model maps the key whole', () => {
       'Resolved',
     ]);
     expect(VIEW.verdict.context).toContain('11-Nov-2026');
-    expect(VIEW.words.snooze).toBe('Snooze 7 days');
+    expect(VIEW.words.actions.snooze).toBe('Snooze 7 days');
   });
 
   it('offers all 16 types in the key order', () => {
@@ -181,22 +201,22 @@ describe('the Action Center model maps the key whole', () => {
 
   it('prints every one of the 36 cards with the key title, and the first card whole', () => {
     expect(VIEW.nudges).toHaveLength(36);
-    expect(VIEW.nudges.map((card) => card.title)).toEqual(
+    expect(VIEW.nudges.map((card) => card.titleText)).toEqual(
       KEY.extra.nudges.map((nudge) => nudge.title),
     );
     expect(VIEW.nudges[0]).toMatchObject({
-      key: 'freq|HMC-2',
+      writeKey: 'freq|HMC-2',
       rule: 'freq',
       severity: 'high',
-      type: 'Frequent breakdowns',
-      title: 'HMC-2 has broken down 12 times in 30 days',
+      ruleLabel: 'Frequent breakdowns',
+      titleText: 'HMC-2 has broken down 12 times in 30 days',
       machines: [{ kind: 'machine', id: 'HMC-2', label: 'HMC-2' }],
       entries: '12 entries',
-      evidence: 'Latest entry 10-Nov-2026',
+      latestText: 'Latest entry 10-Nov-2026',
       excluded: false,
       reopened: false,
       status: 'open',
-      saved: [],
+      ack: null,
       actions: ['ack', 'snooze', 'resolved'],
     });
     expect(VIEW.nudges[1]!.reopened).toBe(true);
@@ -207,20 +227,22 @@ describe('the Action Center model maps the key whole', () => {
     const acked = VIEW.nudges[ACKED]!;
     expect(acked.status).toBe('ack');
     expect(acked.actions).toEqual(['reopen']);
-    expect(acked.saved).toEqual([
-      'Acknowledged',
-      'Owner: Asha',
-      'Due 20-Nov-2026',
-      'Note: Check the bearing',
-    ]);
+    expect(acked.statusLabel).toBe('Acknowledged');
+    expect(acked.ack).toMatchObject({ due: 'Due 20-Nov-2026', note: 'Note: Check the bearing' });
+    expect(acked.ack!.owner[0]).toMatchObject({
+      text: 'Asha',
+      entity: { kind: 'person', id: 'asha' },
+    });
     const snoozed = VIEW.nudges[SNOOZED]!;
     expect(snoozed.status).toBe('snoozed');
     expect(snoozed.actions).toEqual(['reopen']);
-    expect(snoozed.saved).toEqual(['Snoozed until 18-Nov-2026']);
+    expect(snoozed.statusLabel).toBe('Snoozed until 18-Nov-2026');
+    expect(snoozed.ack).toMatchObject({ owner: [], until: '18-Nov-2026' });
     const resolved = VIEW.nudges[RESOLVED]!;
     expect(resolved.status).toBe('resolved');
     expect(resolved.actions).toEqual(['reopen']);
-    expect(resolved.saved).toContain('Owner: Hari');
+    expect(resolved.ack!.owner[0]).toMatchObject({ text: 'Hari' });
+    expect(resolved.ack!.note).toBe('Note: Sealed');
   });
 
   it('gives a good-news nudge no button at all', () => {
@@ -232,12 +254,11 @@ describe('the Action Center model maps the key whole', () => {
       title: 'Good news',
     };
     const model = actionCenterModel(
-      {
+      factsOf({
         ...BOARD,
         nudges: [good as BoardNudgeReply],
         counts: { open: 1, ack: 0, snoozed: 0, resolved: 0 },
-      },
-      FACTS,
+      }),
       t,
     );
     expect(model.nudges[0]!.actions).toEqual([]);
@@ -246,7 +267,7 @@ describe('the Action Center model maps the key whole', () => {
   it('prints the key 8 risk rows, machine and model apart, each a machine chip', () => {
     const rows = KEY.pages[0]!.tables[0]!.rows;
     expect(VIEW.risk).toHaveLength(8);
-    expect(VIEW.risk.map((row) => `${row.machine.label} ${row.model}`)).toEqual(
+    expect(VIEW.risk.map((row) => `${row.machine?.label} ${row.model}`)).toEqual(
       rows.map((row) => row[0]),
     );
     expect(VIEW.risk.map((row) => row.score.shown)).toEqual(rows.map((row) => row[1]));
@@ -260,17 +281,19 @@ describe('the Action Center model maps the key whole', () => {
   it('resolves a machine id to its code, in a chip, a risk row and a title', () => {
     const id = '10000000-0000-4000-8000-000000000001';
     const model = actionCenterModel(
-      {
-        ...BOARD,
-        nudges: [{ ...boardNudges()[0]!, machines: [id], title: `${id} has broken down` }],
-        risk: [{ machine: id, model: 'FMH 500', score: 7, why: 'Frequent breakdowns' }],
-      },
-      { ...FACTS, machines: [{ id, code: 'VC-1', category: 'VMC' }] },
+      factsOf(
+        {
+          ...BOARD,
+          nudges: [{ ...boardNudges()[0]!, machines: [id], title: `${id} has broken down` }],
+          risk: [{ machine: id, model: 'FMH 500', score: 7, why: 'Frequent breakdowns' }],
+        },
+        { machines: [{ id, code: 'VC-1', category: 'VMC' }] },
+      ),
       t,
     );
     expect(model.nudges[0]!.machines[0]).toMatchObject({ id: 'VC-1', label: 'VC-1' });
-    expect(model.nudges[0]!.title).toBe('VC-1 has broken down');
-    expect(model.risk[0]!.machine.label).toBe('VC-1');
+    expect(model.nudges[0]!.titleText).toBe('VC-1 has broken down');
+    expect(model.risk[0]!.machine).toMatchObject({ id: 'VC-1', label: 'VC-1' });
   });
 
   it('carries no money: no rupee, no money tile', () => {
@@ -280,22 +303,25 @@ describe('the Action Center model maps the key whole', () => {
 
 describe('the filters and the banner', () => {
   it('filters by tab, priority, type and search without re-sorting', () => {
-    const open = keep(VIEW, OPEN);
+    const open = allRows({});
     expect(open).toHaveLength(33);
-    expect(open.map((card) => card.key)).toEqual(
-      VIEW.nudges.filter((card) => card.status === 'open').map((card) => card.key),
+    expect(open).toEqual(
+      VIEW.nudges.filter((card) => card.status === 'open').map((card) => card.writeKey),
     );
-    expect(keep(VIEW, { ...OPEN, severity: 'high' })).toHaveLength(6);
-    expect(keep(VIEW, { ...OPEN, rule: 'rise' })).toHaveLength(5);
+    expect(allRows({ priority: 'high' })).toHaveLength(6);
+    expect(allRows({ type: 'rise' })).toHaveLength(5);
     // The age nudge names HMC-2 among its five machines, so the search reads machines as well as titles.
-    expect(keep(VIEW, { ...OPEN, query: 'HMC-2' })).toHaveLength(3);
-    expect(keep(VIEW, { ...OPEN, query: 'hmc-2' })).toHaveLength(3);
-    expect(keep(VIEW, { ...OPEN, status: 'resolved' })).toHaveLength(1);
+    expect(allRows({ query: 'HMC-2' })).toHaveLength(3);
+    expect(allRows({ query: 'hmc-2' })).toHaveLength(3);
+    expect(allRows({ status: 'resolved' })).toHaveLength(1);
   });
 
   it('banners the open high and medium counts, and hides with nothing open', () => {
     expect(bannerOf(BOARD)).toEqual({ high: 6, medium: 25 });
     expect(bannerOf({ ...BOARD, counts: { open: 0, ack: 0, snoozed: 0, resolved: 0 } })).toBeNull();
+    expect(VIEW.verdict.headline[0]!.text).toBe(
+      '6 high-priority and 25 medium nudges need attention',
+    );
   });
 });
 

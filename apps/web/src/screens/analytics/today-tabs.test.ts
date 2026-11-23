@@ -8,7 +8,7 @@ import { ChecklistReady } from './DataChecklist.js';
 import { TeamFocusPage } from './TeamFocusPage.js';
 import { dmy } from './action-center.js';
 import { groupFor } from './groups.js';
-import { priorDate } from '../v2/dashboard/change.js';
+import { priorDate } from './today-change.js';
 import { NotReady } from './screen-states.js';
 
 type Figure = FiguresReply['figures'][number];

@@ -55,10 +55,28 @@ function hoursText(row: SourcedReport): string {
   return isNoDowntime(row) ? DASH : String(effectiveHours(row.report));
 }
 
+/**
+ * Bhavin's bands for a stop's length (11 Nov platform, `renderBreakdownTable`: `dt>4 ? red : dt>1 ? amber : green`):
+ * over 4 hours a long stop, over 1 hour one to watch. Strict, so exactly 4 is "watch" and exactly 1 is neither.
+ */
+export const LONG_STOP_HOURS = 4;
+export const WATCH_STOP_HOURS = 1;
+export type StopSeverity = 'long' | 'watch' | '';
+export function severityOf(hours: number): StopSeverity {
+  if (!Number.isFinite(hours)) return '';
+  return hours > LONG_STOP_HOURS ? 'long' : hours > WATCH_STOP_HOURS ? 'watch' : '';
+}
+
+/** The coded names a row lists as people, in its own order; empty when it names nobody. */
+function peopleText(codes: readonly string[], names: ReadonlyMap<string, string>): string {
+  return codes.map((code) => names.get(code) ?? code).join(', ');
+}
+
 /** One display row, in the key's column order. */
 function rowTexts(
   entry: { srNo: number; row: SourcedReport },
   names: ReadonlyMap<string, string>,
+  machines: ReadonlyMap<string, string>,
 ): string[] {
   const { report, ticket } = entry.row;
   const code =
@@ -69,7 +87,7 @@ function rowTexts(
     ticket.ref,
     dmy(report.date),
     report.shift,
-    report.machineId,
+    machines.get(report.machineId) ?? report.machineId,
     report.problem,
     doneByText(entry.row, names),
     hoursText(entry.row),
@@ -81,7 +99,9 @@ export const breakdownLogFigure: Computer = ({ data, asOf }) => {
   const entries = logEntries(data);
   if (entries.length === 0) return { value: null, drillIds: [] };
   const names = new Map(data.people.map((person) => [person.code, person.displayName]));
-  const rows = entries.map((entry) => rowTexts(entry, names));
+  const codes = new Map(data.machines.map((machine) => [machine.id, machine.code]));
+  const rows = entries.map((entry) => rowTexts(entry, names, codes));
+  const described = (data.lists.maint_code ?? []).filter(({ label }) => label.trim() !== '');
   const value = {
     screen: 'breakdown-log',
     asOf,
@@ -105,6 +125,17 @@ export const breakdownLogFigure: Computer = ({ data, asOf }) => {
         charts: [],
       },
     ],
+    // What the log shows in a row's detail and a code's tooltip, beside the key's own page (which stays as printed):
+    // `rows` pairs with the table's rows one for one (supporters, type, how long a stop it was), `codes` is the
+    // plant's maintenance-code list with descriptions.
+    extra: {
+      rows: entries.map((entry) => ({
+        supportedBy: peopleText(entry.row.report.supportedBy, names),
+        type: entry.row.report.category?.trim() ?? '',
+        severity: severityOf(effectiveHours(entry.row.report)),
+      })),
+      codes: described.map(({ code, label }) => ({ code, label })),
+    },
   };
   return {
     value: value as unknown as FigureValue,

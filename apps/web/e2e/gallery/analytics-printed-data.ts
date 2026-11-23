@@ -9,73 +9,7 @@ export interface Printed {
   rows: [string, number, string[], string?][];
 }
 
-const B = '/analytics/breakdowns?screen=';
-
 export const PRINTED: Printed[] = [
-  {
-    path: `${B}a1-bd-pm`,
-    tiles: [
-      ['Breakdown hours', '41.5', '3 pts up'],
-      ['PM hours', '—'],
-    ],
-    rows: [
-      ['By cell', 0, ['Cell 2', '12.5', '']],
-      ['By month', 0, ['Jan', '4.0']],
-      ['By month', 1, ['Feb', '—']],
-    ],
-  },
-  {
-    path: `${B}a2-category-cell`,
-    tiles: [['Top category', 'Spindle', '12 breakdowns']],
-    rows: [['By category', 0, ['Spindle', '9.5']]],
-  },
-  {
-    path: `${B}a3-mttr-mtbf`,
-    tiles: [
-      ['MTTR', '2.5', 'hours'],
-      ['MTBF', '110.0', 'hours'],
-    ],
-    rows: [['By category', 0, ['Spindle', '2.5', '—']]],
-  },
-  {
-    path: `${B}a4-manpower`,
-    tiles: [
-      ['People', '2'],
-      ['Hours handled', '30.5'],
-    ],
-    rows: [
-      ['Manpower Table', 0, ['Asha', '12.0']],
-      ['Manpower Table', 1, ['Ravi', '18.5']],
-    ],
-  },
-  {
-    path: `${B}a10-problems`,
-    tiles: [['Groups', '3']],
-    rows: [
-      ['', 0, ['1', 'Coolant', 'coolant, leak', ''], 'Order'],
-      [
-        'Entries the system could not place',
-        0,
-        ['01-03-2026', 'CNC-01', 'Odd noise', '1.5', 'Coolant', ''],
-      ],
-    ],
-  },
-  {
-    path: `${B}fix-finder`,
-    tiles: [
-      ['Similar breakdowns', '15'],
-      ['Best fix', 'Re-seat the probe'],
-    ],
-    rows: [['Similar breakdowns', 0, ['T-001', 'CNC-01', 'Probe re-seated']]],
-  },
-  {
-    path: `${B}shift-kpis`,
-    tiles: [['Day shift', '55.0%']],
-    rows: [
-      ['By shift', 0, ['Day', '20.0']],
-      ['By shift', 1, ['Evening', '']],
-    ],
-  },
   {
     path: '/analytics/machines?screen=compare',
     tiles: [],

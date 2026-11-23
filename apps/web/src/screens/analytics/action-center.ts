@@ -1,8 +1,8 @@
 import type { ActionCenterBoardReply } from '@uptimo/shared';
 
 /**
- * The plant-day helpers the Today screens share (the Action Center's banner on Team Focus, the data checklist's
- * dates, the v2 Action Center's acknowledgement days). The board's own mapping lives in `screens/v2/action-center`.
+ * What the other Today screens still read of the Action Center: the platform's plant-day boundary, a plant day as
+ * DD-MM-YYYY, and the Dashboard banner's two counts. The screen itself is `screens/v2/action-center/`.
  */
 
 /** The platform's plant-day boundary for an ISO instant: the date the plant was on, not the browser's. */
@@ -26,7 +26,7 @@ export function dmy(day: string | null): string {
   return `${date}-${month}-${year}`;
 }
 
-/** The Team Focus banner's two counts, or null when no nudge is open (the platform hides it then). */
+/** The Dashboard banner's two counts, or null when no nudge is open (the platform hides it then). */
 export function bannerOf(board: ActionCenterBoardReply): { high: number; medium: number } | null {
   if (board.counts.open === 0) return null;
   return { high: board.bySeverity.high, medium: board.bySeverity.med };

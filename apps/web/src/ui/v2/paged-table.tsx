@@ -21,6 +21,10 @@ export type SelectFilter = {
   all: string;
   value: string;
   options: string[];
+  /** A filter with long options takes a capped width instead of the widest option's. */
+  compact?: boolean;
+  /** How an option reads, when its value (what the server filters by) is not how it is said (a printed date). */
+  labelOf?: (option: string) => string;
   onChange: (value: string) => void;
 };
 
@@ -28,6 +32,8 @@ type Props<R> = {
   /** The one page the server sent: never more than 10 rows are held, so never more are drawn. */
   rows: R[];
   rowKey: (row: R) => string;
+  /** What the row's open button is called, when it is not the key (a key that holds ids is never said aloud). */
+  rowLabel?: (row: R) => string;
   columns: Column<R>[];
   filters: FilterChip<R>[];
   chip: string;
@@ -73,7 +79,7 @@ function PageRows<R>({ t }: { t: Props<R> }) {
               <button
                 type="button"
                 className="v2-icon-btn"
-                aria-label={`${t.words.open} ${key}`}
+                aria-label={`${t.words.open} ${t.rowLabel?.(row) ?? key}`}
                 onClick={(e) => (e.stopPropagation(), t.onOpen(row))}
               >
                 <Icon name="chevronRight" />
@@ -92,11 +98,16 @@ function Selects({ selects }: { selects: SelectFilter[] }) {
       {selects.map((s) => (
         <label key={s.key} className="v2-select-field">
           {s.label}
-          <select aria-label={s.label} value={s.value} onChange={(e) => s.onChange(e.target.value)}>
+          <select
+            aria-label={s.label}
+            data-compact={s.compact || undefined}
+            value={s.value}
+            onChange={(e) => s.onChange(e.target.value)}
+          >
             <option value="">{s.all}</option>
             {s.options.map((o) => (
               <option key={o} value={o}>
-                {o}
+                {s.labelOf ? s.labelOf(o) : o}
               </option>
             ))}
           </select>
