@@ -169,8 +169,8 @@ describe('the workbook download', () => {
       undone: ['p2'],
       readings: { meter: 1250 },
       comments: 'Chip conveyor cleaned',
-      doneBy,
-      planId,
+      // G1.2b (#553): the data column prints the coded name, never a person or plan id.
+      doneBy: `P-${doneBy.slice(0, 8)}`,
     };
     expect(sheets['PM Reports']).toEqual([
       header('PM Reports'),

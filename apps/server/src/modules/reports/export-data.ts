@@ -129,7 +129,10 @@ function pmReportRowOf(
 ): ExportPmReport | null {
   const parsed = pmReportSchema.safeParse(row.report);
   if (!parsed.success) return null;
-  const { total, undone, readings, comments, doneBy } = parsed.data;
+  // planId is the plan's database id: the workbook never prints it, so it is left out of the stored data
+  const { doneBy, planId: _planId, ...kept } = parsed.data;
+  const { total, undone, readings, comments } = kept;
+  const printedDoneBy = doneBy === null ? null : (names.people.get(doneBy) ?? UNLISTED);
   return {
     id: row.ticketId,
     machineId: names.machines.get(row.machineId) ?? UNLISTED,
@@ -141,8 +144,8 @@ function pmReportRowOf(
       Object.entries(readings).map(([key, value]) => [key, String(value)]),
     ),
     comments: comments === null ? [] : [comments],
-    doneBy: doneBy === null ? null : (names.people.get(doneBy) ?? UNLISTED),
-    data: parsed.data,
+    doneBy: printedDoneBy,
+    data: { ...kept, doneBy: printedDoneBy },
   };
 }
 
