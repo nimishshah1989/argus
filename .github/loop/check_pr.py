@@ -99,7 +99,9 @@ def main():
     b = re.search(r"^Budget:\s*files\s*<=\s*(\d+)\s+lines\s*<=\s*(\d+)", body, re.M | re.I)
     if b and not head.startswith("plan/"):
         max_files, max_lines = int(b.group(1)), int(b.group(2))
-        skip = lambda p: p == "HANDOFF.md" or p.startswith("docs/loop/") or matches(p, tests) or p.endswith((".lock", "lock.json", "lock.yaml"))
+        extra = cfg.get("budget_exclude", ["changes/**", "CHANGELOG.md"])
+        skip = lambda p: (p == "HANDOFF.md" or p.startswith("docs/loop/") or matches(p, tests) or matches(p, extra)
+                          or p.endswith((".lock", "lock.json", "lock.yaml")))
         files = [p for s_, p in bchanges if not skip(p)]
         lines = 0
         for row in sh("git", "diff", "--numstat", f"{bbase}...HEAD").splitlines():
