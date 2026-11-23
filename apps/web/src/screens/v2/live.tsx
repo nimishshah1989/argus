@@ -13,6 +13,7 @@ import { BdPmView } from './bd-pm/View.js';
 import { CategoryCellView } from './category-cell/View.js';
 import { MttrMtbfView } from './mttr-mtbf/View.js';
 import { CellLogView } from './cell-change-log/View.js';
+import { DataChecklistLive } from './data-checklist/Page.js';
 import { DashboardPage } from './dashboard/Page.js';
 import { BottleneckView } from './bottleneck/View.js';
 import { BreakdownLogPage } from './breakdown-log/Page.js';
@@ -233,6 +234,20 @@ const LIVE: readonly Live[] = [
         empty="analytics.notComputed"
         title="v2r.mp.title"
         draw={(model, shell) => <ManpowerView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'today',
+    section: 'today',
+    screen: 'data-checklist',
+    page: () => (
+      <ModelPage
+        entry={screenOf('today', 'today', 'data-checklist')}
+        screen="data-checklist"
+        empty="analytics.notComputed"
+        title="analytics.screen.data-checklist"
+        draw={(model, shell) => <DataChecklistLive model={model} {...shell} />}
       />
     ),
   },

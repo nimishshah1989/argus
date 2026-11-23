@@ -1,7 +1,6 @@
 import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { ACTION_CENTER_PATH, groupFor } from './groups.js';
 import { ActionCenterPage } from '../v2/action-center/Page.js';
-import { DataChecklist } from './DataChecklist.js';
 import { GroupPage } from './GroupPage.js';
 import { GuidePage } from './GuidePage.js';
 import { MachinePage } from '../v2/machine/Page.js';
@@ -15,13 +14,7 @@ import { liveScreen } from '../v2/live.js';
 
 /** The data checklist's own route, inside the Today group's shell. */
 export function DataChecklistPage() {
-  const today = groupFor('today');
-  if (!today) return <Navigate to="/analytics/today" replace />;
-  return (
-    <AnalyticsShell>
-      <DataChecklist />
-    </AnalyticsShell>
-  );
+  return liveScreen('today', 'data-checklist');
 }
 
 /** The Action Center's own route: the v2 screen, with its own frame. */
