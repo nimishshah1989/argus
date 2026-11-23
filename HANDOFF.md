@@ -5,9 +5,13 @@
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-23 · **By:** Plan · **Model:** claude-opus-5-5
-**Milestone:** M1 Stabilise (tickets written, none built) · **Branch:** plan/adr-0013-open-questions · **PR:** #550
+**Milestone:** M1 Stabilise (building) · **Branch:** plan/local-checks-portable · **PR:** this one
 
 ## State
+
+- `loop build <N>` (builder as its own session) works unattended: #551 built by Haiku and committed. Its local
+  `loop finish` failed only on Mac-only checks; this PR fixes them (pii scan skips sparse-checkout holdout files;
+  `dump.sh` test skips on macOS, CI Linux still runs it). Remaining local fast-suite failures (6) are #551's case clash.
 
 - ADR 0013 (this PR): Compare keeps its health score/scorecard/tables in v2; M2 before M3. PROJECT.md §6 updated.
 - M1 tickets (seed branches pushed, not built): #551 G1.1 case-clash guard + renames (`plan/t551`, small);
@@ -27,8 +31,6 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 ## Blocked / open questions
 
-- **Builders have no shell:** the session runs in don't-ask mode; `builder-small` on #551 was denied Bash (planner
-  general-purpose subagents were allowed). Needs a Bash allow rule for builders; which rule is unverified.
 - **G1.2a needs Nimish:** the duplicate ticket column is in the Excel Breakdown Log sheet
   (`packages/domain/src/exports/plant-sheets.ts` ~L105, `Ticket ID` + `Ticket No.`), which the frozen answer key
   `fixtures/answer-key/workbook-export.json` requires (30 columns). The v2 screen export already has one column.
