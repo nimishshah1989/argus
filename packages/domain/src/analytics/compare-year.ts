@@ -1,5 +1,10 @@
-import type { SourcedReport } from './rows.js';
+import { machineAge } from './machine-facts.js';
+import { dayNumber } from './plant-date.js';
+import { effectiveHours, isPm, type SourcedReport } from './rows.js';
 import type { MachineRow } from './types.js';
+
+const WEEKS = 12;
+const sum = (values: readonly number[]): number => values.reduce((a, b) => a + b, 0);
 
 /**
  * One machine's year so far, for the v2 Compare screen (ticket 584, ADR 0021 §2): what its boxes, key figures, "What is
@@ -44,9 +49,48 @@ export function pairYear(
   asOf: string,
   perDay: number,
 ): PairYear {
-  void machine;
-  void rows;
-  void asOf;
-  void perDay;
-  throw new Error('not built');
+  const end = dayNumber(asOf) ?? 0;
+  const year = Number(asOf.slice(0, 4));
+  const start = dayNumber(`${year}-01-01`) ?? end;
+  const monthDay = asOf.slice(5) === '02-29' ? '02-28' : asOf.slice(5);
+  const lastEnd = dayNumber(`${year - 1}-${monthDay}`) ?? end;
+  const lastStart = dayNumber(`${year - 1}-01-01`) ?? lastEnd;
+  const breakdowns = rows
+    .filter((row) => !isPm(row))
+    .map((row) => ({
+      day: dayNumber(row.report.date),
+      code: (row.report.maintCode ?? '—').trim() || '—',
+      hours: effectiveHours(row.report),
+    }));
+  const within = (from: number, to: number) =>
+    breakdowns.filter((row) => row.day !== null && row.day >= from && row.day <= to);
+  const total = (list: readonly { hours: number }[]) => sum(list.map((row) => row.hours));
+  const mine = within(start, end);
+  const byCode = new Map<string, PairCause>();
+  for (const row of mine) {
+    const cause = byCode.get(row.code) ?? { code: row.code, count: 0, hours: 0 };
+    cause.count += 1;
+    cause.hours += row.hours;
+    byCode.set(row.code, cause);
+  }
+  const previous = within(lastStart, lastEnd);
+  return {
+    machineId: machine.id,
+    code: machine.code,
+    category: machine.category,
+    cell: machine.cell,
+    age: machineAge(machine, asOf),
+    count: mine.length,
+    hours: total(mine),
+    plannedHours: (end - start + 1) * perDay,
+    causes: [...byCode.values()].sort(
+      (left, right) =>
+        right.hours - left.hours || right.count - left.count || left.code.localeCompare(right.code),
+    ),
+    weekly: Array.from({ length: WEEKS }, (_, i) => {
+      const last = end - 7 * (WEEKS - 1 - i);
+      return total(within(last - 6, last));
+    }),
+    last: { count: previous.length, hours: total(previous) },
+  };
 }
