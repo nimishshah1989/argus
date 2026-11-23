@@ -73,4 +73,14 @@ export const analyticsV2TeamFocusEn = {
   'v2tf.why.biggest': 'The biggest still open: {{title}}, {{hours}} a month',
   'v2tf.source':
     'Figures as of {{date}} · source: the engine’s Team Focus plan and the notes your team saved',
+
+  // TF-3: the action's drawer and an owner's drawer.
+  'v2tf.edit.status': 'Status',
+  'v2tf.edit.owner': 'Owner',
+  'v2tf.edit.note': 'Note',
+  'v2tf.edit.save': 'Save',
+  'v2tf.edit.saved': 'Saved.',
+  'v2tf.edit.failed': 'Could not save. Check the connection and try again.',
+  'v2tf.edit.noMonth': 'This plan names no month yet, so nothing can be saved on it.',
+  'v2tf.owner.actions': 'What {{owner}} owns this month',
 };

@@ -60,9 +60,9 @@ describe('Data Checklist route edges (DC-2)', () => {
     expect(model.records).toHaveLength(items.length);
   });
 
-  it('leaves Today’s Dashboard as its first screen and Team Focus on v1', () => {
+  it('leaves Today’s Dashboard as its first screen and Team Focus at its own address', () => {
     expect(liveScreen('today', null)?.key).toBe('today:dashboard');
     expect(liveScreen('today', 'no-such-screen')?.key).toBe('today:dashboard');
-    expect(liveScreen('today', 'team-focus')).toBeNull();
+    expect(liveScreen('today', 'team-focus')?.key).toBe('today:team-focus');
   });
 });
