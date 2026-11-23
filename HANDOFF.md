@@ -8,7 +8,7 @@
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-23 · **By:** Plan · **Model:** claude-opus-5-5
-**Milestone:** M1 Stabilise (in progress) · **Branch:** plan/handoff-permission-block · **PR:** the PR for this branch
+**Milestone:** M1 Stabilise (in progress) · **Branch:** plan/handoff-permission-block · **PR:** #559
 
 ## State
 
