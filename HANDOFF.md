@@ -5,29 +5,28 @@
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-23 · **By:** Plan · **Model:** claude-opus-5-5
-**Milestone:** M1 Stabilise (building) · **Branch:** plan/local-checks-portable · **PR:** #560
+**Milestone:** M1 Stabilise (building) · **Branch:** plan/handoff-551-in-ci · **PR:** this one
 
 ## State
 
-- `loop build <N>` (builder as its own session) works unattended: #551 built by Haiku and committed. Its local
-  `loop finish` failed only on Mac-only checks; this PR fixes them (pii scan skips sparse-checkout holdout files;
-  `dump.sh` test skips on macOS, CI Linux still runs it). Remaining local fast-suite failures (6) are #551's case clash.
-
-- ADR 0013 (this PR): Compare keeps its health score/scorecard/tables in v2; M2 before M3. PROJECT.md §6 updated.
-- M1 tickets (seed branches pushed, not built): #551 G1.1 case-clash guard + renames (`plan/t551`, small);
-  #552 G1.3 cell-log CSV no ids (`plan/t552`, small); #553 G1.2b PM Reports Data codes not UUIDs (`plan/t553`, small).
-- #556 (plan PR): G1.5 fix, escalation test dates the roster at the breach moment; 49/49 at 17:59:30 UTC. Needs CI and
-  merge (may conflict on HANDOFF.md; keep this file).
-- G1.4: #554 Dashboard (`plan/t554`, small) and #555 Problem Analysis (`plan/t555`, small), one `numbers` prop each.
-  G1.6: plan PR #557 (tests only; no route leaks today); server tests unproven locally (no Docker), CI api shards decide.
-- Open (Plan may decide): Compare's non-money figure shows two "Spares cost" rows always `₹ 0` to every role
-  (`packages/domain/src/analytics/compare.ts` L98–99); move under `compare.spares-cost` or drop.
+- Unattended building works: `loop prep` → `loop build <N>` (builder as its own session) → `loop finish`. #560 merged
+  (Mac-only check fixes). The builder ends "BLOCKED: stop hook wants HANDOFF.md": ignore it, its ticket handoff is committed.
+- **#561 = ticket #551** (G1.1 case clash): built twice by Haiku, local checks pass, CI running on the second build.
+  Seed now carries the coverage re-check lines; issue Budget files<=8, Screens S01-dashboard, S11-why-why; PR body set.
+- Not built yet: #552 G1.3 (`plan/t552`), #553 G1.2b (`plan/t553`), #554 G1.4 Dashboard, #555 G1.4 Problem Analysis.
+- #556 (plan PR, G1.5 escalation test): pr-meta red; needs merge of main (HANDOFF conflict), fragment renamed
+  `changes/556-*.md`, full Argus body (Q1–Q16, "Reasons"). #557 (G1.6 money-rights tests) red on purpose until #558.
+- #558 (bug): figures route 500s when Team Focus has a value but no drill; needs a ticket (make team-focus `mixed`).
+- Open (Plan may decide): Compare's non-money figure has two "Spares cost" rows always `₹ 0` (`compare.ts` L98–99).
 
 ## Next step
 
-1. Fix builder permissions (below), then `loop prep 551/552/553` → builder-small → `loop finish` → CI → reviewer → merge.
-2. Ticket PRs need the Argus PR body (3 sections + Q1–Q16 + "Reasons"): `gh pr edit <pr> --body-file` after
-   `loop finish`; copy #550's body. Every PR must change HANDOFF.md (loop-guard).
+1. `gh pr checks 561`; green → reviewer subagent → merge → `loop clean 551`. Red → read failing lines only.
+2. Before building any ticket that changes a v2 screen `.tsx` (#554, #555): on `plan/t<N>` add a dated "Coverage
+   re-checked for ticket #N" line to `docs/design/v2/scope/<screen>.md`; set the issue's `Screens:` and a budget that
+   counts renames twice plus the changes note. Then `loop prep`/`build`/`finish`; then `gh pr edit` with the Argus
+   body including `## Coverage` (table with a `v2` column), keeping the `Plan-base:` line `loop finish` wrote.
+3. Then #552, #553, #556, a ticket for #558.
 
 ## Blocked / open questions
 
