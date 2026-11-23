@@ -10,7 +10,10 @@
     "plan": "opus",
     "rescue": "fable"
   },
-  "main_branches": ["main", "master"],
+  "main_branches": [
+    "main",
+    "master"
+  ],
   "protected": [
     "PROJECT.md",
     "CLAUDE.md",
@@ -49,7 +52,11 @@
     "**/*.svelte",
     "**/*.css"
   ],
-  "token_files": ["design/**", "**/tokens.css", "**/brand.css"],
+  "token_files": [
+    "design/**",
+    "**/tokens.css",
+    "**/brand.css"
+  ],
   "brand_overridable": [
     "--accent",
     "--accent-2",
@@ -66,8 +73,11 @@
     "files": 3,
     "lines": 200
   },
-  "holdout": ["tests/holdout/**", "**/holdout/**"],
-  "context_budget": 150000,
+  "holdout": [
+    "tests/holdout/**",
+    "**/holdout/**"
+  ],
+  "context_budget": 110000,
   "release": {
     "staging_migrate": "",
     "staging_deploy": "",

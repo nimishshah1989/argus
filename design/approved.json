@@ -1,1 +1,99 @@
-{"screens": {}}
+{
+  "screens": {
+    "S01-dashboard": {
+      "by": "Nimish, in chat 23 Nov 19:43 IST: 'everything is approved'",
+      "date": "2026-11-23",
+      "hash": "8d524fa785edcc75"
+    },
+    "S02-action-center": {
+      "by": "Nimish, in chat 23 Nov 19:43 IST: 'everything is approved'",
+      "date": "2026-11-23",
+      "hash": "b67b7c61d11f796d"
+    },
+    "S03-machines-register": {
+      "by": "Nimish, in chat 23 Nov 19:43 IST: 'everything is approved'",
+      "date": "2026-11-23",
+      "hash": "b6031123ed895164"
+    },
+    "S04-footprint": {
+      "by": "Nimish, in chat 23 Nov 19:43 IST: 'everything is approved'",
+      "date": "2026-11-23",
+      "hash": "ed639a5c7774d34e"
+    },
+    "S05-age": {
+      "by": "Nimish, in chat 23 Nov 19:43 IST: 'everything is approved'",
+      "date": "2026-11-23",
+      "hash": "7e4d8ff0ef89157f"
+    },
+    "S06-breakdown-log": {
+      "by": "Nimish, in chat 23 Nov 19:43 IST: 'everything is approved'",
+      "date": "2026-11-23",
+      "hash": "53390420671cc560"
+    },
+    "S07-bd-pm": {
+      "by": "Nimish, in chat 23 Nov 19:43 IST: 'everything is approved'",
+      "date": "2026-11-23",
+      "hash": "a09a623b5b55955e"
+    },
+    "S08-category-cell": {
+      "by": "Nimish, in chat 23 Nov 19:43 IST: 'everything is approved'",
+      "date": "2026-11-23",
+      "hash": "e7de65cd2c08f658"
+    },
+    "S09-mttr-mtbf": {
+      "by": "Nimish, in chat 23 Nov 19:43 IST: 'everything is approved'",
+      "date": "2026-11-23",
+      "hash": "17ceca7a769a8474"
+    },
+    "S10-manpower": {
+      "by": "Nimish, in chat 23 Nov 19:43 IST: 'everything is approved'",
+      "date": "2026-11-23",
+      "hash": "1fe095350ccec894"
+    },
+    "S11-why-why": {
+      "by": "Nimish, in chat 23 Nov 19:43 IST: 'everything is approved'",
+      "date": "2026-11-23",
+      "hash": "81b170eca37c4b17"
+    },
+    "S12-problem-analysis": {
+      "by": "Nimish, in chat 23 Nov 19:43 IST: 'everything is approved'",
+      "date": "2026-11-23",
+      "hash": "51fd369671b3481f"
+    },
+    "S13-fix-finder": {
+      "by": "Nimish, in chat 23 Nov 19:43 IST: 'everything is approved'",
+      "date": "2026-11-23",
+      "hash": "1e5443b7513294ca"
+    },
+    "S14-pm-calendar": {
+      "by": "Nimish, in chat 23 Nov 19:43 IST: 'everything is approved'",
+      "date": "2026-11-23",
+      "hash": "6bd8f4fdb68dc0ee"
+    },
+    "S15-compare": {
+      "by": "Nimish, in chat 23 Nov 19:43 IST: 'everything is approved'",
+      "date": "2026-11-23",
+      "hash": "9721ce5b8fbb7afc"
+    },
+    "S16-data-checklist": {
+      "by": "Nimish, in chat 23 Nov 19:43 IST: 'everything is approved'",
+      "date": "2026-11-23",
+      "hash": "4cab2cfecadd38e2"
+    },
+    "S17-team-focus": {
+      "by": "Nimish, in chat 23 Nov 19:43 IST: 'everything is approved'",
+      "date": "2026-11-23",
+      "hash": "968eafbd81758825"
+    },
+    "S18-oem": {
+      "by": "Nimish, in chat 23 Nov 19:43 IST: 'everything is approved'",
+      "date": "2026-11-23",
+      "hash": "b750201e11d3d54e"
+    },
+    "S19-login": {
+      "by": "Nimish, in chat 23 Nov 19:43 IST: 'everything is approved'",
+      "date": "2026-11-23",
+      "hash": "963c3abe6ca47276"
+    }
+  }
+}

@@ -1,5 +1,7 @@
 # HANDOFF
 
+> **23 Nov 19:45 — read ADR 0012 first.** Nimish is away; the loop runs unattended. Everything moves to v2 and v1 is deleted; the 97 MISSING coverage items get built in v2 (not waived); Plan decides PROJECT.md §6 itself (ADR per decision) except answer-key changes, production, money and irreversible data steps. Start M1, then the M2 coverage gap.
+
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-23 · **By:** Plan · **Model:** claude-opus-5-5
