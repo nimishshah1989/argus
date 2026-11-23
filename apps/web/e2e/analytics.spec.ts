@@ -296,8 +296,40 @@ test('a head opens the analytics face, its Guide, and edits the plant profile', 
 });
 
 /**
+ * The data checklist has its own route, a tab of Today: the v2 screen on the live figures (DC-2, ticket 578), v1's tile
+ * gone. It counts every open item the engine computed, and opens the tickets behind the gaps in the drawer.
+ */
+async function expectChecklist(page: Page, reply: FiguresReply) {
+  const tabs = page.getByRole('group', { name: 'Screens in Today', exact: true });
+  await tabs.getByRole('button', { name: 'Data checklist', exact: true }).click();
+  await expect(page).toHaveURL(/\/analytics\/today\/checklist$/);
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Data checklist', exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('[data-figure="data-checklist"]')).toHaveCount(0);
+  await expect(page.getByText('Not computed yet')).toHaveCount(0);
+  const checklist = reply.figures.find((figure) => figure.key === 'data-checklist');
+  const items =
+    checklist !== undefined && typeof checklist.value === 'object' && checklist.value !== null
+      ? (checklist.value as { items: { plain: string }[] }).items
+      : [];
+  await expect(page.locator('.v2-kpi', { hasText: 'Records to fix' })).toContainText(
+    items.length.toLocaleString('en-IN'),
+  );
+  if (checklist !== undefined && checklist.drill.ids.length > 0) {
+    await page.getByRole('button', { name: 'Show the rows behind Data checklist' }).click();
+    await expect(page).toHaveURL(/[?&]drawer=figure:data-checklist/);
+    await expect(
+      page
+        .locator('aside.v2-drawer')
+        .getByText(`${checklist.drill.ids.length} tickets counted`, { exact: true }),
+    ).toBeVisible();
+  }
+}
+
+/**
  * Packet 38.3's journey, on the v2 Dashboard: a head signs in on Today, sees the values the live API returns, opens one
- * figure's rows, sees a held figure stay honest, and opens the data checklist.
+ * figure's rows, sees a held figure stay honest, and opens the v2 data checklist and the tickets behind its gaps.
  */
 test('a head lands on Today with the live figures, a drill and the data checklist', async ({
   page,
@@ -349,22 +381,7 @@ test('a head lands on Today with the live figures, a drill and the data checklis
   const held = firstHeld(reply);
   if (held) await expect(tile(page, held.key)).toContainText('Not computed yet');
 
-  // The data checklist has its own route, a tab of Today. Its tile lists the open items it computes,
-  // grouped and counted, and never claims a "Ready" it does not have.
-  const tabs = page.getByRole('group', { name: 'Screens in Today', exact: true });
-  await tabs.getByRole('button', { name: 'Data checklist', exact: true }).click();
-  await expect(page).toHaveURL(/\/analytics\/today\/checklist$/);
-  await expect(page.getByRole('heading', { name: 'Data checklist', exact: true })).toBeVisible();
-  const checklistTile = page.locator('[data-figure="data-checklist"]');
-  await expect(checklistTile).not.toContainText('Ready');
-  await expect(checklistTile).not.toContainText('Not computed yet');
-  const checklist = reply.figures.find((figure) => figure.key === 'data-checklist');
-  const items =
-    checklist !== undefined && typeof checklist.value === 'object' && checklist.value !== null
-      ? (checklist.value as { items: { plain: string }[] }).items
-      : [];
-  await expect(checklistTile.locator('li')).toHaveCount(items.length);
-  if (items[0] !== undefined) await expect(checklistTile).toContainText(items[0].plain);
+  await expectChecklist(page, reply);
 });
 
 /**
