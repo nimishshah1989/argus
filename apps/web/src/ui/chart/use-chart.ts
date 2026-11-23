@@ -78,6 +78,21 @@ function attach(
   const resize = () => {
     again(made);
   };
+  // The card's width also changes with no window resize (the drawer sliding in, a panel opening): watch the box itself,
+  // once a frame, and only when its width changed.
+  const box = el.parentElement ?? el;
+  let width = box.clientWidth;
+  let frame = 0;
+  const watch =
+    typeof ResizeObserver === 'undefined'
+      ? undefined
+      : new ResizeObserver(() => {
+          if (box.clientWidth === width) return;
+          width = box.clientWidth;
+          cancelAnimationFrame(frame);
+          frame = requestAnimationFrame(resize);
+        });
+  watch?.observe(box);
   const query = window.matchMedia(REDUCED);
   const still = () => query.matches && made.setOption({ animation: false });
   window.addEventListener('resize', resize);
@@ -86,6 +101,8 @@ function attach(
     made,
     dispose: () => {
       window.removeEventListener('resize', resize);
+      watch?.disconnect();
+      cancelAnimationFrame(frame);
       query.removeEventListener('change', still);
       made.dispose();
     },
@@ -108,38 +125,50 @@ export function refresh(made: Instance, build: () => unknown): ChartState {
 }
 
 /**
- * The option for the spec held in `key`, framed for the first draw of an instance or for a later update. The box is
- * sized first: tilted category labels need height, and labels too many for the box's width make it scroll sideways
- * inside its card (when the card's wrapper says it can: `data-chart-scroll`), so no label is ever dropped.
+ * Size the box for the spec held in `key` NOW (tilted category labels need height, and labels too many for the box's
+ * width make it scroll sideways inside its card, when the card's wrapper says it can: `data-chart-scroll`, so no label
+ * is ever dropped), and return the builder of its option, framed for the first draw of an instance or for a later
+ * update. The box is sized before ECharts measures it.
  */
-function optionFor(el: HTMLElement, key: string, first: boolean) {
+function optionFor(el: HTMLElement, key: string, first: boolean): () => unknown {
   const reduced = window.matchMedia(REDUCED).matches;
   const spec = JSON.parse(key) as ChartSpec;
   el.style.minWidth = '';
   const palette = readPalette(el);
-  sizeBox(el, spec, chartRoom(spec, palette.width));
-  return frameOption(chartOption(spec, palette), { first, reduced });
+  sizeBox(el, chartRoom(spec, palette.width));
+  return () => frameOption(chartOption(spec, palette), { first, reduced });
 }
 
 /**
  * Make the box the room its labels need. A v2 chart that needs more than the kit's own height (tilted names, a long
  * horizontal bar) is made taller, and one with too many labels for its width scrolls sideways inside its card; a box
- * with a size of its own (the v1 chart's) keeps it. A box that scrolls is a named group reachable from the keyboard.
+ * with a size of its own (the v1 chart's) keeps it.
  */
-function sizeBox(el: HTMLElement, spec: ChartSpec, room: ReturnType<typeof chartRoom>): void {
+function sizeBox(el: HTMLElement, room: ReturnType<typeof chartRoom>): void {
   el.style.minHeight =
     el.classList.contains('v2-trend') && room.height > BASE_HEIGHT ? `${room.height}px` : '';
   const scroller = el.parentElement?.hasAttribute('data-chart-scroll') ? el.parentElement : null;
-  if (scroller === null) return;
-  if (room.scrollWidth === undefined) {
-    for (const name of ['tabindex', 'role', 'aria-label']) scroller.removeAttribute(name);
-    return;
-  }
-  el.style.minWidth = `${room.scrollWidth}px`;
-  scroller.setAttribute('tabindex', '0');
-  scroller.setAttribute('role', 'group');
-  scroller.setAttribute('aria-label', spec.title);
+  if (room.scrollWidth !== undefined && scroller) el.style.minWidth = `${room.scrollWidth}px`;
 }
+
+/**
+ * After a draw: whether the box is a tab stop follows what it does NOW, not what was planned: it scrolls sideways
+ * (`scrollWidth` past `clientWidth`) and is then a named group reachable from the keyboard, or it does not and is
+ * neither a tab stop nor a name.
+ */
+function markScroll(el: HTMLElement, title: string): void {
+  const scroller = el.parentElement?.hasAttribute('data-chart-scroll') ? el.parentElement : null;
+  if (scroller === null) return;
+  if (scroller.scrollWidth > scroller.clientWidth) {
+    scroller.setAttribute('tabindex', '0');
+    scroller.setAttribute('role', 'group');
+    scroller.setAttribute('aria-label', title);
+  } else {
+    for (const name of ['tabindex', 'role', 'aria-label']) scroller.removeAttribute(name);
+  }
+}
+
+const titleOf = (key: string): string => (JSON.parse(key) as ChartSpec).title;
 
 /**
  * Draws `spec` into the returned ref once ECharts has loaded; `error` if it never does. The instance is made once:
@@ -170,11 +199,15 @@ export function useChart(spec: ChartSpec): {
             echarts,
             el,
             (made) => {
-              const option = optionFor(el, latest.current, true);
+              const build = optionFor(el, latest.current, true);
               made.resize(); // the box may have grown for its labels since it was made
-              made.setOption(option);
+              made.setOption(build());
+              markScroll(el, titleOf(latest.current));
             },
-            (made) => setState(refresh(made, () => optionFor(el, latest.current, false))),
+            (made) => {
+              setState(refresh(made, optionFor(el, latest.current, false)));
+              markScroll(el, titleOf(latest.current));
+            },
           );
           chart.current = attached.made;
           dispose = () => {
@@ -199,7 +232,8 @@ export function useChart(spec: ChartSpec): {
   useEffect(() => {
     const el = ref.current;
     if (!chart.current || !el) return;
-    setState(refresh(chart.current, () => optionFor(el, key, false)));
+    setState(refresh(chart.current, optionFor(el, key, false)));
+    markScroll(el, titleOf(key));
   }, [key]);
   return { ref, state };
 }
