@@ -130,3 +130,5 @@ data the engine reply already carries; the ones that need an engine or a product
 Decisions with an hours-won and rupee value and a Decide button, "targets" and last-month bullet bars, a 12-month breakdown-and-PM line, time to repair and
 time between failures as headline cards, "PM on time", a machine "idle, no job loaded", and a 12-week trend per machine. None has a source in the engine
 for Today (targets, a value per decision and job data are not collected), none was in v1, and none is printed.
+
+Coverage re-checked for ticket #551 (file renames only, no scope change): 2026-11-23.

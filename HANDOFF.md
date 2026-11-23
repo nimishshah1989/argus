@@ -1,41 +1,39 @@
 # HANDOFF
 
-> **23 Nov 19:45 — read ADR 0012 first.** Nimish is away; the loop runs unattended. Everything moves to v2 and v1 is deleted; the 97 MISSING coverage items get built in v2 (not waived); Plan decides PROJECT.md §6 itself (ADR per decision) except answer-key changes, production, money and irreversible data steps. Start M1, then the M2 coverage gap.
+> **Read ADR 0012 first.** Nimish is away; the loop runs unattended. Everything moves to v2, v1 is deleted, the 97 MISSING coverage items get built. Plan decides §6 (ADR each) except answer-key changes, production, money, irreversible data steps.
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-23 · **By:** Plan · **Model:** claude-opus-5-5
-**Milestone:** M1 Stabilise · **Branch:** plan/escalation-clock-free · **PR:** the PR for this branch
+**Milestone:** M1 Stabilise (building) · **Branch:** plan/handoff-551-in-ci · **PR:** #562
 
 ## State
 
-- Tests: CI on #546 (Linux): fast suite `pnpm exec vitest run packages/domain packages/shared apps/web/src tools`
-  307/307 test files pass; `pnpm typecheck` passes; `pnpm lint` passes (7 warnings). On macOS 8 tests and typecheck
-  fail (case-only file name clash, see LESSONS.md). Full Postgres suite and e2e run in `ci.yml` only (Docker).
-- Last thing done: G1.5 (plan PR, test-only): `apps/server/test/escalation.test.ts` dated its roster lines by the
-  wall clock, so a breach 31 min later fell on the next IST date between 17:59 and 18:30 UTC. Roster lines are now
-  dated at the breach moment. Proof: with the process clock shifted to 17:59:30 UTC the old file fails 1/49, the new
-  one passes 49/49; at real time 49/49. G1.1 ticketed as #551 (seed `plan/t551`).
+- **#561 = ticket #551** (case clash): reviewer PASS; CI **browser (3/5) FAILED** (run 45213725452); read `--log-failed`.
+  Merge when green (`gh pr merge 561 --squash --delete-branch`, `loop clean 551`). Every local `loop finish` fails on
+  the 10 macOS case-clash tests until it merges.
+- #552 built once by Haiku (`.loop/wt/552`); `loop finish` failed only on those case-clash tests (attempt 1 of 3 burnt).
+  After #561 merges: merge main into `plan/t552` and the build folder, then `loop finish 552`.
+- #556 (G1.5): main merged in, fragment `changes/556-*.md`, full Argus body with "No parity:"; CI was running.
+- #558 now a ticket (size:small, ADR 0014: Team Focus `mixed`). Seed `plan/t558` = #557's G1.6 tests + main + visible
+  domain test (fails today with "Figure team-focus has a value but names no rows"). #557 closed into it.
+- Not built: #553 G1.2b, #554 Dashboard, #555 Problem Analysis, #558. Docker works on this Mac now.
 
 ## Next step
 
-Waiting on Nimish: read `docs/loop/STATE-FOR-NIMISH.md` and PROJECT.md, answer §6, run `loop approve --all`. Then
-`loop-ticket` M1 (Stabilise) into GitHub Issues, starting with G1.1 (case-clash guard + renames) so a Mac can run the
-checks. Backend-only M1 tickets need no wireframe approval and may start before it.
+1. #561: read the browser 3/5 failure (flake → rerun; real → Don't + rebuild). #556 merge when green. 2. #552 finish (above). 3. #558, #553 build. 4. #554/#555: on `plan/t<N>` (after main
+   is merged in, since #561 also edits `scope/dashboard.md`) add the dated "Coverage re-checked for ticket #N" line to
+   `docs/design/v2/scope/<screen>.md`; then prep/build/finish; `gh pr edit` with Argus body + `## Coverage` table.
 
 ## Blocked / open questions
 
-- Nimish: branch protection command (session permission refused), `.claude/settings.json` clean-up (4 old hook entries and
-  the `pstack@cursor-plugins` plugin; then delete `.claude/harness/`), the decisions in PROJECT.md §6.
-- `db/schema.sql` not dumped: needs a Postgres (`pnpm migrate` then `pg_dump --schema-only`).
+- **G1.2a needs Nimish:** duplicate ticket column is pinned by the frozen answer key (`workbook-export.json`, 30 cols).
+- **G1.4 Shift KPIs + Energy:** no gallery view and not on the shared fixture seam (`screens/v2/data.ts`), so no
+  wireframe snapshot is possible yet. Needs a ticket: gallery views + fixtures; then snapshot; then Nimish approves.
+- Nimish (old): branch protection; answer-key last digit; support tickets 0 downtime.
 
 ## Don't repeat
 
-- Shell commands containing `>` plus an `apps/web/...` path trip the loop's frontend guard; run them without redirects.
-- `/gallery` sections (floor, board) and `?view=desktop` don't snapshot on staging (missing or behind sign-in).
-- Wireframes were made by `/tmp` Playwright scripts against the staging gallery; re-snapshotting changes the hash and
-  voids approval.
-
-## Files touched this session
-
-- `apps/server/test/escalation.test.ts` (roster lines dated at the breach), `changes/902-escalation-clock-free.md`, HANDOFF.md.
+- Hidden tests go in a `holdout/` folder under `tools/`, `apps/web/src/` or `apps/server/test/`; `tests/holdout/` never runs.
+- Bash with `>` redirects or a long inline `gh pr create --body` is denied; use Write + `--body-file`.
+- Plan PR bodies need "No parity: <reason>" under `## Reasons` or pr-meta fails.

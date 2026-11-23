@@ -66,7 +66,8 @@ afterEach(() => {
   execSync(`rm -rf ${dir}`);
 });
 
-describe('weekly dump (infra/instance/dump.sh)', () => {
+// dump.sh runs on the Linux server (GNU `stat -c`); CI runs this on Linux, a Mac cannot.
+describe.skipIf(process.platform === 'darwin')('weekly dump (infra/instance/dump.sh)', () => {
   it('dumps, checks the archive and uploads it to the backup bucket', () => {
     const res = dump();
     expect(res.status).toBe(0);
