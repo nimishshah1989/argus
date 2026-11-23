@@ -221,7 +221,11 @@ describe('Data Checklist live adapter (DC-1)', () => {
   it('never chips a machine the register does not know (bd_mach): a dash, no id, no drill', () => {
     const LOST = 'f3c2a1d0-0000-4000-8000-00000000abcd';
     const lost: ChecklistItem[] = [
-      { group: 'bd_mach', key: 'bd_mach|r9', plain: `12-11-2026 · ${LOST} — machine ID "${LOST}" not found` },
+      {
+        group: 'bd_mach',
+        key: 'bd_mach|r9',
+        plain: `12-11-2026 · ${LOST} — machine ID "${LOST}" not found`,
+      },
       { group: 'bd_hrs', key: 'bd_hrs|r9', plain: `12-11-2026 · ${LOST} — downtime hours missing` },
       { group: 'ww', key: 'ww|r9', plain: `12-11-2026 · ${LOST} — 9.0 hrs, Why-Why not done` },
       { group: 'bd_hrs', key: 'bd_hrs|r1', plain: '10-11-2026 · VC-1 — downtime hours missing' },
