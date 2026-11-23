@@ -1,0 +1,42 @@
+# Coverage: Team Focus (v2, `screens/v2/team-focus/`)
+
+Built from `screens/analytics/TeamFocusPage.tsx` and `TodayRest.tsx` (both deleted in the PR that makes this screen live, TF-3 #580), `team-focus-actions.ts` (kept: the v2 adapter and the Dashboard banner read it), `e2e/analytics-compare.spec.ts` (Team Focus part ported), parity `m4a.team-focus` and the engine figure `team-focus` (`team-focus.ts`). Unit-test data is the frozen answer `fixtures/answer-key/team-focus.json`. **Live at v1's address** (`/analytics/today?screen=team-focus`) on `GET /analytics/figures` and the notes routes (`GET`/`PUT /analytics/team-focus/notes`, ADR 0018). Decisions: ADR 0020.
+
+| Item                                                | Source                   | v2      | Where in v2                                                                                                                                        |
+| --------------------------------------------------- | ------------------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| KPI "Actions" with "x not started, y in progress"   | `team-focus.ts` `kpisOf` | changed | "Open actions" counts the open (not started or in progress); its second line is "y in progress, x not started". Same actions, closed ones left out |
+| KPI "Done" with "x marked not needed"               | `kpisOf`                 | moved   | the "Done" figure's second line, "x done, y marked not needed"                                                                                     |
+| KPI "Progress %"                                    | `kpisOf`                 | same    | "Done": the share of the month's actions done or not needed                                                                                        |
+| Six lanes, each its own group                       | `FOCUS_LANES`            | changed | the lane name is a pill on every row and decision; rows are one table, filterable; each action's drawer names its lane                             |
+| Lane hint (what the lane is for)                    | `FOCUS_LANE_HINTS`       | moved   | the Why of each "Needs an owner" decision, and the action's drawer                                                                                 |
+| Per-lane "open of total"                            | `LaneCard`               | moved   | the action's drawer: "x open of y" for its lane                                                                                                    |
+| Lane order (A, B, C, F, D, E)                       | `FOCUS_LANES`            | changed | the table keeps the engine's order (lanes in v1's order) until a column is sorted; "Needs an owner" is biggest stake first                         |
+| Every action listed (31 in the key)                 | e2e                      | same    | "Every action this month": 10 a page, search, sort, filters (no owner, in progress, done)                                                          |
+| Action title                                        | `ActionRow`              | same    | the row and the drawer                                                                                                                             |
+| Machine named                                       | `ActionRow`              | better  | a machine chip that opens the machine                                                                                                              |
+| Hours at stake                                      | `stakeText`              | same    | "Hours a month", the engine's figure with v1's places                                                                                              |
+| Status (not started, in progress, done, not needed) | `focusStatusKey`         | better  | same four words; now saved (TF-1) and changed in the action's drawer                                                                               |
+| Owner                                               | `ActionRow`              | better  | a chip, or "Nobody yet"; saved; "I’ll take it" makes you the owner; changed in the drawer; the chip opens what that owner has this month           |
+| Note                                                | `ActionRow`; parity row  | better  | under the action's title; saved and edited in the drawer                                                                                           |
+| Drill to the machines the actions name              | `FigureDrill`            | same    | the page's "show the rows behind" control opens every machine the figure names                                                                     |
+| Not-ready message                                   | `TeamFocusPage.tsx`      | changed | "Not computed yet" (`analytics.notComputed`) when the engine has no action                                                                         |
+| Who may open and write it                           | `canAnalytics`           | same    | the figures and the notes routes both use it; a role that may not is refused by the server and the screen says so                                  |
+| An old `?drill=` link on Today                      | `TodayRest.tsx`          | same    | lands in the drawer with the same rows (`LiveFrame`)                                                                                               |
+| Action Center banner above Team Focus               | `TodayRest.tsx`          | moved   | on the Dashboard (Today's first screen) and the Action Center itself                                                                               |
+
+**Removed from the v2 design (no source, ADR 0020 §5–6):**
+
+- later: a person's load ("Overloaded", "Has room") and its two filters — needs a rule for "overloaded"; the column stays empty until one exists.
+- later: a person's role in the people table — owners are saved free text (ADR 0018 §3), not people records.
+- later: the suggested owner and the rebalance proposal — no engine rule.
+- later: money a year on a decision — v1 showed no money here; a money view would be role-gated (batch1 loss 8).
+- later: the 90-day strip on each decision and "vs last month" on the key figures — the engine keeps no earlier month.
+- later: the Dashboard's Team Focus banner still counts every action as open — it reads no notes.
+
+## More intelligent
+
+| Idea                                 | What the user sees                                   | Data                     | Engine today?      |
+| ------------------------------------ | ---------------------------------------------------- | ------------------------ | ------------------ |
+| Who carries what                     | each owner's open actions, hours at stake and closed | saved notes + the figure | yes (adapter sums) |
+| Biggest unowned first                | "Needs an owner", biggest stake first                | the figure's stakes      | yes                |
+| Overdue Why-Why ageing (batch1 idea) | "Why-Why on the 11-hour stop: due 12 days ago"       | lane F                   | yes; not shown yet |
