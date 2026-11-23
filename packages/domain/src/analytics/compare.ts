@@ -17,7 +17,8 @@ import { formatNumber, formatPercent, metadataNumber } from './format.js';
 import { machineAge } from './machine-facts.js';
 import { dmy } from './plant-date.js';
 import { effectiveHours, isPm, type SourcedReport } from './rows.js';
-import type { Computer, FigureValue, MachineRow } from './types.js';
+import { pairYear, type PairYear } from './compare-year.js';
+import type { ComputeInput, Computer, FigureValue, MachineRow } from './types.js';
 
 /**
  * Compare Machines (ticket 43, packet 43a): the whole page the 11 November key prints, with no KPI, six tables and
@@ -294,6 +295,39 @@ function charts(a: Compared, b: Compared) {
       ],
     },
   ];
+}
+
+/** Two machines asked for by code (ADR 0020 §1). */
+export type ComparePair = { a: string; b: string };
+
+/**
+ * The page for one pair (ticket 584): `page` — the pair, the codes the picker offers (machine A's category in the
+ * engine's order: worst age-adjusted health first, then code), the page value `compareFigure` prints for that pair with
+ * A as the first machine everywhere, its drill ids `[A's id, B's id]`, and each machine's year so far; `none` — the
+ * plant has no comparison (the same cases `compareFigure` prints no page for; checked before the pair); `unknown` — the pair cannot be compared:
+ * `a` when `a` is not a compare machine, `b` when `b` is not one, is the same machine, or is of another category.
+ */
+export type ComparePairResult =
+  | {
+      kind: 'page';
+      pair: ComparePair;
+      options: string[];
+      value: FigureValue;
+      drillIds: string[];
+      years: [PairYear, PairYear];
+    }
+  | { kind: 'none' }
+  | { kind: 'unknown'; field: 'a' | 'b' };
+
+/**
+ * Compare any two machines of one category (ADR 0020 §1). No `pair`: the engine's own pair, exactly as
+ * `compareFigure` picks it. The category average column is machine A's category.
+ */
+export function comparePair(input: ComputeInput, pair?: ComparePair): ComparePairResult {
+  void input;
+  void pair;
+  void pairYear;
+  throw new Error('not built');
 }
 
 /** The Compare Machines figure. An empty plant or a category with no second machine prints no page. */
