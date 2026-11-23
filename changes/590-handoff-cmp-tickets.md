@@ -1,0 +1,1 @@
+- Handoff: Compare planned as tickets 584–588 (ADR 0021 on seeds).
