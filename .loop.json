@@ -1,7 +1,7 @@
 {
   "test_command": "pnpm exec vitest run packages/domain packages/shared apps/web/src tools",
   "typecheck_command": "pnpm typecheck",
-  "lint_command": "pnpm lint",
+  "lint_command": "pnpm lint && pnpm format:check",
   "coverage_command": "",
   "setup_command": "pnpm install --frozen-lockfile",
   "models": {
