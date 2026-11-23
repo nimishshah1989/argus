@@ -1,0 +1,76 @@
+/* A banner (banner.tsx): an icon, a tone tag, one sentence and the way in; the whole card is the link's target. Tokens only. */
+
+.v2-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-v2-inner);
+  min-height: 64px;
+  padding: 12px var(--space-v2-pad);
+  border-left: 4px solid var(--color-v2-line);
+}
+.v2-banner:hover {
+  box-shadow: var(--shadow-v2-raised);
+}
+.v2-banner-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--color-v2-track);
+  color: var(--color-v2-ink-2);
+}
+.v2-banner-body {
+  flex: 1;
+  min-width: 0;
+}
+.v2-banner-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+.v2-banner-text {
+  margin: 2px 0 0;
+  color: var(--color-v2-ink-2);
+  font-size: var(--text-v2-secondary);
+}
+.v2-banner-go {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  min-height: 44px;
+  font-weight: 600;
+}
+/* The link's box covers the banner, so the whole card opens it. */
+.v2-banner-go::after {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  content: '';
+}
+.v2-banner[data-tone='loss'] {
+  border-left-color: var(--color-v2-loss-fill);
+}
+.v2-banner[data-tone='loss'] .v2-banner-icon {
+  background: var(--color-v2-loss-tint);
+  color: var(--color-v2-loss);
+}
+.v2-banner[data-tone='risk'] {
+  border-left-color: var(--color-v2-risk-fill);
+}
+.v2-banner[data-tone='risk'] .v2-banner-icon {
+  background: var(--color-v2-risk-tint);
+  color: var(--color-v2-risk);
+}
+.v2-banner[data-tone='plan'] {
+  border-left-color: var(--color-v2-plan-fill);
+}
+.v2-banner[data-tone='plan'] .v2-banner-icon {
+  background: var(--color-v2-plan-tint);
+  color: var(--color-v2-plan);
+}

@@ -33,6 +33,7 @@ export async function dashboardFacts(client: QueryClient | undefined): Promise<D
       id: m.id,
       code: m.code,
       category: m.category ?? null,
+      cell: m.cell ?? null,
     })),
   };
 }

@@ -18,6 +18,8 @@ export type Cell = {
   note?: string;
   /** A link out of the page (a ticket on the desk): `text` is what it says. */
   href?: string;
+  /** A bar under the text, its length this share (0 to 1) of the longest in its column: length is the message. */
+  bar?: number;
 };
 
 export type EngineTableWords = TableWords & { all: string };
@@ -65,6 +67,17 @@ function columnsOf(table: TableModel, onAction?: (id: string) => void): Column<R
             <EntityChip {...chip} />
           </Fragment>
         ));
+      if (cell.bar !== undefined)
+        return (
+          <span className="v2-cellbar">
+            {cell.text}
+            <span className="v2-cellbar-track" aria-hidden="true">
+              <span
+                style={{ width: `${Math.min(100, Math.max(0, cell.bar * 100)).toFixed(1)}%` }}
+              />
+            </span>
+          </span>
+        );
       if (cell.href)
         return (
           <a className="v2-ref" href={cell.href} onClick={(e) => e.stopPropagation()}>
