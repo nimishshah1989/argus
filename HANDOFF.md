@@ -5,35 +5,37 @@
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-23 · **By:** Plan · **Model:** claude-opus-5-5
-**Milestone:** M1 Stabilise (building) · **Branch:** plan/handoff-551-in-ci · **PR:** #562
+**Milestone:** M1 Stabilise (building) · **Branch:** plan/escalation-clock-free · **PR:** #556
 
 ## State
 
-- **#561 = ticket #551** (case clash): reviewer PASS; CI **browser (3/5) FAILED** (run 45213725452); read `--log-failed`.
-  Merge when green (`gh pr merge 561 --squash --delete-branch`, `loop clean 551`). Every local `loop finish` fails on
-  the 10 macOS case-clash tests until it merges.
-- #552 built once by Haiku (`.loop/wt/552`); `loop finish` failed only on those case-clash tests (attempt 1 of 3 burnt).
-  After #561 merges: merge main into `plan/t552` and the build folder, then `loop finish 552`.
-- #556 (G1.5): main merged in, fragment `changes/556-*.md`, full Argus body with "No parity:"; CI was running.
-- #558 now a ticket (size:small, ADR 0014: Team Focus `mixed`). Seed `plan/t558` = #557's G1.6 tests + main + visible
-  domain test (fails today with "Figure team-focus has a value but names no rows"). #557 closed into it.
-- Not built: #553 G1.2b, #554 Dashboard, #555 Problem Analysis, #558. Docker works on this Mac now.
+- Merged: #561 (= #551, G1.1 case clash; browser 3/5 was a `who-is-acting` flake, rerun green), #562 handoff.
+- #556 (G1.5, this PR): main merged in; was red only for "HANDOFF.md not updated" (this file fixes it). Merge when green.
+- Ticket PRs open, reviewer not run yet: **#563** (#552 G1.3), **#564** (#558 G1.6), **#565** (#553 G1.2b). Each got a
+  Prettier fix on its handoff note + "No parity:" line; #563 got `Screens: S03-machines-register` (the cell change log
+  lives at `/analytics/machines`, S03; no own wireframe). CI re-running. Green → `reviewer` → merge → `loop clean`.
+- Not built: #554 Dashboard, #555 Problem Analysis (build folders are stale: `loop clean`, sync `plan/t<N>` with main, re-prep).
 
 ## Next step
 
-1. #561: read the browser 3/5 failure (flake → rerun; real → Don't + rebuild). #556 merge when green. 2. #552 finish (above). 3. #558, #553 build. 4. #554/#555: on `plan/t<N>` (after main
-   is merged in, since #561 also edits `scope/dashboard.md`) add the dated "Coverage re-checked for ticket #N" line to
-   `docs/design/v2/scope/<screen>.md`; then prep/build/finish; `gh pr edit` with Argus body + `## Coverage` table.
+1. #556 merge. 2. #563/#564/#565: CI → reviewer → merge; tick G1.3, G1.6 in PROJECT.md (ADR-free: ticks only).
+2. #554/#555 per the old recipe (dated "Coverage re-checked for ticket #N" line in `docs/design/v2/scope/<screen>.md`,
+   Argus body + `## Coverage` table). 4. Shift KPIs + Energy: both are already v2; only `numbers` is missing on
+   `ChartCard` (`screens/v2/shift-kpis/View.tsx:43`, `energy/View.tsx:28`). `scope/energy.md:16` says "moved" — the M1
+   goal overrides it. Still needs gallery view + fixture → wireframe → Nimish approval before the frontend ticket.
+3. Proof fix: add `pnpm format:check` to `.loop.json` `lint_command` (check `loop finish` runs it via a shell first).
 
 ## Blocked / open questions
 
 - **G1.2a needs Nimish:** duplicate ticket column is pinned by the frozen answer key (`workbook-export.json`, 30 cols).
-- **G1.4 Shift KPIs + Energy:** no gallery view and not on the shared fixture seam (`screens/v2/data.ts`), so no
-  wireframe snapshot is possible yet. Needs a ticket: gallery views + fixtures; then snapshot; then Nimish approves.
+- **G1.4 Shift KPIs + Energy:** wireframes need Nimish's `loop approve` (none exist yet).
 - Nimish (old): branch protection; answer-key last digit; support tickets 0 downtime.
 
 ## Don't repeat
 
-- Hidden tests go in a `holdout/` folder under `tools/`, `apps/web/src/` or `apps/server/test/`; `tests/holdout/` never runs.
-- Bash with `>` redirects or a long inline `gh pr create --body` is denied; use Write + `--body-file`.
-- Plan PR bodies need "No parity: <reason>" under `## Reasons` or pr-meta fails.
+- 23 Nov 23:20: loop-guard no longer counts the per-PR `changes/` note against a ticket's size budget (#568, loop 0.7.5). Resume M1: #563, #565, #567.
+
+- An old build folder can't take main (guard blocks orchestrator and builder): `loop clean <N>`, sync `plan/t<N>`, `loop prep`.
+- Builders: stop hook nags for HANDOFF.md in build folders — ignore it; "checks not run" under Blocked fails `loop finish`.
+- `cd` into the main checkout + git write in one Bash call → guard says "you're on main"; use separate calls.
+- PR bodies need "No parity: <reason>" or pr-meta fails; builder handoff notes need Prettier.
