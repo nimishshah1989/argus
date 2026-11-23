@@ -5,7 +5,7 @@ import { plantToday } from '../src/modules/plant/index.js';
 import { A, M_FREE, M_USED, startFixture, type Fixture } from './plant-settings-fixture.js';
 
 /**
- * Ticket 585 (ADR 0020 §1, §4): `GET /analytics/compare` answers the engine's Compare page for a chosen pair, the
+ * Ticket 585 (ADR 0021 §1, §4): `GET /analytics/compare` answers the engine's Compare page for a chosen pair, the
  * picker's codes and each machine's year so far; money (the value of a machine hour, the spares rows) for heads only.
  * Plant A: VC-01 (`M_FREE`) and VC-02 (`M_USED`), both made Vertical Machining Centers, with history breakdowns today.
  */

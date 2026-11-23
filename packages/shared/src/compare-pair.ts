@@ -3,7 +3,7 @@ import { figureReplySchema } from './analytics.js';
 import { calendarDay } from './plant-settings.js';
 
 /**
- * Compare any two machines (ticket 585, ADR 0020): `GET /analytics/compare?a=<code>&b=<code>&asOf=YYYY-MM-DD`. No `a`
+ * Compare any two machines (ticket 585, ADR 0021): `GET /analytics/compare?a=<code>&b=<code>&asOf=YYYY-MM-DD`. No `a`
  * and `b`: the engine's own pair. The reply carries the engine's Compare figure for the pair exactly as
  * `/analytics/figures` carries `compare`, the codes the picker offers, each machine's year so far, and the value of a
  * machine hour for money roles only.

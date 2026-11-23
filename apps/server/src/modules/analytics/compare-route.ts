@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
 
 /**
- * `GET /api/v1/analytics/compare?a=<code>&b=<code>&asOf=YYYY-MM-DD` (ticket 585, ADR 0020 §1, §4): the engine's Compare
+ * `GET /api/v1/analytics/compare?a=<code>&b=<code>&asOf=YYYY-MM-DD` (ticket 585, ADR 0021 §1, §4): the engine's Compare
  * page for any two machines of one category, the codes the picker offers, each machine's year so far, and the value of
  * a machine hour for money roles only. Contract: `compareReplySchema` (`packages/shared/src/compare-pair.ts`).
  *
