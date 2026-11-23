@@ -1,0 +1,1 @@
+- Handoff: M1 ticket PRs re-seeded onto main; M2 scope chunks recorded.

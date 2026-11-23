@@ -5,43 +5,38 @@
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-23 · **By:** Plan · **Model:** claude-opus-5-5
-**Milestone:** M1 Stabilise (finishing) · **Branch:** plan/handoff-m1-merges
+**Milestone:** M1 Stabilise (finishing) · **Branch:** plan/handoff-m1-ci
 
 ## State
 
-- Merged: #561 (G1.1), #564 (#558, G1.6, reviewer PASS).
-- #563 (#552 G1.3) and #565 (#553 G1.2b): seeds `plan/t552`/`plan/t553` were never pushed, so builders ran without tests or fragments.
-  Pushed and merged the seeds into both PR branches; Plan-base repointed to the seed tips; bodies rewritten. #565 reviewer PASS;
-  #563 reviewer FAIL was only the missing seed (code correct). Merge both when CI is green (`loop clean 552`/`553` after).
-- #556 (G1.5): CI was running; merge when green.
-- #554: rebuilt `--fresh` (Haiku, change done, tests pass); `loop finish 554` was chained after the build. Check for its PR;
-  then `gh pr edit --body-file` with the full Argus body (incl. `## Coverage`) and review.
-- #555: seed updated (main + coverage line), not rebuilt yet: `loop prep 555 --fresh`, `loop build 555`, `loop finish 555`.
+- Merged: #556 (G1.5), #561 (G1.1), #564 (G1.6), #566 (ADR 0015 handoff).
+- CI re-running, reviewer not yet run: **#563** (#552 G1.3), **#565** (#553 G1.2b), **#567** (#554 G1.4 Dashboard), **#569**
+  (#555 G1.4 Problem Analysis, built this session). Seeds `plan/t552–554` synced with main and merged into their PR
+  branches; `Plan-base` repointed; #567/#569 got full Argus bodies, `Screens: S01-dashboard` / `S12-problem-analysis`, and
+  Prettier fixes on their handoff notes. Green → `reviewer` → merge → `loop clean <N>`; then tick M1 goals, mark M1 done.
 
 ## Next step
 
-1. Merge #556, #563, #565 when green; ship #554, #555. Tick M1 goals in PROJECT.md (ADR 0015) and mark M1 done.
-2. Start M2: `to-spec` → `loop-ticket` for Compare (S15), Data Checklist (S16), Team Focus (S17); plus a ticket for
-   Shift KPIs + Energy gallery views and fixtures (snapshots then wait for Nimish).
+1. Finish the four PRs above. 2. M2 (`to-spec` → `loop-ticket`, new GitHub label: old `M2` label is on unrelated #105–#112).
+   41 MISSING rows remain, all in `docs/design/v2/scope/batch1.md`: Data Checklist 17 (`:103-130`), Team Focus 4, Compare 20
+   (`:197-228`). v2 folders exist for all three but run on fixtures, not live. Chunks: DC-1 live adapter + section counts +
+   dates + drill; DC-2 the 11 dropped checks (engine has them); TF-1 all 4 rows (notes saved via plant config `focus:`);
+   CMP-1 score/scorecard/category avg (ADR 0013); CMP-2 11 checkup rows; CMP-3 key tables + sort; CMP-4 money for heads only;
+   then one go-live ticket per screen that deletes its v1 page (`DataChecklist.tsx`, `TeamFocusPage.tsx`+`TodayRest.tsx`,
+   `MachinesPage/KeyPage/key-screen/key-body`). CMP-2 "Money lost" vs v1 spares cost: keep both rows (scope never shrinks) — ADR it.
+2. Money Matters, Reports, Guide have no v2 folder: gallery view + wireframe → Nimish approval.
 
 ## Blocked / open questions
 
 - **G1.2a needs Nimish:** duplicate ticket column is pinned by the frozen answer key (`workbook-export.json`, 30 cols).
-- `docs/loop/handoff/g16-money-tests.md`: Compare shows "Spares cost ₹ 0" to every role as a placeholder — product call.
-- Follow-ups: `packages/domain/test/export-no-database-ids.test.ts:48` "PM Reports / Data" exemption is stale after #553;
-  `analytics-team-focus-no-drill.test.ts:85` should also assert drill ids `[]`.
-- **G1.4 Shift KPIs + Energy:** wireframes need Nimish's `loop approve` (none exist yet).
-- Nimish (old): branch protection; answer-key last digit; support tickets 0 downtime.
+- Compare shows "Spares cost ₹ 0" to every role as a placeholder (`docs/loop/handoff/g16-money-tests.md`) — product call.
+- **G1.4 Shift KPIs + Energy:** wireframes need Nimish's `loop approve`. Nimish (old): branch protection; answer-key last digit; support tickets 0 downtime.
 
 ## Don't repeat
 
-- After seeding, `git push origin plan/t<N>` and check `git ls-remote origin plan/t<N>` before `loop prep`: prep silently builds without a missing seed.
-- `loop finish` writes a thin PR body (fails `quality:pr`) and overwrites a full one on re-finish: always `gh pr edit --body-file` after it.
-- Builder folders are hook-protected: to refresh one from a new seed use `loop prep <N> --fresh`, not a merge.
-- Hidden tests go in a `holdout/` folder under `tools/`, `apps/web/src/` or `apps/server/test/`; `tests/holdout/` never runs.
-- Bash `>` redirects and long inline `gh pr create --body` are denied; use Write + `--body-file`.
-- 23 Nov 23:20: loop-guard no longer counts the per-PR `changes/` note against a ticket's size budget (#568, loop 0.7.5). Resume M1: #563, #565, #567.
-- An old build folder can't take main (guard blocks orchestrator and builder): `loop clean <N>`, sync `plan/t<N>`, `loop prep`.
-- Builders: stop hook nags for HANDOFF.md in build folders — ignore it; "checks not run" under Blocked fails `loop finish`.
-- `cd` into the main checkout + git write in one Bash call → guard says "you're on main"; use separate calls.
-- PR bodies need "No parity: <reason>" or pr-meta fails; builder handoff notes need Prettier.
+- `gh pr update-branch` on a ticket PR makes main's files look like builder changes (guard diffs from `Plan-base`). Instead: merge main into `plan/t<N>`, merge the seed into the PR branch, repoint `Plan-base`.
+- loop-guard reads the PR body from the triggering event: after `gh pr edit`, push a commit (empty is fine) to re-check.
+- `Screens:` needs full ids (`S12-problem-analysis`), not `S12`. Builder handoff notes need Prettier before CI.
+- After seeding, push `plan/t<N>` and check `git ls-remote` before `loop prep`. Always `gh pr edit --body-file` after `loop finish`.
+- `cd` into the main checkout + git write in one Bash call → guard says "you're on main"; use a `/tmp` worktree.
+- Hidden tests go in a `holdout/` folder the test command reaches; `tests/holdout/` never runs.
