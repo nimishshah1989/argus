@@ -5,20 +5,19 @@
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-24 · **By:** Plan · **Model:** claude-opus-5-5
-**Milestone:** M2 Finish the analytics redesign (building) · **Branch:** plan/lint-runs-prettier
+**Milestone:** M2 Finish the analytics redesign (building) · **Branch:** plan/handoff-m2-dc1-tf1
 
 ## State
 
-- **#572 DC-1** (Data Checklist live adapter, ADR 0017) → PR **#574**: CI green, **reviewer FAIL** (spec bug, see issue #572 comment): unregistered machine id becomes a machine chip. Build folder `.loop/wt/572` kept; attempts used: 2 of 3.
-- **#573 TF-1** (Team Focus notes server, ADR 0018) → PR **#575**: CI red on api (4/5), browser (5/5), pr-meta. Not looked at yet. Seed already carries the changes note.
-- `.loop.json` lint_command now also runs `pnpm format:check` (this PR).
-- Not ticketed yet: DC-2 (route Data Checklist + delete v1), TF-2 (Team Focus screen reads/writes notes), Compare CMP-1..4.
+- **#572 DC-1** → PR **#574**: seed `plan/t572` now has the ADR 0017 "unregistered machine" rule + visible test; rebuilt fresh (attempt 3 of 3). `loop finish 572` was running when the session ended: `loop ci 574`. Body = full template, Plan-base `6ef2bbee`. Green → reviewer → merge. Red or FAIL → `loop build 572 --rescue`.
+- **#573 TF-1** → PR **#575**: api fixed (seed route count 152→154, merged into the PR branch from `/tmp`), Plan-base `a82a7a6f`. Last run: only **pr-meta red**, in the `pnpm quality:pr` step (parity passes now). Read that step's message, fix the body, push an empty commit, then reviewer.
 
 ## Next step
 
-1. #574: on `plan/t572` add ADR 0017 line (unregistered machine → plain text, no chip) + a visible test (bd_mach + bd_hrs, same report; no chip carries the id); merge seed into the PR branch, repoint `Plan-base`; `loop prep 572` → `loop build 572` → `loop finish 572` → reviewer.
-2. #575: read the failing lines (`loop ci 575`); browser 5/5 may be a flake (rerun); pr-meta = PR body (see below). Then reviewer → merge.
-3. Then DC-2, TF-2, Compare (the 24 Nov morning HANDOFF in git history has the facts).
+1. Finish #574 and #575 (above).
+2. **DC-2:** route `/analytics/today/checklist` (`App.tsx:57`, `Analytics.tsx:17-25`) to a `ModelPage` (`live.tsx:102`, example :309-321; add `data-checklist` to `ModelKey`, `live-frame.tsx:144`); provider like `manpower/register.ts:12-18`; delete v1 `DataChecklist.tsx`, `checklist-view.ts` (+test), fix importers (`today-tabs.test.ts:7`, `shell-data.ts:43`, `e2e/analytics.spec.ts`). Drill: engine `drillIds` for `bd_*`/`ww` (`data-checklist.ts:226`) via `drillFor` (`rows-behind/drill.ts:11`); the model has no drill field yet. Copy #537's file list. batch1 MISSING rows `:103-130`.
+3. **TF-2:** model has no note field; status words differ (web `todo/doing`, server `open/prog`); mutation pattern `why-why/record.ts:57-69`; v1 `TeamFocusPage.tsx` (importers `TodayRest.tsx`, `today-tabs.test.ts`); keep `team-focus-actions.ts`; `live.test.ts:41,81-82` asserts not routed.
+4. Compare CMP-1..4.
 
 ## Blocked / open questions
 
@@ -28,8 +27,8 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 ## Don't repeat
 
-- `loop finish` writes a thin PR body: every ticket PR then needs the full template (sections + Q1–Q16, copy #574's body), "No parity:" and, if >800 lines, "Large PR:". Edit the body, then push an empty commit from a `/tmp` worktree of the PR branch (checks read the body from the push event).
-- Seeds must list `changes/<N>-<slug>.md` under "Files to change" (CI `changelog:check`), or `loop finish` drops it.
-- Builders get Bash denied on chained commands: tickets say "one command per Bash call, start with pnpm/git".
+- Seed changed after a build: never git in `.loop/wt/<N>` (hook blocks you and the builder). Use `loop prep <N> --fresh` (then set `attempts` in `.git/loop/tickets/<N>.json` to the true count), or merge the seed into the PR branch from a `/tmp` worktree and set the body's `Plan-base` to the seed tip.
+- `loop finish` overwrites the PR body after pushing: set the full body before it, restore it after.
+- A seed that adds server routes must bump `reply-contract.test.ts`'s count.
+- Ticket PR bodies: full template (copy #574), "No parity:", "Large PR:" if >800 lines; after `gh pr edit`, push an empty commit.
 - Ticket PR red on loop-guard with main's files listed → `Plan-base` is stale. Never `gh pr update-branch`.
-- Hidden tests go in a `holdout/` folder the test command reaches.
