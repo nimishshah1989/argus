@@ -22,3 +22,4 @@ export * from './analytics.js';
 export * from './why-why.js';
 export * from './action-center.js';
 export * from './team-focus-notes.js';
+export * from './compare-pair.js';

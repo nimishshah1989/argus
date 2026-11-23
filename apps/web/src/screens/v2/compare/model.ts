@@ -1,4 +1,6 @@
 import type { CompareBoxData } from '../../../ui/v2/domain/compare-box.js';
+import type { TableWords } from '../../../ui/v2/data-table.js';
+import type { PrintedTable } from '../../../ui/v2/domain/printed-table.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
 import type { Point } from '../../../ui/v2/points.js';
 import type { TrendData } from '../../../ui/v2/trend-chart.js';
@@ -22,6 +24,12 @@ export type CompareModel = {
   /** What differs underneath the figures, ending in the one action that closes the gap. */
   differences: { title: string; points: Point[]; action: string; doneText: string; done: boolean };
   trend: TrendData;
+  /**
+   * v1's six tables, whole (ticket 586, ADR 0020 §3): scorecard, health checkup with the category average, specifications,
+   * each machine's longest breakdowns, by shift — drawn under the weekly chart, each sortable and searchable. The live
+   * model always has them; the gallery fixture has none.
+   */
+  tables?: { items: PrintedTable[]; words: TableWords };
   /** Where the figures came from and how fresh they are (DD-MMM-YYYY, IST). */
   source: string;
   words: CompareWords;
