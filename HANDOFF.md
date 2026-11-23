@@ -10,7 +10,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 ## State
 
 - Merged this session (reviewer PASS, CI green): **#574** DC-1 adapter (#572 closed), **#575** TF-1 notes server (#573 closed), #577 handoff.
-- **#578 DC-2** (Data Checklist goes live, deletes v1; ADR 0019 on seed `plan/t578`, rebased onto main at `bbd1905b`): attempt 1 failed only on Prettier of `docs/loop/handoff/578.md`; attempt 2 (`loop build 578` + `loop finish 578`) was running when this session ended. Check `gh pr list` for its PR, else `loop prep 578` → `loop build 578` → `loop finish 578`. Then set the full PR body (copy #574's), reviewer, merge.
+- **#578 DC-2** (Data Checklist goes live, deletes v1; ADR 0019 on seed `plan/t578`, rebased onto main at `bbd1905b`): attempt 1 failed only on Prettier of `docs/loop/handoff/578.md`; attempt 2 passed local checks → PR **#582**, CI red on loop-guard + pr-meta (not read yet; likely stale `Plan-base` (seed was rebased to `bbd1905b`) and the thin PR body). Fix body (copy #574), set `Plan-base: bbd1905b…`, empty commit from a `/tmp` worktree, `loop ci 582`, reviewer, merge.
 - **TF-2** (Team Focus screen reads/writes notes, deletes v1): a planner subagent was writing the issue + seed `plan/t<N>` when the session ended. Check `gh issue list --label M2` and `git ls-remote origin 'plan/t*'`; if missing or half-done, re-plan it (facts in git history of this file, 24 Nov evening).
 
 ## Next step
