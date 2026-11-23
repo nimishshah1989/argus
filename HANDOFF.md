@@ -5,7 +5,9 @@
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-23 · **By:** Plan · **Model:** claude-opus-5-5
-**Milestone:** adoption done (next: M1 Stabilise) · **Branch:** plan/handoff-after-adopt · **PR:** the PR for this branch
+**Milestone:** M1 Stabilise (ticketing in progress) · **Branch:** plan/adr-0013-open-questions · **PR:** #550
+
+> 23 Nov 20:05 — ADR 0013 closes two §6 questions (Compare keeps health score; M2 before M3). M1 tickets being written.
 
 ## State
 
