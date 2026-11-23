@@ -15,18 +15,18 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 - **#579 TF-2** → PR **#583**: built in 1 attempt; pr-meta was red on (a) "removed assertion" and (b) no `scope/team-focus.md`. Fixed: seed `plan/t579` now carries the coverage file (copied from TF-3's seed, identical), merged into the PR branch, body has `Tests removed:` + `Plan-base: 1f53c614`. CI re-running; then reviewer → merge.
 - Plan accepted TF-2's answer-key test change: the frozen key file is untouched, every frozen field still compared exactly, only the new `period` is excluded and pinned by its own test (recorded in #583's body; not a key change).
 - **TF-3 #580** (seed `plan/t580`, blocked by #579): after #583 merges, merge main into `plan/t580` (normal push), `loop prep 580` → build → finish.
-- **Compare:** a planner subagent was started on CMP tickets (loop-ticket skill, seeds `plan/t<N>`); its result was not collected. Check `gh issue list` / `git branch -r | grep plan/t5` for new CMP issues + seeds before planning again.
+- **Compare planned (ADR 0021 on `plan/t584`):** #584 CMP-1 domain `comparePair` (medium) → #585 CMP-2 `GET /analytics/compare?a&b&asOf` (blocked #584) · #586 CMP-3 six v1 tables in the view (small, no blockers) · #587 CMP-4 live adapter (blocked #585, #586) · #588 CMP-5 go live + delete `MachinesPage.tsx` (blocked #587, #580). Seeds cut from main `a21ffd70`; merge main into each before `loop prep`. Before #588: merge main into `plan/t588`, delete the 'Compare not routed' line in `live.test.ts` and `openCompare` in `e2e/analytics-compare.spec.ts`. `plan/t580` already conflicts with main in `live.test.ts`, `today-tabs.test.ts` (from DC-2): resolve when refreshing it. New e2e `analytics-compare-v2.spec.ts` never run.
 
 ## Next step
 
-1. `loop ci 583` → reviewer → merge → `loop clean 579`. 2. TF-3 #580. 3. Compare tickets (verify planner output). 4. Then M2 needs new wireframes (Money Matters, Monthly, Annual, Guide, Settings) → Nimish approves.
+1. `loop ci 583` → reviewer → merge → `loop clean 579`. 2. TF-3 #580. 3. Compare #584/#586 can build now (independent of TF). 4. Then M2 needs new wireframes (Money Matters, Monthly, Annual, Guide, Settings) → Nimish approves.
 
 ## Blocked / open questions
 
 - **G1.2a needs Nimish:** duplicate ticket column pinned by the frozen answer key (`workbook-export.json`).
 - **Wireframes for Shift KPIs + Energy, Money Matters, Monthly, Annual, Guide, Settings** need Nimish's sign-off.
 - **For Nimish (ADR 0019):** live Data Checklist has one control the S16 wireframe doesn't draw (drill under the verdict, v1 parity).
-- Compare "Spares cost ₹ 0" placeholder: product call. Nimish (old): branch protection; answer-key last digit; support tickets 0 downtime.
+- Compare: spares cost ₹0 is frozen in the answer key though `breakdown_report.spare_cost` exists (Nimish's call); wireframe's "Add the fix to Team Focus" became an "Open Team Focus" link (ADR 0021 §5); six v1 tables sit below the wireframe's sections (ADR 0013/0021) — for his click-through. Nimish (old): branch protection; answer-key last digit; support tickets 0 downtime.
 
 ## Follow-ups (from reviewers, not ticketed)
 
