@@ -144,6 +144,7 @@ function actionColumns(words: TeamFocusWords['actions']): Column<ActionRow>[] {
             ))}
           </div>
           <span>{a.title}</span>
+          {a.note === '' ? null : <span className="v2-sub">{a.note}</span>}
         </div>
       ),
     },

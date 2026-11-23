@@ -30,3 +30,6 @@ _One line per failure, newest first. Written by the orchestrator whenever review
   | 2026-11-24 | process | Builders and plan PRs keep failing on Prettier/changelog for docs files | Tickets name `pnpm exec prettier --write docs/loop/handoff/<N>.md`; every PR carries `changes/<N>-*.md` |
 - 2026-11-24 · proof · loop-guard's raw-colour regex flagged `#578` in seed comments (3 hex digits) → #582 red. Fix: seeds write "ticket N", never `#N`, in code files (HANDOFF don't-repeat).
 - 2026-11-24 · spec · TF-2 seed touched `screens/v2/team-focus/tables.tsx` but its coverage file sat only in TF-3's seed → pr-meta red. Fix: any seed touching a v2 screen `.tsx` carries `scope/<screen>.md`.
+- 2026-11-24 · proof · `e2e/who-is-acting.spec.ts` flaked ERR_ABORTED on `/floor` across #572/#573/#578/#592 (the 403 redirect aborts a goto waiting for 'load'). Fix: those gotos wait for 'commit'.
+- 2026-11-24 · spec · Seeds that make a v2 screen live must also fix every test asserting the screen is still v1 (DC-2 holdout `route-edges`, `e2e/analytics-shell.spec.ts` nav-links → kit group of buttons), and the PR must change `scope/<screen>.md` itself (Q16 reads the PR diff, not main).
+- 2026-11-24 · spec · TF-3 visible test checked the whole page for "nothing of anyone else" → builder filtered the page table. Fix: drawer assertions scope to the `<aside>`.

@@ -23,6 +23,7 @@ describe('which v2 screens are live at their v1 address', () => {
       ['breakdowns', 'breakdown-log'],
       ['pm', 'pm-calendar'],
       ['today', 'data-checklist'],
+      ['today', 'team-focus'],
     ] as const)
       expect(liveScreen(group, screen), `${group} ${screen}`).not.toBeNull();
     expect(liveScreen('machines', null)).not.toBeNull();
@@ -34,12 +35,12 @@ describe('which v2 screens are live at their v1 address', () => {
     expect(liveScreen('forecast-scorecard', null)).not.toBeNull();
   });
 
-  it('serves the Dashboard at Today’s address, with or without ?screen= or an unknown one, and leaves Team Focus to v1', () => {
+  it('serves the Dashboard at Today’s address, with or without ?screen= or an unknown one, and Team Focus at its own', () => {
     expect(liveScreen('today', null)).not.toBeNull();
     expect(liveScreen('today', 'dashboard')).not.toBeNull();
     expect(liveScreen('today', 'no-such-screen')).not.toBeNull();
     expect(liveScreen('today', 'cell-change-log')).not.toBeNull();
-    expect(liveScreen('today', 'team-focus')).toBeNull();
+    expect(liveScreen('today', 'team-focus')?.key).toBe('today:team-focus');
   });
 
   it('keys every page by its group and screen, so a change of ?screen= remounts and one screen never draws the model of the one before', () => {
@@ -63,6 +64,7 @@ describe('which v2 screens are live at their v1 address', () => {
       key('breakdowns', 'a2-category-cell'),
       key('breakdowns', 'a3-mttr-mtbf'),
       key('today', 'data-checklist'),
+      key('today', 'team-focus'),
     ];
     expect(new Set(keys).size).toBe(keys.length);
   });
@@ -79,9 +81,9 @@ describe('which v2 screens are live at their v1 address', () => {
       expect(liveScreen('pm', screen)?.key, String(screen)).toBe('pm:pm-calendar');
   });
 
-  it('leaves only the screens that are still a v1 page to it: Compare, and Team Focus on Today', () => {
+  it('leaves only the screen that is still a v1 page to it: Compare', () => {
     expect(liveScreen('machines', 'compare')).toBeNull();
-    expect(liveScreen('today', 'team-focus')).toBeNull();
+    expect(liveScreen('today', 'team-focus')).not.toBeNull();
     // The Breakdowns group is v2 whole: each of its screens is live.
     for (const screen of [
       'breakdown-log',

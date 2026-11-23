@@ -1,5 +1,6 @@
 import { useContext } from 'react';
 import { Button } from '../../../ui/v2/button.js';
+import { DrillAction } from '../../../ui/v2/drill-action.js';
 import { DecisionList } from '../../../ui/v2/domain/decision-list.js';
 import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
 import { EntityOpenContext, type EntityKind } from '../../../ui/v2/entity-chip.js';
@@ -80,6 +81,11 @@ function Body({ model, act }: { model: TeamFocusModel; act: Acts }) {
         <PeopleTable people={model.people} words={words.people} {...person} />
       )}
       <ActionTable actions={model.actions} words={words.actions} {...machine} />
+      {model.drill ? (
+        <div>
+          <DrillAction drill={model.drill} />
+        </div>
+      ) : null}
       <SourceLine text={model.source} />
     </>
   );
@@ -97,10 +103,18 @@ export function TeamFocusView({
   onAssign = ignore,
   onUnassign = ignore,
   onRebalance = ignore,
-}: { model: TeamFocusModel; nav: NavItem[]; title: string } & TeamFocusActions) {
-  const act: Acts = { onAssign, onUnassign, onRebalance };
+  onSave = ignore,
+  canSave = true,
+}: {
+  model: TeamFocusModel;
+  nav: NavItem[];
+  title: string;
+  /** False while the plan names no month: the action drawer then offers no form. */
+  canSave?: boolean;
+} & TeamFocusActions) {
+  const act: Acts = { onAssign, onUnassign, onRebalance, onSave };
   return (
-    <EntityShell nav={nav} title={title} local={(ref) => localAction(model, ref, act)}>
+    <EntityShell nav={nav} title={title} local={(ref) => localAction(model, ref, act, canSave)}>
       <Body model={model} act={act} />
     </EntityShell>
   );
