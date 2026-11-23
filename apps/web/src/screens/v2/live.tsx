@@ -25,7 +25,7 @@ import { RegistersView } from './machines-register/View.js';
 import { PmCalendarPage } from './pm-calendar/Page.js';
 import { ProblemAnalysisView } from './problem-analysis/View.js';
 import { ShiftKpisView } from './shift-kpis/View.js';
-import { WhyWhyLive } from './why-why/Live.js';
+import { WhyWhyLive } from './why-why/WhyWhyLive.js';
 import type { CellLogModel } from './cell-change-log/model.js';
 import { useScreenModel, type ScreenModel, type ScreenParams } from './data.js';
 import { savedFigures } from './figures/live.js';
