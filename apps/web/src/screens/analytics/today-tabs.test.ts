@@ -5,7 +5,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { ChecklistReady } from './DataChecklist.js';
-import { TeamFocusPage } from './TeamFocusPage.js';
 import { dmy } from './action-center.js';
 import { groupFor } from './groups.js';
 import { priorDate } from './today-change.js';
@@ -54,24 +53,6 @@ describe('the data checklist', () => {
     expect(folded).toContain('Item 21');
     expect(folded).toContain('Item 25');
     expect(page).toContain('Item 1<');
-  });
-});
-
-describe('Team Focus', () => {
-  it('keeps a selected drill when the figure is missing or not ready', () => {
-    const drill = createElement('p', null, 'DRILL-ROWS');
-    for (const figure of [undefined, { ...checklist([]), status: 'held' } as unknown as Figure])
-      expect(
-        html(
-          createElement(TeamFocusPage, {
-            figure,
-            group: today,
-            title: 'Team Focus',
-            lede: '',
-            drill,
-          }),
-        ),
-      ).toContain('DRILL-ROWS');
   });
 });
 

@@ -97,8 +97,9 @@ export function TeamFocusView({
   onAssign = ignore,
   onUnassign = ignore,
   onRebalance = ignore,
+  onSave = ignore,
 }: { model: TeamFocusModel; nav: NavItem[]; title: string } & TeamFocusActions) {
-  const act: Acts = { onAssign, onUnassign, onRebalance };
+  const act: Acts = { onAssign, onUnassign, onRebalance, onSave };
   return (
     <EntityShell nav={nav} title={title} local={(ref) => localAction(model, ref, act)}>
       <Body model={model} act={act} />

@@ -8,7 +8,6 @@ import { MachinePage } from '../v2/machine/Page.js';
 import { LiveFrame } from '../v2/live-frame.js';
 import { MachinesPage } from './MachinesPage.js';
 import { MoneyPage } from './MoneyPage.js';
-import { TodayRest } from './TodayRest.js';
 import { ReportsPage } from './ReportsPage.js';
 import { AnalyticsShell } from './shell/AnalyticsShell.js';
 import { liveScreen } from '../v2/live.js';
@@ -61,8 +60,6 @@ export function AnalyticsFace() {
     <AnalyticsShell>
       {found.id === 'guide' ? (
         <GuidePage />
-      ) : found.id === 'today' ? (
-        <TodayRest group={found} />
       ) : found.id === 'machines' ? (
         <MachinesPage group={found} />
       ) : found.id === 'cost' ? (
