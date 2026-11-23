@@ -5,30 +5,34 @@
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-24 · **By:** Plan · **Model:** claude-opus-5-5
-**Milestone:** M2 Finish the analytics redesign (building) · **Branch:** plan/handoff-m2-dc1-tf1
+**Milestone:** M2 Finish the analytics redesign (building) · **Branch:** plan/handoff-m2-dc2
 
 ## State
 
-- **#572 DC-1** → PR **#574**: seed `plan/t572` now has the ADR 0017 "unregistered machine" rule + visible test; rebuilt fresh (attempt 3 of 3). `loop finish 572` was running when the session ended: `loop ci 574`. Body = full template, Plan-base `6ef2bbee`. Green → reviewer → merge. Red or FAIL → `loop build 572 --rescue`.
-- **#573 TF-1** → PR **#575**: api fixed (seed route count 152→154, merged into the PR branch from `/tmp`), Plan-base `a82a7a6f`. Last run: only **pr-meta red**, in the `pnpm quality:pr` step (parity passes now). Read that step's message, fix the body, push an empty commit, then reviewer.
+- Merged this session (reviewer PASS, CI green): **#574** DC-1 adapter (#572 closed), **#575** TF-1 notes server (#573 closed), #577 handoff.
+- **#578 DC-2** (Data Checklist goes live, deletes v1; ADR 0019 on seed `plan/t578`, rebased onto main at `bbd1905b`): attempt 1 failed only on Prettier of `docs/loop/handoff/578.md`; attempt 2 passed local checks → PR **#582**, CI red on loop-guard + pr-meta (not read yet; likely stale `Plan-base` (seed was rebased to `bbd1905b`) and the thin PR body). Fix body (copy #574), set `Plan-base: bbd1905b…`, empty commit from a `/tmp` worktree, `loop ci 582`, reviewer, merge.
+- **TF-2 #579** (adapter, not routed; seed `plan/t579` `acada198`, files<=5 lines<=320) and **TF-3 #580** (route + save status/owner/note + v1 delete; seed `plan/t580` `8f81206f` on top of t579, blocked by #579). ADR 0020 on the seeds. **Check first:** the planner says it _changed the answer-key test_ so the engine can publish `period` without regenerating the frozen key — answer-key changes are Nimish-only (ADR 0012); verify that test change doesn't weaken the key check before building #579. Overlaps with #582: i18n index, `live.tsx`, `live-frame.tsx`, `live.test.ts`, `today-tabs.test.ts`, `Analytics.tsx` (keep both sides). Open: Dashboard banner counts all actions open; overload/suggested-owner rules need Nimish.
 
 ## Next step
 
-1. Finish #574 and #575 (above).
-2. **DC-2:** route `/analytics/today/checklist` (`App.tsx:57`, `Analytics.tsx:17-25`) to a `ModelPage` (`live.tsx:102`, example :309-321; add `data-checklist` to `ModelKey`, `live-frame.tsx:144`); provider like `manpower/register.ts:12-18`; delete v1 `DataChecklist.tsx`, `checklist-view.ts` (+test), fix importers (`today-tabs.test.ts:7`, `shell-data.ts:43`, `e2e/analytics.spec.ts`). Drill: engine `drillIds` for `bd_*`/`ww` (`data-checklist.ts:226`) via `drillFor` (`rows-behind/drill.ts:11`); the model has no drill field yet. Copy #537's file list. batch1 MISSING rows `:103-130`.
-3. **TF-2:** model has no note field; status words differ (web `todo/doing`, server `open/prog`); mutation pattern `why-why/record.ts:57-69`; v1 `TeamFocusPage.tsx` (importers `TodayRest.tsx`, `today-tabs.test.ts`); keep `team-focus-actions.ts`; `live.test.ts:41,81-82` asserts not routed.
-4. Compare CMP-1..4.
+1. Finish #578 (above). 2. TF-2 ticket → build → merge. 3. Compare CMP-1..4 (server pair input first; `compareFigure` `compare.ts:300` picks the pair itself).
 
 ## Blocked / open questions
 
 - **G1.2a needs Nimish:** duplicate ticket column pinned by the frozen answer key (`workbook-export.json`).
 - **Shift KPIs + Energy, Money Matters, Reports, Guide:** new wireframes need Nimish's sign-off.
+- **For Nimish (ADR 0019):** live Data Checklist shows one control the S16 wireframe doesn't draw (the standard drill button under the verdict, for v1 parity). Gallery markup unchanged.
 - Compare "Spares cost ₹ 0" placeholder: product call. Nimish (old): branch protection; answer-key last digit; support tickets 0 downtime.
+
+## Follow-ups (from reviewers, not ticketed)
+
+- DC adapter: bd_mach check prints the engine sentence `machine ID "<raw id>" not found` as plain text; `daysSince` rolls impossible dates (31-02) forward instead of `—`.
+- TF-1 test: assert the audit line's `login_id` in `team-focus-notes.test.ts`.
 
 ## Don't repeat
 
-- Seed changed after a build: never git in `.loop/wt/<N>` (hook blocks you and the builder). Use `loop prep <N> --fresh` (then set `attempts` in `.git/loop/tickets/<N>.json` to the true count), or merge the seed into the PR branch from a `/tmp` worktree and set the body's `Plan-base` to the seed tip.
-- `loop finish` overwrites the PR body after pushing: set the full body before it, restore it after.
-- A seed that adds server routes must bump `reply-contract.test.ts`'s count.
-- Ticket PR bodies: full template (copy #574), "No parity:", "Large PR:" if >800 lines; after `gh pr edit`, push an empty commit.
-- Ticket PR red on loop-guard with main's files listed → `Plan-base` is stale. Never `gh pr update-branch`.
+- `changes/<N>-*.md` is needed on **every** PR, plan PRs too (changelog:check). Plan PR bodies need Q1–Q16 + 3 sections + "No parity:".
+- A route-count bump in `reply-contract.test.ts` reads as "removed assertion": put `Tests removed: <reason ≥10 chars>` in the PR body.
+- A seed cut from an unmerged ticket branch conflicts after squash-merge: `git rebase --onto origin/main <old-base>` in a `/tmp` worktree, force-push `plan/t<N>`.
+- Git commands in a `/tmp` worktree: start the Bash call with `cd /tmp/<wt> &&` (a call starting in the main checkout trips the "on main" hook).
+- Builders forget Prettier on their handoff note: tickets should say `pnpm exec prettier --write docs/loop/handoff/<N>.md`.
