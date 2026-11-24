@@ -1,0 +1,1 @@
+- Compare: the domain can compare any two machines of one category and report each machine's year so far (#584).
