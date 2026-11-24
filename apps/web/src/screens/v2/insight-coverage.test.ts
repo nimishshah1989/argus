@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { FROZEN, PROVIDERS } from './data.js';
 import { hasYardstick, tilesIn } from './insight.js';
 import type { Takeaways } from '../../ui/v2/takeaway.js';
+import { realReply } from './figures/real-reply.js';
+import { realT } from './printed-page/test-support.js';
+import { shiftKpisModel } from './shift-kpis/adapter.js';
 
 /**
  * ADR 0023, UX rules 60 and 67: every live v2 screen's model gives each of its sections a computed takeaway, in
@@ -32,17 +35,27 @@ const NOT_YET = new Set([
   'entity',
   'rows-behind',
   'problem-analysis',
-  'shift-kpis',
   'team-focus',
   'why-why',
+  'money-matters',
 ]);
 
 /** Each finished screen's sections, written out so a section added later without a takeaway fails here. */
-const SECTIONS: Record<string, string[]> = {};
+const SECTIONS: Record<string, string[]> = {
+  // ADR 0033: shift-kpis.compare opens with the verdict, not a takeaway that would repeat it.
+  'shift-kpis': ['shift-kpis.shift-split', 'shift-kpis.backlog', 'shift-kpis.breakdown-map'],
+};
 
-type WithTakeaways = { takeaways?: Takeaways } | null;
+type Said = { text: string }[];
+type WithTakeaways = {
+  takeaways?: Takeaways;
+  verdict?: { headline: Said; why: Said[] };
+  sections?: { id: string; notComputed?: true }[];
+} | null;
 /** A finished screen's model, when its frozen provider needs params or it has none (a test-support file builds it). */
-const MODELS: Record<string, () => Promise<WithTakeaways>> = {};
+const MODELS: Record<string, () => Promise<WithTakeaways>> = {
+  'shift-kpis': async () => shiftKpisModel(realReply(), realT),
+};
 
 describe('insight coverage (M2b)', () => {
   it('knows every v2 screen: finished, or on the not-yet list', () => {
@@ -68,8 +81,23 @@ describe('insight coverage (M2b)', () => {
       expect(Object.keys(model?.takeaways ?? {}).sort()).toEqual([...sections].sort());
       for (const id of sections) {
         const line = model?.takeaways?.[id];
-        expect(line?.text.length, `${key}/${id} takeaway`).toBeGreaterThan(0);
+        // ADR 0033: a section the engine did not compute says so once, in its empty state, with no takeaway above it.
+        if (model?.sections?.find((s) => s.id === id)?.notComputed) {
+          expect(line ?? null, `${key}/${id}: not computed, so no takeaway`).toBeNull();
+        } else expect(line?.text.length, `${key}/${id} takeaway`).toBeGreaterThan(0);
       }
+      // ADR 0033: no sentence twice; the verdict's headline and its Why lines are the verdict's, a takeaway never repeats one.
+      const said = (point: Said) => point.map((seg) => seg.text).join('');
+      const verdict = model?.verdict
+        ? [model.verdict.headline, ...model.verdict.why].map(said)
+        : [];
+      const lines = Object.values(model?.takeaways ?? {}).flatMap((line) =>
+        line ? [line.text] : [],
+      );
+      expect(
+        lines.filter((text) => verdict.includes(text)),
+        `${key}: takeaways the verdict already says`,
+      ).toEqual([]);
       // ADR 0026 §4: every figure tile names what it is measured against.
       const bare = tilesIn(model).filter((tile) => !hasYardstick(tile));
       expect(
