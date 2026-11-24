@@ -2,6 +2,7 @@ import type { TableWords } from '../../../ui/v2/data-table.js';
 import type { DecisionDetailWords } from '../../../ui/v2/domain/decision-detail.js';
 import type { DecisionListWords } from '../../../ui/v2/domain/decision-list.js';
 import type { DecisionData, DecisionKind } from '../../../ui/v2/domain/decision-row.js';
+import type { Drill } from '../../../ui/v2/drill.js';
 import type { EntityChipProps } from '../../../ui/v2/entity-chip.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
 import type { Point } from '../../../ui/v2/points.js';
@@ -25,6 +26,8 @@ export type ActionRow = {
   statusLabel: string;
   /** Breakdown hours a month it wins back: the engine's figure, and the number that sorts it. */
   hours: { shown: string; value: number };
+  /** The note the team saved against it; empty when there is none (ADR 0020). */
+  note: string;
 };
 
 /** One person and what they carry. */
@@ -34,7 +37,8 @@ export type PersonLoad = {
   open: number;
   hours: { shown: string; value: number };
   done: number;
-  load: Load;
+  /** Null while there is no rule for "overloaded" (ADR 0020 §5); the load cell then stays empty. */
+  load: Load | null;
   loadLabel: string;
 };
 
@@ -64,6 +68,8 @@ export type TeamFocusModel = {
   actions: ActionRow[];
   /** Where the figures came from and how fresh they are (DD-MMM-YYYY, IST). */
   source: string;
+  /** The page's "show the rows behind" control: the machines the actions name (TF-3); none in the gallery. */
+  drill?: Drill;
   words: TeamFocusWords;
 };
 
@@ -90,4 +96,9 @@ export type TeamFocusActions = {
   onAssign?: (actionId: string) => void;
   onUnassign?: (actionId: string) => void;
   onRebalance?: () => void;
+  /** Save one action's status, owner or note (TF-3, ADR 0020); what is not in `change` keeps its value. */
+  onSave?: (actionId: string, change: NoteChange) => void;
 };
+
+/** What one save changes on an action; at least one field. */
+export type NoteChange = { status?: ActionStatus; owner?: string; note?: string };

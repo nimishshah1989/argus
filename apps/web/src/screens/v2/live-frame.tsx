@@ -97,12 +97,17 @@ function useLegacyDrill(screen: string) {
   }, [search, screen, client, navigate]);
 }
 
+/** Team Focus lives in "People & money", at v1's address. */
+const TEAM_FOCUS = '/analytics/today?screen=team-focus';
+
 /**
  * The row of screens above a page. A login that may not read the figures gets none (v1 drew no menu for it); Today's
  * and the PM calendar's screens are the tabs of their section, every other group's are the group's own screens.
  */
 function chromeFor(entry: LiveEntry, role: string | undefined): ReactNode {
   if (role !== undefined && !readsAnalytics(role)) return null;
+  // eslint-disable-next-line i18next/no-literal-string -- a section id, not copy
+  if (entry.screen === 'team-focus') return <SectionTabs section="people" current={TEAM_FOCUS} />;
   if (entry.group === 'today') return <TodayTabs />;
   // eslint-disable-next-line i18next/no-literal-string -- a section id and a route, not copy
   if (entry.group === 'pm') return <SectionTabs section="reports" current="/analytics/pm" />;
@@ -157,7 +162,8 @@ export type ModelKey =
   | 'bd-pm'
   | 'category-cell'
   | 'mttr-mtbf'
-  | 'data-checklist';
+  | 'data-checklist'
+  | 'team-focus';
 
 export type PageConfig<K extends ModelKey> = {
   entry: LiveEntry;

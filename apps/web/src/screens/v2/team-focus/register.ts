@@ -9,5 +9,23 @@ declare module '../data.js' {
 
 export const screen: ScreenEntry<'team-focus'> = {
   key: 'team-focus',
-  provider: () => import('./fixture.js').then((m) => m.teamFocusFixture),
+  frozen: () => import('./fixture.js').then((m) => m.teamFocusFixture),
+  provider: async (_, { client }) => {
+    const [{ default: i18n }, { focusNotesQuery }, figures, live, { drillFor }] = await Promise.all(
+      [
+        import('i18next'),
+        import('../../../api-team-focus.js'),
+        import('../figures/live.js'),
+        import('./live.js'),
+        import('../rows-behind/drill.js'),
+      ],
+    );
+    const reply = await figures.liveReply(client);
+    const period = live.focusPeriod(reply);
+    const notes = period ? (await figures.read(client, focusNotesQuery(period))).notes : {};
+    return {
+      ...live.liveTeamFocus(reply, notes, i18n.t.bind(i18n)),
+      drill: drillFor(reply, live.KEY, figures.catalogue),
+    };
+  },
 };

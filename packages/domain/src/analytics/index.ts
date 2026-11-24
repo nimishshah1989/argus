@@ -72,3 +72,5 @@ export type {
   WhyWhyRow,
 } from './types.js';
 export type { PlantEventRow } from './plant-events.js';
+export { comparePair, type ComparePair, type ComparePairResult } from './compare.js';
+export type { PairCause, PairYear } from './compare-year.js';

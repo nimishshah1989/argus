@@ -26,6 +26,7 @@ import { RegistersView } from './machines-register/View.js';
 import { PmCalendarPage } from './pm-calendar/Page.js';
 import { ProblemAnalysisView } from './problem-analysis/View.js';
 import { ShiftKpisView } from './shift-kpis/View.js';
+import { TeamFocusLive } from './team-focus/TeamFocusLive.js';
 import { WhyWhyLive } from './why-why/WhyWhyLive.js';
 import type { CellLogModel } from './cell-change-log/model.js';
 import { useScreenModel, type ScreenModel, type ScreenParams } from './data.js';
@@ -252,6 +253,20 @@ const LIVE: readonly Live[] = [
     ),
   },
   {
+    group: 'today',
+    section: 'today',
+    screen: 'team-focus',
+    page: () => (
+      <ModelPage
+        entry={screenOf('today', 'today', 'team-focus')}
+        screen="team-focus"
+        empty="analytics.notComputed"
+        title="analytics.screen.team-focus"
+        draw={(model, shell) => <TeamFocusLive model={model} {...shell} />}
+      />
+    ),
+  },
+  {
     group: 'breakdowns',
     section: 'problems',
     screen: 'a6-why-why',
@@ -344,8 +359,7 @@ const LIVE: readonly Live[] = [
  * so an unknown `?screen=` there opens its first screen, Bottleneck.
  */
 export function liveScreen(group: string | undefined, screen: string | null): ReactElement | null {
-  // Today: Team Focus keeps its v1 page; anything else (no ?screen=, an unknown one) is the Dashboard, as in v1.
-  if (group === 'today' && screen === 'team-focus') return null;
+  // Today: an unknown ?screen= (or none) is the Dashboard, as in v1.
   const named = screen ?? FIRST[group ?? ''] ?? null;
   const found =
     LIVE.find((entry) => entry.group === group && entry.screen === named) ??
