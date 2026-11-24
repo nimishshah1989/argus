@@ -16,7 +16,6 @@ import {
   type YearReport,
 } from '../apps/server/src/seed/legacy-classify.js';
 import { convertLegacy, type PlantContext } from '../apps/server/src/seed/legacy-export.js';
-import { classifyLegacy } from '../apps/server/src/seed/legacy-classify.js';
 import { trayCsv, trayOf } from '../apps/server/src/seed/legacy-tray.js';
 import { readSheet, type LegacyRow } from '../apps/server/src/seed/legacy-sheets.js';
 import { readWorkbook } from './answer-key/xlsx.js';
