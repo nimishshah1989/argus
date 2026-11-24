@@ -17,3 +17,4 @@
 {"issue": 584, "size": "standard", "model": "sonnet", "attempts": 4, "result": "pr", "ts": "2026-11-24T06:41:05"}
 {"issue": 588, "size": "standard", "model": "sonnet", "attempts": 3, "result": "pr", "ts": "2026-11-24T10:04:45"}
 {"issue": 606, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-24T11:31:40"}
+{"issue": 642, "size": "small", "model": "haiku", "attempts": 1, "result": "pr", "ts": "2026-11-24T17:53:10"}

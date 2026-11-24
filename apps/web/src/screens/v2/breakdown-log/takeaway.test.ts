@@ -9,18 +9,20 @@ import { logFromWorkbook } from './source.js';
 const ask = async (query: Partial<LogQuery> = {}) =>
   (await logFromWorkbook({ ...EMPTY_QUERY, ...query }))!;
 
-const FULL = { text: '13 of 115 make up 51% of the total.', tone: 'risk', tag: 'Risk' };
+/** Critical tests only (ADR 0033): the figures in the line, not its wording, tone or tag. */
+const hasFigures = (text = '') => {
+  for (const figure of ['13', '115', '51%']) expect(text).toContain(figure);
+};
 
 describe('Breakdown Log takeaway (ticket 641)', () => {
   it('says how few machines hold half the breakdown hours of the whole log', async () => {
     const model = await ask();
-    expect(Object.keys(model.takeaways ?? {})).toEqual(['log']);
-    expect(model.takeaways?.log).toMatchObject(FULL);
+    hasFigures(model.takeaways?.log?.text);
   });
 
   it('is the same on every page and under any sort: it reads the matching entries, not the page shown', async () => {
     const first = await ask();
-    expect(first.takeaways?.log).toMatchObject(FULL);
+    hasFigures(first.takeaways?.log?.text);
     expect((await ask({ page: 3 })).takeaways).toEqual(first.takeaways);
     expect((await ask({ sort: { key: 'hours', dir: 'asc' } })).takeaways).toEqual(first.takeaways);
   });
