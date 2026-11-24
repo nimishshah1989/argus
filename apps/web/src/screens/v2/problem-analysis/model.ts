@@ -1,6 +1,7 @@
 import type { ChartSpec } from '../../../ui/chart/use-chart.js';
 import type { TableWords } from '../../../ui/v2/data-table.js';
 import type { FigureData } from '../../../ui/v2/figure-tile.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
 import type { PrintedTable } from '../printed-page/table.js';
 
@@ -34,6 +35,8 @@ export type ProblemAnalysisWords = {
 /** Everything Problem Analysis prints: the engine's page, whole, in the reader's words, ready to print. */
 export type ProblemAnalysisModel = {
   verdict: VerdictData;
+  /** ADR 0035: `groups`, `families`, `repeats`, `unplaced`, `unrecognised`, `editor`, each over every row of its table. */
+  takeaways?: Takeaways;
   /** The four figures of the page, then the four of the what-if. */
   studied: FigureData[];
   whatIf: FigureData[];
