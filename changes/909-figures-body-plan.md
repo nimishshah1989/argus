@@ -1,0 +1,1 @@
+- Plan: figures reads to be made cheap (ADR 0029, ticket 628): the five-year figures reply is 12.6 MB and every read re-sent it in full; 628 sends a body built once per kept run, gzipped, with 304 on repeat.

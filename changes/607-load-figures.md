@@ -1,0 +1,1 @@
+- Tools: `pnpm load:figures` runs 30 readers over five invented years and fails on p95 over 300 ms, any failed request, or any engine run inside a read (G3.2).
