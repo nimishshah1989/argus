@@ -277,6 +277,28 @@
   --color-v2-decide-tint: #f3e8ff;
   --color-v2-decide-fill: #7e3fc8;
   --color-v2-idle-fill: #8e8e93;
+  /* Status (ADR 0036): how a figure is doing against its yardstick. Aliases, so dark follows its own values. Red is
+     only ever `bad`. Ink (the base name) is text on the tint at 4.5:1 (tokens.test.ts); fill is an edge or a bar. */
+  --color-v2-good: var(--color-v2-gain);
+  --color-v2-good-fill: var(--color-v2-gain-fill);
+  --color-v2-good-tint: var(--color-v2-gain-tint);
+  --color-v2-watch: var(--color-v2-risk);
+  --color-v2-watch-fill: var(--color-v2-risk-fill);
+  --color-v2-watch-tint: var(--color-v2-risk-tint);
+  --color-v2-bad: var(--color-v2-loss);
+  --color-v2-bad-fill: var(--color-v2-loss-fill);
+  --color-v2-bad-tint: var(--color-v2-loss-tint);
+  --color-v2-neutral: var(--color-v2-ink-2);
+  --color-v2-neutral-fill: var(--color-v2-quiet);
+  --color-v2-neutral-tint: var(--color-v2-track);
+  /* Machine segments (ADR 0036 a): one fixed colour each on every screen (tile edge, chart series, chip), 3:1 on the
+     panel. Separate from status: a segment colour never means good or bad. */
+  --color-v2-seg-cnc: #2563eb;
+  --color-v2-seg-conv: #7c3aed;
+  --color-v2-seg-process: #047857;
+  --color-v2-seg-robot: #be185d;
+  --color-v2-seg-util: #0e7490;
+  --color-v2-seg-dg: #b45309;
   /* Machine types: one fixed colour each, the same on every screen (a dot or an edge, 3:1 on the panel). */
   --color-v2-cat-1: #4f5bd5;
   --color-v2-cat-2: #0e7c7b;
@@ -483,6 +505,12 @@
   --color-v2-decide-tint: #2a2140;
   --color-v2-decide-fill: #a87ff0;
   --color-v2-idle-fill: #6e6e73;
+  --color-v2-seg-cnc: #60a5fa;
+  --color-v2-seg-conv: #a78bfa;
+  --color-v2-seg-process: #34d399;
+  --color-v2-seg-robot: #f472b6;
+  --color-v2-seg-util: #22d3ee;
+  --color-v2-seg-dg: #fbbf24;
   --color-v2-cat-1: #8b95f5;
   --color-v2-cat-2: #3cc5c3;
   --color-v2-cat-3: #e39a52;

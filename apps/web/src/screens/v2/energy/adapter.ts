@@ -18,11 +18,20 @@ import { figureOf, shortDate, type FiguresPart } from '../printed-page/printed.j
 import { say, strong } from '../printed-page/segs.js';
 import { verdictOf } from '../printed-page/verdict.js';
 import type { EnergyGridModel, EnergyModel } from './model.js';
+import {
+  averageYardstick,
+  heaviest,
+  oneDecimal,
+  shareYardstick,
+  takeawaysOf,
+  totalsOf,
+  type Names3,
+  type Picks,
+  type Totals,
+} from './takeaways.js';
 
 /** The engine's figure this screen is built from. */
 export const FIGURE = 'a5-energy';
-const oneDecimal = (n: number) =>
-  n.toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 /** The value as its tile prints it, so the chart's numbers never carry a float sum's tail. */
 const rounded = (n: number): number => Number(n.toFixed(1));
 
@@ -198,24 +207,6 @@ function gridOf(
   };
 }
 
-const heaviest = (tiles: EnergyTile[], by: (tile: EnergyTile) => number): EnergyTile | undefined =>
-  tiles.reduce<EnergyTile | undefined>(
-    (top, tile) => (tile.machines > 0 && (top === undefined || by(tile) > by(top)) ? tile : top),
-    undefined,
-  );
-
-type Totals = { connected: number; running: number; machines: number };
-type Names3 = { cell: (tile: EnergyTile) => string; place: (tile: EnergyTile) => string };
-
-/** The plant's totals: every machine sits in exactly one cell tile, so the cell tiles add up to the plant. */
-const totalsOf = (cells: EnergyTile[]): Totals => ({
-  connected: cells.reduce((sum, tile) => sum + tile.connectedKva, 0),
-  running: cells.reduce((sum, tile) => sum + tile.runningKva, 0),
-  machines: cells.reduce((sum, tile) => sum + tile.machines, 0),
-});
-
-type Picks = { top: EnergyTile | undefined; densest: EnergyTile | undefined };
-
 function verdictFor(
   input: { picks: Picks; total: Totals; pct: number; source: string },
   name: (tile: EnergyTile) => string,
@@ -260,12 +251,14 @@ function figuresFor(
       label: t('v2e.fig.connected'),
       value: `${oneDecimal(total.connected)} ${unit}`,
       sub: fill(t('v2e.fig.connectedSub'), { n: total.machines }),
+      yardstick: averageYardstick(total, t),
     },
     {
       id: 'running',
       label: t('v2e.fig.running'),
       value: `${oneDecimal(total.running)} ${unit}`,
       sub: fill(t('v2e.fig.runningSub'), { pct }),
+      yardstick: shareYardstick(total.running, total, t),
     },
     ...(top
       ? [
@@ -274,6 +267,7 @@ function figuresFor(
             label: t('v2e.fig.heaviest'),
             value: name(top),
             sub: `${oneDecimal(top.connectedKva)} ${unit} · ${machinesLine(top, t)}`,
+            yardstick: shareYardstick(top.connectedKva, total, t),
           },
         ]
       : []),
@@ -284,6 +278,7 @@ function figuresFor(
             label: t('v2e.fig.densest'),
             value: name(densest),
             sub: `${oneDecimal(densest.avgConnectedKva)} ${unit} ${t('v2e.fig.perMachine')}`,
+            yardstick: averageYardstick(total, t),
           },
         ]
       : []),
@@ -362,6 +357,7 @@ export function energyModel(reply: FiguresPart, t: TFunction): EnergyModel | nul
   const say_: Translate = (key, values) => t(key, { ...values }) as string;
   return {
     verdict: verdictFor({ picks, total, pct, source }, names.cell, t),
+    takeaways: takeawaysOf(content, names, say_),
     figures: figuresFor({ picks, total, pct }, names.cell, t),
     grids: gridsFor(content, names, t),
     drill: drillFor(reply, FIGURE, say_),
