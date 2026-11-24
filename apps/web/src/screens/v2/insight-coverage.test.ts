@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { FROZEN, PROVIDERS } from './data.js';
 import type { Takeaways } from '../../ui/v2/takeaway.js';
+import { ENGINE_DATA } from '../../../../../packages/domain/test/answer-key/fixture.js';
+import { realReply } from './figures/real-reply.js';
+import { realT } from './printed-page/test-support.js';
+import { machinePageModel } from './machine/adapter.js';
+import type { Translate } from './figures/read.js';
 
 /**
  * ADR 0023, UX rules 60 and 67: every live v2 screen's model gives each of its sections a computed takeaway, in
@@ -22,7 +27,6 @@ const NOT_YET = new Set([
   'fix-finder',
   'footprint',
   'forecast-lab',
-  'machine',
   'machines-register',
   'manpower',
   'mttr-mtbf',
@@ -37,11 +41,31 @@ const NOT_YET = new Set([
 ]);
 
 /** Each finished screen's sections, written out so a section added later without a takeaway fails here. */
-const SECTIONS: Record<string, string[]> = {};
+const SECTIONS: Record<string, string[]> = {
+  machine: ['machine.spares', 'machine.tasks'],
+};
 
 type WithTakeaways = { takeaways?: Takeaways } | null;
 /** A finished screen's model, when its frozen provider needs params or it has none (a test-support file builds it). */
-const MODELS: Record<string, () => Promise<WithTakeaways>> = {};
+const MODELS: Record<string, () => Promise<WithTakeaways>> = {
+  // Cast until #643 adds `takeaways` to MachinePageModel.
+  machine: async () =>
+    machinePageModel(
+      realReply(),
+      {
+        param: 'HMC-2',
+        machines: ENGINE_DATA.machines.map((m) => ({
+          id: m.id,
+          code: m.code,
+          category: m.category ?? null,
+          cell: m.cell ?? null,
+        })),
+        tickets: [],
+        timeZone: 'Asia/Kolkata',
+      },
+      realT as unknown as Translate,
+    ) as WithTakeaways,
+};
 
 describe('insight coverage (M2b)', () => {
   it('knows every v2 screen: finished, or on the not-yet list', () => {
