@@ -9,7 +9,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 ## State
 
-- Plan PR for ADR 0036 groundwork open (see branch); merge when CI green. Migration 0016 passed `migrations:check` and `migrations:immutable`; Postgres apply test was started, result not seen (unverified).
+- Plan PR for ADR 0036 groundwork open (see branch); merge when CI green. Migration 0016 passed `migrations:check`, `migrations:immutable` and `packages/db/test/migration-runner.test.ts` (23/23, real Postgres).
 - No issues created yet for ADR 0036. The ticket plan (S1–S6, H1–H5, L1–L4, P1–P2) with files and blockers is in ADR 0036 "Tickets".
 - Screens batch 2 (#654–#679) unchanged; still building.
 
