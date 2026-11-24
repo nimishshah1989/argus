@@ -98,7 +98,7 @@ function figures(
       m.id === 'money' && rate !== null
         ? t('v2cmp.fig.money.hint', { rate: rupee(rate) })
         : t(`v2cmp.fig.${m.id}.hint`);
-    const side = (mine: number, other: number): CompareFigure => {
+    const side = (mine: number, other: number, y: Year): CompareFigure => {
       const worse = m.lowerIsBetter === false ? mine < other : mine > other;
       const mark = none || r < SAME ? 'same' : worse ? 'worse' : 'better';
       const key = none ? 'none' : mark === 'worse' && r !== Infinity ? m.mark : mark;
@@ -106,12 +106,12 @@ function figures(
         id: m.id,
         label: t(`v2cmp.fig.${m.id}.label`),
         hint,
-        value: none ? '—' : m.show(mine),
+        value: m.needsCount && y.count === 0 ? '—' : m.show(mine),
         mark,
         markText: t(`v2cmp.mark.${key}`, { n: r.toFixed(1) }),
       };
     };
-    return { r, pair: [side(v[0], v[1]), side(v[1], v[0])] as const };
+    return { r, pair: [side(v[0], v[1], ys[0]), side(v[1], v[0], ys[1])] as const };
   });
   rows.sort((p, q) => q.r - p.r);
   return [rows.map((x) => x.pair[0]), rows.map((x) => x.pair[1])];
