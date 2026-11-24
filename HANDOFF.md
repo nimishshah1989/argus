@@ -12,6 +12,7 @@ _Overwritten at the end of every session. Facts only._
 
 ## State
 
+- **ADR 0031 (#645, plan/screens-batch1):** screens batch 1 decisions for #640–#644 (takeaways, file lists, C-shift finding). Seeds follow it.
 - **Merged today:** #646 (619 kit: four takeaway rules + tile yardstick), #639 (635), #638 (guard fix), #631 (kit carve-out).
 - **History load on staging (Mac `~/argus-logs/history-load3.sh`, log `history-load3.log`):** running since 16:12 via `tools/load-legacy.ts --data ~/argus-data/flat --tenant cosmos --retired drop`. Read phase done: tickets to load 2022 892, 2023 1106, 2024 1045, 2025 1177 (4220). **Not yet confirmed in the DB**: wait for a `LOAD EXIT` line, then count rows per year in staging and compare MTTR/MTBF to the workbook sheets. Rollback = RDS snapshot `uptimo-before-history-load-202611241554`. Tunnel: kill stale `session-manager-plugin` before restarting (a 14:29 one held port 15432 and hung the first run).
 - **Screens:** #642 Shift KPIs (Haiku) building via `~/argus-logs/lane-642.sh`; #620 (insight tables) seed rebased by Opus, rebuilding via `plan-620.sh`. When 642's PR is green: render the screen to self-contained HTML + screenshot and send Nimish (his ask). Then 641, and after 620 merges 640 + 643; #644 (S22) is over budget, needs a plan split.
