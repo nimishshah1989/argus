@@ -2,9 +2,13 @@
 export type AssignHandlers = { onAssign?: (id: string) => void; onUnassign?: (id: string) => void };
 
 export function assignHandlers(
-  _me: string | null,
-  _period: string | null,
-  _save: (id: string, owner: string) => Promise<void>,
+  me: string | null,
+  period: string | null,
+  save: (id: string, owner: string) => Promise<void>,
 ): AssignHandlers {
-  throw new Error('not built');
+  if (me === null || period === null) return {};
+  return {
+    onAssign: (id) => void save(id, me),
+    onUnassign: (id) => void save(id, ''),
+  };
 }
