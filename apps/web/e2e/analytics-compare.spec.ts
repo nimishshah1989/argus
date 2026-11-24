@@ -56,13 +56,13 @@ const TEAM = keyOf('team-focus');
 const MONEY = keyOf('money-matters');
 const FIX = keyOf('fix-finder');
 const CMP = COMPARE.pages[0]!;
-const TF = TEAM.pages[0]!;
 const MM = MONEY.pages[0]!;
 const FF = FIX.pages[0]!;
 
 /** Neutral screen constants, so CI's secret scanner never reads a figure lookup as an API key. */
 const SCREEN_COMPARE = 'compare';
 const SCREEN_TEAM = 'team-focus';
+const TEAM_PERIOD = '2026-12';
 const SCREEN_MONEY = 'money-matters';
 const SCREEN_FIX = 'fix-finder';
 const AS_OF = '2026-11-11';
@@ -98,7 +98,15 @@ async function stubFigures(page: Page): Promise<void> {
     rows: { machines: MACHINES.length, moves: 0, tickets: 1, tasks: 0, reports: 0, people: 4 },
     figures: [
       figureOf(SCREEN_COMPARE, COMPARE, { type: 'machine', ids: MACHINE_IDS.slice(0, 2) }),
-      figureOf(SCREEN_TEAM, TEAM, { type: 'machine', ids: MACHINE_IDS.slice(0, 2) }),
+      // The frozen key predates `period` (ADR 0020); the live engine prints it, so the stub does too.
+      figureOf(
+        SCREEN_TEAM,
+        { ...TEAM, period: TEAM_PERIOD },
+        {
+          type: 'machine',
+          ids: MACHINE_IDS.slice(0, 2),
+        },
+      ),
       figureOf(SCREEN_MONEY, MONEY, { type: 'ticket', ids: [ticket.id] }),
       figureOf(SCREEN_FIX, FIX, { type: 'ticket', ids: [ticket.id] }),
     ],
@@ -138,35 +146,36 @@ async function openCompare(page: Page): Promise<void> {
   );
 }
 
-/** Team Focus: the three KPIs, the six lane groups and all 31 actions with their defaults. */
+/**
+ * Team Focus (v2, TF-3, ADR 0020): the four key figures, all 31 actions in the table, every one waiting for an owner
+ * (no note is saved yet), no money; taking the biggest saves the head as its owner through the notes endpoint.
+ */
 async function openTeamFocus(page: Page): Promise<void> {
   await page.goto(`/analytics/today?screen=${SCREEN_TEAM}`);
-  const nav = page.getByRole('navigation', { name: 'Screens in People & money', exact: true });
-  await expect(nav.getByRole('link', { name: 'Team Focus', exact: true })).toHaveAttribute(
-    'aria-current',
-    'page',
-  );
-  await expect(page.getByRole('heading', { name: TF.title, exact: true })).toBeVisible();
-  for (const kpi of TF.kpis) {
-    await expect(page.getByText(kpi.label, { exact: true }).first()).toBeVisible();
-    await expect(page.getByText(kpi.value, { exact: true }).first()).toBeVisible();
-  }
+  await expect(page.getByRole('heading', { level: 1, name: 'Team Focus' })).toBeVisible();
+  for (const label of ['Open actions', 'At stake a month', 'No owner yet', 'Done'])
+    await expect(page.getByText(label, { exact: true }).first()).toBeVisible();
   expect(TEAM.extra).toHaveLength(31);
-  await expect(page.locator('[data-focus-action]')).toHaveCount(31);
-  for (const lane of [
-    'Before next month',
-    'Fix for good',
-    'Overhaul or replace?',
-    'Why-Why due',
-    'Spares to keep ready',
-    'Fix the record',
-  ])
-    await expect(page.getByRole('heading', { name: lane, exact: true })).toBeVisible();
-  const first = TEAM.extra![0]!;
-  await expect(page.getByText(first.title, { exact: true })).toBeVisible();
-  await expect(page.getByText('Status: Not started', { exact: true }).first()).toBeVisible();
-  await expect(page.getByText('Owner: not assigned', { exact: true }).first()).toBeVisible();
-  await expect(page.getByText('Note: none yet', { exact: true }).first()).toBeVisible();
+  const table = page.getByRole('region', { name: 'Every action this month', exact: true });
+  await expect(table.getByText('1–10 of 31')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Needs an owner', exact: true })).toBeVisible();
+  await expect(page.getByText('₹')).toHaveCount(0);
+  // The biggest stake first; a tie keeps the engine's order.
+  const biggest = TEAM.extra!.map((action, at) => ({ ...action, at })).sort(
+    (a, b) => b.stake - a.stake || a.at - b.at,
+  )[0]!;
+  await expect(page.getByText(biggest.title, { exact: true }).first()).toBeVisible();
+  await page.getByRole('button', { name: 'I’ll take it', exact: true }).first().click();
+  const token = await apiLogin('head');
+  await expect
+    .poll(async () => {
+      const read = await getJson<{ notes: Record<string, { owner: string }> }>(
+        token,
+        `/api/v1/analytics/team-focus/notes?period=${TEAM_PERIOD}`,
+      );
+      return read.notes[biggest.key]?.owner ?? '';
+    })
+    .not.toBe('');
 }
 
 /** Money Matters: the ten KPIs, both tables and the one chart, then the ticket drill. */

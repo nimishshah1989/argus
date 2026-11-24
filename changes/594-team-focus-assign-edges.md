@@ -1,0 +1,1 @@
+- TF-4 (ticket 594): Team Focus "I'll take it" is hidden on list rows and in the drawer until the signed-in user and the month are known; the owner drawer names its owner from the ref id even with no actions; the failure message sits beside the decisions.

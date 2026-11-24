@@ -20,12 +20,15 @@ const nav = [{ id: 'today', label: 'Today', icon: 'today' as const, href: '/a', 
 const kpi = (id: string) => model.kpis.find((k) => k.id === id)!;
 const tenths = (h: { value: number }) => Math.round(h.value * 10);
 
-const render = (url = '/gallery') =>
+const render = (
+  url = '/gallery',
+  acts: { onAssign?: (id: string) => void; onUnassign?: (id: string) => void } = {},
+) =>
   renderToStaticMarkup(
     createElement(
       MemoryRouter,
       { initialEntries: [url] },
-      createElement(TeamFocusView, { model, nav, title: 'Team Focus' }),
+      createElement(TeamFocusView, { model, nav, title: 'Team Focus', ...acts }),
     ),
   );
 
@@ -104,7 +107,11 @@ describe('the Team Focus screen', () => {
   it('opens a person from a pasted link, and an action to be assigned with its button', () => {
     const person = render('/gallery?view=v2-team-focus&drawer=person:arjun-v');
     expect(person).not.toMatch(/<aside[^>]*inert/);
-    const action = render('/gallery?view=v2-team-focus&drawer=decision:a02');
+    const action = render('/gallery?view=v2-team-focus&drawer=decision:a02', {
+      // The button exists only when the page can assign (ticket 594): the live page passes these once the user is known.
+      onAssign: () => {},
+      onUnassign: () => {},
+    });
     expect(action).toMatch(/<aside[^>]*aria-label="Overhaul or replace the turning centre"/);
     expect(action).toContain('Assign to Meera K');
   });

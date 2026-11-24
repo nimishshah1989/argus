@@ -1,6 +1,7 @@
 import { Button } from '../../../ui/v2/button.js';
 import { CompareBox } from '../../../ui/v2/domain/compare-box.js';
 import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
+import { PrintedDataTable } from '../../../ui/v2/domain/printed-table.js';
 import { KeyPill } from '../../../ui/v2/key-pill.js';
 import { KpiCard } from '../../../ui/v2/kpi-card.js';
 import { Panel } from '../../../ui/v2/panel.js';
@@ -97,6 +98,10 @@ export function CompareView({
         <Differences model={model} onAddFocus={onAddFocus} />
         <TrendChart data={model.trend} />
       </Row>
+      {/* Ticket 586: v1's six tables, whole; a gallery model without them draws none */}
+      {model.tables?.items.map((table, at) => (
+        <PrintedDataTable key={`${table.title}-${at}`} table={table} words={model.tables!.words} />
+      ))}
       <SourceLine text={model.source} />
     </EntityShell>
   );

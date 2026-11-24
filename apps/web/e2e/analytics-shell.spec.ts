@@ -39,13 +39,13 @@ test('a head sees the six sections and the Guide, tabs inside a section, and a p
 
   // A section's screens are tabs, and People & money marks its own tab on the Team Focus page.
   await menu.getByRole('link', { name: 'People & money', exact: true }).click();
-  const tabs = page.getByRole('navigation', { name: 'Screens in People & money', exact: true });
-  await expect(tabs.getByRole('link')).toHaveText(['Team Focus', 'Money Matters']);
-  await expect(tabs.getByRole('link', { name: 'Team Focus', exact: true })).toHaveAttribute(
-    'aria-current',
-    'page',
+  const tabs = page.getByRole('group', { name: 'Screens in People & money', exact: true });
+  await expect(tabs.getByRole('button')).toHaveText(['Team Focus', 'Money Matters']);
+  await expect(tabs.getByRole('button', { name: 'Team Focus', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
   );
-  await tabs.getByRole('link', { name: 'Money Matters', exact: true }).click();
+  await tabs.getByRole('button', { name: 'Money Matters', exact: true }).click();
   await expect(page).toHaveURL(/\/analytics\/cost$/);
   await expect(page.getByRole('heading', { name: 'People & money', exact: true })).toBeVisible();
 });
