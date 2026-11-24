@@ -104,6 +104,8 @@ import { analyticsV2ChecklistEn } from './analytics-v2-checklist.en.js';
 import { analyticsV2ChecklistGu } from './analytics-v2-checklist.gu.js';
 import { analyticsV2ReliabilityEn } from './analytics-v2-reliability.en.js';
 import { analyticsV2ReliabilityGu } from './analytics-v2-reliability.gu.js';
+import { insightEn } from './insight.en.js';
+import { insightGu } from './insight.gu.js';
 import { analyticsV2TodayEn } from './analytics-v2-today.en.js';
 import { analyticsV2TodayGu } from './analytics-v2-today.gu.js';
 import { analyticsV2TeamFocusEn } from './analytics-v2-team-focus.en.js';
@@ -165,6 +167,7 @@ export const NAMESPACES: Record<string, Record<string, string>> = {
   'analytics-v2-checklist': analyticsV2ChecklistEn,
   'analytics-v2-reliability': analyticsV2ReliabilityEn,
   'analytics-v2-today': analyticsV2TodayEn,
+  insight: insightEn,
   'analytics-v2-team-focus': analyticsV2TeamFocusEn,
 };
 
@@ -224,6 +227,7 @@ export const en = {
   ...analyticsV2ChecklistEn,
   ...analyticsV2ReliabilityEn,
   ...analyticsV2TodayEn,
+  ...insightEn,
   ...analyticsV2TeamFocusEn,
 };
 
@@ -285,6 +289,7 @@ export const gu = {
   ...analyticsV2ChecklistGu,
   ...analyticsV2ReliabilityGu,
   ...analyticsV2TodayGu,
+  ...insightGu,
   ...analyticsV2TeamFocusGu,
 };
 

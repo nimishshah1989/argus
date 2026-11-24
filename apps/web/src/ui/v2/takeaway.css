@@ -1,0 +1,45 @@
+/* The takeaway line and the row that opens in place (takeaway.tsx). Tokens only. */
+
+.v2-takeaway {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-v2-inner);
+  margin: 0;
+  color: var(--color-v2-ink);
+  font-size: var(--text-v2-body);
+  font-weight: 600;
+}
+
+.v2-expand {
+  border-bottom: 1px solid var(--color-v2-line);
+}
+.v2-expand-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-v2-inner);
+  width: 100%;
+  min-height: 44px;
+  padding: 0 var(--space-v2-inner);
+  border: 0;
+  background: transparent;
+  color: var(--color-v2-ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.v2-expand-head:hover {
+  background: var(--color-v2-well);
+}
+.v2-expand-main {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-v2-inner);
+}
+.v2-expand-body {
+  padding: var(--space-v2-inner);
+  background: var(--color-v2-well);
+}

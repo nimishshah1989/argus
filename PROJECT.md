@@ -2,7 +2,7 @@
 
 _The locked blueprint. Agents read §1–4 and the current milestone every session. Only Plan sessions edit this file, and every edit gets an ADR in `docs/adr/`. Tasks live in GitHub Issues, not here._
 
-**Status:** Building (adopted mid-flight) · **Current milestone:** M1 · **Locked on:** not yet: waiting for Nimish's read · **Version:** v1 (adoption, ADR 0011)
+**Status:** Building (adopted mid-flight) · **Current milestone:** M2 and M2b · **Locked on:** not yet: waiting for Nimish's read · **Version:** v1 (adoption, ADR 0011)
 
 _Written on 2026-11-23 from the code at `e468e31a`, the docs and the PR history, not from memory. Product detail stays in
 `docs/spec/SPEC.md` (product truth), `docs/DATA-MAP.md` (data), `docs/DESIGN.md` + `docs/design/v2/` (design) and
@@ -126,6 +126,16 @@ _Every later milestone is a vertical slice Nimish can click through. Goals are y
   - [ ] G2.3 Every analytics screen passes `pnpm ui:check` and axe with 0 violations — test: gallery CI.
 - **Screens:** S15, S16, S17 + new wireframes for Money Matters, Monthly, Annual, Guide, Settings.
 - **Depends on:** M1.
+
+### M2b — Insight pass · Building
+
+- **Delivers:** every live v2 screen says what to notice (ADR 0023, UX rules 60–67): a computed takeaway line per table, chart and section, the outlier marked with a tone tag, a yardstick on every key number, worst-first ranking with a collapsed tail, and rows that expand in place. Figures never change. One ticket per screen, after Compare goes live and before the rest of M2.
+- **Goals (yes/no):**
+  - [ ] G2b.1 Every live v2 screen's model gives each section a computed takeaway — test: `apps/web/src/screens/v2/insight-coverage.test.ts` lists each screen's sections; its not-yet list shrinks to empty.
+  - [ ] G2b.2 Reviewer rule 67 passes on every M2b PR: no table or chart lacks a takeaway, a marked outlier or a yardstick on its key number — test: reviewer PASS on each ticket PR.
+  - [ ] G2b.3 Every figure is unchanged — test: `tools/answer-key.test.ts`.
+- **Screens:** S01 Dashboard, S02 Action Center, S06 Breakdown Log first, then every other live v2 screen (list in ADR 0023).
+- **Depends on:** M2's Compare live (ticket 588).
 
 ### M3 — History in, figures fast · Not started
 

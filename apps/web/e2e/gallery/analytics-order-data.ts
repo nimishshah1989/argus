@@ -18,31 +18,6 @@ export const SHELL_PHONE = [
   'a: Desk',
 ];
 export const SHELL_WIDE = SHELL_PHONE.slice(1);
-const MACHINES_MENU = [
-  'h1: Machines',
-  'a: Registers an',
-  'a: Cell change ',
-  'a: A7 footprint',
-  'a: A8 age analy',
-  'a: Compare mach',
-  'a: A5 energy he',
-];
 
-/** Each screen: its path, its group's menu, and its own part after the shell and the menu. */
-export const SCREENS: [string, string[], string[]][] = [
-  [
-    '/analytics/machines?screen=compare',
-    MACHINES_MENU,
-    [
-      'h2: Compare mach',
-      'summary: Show the num',
-      'summary: Show the num',
-      'h3: Scorecard',
-      'h3: Checkup',
-      'h3: Specificatio',
-      'h3: Longest brea',
-      'button: Date',
-      'button: Hours',
-    ],
-  ],
-];
+/** Each screen: its path, its group's menu, and its own part after the shell and the menu. Empty: every analytics screen is v2 now, and each v2 screen has its own spec (`v2-*.spec.ts`; Compare went live in ticket 588). */
+export const SCREENS: [string, string[], string[]][] = [];
