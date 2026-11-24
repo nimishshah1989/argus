@@ -1,0 +1,1 @@
+- Machines register: every table opens with a computed takeaway and every card names a yardstick (share of all machines, rank of average age, share of the KVA load); no figure changed.
