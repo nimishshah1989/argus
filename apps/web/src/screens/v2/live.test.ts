@@ -81,8 +81,7 @@ describe('which v2 screens are live at their v1 address', () => {
       expect(liveScreen('pm', screen)?.key, String(screen)).toBe('pm:pm-calendar');
   });
 
-  it('leaves only the screen that is still a v1 page to it: Compare', () => {
-    expect(liveScreen('machines', 'compare')).toBeNull();
+  it('has every screen live', () => {
     expect(liveScreen('today', 'team-focus')).not.toBeNull();
     // The Breakdowns group is v2 whole: each of its screens is live.
     for (const screen of [

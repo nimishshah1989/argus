@@ -188,6 +188,9 @@ These need a rule for "overloaded" and a suggested-owner rule; neither exists in
 
 ## 5. Compare (from the unmerged branch `origin/claude/batch1-people`)
 
+**Cleared by CMP-5 (#588): live at `/analytics/machines?screen=compare`.** Every MISSING and changed row below now reads same,
+changed or better in `scope/compare.md`, with where each is (ADR 0021). The table below is the original audit.
+
 v1: Machines face, `?screen=compare`, drawn by `KeyPage.tsx` / `key-body.tsx` from engine `compare.ts` and
 `compare-score.ts`; answer key `fixtures/answer-key/compare.json` (no KPIs, six tables, two charts); e2e
 `analytics-compare.spec.ts` 110–138; parity `m4a.compare` (done). v2: `screens/v2/compare/`.
