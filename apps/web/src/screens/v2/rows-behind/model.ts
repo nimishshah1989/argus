@@ -1,6 +1,7 @@
 import type { DrillReply } from '@uptimo/shared/analytics';
 import { rowsBehindModel, type LoadBasis } from '../../../ui/v2/domain/rows-behind-adapter.js';
 import type { RowsBehindModel } from '../../../ui/v2/domain/rows-behind.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import { FIGURE_LABELS, unitOf } from '../../analytics/groups.js';
 import type { Translate } from '../figures/read.js';
 import { machineDrillKey, machineDrillName } from './machine.js';
@@ -34,6 +35,12 @@ export const figureName = (key: string, t: Translate): string => {
   return label ? t(label) : key;
 };
 
+/** The rows behind one figure, plus its takeaways. */
+export type RowsModel = RowsBehindModel & {
+  /** ADR 0035: `rows` when the rows are tickets, over all of them by machine; machine and move rows have none. */
+  takeaways?: Takeaways;
+};
+
 /** The rows behind one figure, from the engine's figure and the drill reply for it; null when nothing is counted. */
 export function rowsModel(
   input: {
@@ -48,7 +55,7 @@ export function rowsModel(
     load?: LoadBasis;
   },
   t: Translate,
-): RowsBehindModel | null {
+): RowsModel | null {
   const { key, value, reply, asOf, machineCode, named, load } = input;
   return rowsBehindModel({
     figure: {
