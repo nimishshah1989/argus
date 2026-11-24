@@ -29,6 +29,11 @@ export type PrintedTable = {
    * opens with the takeaway `printedTakeaway` picks, ranks worst first, marks the worst row, bars and folds.
    */
   meaning?: Meaning & { column: number };
+  /**
+   * The table's total row (the engine's "PLANT TOTAL"), taken out of `rows` (ADR 0036 R14): drawn as the table's
+   * footer, `PrintedDataTable` passing `total.map((c) => c.text)` as DataTable `total`. Absent when the engine printed none.
+   */
+  total?: PrintedCell[];
 };
 
 type Row = { id: string; cells: PrintedCell[] };
