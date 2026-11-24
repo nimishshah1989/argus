@@ -41,3 +41,28 @@ export function dataAsOf(data: EngineData, asOf: string): EngineData {
     ),
   };
 }
+
+/**
+ * The plant from the plant date `from` on (ADR 0027), the lower bound to `dataAsOf`'s upper one. A ticket or task is in
+ * if it was reported on or after that plant day (plant time zone); a report if its date is and its ticket, when it has
+ * one, is in; a plant event and a Why-Why record if their ticket is in. Machines, moves, people, lists and settings are
+ * unchanged.
+ */
+export function dataFrom(data: EngineData, from: string): EngineData {
+  const { timeZone } = data;
+  const reported = (t: TicketRow) => plantDay(t.reportedAt, timeZone) >= from;
+  const tickets = data.tickets.filter(reported);
+  const tasks = data.tasks.filter(reported);
+  const cut = new Set([...tickets, ...tasks].map((t) => t.id));
+  const inCut = (row: { ticketId: string }) => cut.has(row.ticketId);
+  return {
+    ...data,
+    tickets,
+    tasks,
+    reports: data.reports.filter(
+      (r) => r.date >= from && (r.ticketId === null || cut.has(r.ticketId)),
+    ),
+    ...(data.plantEvents && { plantEvents: data.plantEvents.filter(inCut) }),
+    ...(data.whyWhy && { whyWhy: data.whyWhy.filter(inCut) }),
+  };
+}
