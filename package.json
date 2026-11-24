@@ -45,6 +45,7 @@
     "import:bhavin": "tsx tools/import-bhavin.ts",
     "import:legacy": "tsx tools/import-legacy.ts",
     "validate:full": "tsx tools/validate-full.ts",
+    "load:figures": "tsx tools/load-figures.ts",
     "import:undo": "tsx tools/import-bhavin.ts undo",
     "audit:purge": "tsx scripts/audit-purge.ts",
     "build:server": "tsx scripts/build-server.ts",
