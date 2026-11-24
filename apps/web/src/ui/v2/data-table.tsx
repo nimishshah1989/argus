@@ -5,6 +5,7 @@ import { Icon } from './icons.js';
 import { MOTION } from './motion.js';
 import { TableBar, TableHead, TablePager, type SortState } from './table-parts.js';
 import { tablePage } from './table-model.js';
+import type { Meaning, TakeawayData } from './takeaway.js';
 
 export type Column<R> = {
   key: string;
@@ -14,6 +15,11 @@ export type Column<R> = {
   /** Sortable when given: what the column sorts by. */
   sortBy?: (row: R) => number | string;
   cell: (row: R) => ReactNode;
+  /**
+   * The table's measure (ticket 620, at most one column has it): what its number is and what it means. The table then
+   * ranks worst first, marks the worst row, draws the number as a bar and folds the tail.
+   */
+  meaning?: Meaning & { value: (row: R) => number };
 };
 export type FilterChip<R> = { key: string; label: string; test?: (row: R) => boolean };
 export type TableWords = {
@@ -46,6 +52,10 @@ type TableProps<R> = {
   aside?: ReactNode;
   /** What a row opens in the drawer; a table whose rows open nothing leaves it out and its rows are not buttons. */
   onOpen?: (row: R) => void;
+  /** The line the table opens with, under its title (UX rule 60). */
+  takeaway?: TakeawayData;
+  /** A row's detail, opened in place under it by the row's expand button (UX rule 64). */
+  expand?: (row: R) => ReactNode;
 };
 
 /** What the reader has asked of a table (search, chip, sort, page) and the page that answers it. */

@@ -13,4 +13,7 @@ export const insightEn = {
   'insight.concentration': '{k} of {n} make up {pct}% of the total.',
   'insight.change': '{delta} on {period}.',
   'insight.change.flat': 'No change on {period}.',
+  'insight.fold.more': '+ {n} more',
+  'insight.fold.within': '+ {n} more, all within target',
+  'insight.expand': 'Show detail: {name}',
 };

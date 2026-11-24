@@ -177,3 +177,18 @@ export function tilesIn(model: unknown): TileLike[] {
   walk(model);
   return found;
 }
+
+/** One table row as `printedTakeaway` reads it: its cells, each with the text printed and the value it sorts by. */
+export type PrintedRow = { text: string; sort: number | string }[];
+
+/**
+ * The takeaway of an engine or printed table with a declared measure (ticket 620): each row is an item named by its
+ * first cell's text, valued by the measure cell's `sort` and shown as its `text`; rows whose value is not a finite number
+ * are left out. Then `takeawayFor`. No meaning, or no row left: null.
+ */
+export function printedTakeaway(
+  table: { rows: PrintedRow[]; meaning?: Meaning & { column: number } },
+  t: Say,
+): TakeawayData | null {
+  throw new Error('not implemented: ticket 620');
+}

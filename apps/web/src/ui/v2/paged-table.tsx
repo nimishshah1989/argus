@@ -2,6 +2,7 @@
 import type { ReactNode } from 'react';
 import { fill } from '../../i18n/fill.js';
 import type { Column, FilterChip, TableWords } from './data-table.js';
+import type { TakeawayData } from './takeaway.js';
 import { Icon } from './icons.js';
 import { TableBar, TableHead, TablePager, type SortState } from './table-parts.js';
 
@@ -57,6 +58,10 @@ type Props<R> = {
   extra?: ReactNode;
   /** A line under the table. */
   foot?: ReactNode;
+  /** The line the table opens with, under its title (UX rule 60). The server pages the rows, so no rank and no fold. */
+  takeaway?: TakeawayData;
+  /** A row's detail, opened in place under it by the row's expand button (UX rule 64). */
+  expand?: (row: R) => ReactNode;
 };
 
 const SIZE = 10;

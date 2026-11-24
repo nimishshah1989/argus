@@ -6,6 +6,7 @@ import {
   type TableWords,
 } from '../../../ui/v2/data-table.js';
 import { EntityChip, EntityOpenContext, type EntityChipProps } from '../entity-chip.js';
+import type { Meaning } from '../takeaway.js';
 
 /** One cell of an engine table: what to print, what orders it, and the chips it holds (a machine, the people who did it). */
 export type PrintedCell = { text: string; sort: number | string; chips: EntityChipProps[] };
@@ -21,6 +22,11 @@ export type PrintedTable = {
   chips: PrintedChip[];
   /** What the table counts and how to read it, in the platform's own words: one quiet line under its title. */
   note?: string;
+  /**
+   * The table's measure (ticket 620): its column, read by each cell's numeric `sort`, and what it means. The table then
+   * opens with the takeaway `printedTakeaway` picks, ranks worst first, marks the worst row, bars and folds.
+   */
+  meaning?: Meaning & { column: number };
 };
 
 type Row = { id: string; cells: PrintedCell[] };

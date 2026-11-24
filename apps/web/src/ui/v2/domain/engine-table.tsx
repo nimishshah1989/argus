@@ -2,6 +2,7 @@ import { Fragment, useContext, type ReactNode } from 'react';
 import { Button } from '../button.js';
 import { DataTable, type Column, type FilterChip, type TableWords } from '../data-table.js';
 import { EntityChip, EntityOpenContext, type EntityChipProps } from '../entity-chip.js';
+import type { Meaning } from '../takeaway.js';
 
 /** One printed cell: what it says, what it sorts by, and the thing it names when it names one. */
 export type Cell = {
@@ -37,6 +38,11 @@ export type TableModel = {
   /** Filter chips after "All": each keeps the rows whose `column` says `key`. */
   chips: { key: string; label: string; column: number }[];
   words: EngineTableWords;
+  /**
+   * The table's measure (ticket 620): its column, read by each cell's numeric `sort`, and what it means. The table then
+   * opens with the takeaway `printedTakeaway` picks, ranks worst first, marks the worst row, bars and folds.
+   */
+  meaning?: Meaning & { column: number };
 };
 
 type Row = { id: string; cells: Cell[] };
