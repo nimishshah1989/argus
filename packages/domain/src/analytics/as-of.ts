@@ -41,3 +41,15 @@ export function dataAsOf(data: EngineData, asOf: string): EngineData {
     ),
   };
 }
+
+/**
+ * The plant from the plant date `from` on (ADR 0027), the lower bound to `dataAsOf`'s upper one. A ticket or task is in
+ * if it was reported on or after that plant day (plant time zone); a report if its date is and its ticket, when it has
+ * one, is in; a plant event and a Why-Why record if their ticket is in. Machines, moves, people, lists and settings are
+ * unchanged.
+ */
+export function dataFrom(data: EngineData, from: string): EngineData {
+  void data;
+  void from;
+  throw new Error('not built: ticket 621');
+}
