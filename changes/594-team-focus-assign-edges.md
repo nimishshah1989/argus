@@ -1,1 +1,1 @@
-Team Focus "I'll take it" now hides when the signed-in person or the month is unknown, shows its failure beside the decisions, and an owner with no actions still opens its drawer.
+- TF-4 (ticket 594): Team Focus "I'll take it" is hidden on list rows and in the drawer until the signed-in user and the month are known; the owner drawer names its owner from the ref id even with no actions; the failure message sits beside the decisions.

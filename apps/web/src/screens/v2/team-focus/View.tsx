@@ -84,9 +84,9 @@ function Body({
           decisions={model.start}
           words={words.decisions}
           {...decision}
-          // The list's rows always show their button; without a user to assign to it does nothing.
-          onDecide={act.onAssign ?? ignore}
-          onUndo={act.onUnassign ?? ignore}
+          // Absent until the user and the month are known: the rows then hide "I'll take it" (ticket 594).
+          onDecide={act.onAssign}
+          onUndo={act.onUnassign}
         />
       ) : (
         <Panel title={words.decisions.title}>
