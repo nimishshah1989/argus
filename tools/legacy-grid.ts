@@ -1,5 +1,5 @@
-import type { ClassifiedRow } from '../apps/server/src/seed/legacy-classify.js';
-import type { Cell } from '../apps/server/src/seed/legacy-sheets.js';
+import { isPm, type ClassifiedRow } from '../apps/server/src/seed/legacy-classify.js';
+import { foldMachine, type Cell } from '../apps/server/src/seed/legacy-sheets.js';
 
 /**
  * Ticket 625 (G3.1, history lane): `Jul-23.xlsx` is not an entry register but a machine x day grid of one month's
@@ -20,9 +20,22 @@ export function readMonthGrid(
   grids: Record<string, Cell[][]>,
   known: ReadonlySet<string>,
 ): Map<string, number> {
-  void grids;
-  void known;
-  throw new Error('not implemented');
+  const out = new Map<string, number>();
+  for (const [sheet, grid] of Object.entries(grids)) {
+    if (!/^UNIT-\d+$/i.test(sheet.trim())) continue;
+    for (const [label, ...days] of grid) {
+      const text = typeof label === 'string' ? label.trim() : '';
+      if (!text || /^(total|note|machine)/i.test(text)) continue;
+      const minutes = days.reduce<number>(
+        (sum, v) => sum + (typeof v === 'number' ? Math.round(v * 1440) : 0),
+        0,
+      );
+      const folded = foldMachine(text, known);
+      const key = known.has(folded) ? folded : `unknown ${text}`;
+      out.set(key, (out.get(key) ?? 0) + minutes);
+    }
+  }
+  return out;
 }
 
 /**
@@ -37,8 +50,19 @@ export function compareGrid(
   rows: readonly ClassifiedRow[],
   month: string,
 ): string[] {
-  void grid;
-  void rows;
-  void month;
-  throw new Error('not implemented');
+  const register = new Map<string, number>();
+  for (const { row, cls, machine } of rows) {
+    if (row.year !== Number(month.slice(0, 4)) || cls !== 'ticket' || isPm(row)) continue;
+    if (!row.date?.startsWith(month)) continue;
+    register.set(machine, (register.get(machine) ?? 0) + row.minutes);
+  }
+  const isUnknown = (k: string): boolean => k.startsWith('unknown ');
+  const codes = [...new Set([...grid.keys(), ...register.keys()])].filter((k) => !isUnknown(k));
+  const lines = codes.sort().map((code) => {
+    const g = grid.get(code) ?? 0;
+    const r = register.get(code) ?? 0;
+    return g === r ? `${code} equal ${g}` : `${code} grid ${g} register ${r} gap ${g - r}`;
+  });
+  for (const k of [...grid.keys()].filter(isUnknown).sort()) lines.push(`${k} ${grid.get(k)}`);
+  return lines;
 }
