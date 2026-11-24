@@ -10,6 +10,7 @@ import {
 import { withTenant } from '../src/kernel/index.js';
 import { loadEngineData } from '../src/modules/analytics/load.js';
 import { runForTenant, type FigureStore } from '../src/modules/analytics/service.js';
+import { warmServedRun } from '../src/modules/analytics/served.js';
 import { profileOfKey, snapshotStore } from '../src/modules/analytics/snapshot.js';
 import { A, B, M_B, M_FREE, M_USED, startFixture, type Fixture } from './plant-settings-fixture.js';
 
@@ -280,6 +281,9 @@ describe('the analytics profile and the engine, through HTTP', () => {
 
   it('shows the money numbers of the profile only to heads and admin', async () => {
     const money = ['mmThroughput', 'mmTurnover', 'mmSucc'];
+    // Earlier tests changed the profile; a read serves the kept run until a warm run (ADR 0024).
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+    await warmServedRun(f.db.app, { tenantId: A, asOf: today });
     const head = (await f.call('GET', '/api/v1/analytics/figures', f.tokens.head!)).json().profile;
     for (const key of money) expect(head[key], key).toEqual(expect.any(Number));
     const supervisor = (
