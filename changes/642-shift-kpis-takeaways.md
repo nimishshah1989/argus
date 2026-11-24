@@ -1,0 +1,1 @@
+Shift-calendar KPIs: each computed section except the comparison opens with a takeaway, the comparison opens with the verdict, and every figure tile shows its engine basis line once as its yardstick (ADR 0031 §4, ADR 0033).

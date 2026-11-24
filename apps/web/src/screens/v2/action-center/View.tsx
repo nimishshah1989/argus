@@ -5,6 +5,7 @@ import { EntityOpenContext, type EntityRef } from '../../../ui/v2/entity-chip.js
 import { KpiCard } from '../../../ui/v2/kpi-card.js';
 import { Row } from '../../../ui/v2/row.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
+import { Takeaway } from '../../../ui/v2/takeaway.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
 import { EntityShell, type LocalEntity } from '../entity/EntityShell.js';
 import { useEntityParam } from '../entity/url.js';
@@ -46,11 +47,13 @@ function Body({ model, acts }: { model: ActionCenterModel; acts: ActionCenterAct
           {words.saveFailed}
         </p>
       ) : null}
+      {model.takeaways?.nudges ? <Takeaway data={model.takeaways.nudges} /> : null}
       <NudgeTable
         model={model}
         selected={current?.kind === 'decision' ? current.id : undefined}
         onOpen={(row) => open({ kind: 'decision', id: row.id })}
       />
+      {model.takeaways?.risk ? <Takeaway data={model.takeaways.risk} /> : null}
       <RiskTable model={model} />
       <SourceLine text={model.source} />
     </>
