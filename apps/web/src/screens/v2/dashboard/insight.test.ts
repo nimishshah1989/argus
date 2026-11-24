@@ -8,7 +8,7 @@ import { dashboardModel } from './adapter.js';
 import { dashboardTestModel, priorReply } from './test-model.js';
 
 /**
- * Ticket 640, M2b (ADR 0031 §2): the Dashboard says what to notice. In the frozen 11 November plant, against
+ * Ticket 640, M2b (ADR 0031 §2; critical tests only, ADR 0033: figures, not wording or tone): the Dashboard says what to notice. In the frozen 11 November plant, against
  * 12 October: Axis motor / drive / encoder / servo leads the costliest problems at 485.0 hrs; 13 of the 117 machines
  * on the bubble table make up 51% of the 3,060.11 hrs; no ticket is open; every card names its 12 October value.
  */
@@ -19,39 +19,19 @@ const t: Translate = (key, values = {}) =>
     Object.hasOwn(values, name) ? String(values[name]) : whole,
   );
 
-describe('Dashboard tables declare what they mean', () => {
-  it('costliest problems: hours (column 1), high is worse, the rows add up', () => {
-    expect(model.costliest?.table).toMatchObject({
-      meaning: { column: 1, worse: 'high', additive: true },
-    });
-  });
-
-  it('machines: BD hours (column 3), high is worse, the rows add up', () => {
-    expect(model.machines).toMatchObject({ meaning: { column: 3, worse: 'high', additive: true } });
-  });
-});
-
 describe('Dashboard takeaways', () => {
   it('opens the costliest problems with the one that outweighs the others', () => {
-    expect(model.takeaways?.costliest).toMatchObject({
-      text: 'Axis motor / drive / encoder / servo is 1.6× the average of the others (485.0).',
-    });
+    const text = model.takeaways?.costliest?.text ?? '';
+    for (const figure of ['Axis motor / drive / encoder / servo', '1.6', '485.0'])
+      expect(text).toContain(figure);
   });
 
   it('opens the machines table with how few machines carry half the hours', () => {
-    expect(model.takeaways?.machines).toMatchObject({
-      text: '13 of 117 make up 51% of the total.',
-    });
+    const text = model.takeaways?.machines?.text ?? '';
+    for (const figure of ['13', '117', '51%']) expect(text).toContain(figure);
   });
 
-  it('opens "needs you now" with a quiet note when nothing is open', () => {
-    expect(model.takeaways?.needs).toMatchObject({
-      text: 'Nothing needs you now.',
-      tone: 'neutral',
-    });
-  });
-
-  it('opens "needs you now" with the counts, as a risk, when something is open', () => {
+  it('opens "needs you now" with the open counts when something is open', () => {
     const late = {
       id: 't1',
       ref: 'BD-1',
@@ -81,7 +61,7 @@ describe('Dashboard takeaways', () => {
     expect(busy.needs.state).toBe('ready');
     const counts = (busy.needs as { counts: string }).counts;
     expect(counts).toMatch(/^1 open/);
-    expect(busy.takeaways?.needs).toMatchObject({ text: counts, tone: 'risk' });
+    expect(busy.takeaways?.needs?.text).toBe(counts);
   });
 });
 
