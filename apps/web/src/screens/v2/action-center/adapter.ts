@@ -7,11 +7,14 @@ import {
   type NudgeSeverity,
   type NudgeStatus,
 } from '@uptimo/shared';
+import { fill } from '../../../i18n/fill.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
 import type { Point } from '../../../ui/v2/points.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
 import { plantDayOf } from '../../analytics/action-center.js';
 import { dayText, machineChip, sourceLine, type Translate } from '../figures/read.js';
+import { takeawayFor, type Item } from '../insight.js';
 import type {
   ActionCenterModel,
   ActionCenterWords,
@@ -145,6 +148,12 @@ function riskOf(board: ActionCenterBoardReply, names: Names): RiskRow[] {
   });
 }
 
+/** A card's share of the open nudges ("15% of 33"); none when nothing is open, so there is no division by zero. */
+function shareOf(count: number, open: number, t: Translate): string | undefined {
+  if (open === 0) return undefined;
+  return fill(t('insight.yardstick.share'), { pct: Math.round((count / open) * 100), total: open });
+}
+
 function kpisOf(board: ActionCenterBoardReply, t: Translate): KpiData[] {
   const meaning = (sev: NudgeSeverity, count: number): string => {
     if (count === 0) return t('v2a.kpi.none');
@@ -163,7 +172,33 @@ function kpisOf(board: ActionCenterBoardReply, t: Translate): KpiData[] {
     period: '',
     meaning: meaning(sev, board.bySeverity[sev]),
     more: t('v2a.kpi.more'),
+    yardstick: shareOf(board.bySeverity[sev], board.counts.open, t),
   }));
+}
+
+/** The open nudges counted by kind, over the whole board (not the tab, priority or search): one item per kind. */
+function openByKind(board: ActionCenterBoardReply, t: Translate): Item[] {
+  const kinds = new Map<string, number>();
+  for (const nudge of board.nudges)
+    if (nudge.status === 'open') kinds.set(nudge.rule, (kinds.get(nudge.rule) ?? 0) + 1);
+  return [...kinds].map(([rule, count]) => ({
+    name: t(`analytics.actionCenter.rule.${rule}`),
+    value: count,
+    shown: String(count),
+  }));
+}
+
+/** One computed line per table (ADR 0035, ticket 654): the nudges by kind, and the risk scores with the machine's code. */
+function takeawaysOf(board: ActionCenterBoardReply, risk: RiskRow[], t: Translate): Takeaways {
+  const scores: Item[] = risk.map((row) => ({
+    name: row.machine?.label ?? '',
+    value: row.score.value,
+    shown: row.score.shown,
+  }));
+  return {
+    nudges: takeawayFor(openByKind(board, t), { worse: 'high', additive: true }, t),
+    risk: takeawayFor(scores, { worse: 'high' }, t),
+  };
 }
 
 /** The answer first: what needs a person now, and which machine tops the engine's own ranking. */
@@ -264,6 +299,7 @@ function wordsOf(t: Translate, snoozeDays: number): ActionCenterWords {
 export function actionCenterModel(facts: BoardFacts, t: Translate): ActionCenterModel {
   const { board } = facts;
   const names = namesOf(facts, t);
+  const risk = riskOf(board, names);
   return {
     verdict: verdictOf(board, names, t),
     kpis: kpisOf(board, t),
@@ -274,7 +310,8 @@ export function actionCenterModel(facts: BoardFacts, t: Translate): ActionCenter
     })),
     types: NUDGE_RULES.map((key) => ({ key, label: t(`analytics.actionCenter.rule.${key}`) })),
     nudges: board.nudges.map((nudge) => rowOf(nudge, facts, names, t)),
-    risk: riskOf(board, names),
+    risk,
+    takeaways: takeawaysOf(board, risk, t),
     people: facts.people.filter((p) => p.active).map((p) => p.name),
     snoozeDays: board.snoozeDays,
     source: sourceLine(t('v2m.source'), board.asOf),

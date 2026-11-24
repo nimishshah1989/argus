@@ -110,6 +110,8 @@ import { analyticsV2TodayEn } from './analytics-v2-today.en.js';
 import { analyticsV2TodayGu } from './analytics-v2-today.gu.js';
 import { analyticsV2TeamFocusEn } from './analytics-v2-team-focus.en.js';
 import { analyticsV2TeamFocusGu } from './analytics-v2-team-focus.gu.js';
+import { analyticsV2MoneyEn } from './analytics-v2-money.en.js';
+import { analyticsV2MoneyGu } from './analytics-v2-money.gu.js';
 
 /** The English catalogues by namespace; each key lives in exactly one. */
 export const NAMESPACES: Record<string, Record<string, string>> = {
@@ -169,6 +171,7 @@ export const NAMESPACES: Record<string, Record<string, string>> = {
   'analytics-v2-today': analyticsV2TodayEn,
   insight: insightEn,
   'analytics-v2-team-focus': analyticsV2TeamFocusEn,
+  'analytics-v2-money': analyticsV2MoneyEn,
 };
 
 /** One flat catalogue; no type annotation, so `MessageKey` keeps every key as a literal. */
@@ -229,6 +232,7 @@ export const en = {
   ...analyticsV2TodayEn,
   ...insightEn,
   ...analyticsV2TeamFocusEn,
+  ...analyticsV2MoneyEn,
 };
 
 export type MessageKey = keyof typeof en;
@@ -291,6 +295,7 @@ export const gu = {
   ...analyticsV2TodayGu,
   ...insightGu,
   ...analyticsV2TeamFocusGu,
+  ...analyticsV2MoneyGu,
 };
 
 export * from './overrides.js';

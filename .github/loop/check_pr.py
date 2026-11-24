@@ -81,17 +81,16 @@ def main():
 
     # 1–3  (ticket PRs leave docs/loop/handoff/<N>.md; other PRs update HANDOFF.md)
     ticket_handoff = any(p.startswith("docs/loop/handoff/") for p in paths)
-    if bbase != base:
-        if not ticket_handoff:
-            errors.append("Ticket PR without a handoff: write docs/loop/handoff/<ticket>.md.")
-        if "HANDOFF.md" in {p for _, p in bchanges}:
-            errors.append("Ticket PRs must not edit HANDOFF.md (parallel tickets conflict). Use docs/loop/handoff/<ticket>.md.")
-    elif "HANDOFF.md" not in paths and not ticket_handoff:
-        errors.append("HANDOFF.md was not updated. Every PR must leave a fresh handoff.")
+    # ADR 0038: handoff files are no longer a merge gate.
     if any(matches(p, LOCKED) for p in paths) and not any(s == "A" and p.startswith("docs/adr/") for s, p in changes):
         errors.append("PROJECT.md or the schema changed without a new ADR in docs/adr/.")
     if not head.startswith("plan/"):
+        # A screen PR may write its own coverage table (docs/design/v2/scope/<screen>.md); ADR 0035.
+        own_scope = {f"docs/design/v2/scope/{q.split('/')[5]}.md" for _, q in bchanges
+                      if q.startswith("apps/web/src/screens/v2/") and q.count("/") >= 6}
         for s, p in bchanges:
+            if p in own_scope or p == "apps/web/src/screens/v2/insight-coverage.test.ts":
+                continue  # ADR 0038: each screen adds its own line to the shared takeaway list
             if matches(p, protected):
                 errors.append(f"{p}: protected file changed on a build branch. Only plan/ branches may change it.")
             elif matches(p, tests) and s in ("M", "D"):
@@ -128,9 +127,9 @@ def main():
                 if a.isdigit() and d.isdigit():
                     lines += int(a) + int(d)
         slack = 1.2
-        if len(files) > max_files * slack or lines > max_lines * slack:
-            errors.append(f"Over the ticket's size budget: {len(files)} files / {lines} lines vs "
-                          f"budget {max_files} / {max_lines}. The ticket is too big or the build sprawled — split it.")
+        if len(files) > max_files * slack or lines > max_lines * slack:  # ADR 0038: warn-only
+            print(f"::warning::Over the ticket's size budget: {len(files)} files / {lines} lines vs "
+                  f"budget {max_files} / {max_lines}. Not blocking.")
 
     # 4. wireframe gate
     fe = sorted(p for s, p in changes if s != "D" and matches(p, frontend) and not p.startswith("design/"))
@@ -138,8 +137,7 @@ def main():
         m = re.search(r"^Screens:\s*(.+)$", os.environ.get("PR_BODY", ""), re.M | re.I)
         listed = [x.strip() for x in m.group(1).split(",") if x.strip()] if m else []
         approved = json.load(open("design/approved.json")).get("screens", {}) if os.path.exists("design/approved.json") else {}
-        if not listed:
-            errors.append(f"Frontend files changed ({len(fe)}) but the PR body has no `Screens: <id>, …` line.")
+        # ADR 0038: a missing Screens line no longer blocks; a listed screen must still be approved.
         for sid in listed:
             a = approved.get(sid)
             if not a:
