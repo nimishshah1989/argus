@@ -1,35 +1,33 @@
 # HANDOFF
 
-> **24 Nov 15:40 — loop-guard fix (Nimish yes):** a build branch that merged main no longer counts main's files (HANDOFF, ADRs) as builder changes.
+> **Read ADR 0012, 0026, 0028, 0030, 0031 first.** Nimish wants the loop to run itself (`loop auto`, fresh Sonnet coordinator sessions, Opus via `loop plan`); he should not have to chase. Report only: screen 1 as HTML, history counts, blockers.
 
-> **24 Nov 14:33 — kit carve-out applied (ADR 0028 addendum, Nimish yes):** 8 kit files open to builders until #620 merges; then restore `apps/web/src/ui/**` in `.loop.json`.
-> **24 Nov 14:50 — ADR 0030 (Bhavin):** S-1/S-2 = Star-01/02; plain STAR, TC-2, VC-2, VC-3, VC-5 left out; unmapped codes load blank; spare-capacity exclusion (TC-3, TC-5, VC-6) deferred; ~10 impossible-year rows out.
+_Overwritten at the end of every session. Facts only._
 
-> **Read ADR 0012 first.** Nimish is away; the loop runs unattended. Plan decides (ADR each) except answer-key changes, production, money, irreversible data steps.
-
-_Overwritten at the end of every session. Keep under 30 lines. Facts only._
-
-**Updated:** 2026-11-24 · **By:** Plan (history load blocker) · **Model:** claude-opus-5-5
-**Milestone:** M3 history lane · **Branch:** plan/t635 (seed), plan/handoff-t635 (this) · Job done.
+**Updated:** 2026-11-24 16:25 IST · **By:** coordinator (long chat session, handing to `loop auto`) · **Milestone:** M2b screens lane + M3 history lane
 
 ## State
 
-- **History lane — staging load blocker (24 Nov):** `pnpm import:bhavin legacy-<year>.json` on staging failed, 0 rows (unknown alias `Maint. Team`, `LG-` codes, work type `Utility failure`). Not a bug: the designed loader is `tools/load-legacy.ts` → `loadLegacyYears` (adds Plant/Utility failure + switched-off codes, a pending placeholder person per `LG-` code and `Maint. Team`, R8/R17/R20); same workbooks loaded 0 errors locally (`docs/plan/evidence/69c-real-load.md`). **#635** (size:small): import:bhavin refuses an `lg-<year>-` file and points to load-legacy; seed `plan/t635` @ 1785eb9e, 14 red, typecheck/lint green. Failed batch on staging wrote nothing; left as is. Open: #623 (seed ready), #624, #625; 621 merged (#627); **no ticket yet** for the server setting + `load-legacy --data-from` (ADR 0027 §4), then 69d.
-- **ADR 0028** (this PR): 613–615 superseded; kit tickets 619 + 620; rule order target → change → concentration (additive only) → outlier; `.loop.json` carve-out of 8 kit files is PROPOSED, not applied (blocked by permissions; needs Nimish), **restore `apps/web/src/ui/**` when 620 merges**.
-- **619** (INS-K1 rules + tile yardstick): seed `plan/t619` @ a77cd028 pushed — signatures in `screens/v2/insight.ts`, `Meaning` in `ui/v2/takeaway.tsx`, `yardstick?` on KpiData/FigureData, `.v2-yardstick` CSS, 7 new `insight.*` words, coverage test checks tile yardsticks. Visible `insight-rules.test.ts`, `ui/v2/yardstick.test.ts`; hidden `screens/v2/holdout/insight-rules-edges.test.ts`. 22 red, typecheck green. **Issue body not written yet** (placeholder).
-- **620** (INS-K2 tables): issue is a placeholder; **no seed yet**. Design in ADR 0028 §2: `Column.meaning: Meaning & {value}`; pure helpers in `table-model.ts` (`worstFirst`, `worstRow`, `barOf` scale = max(largest, target), `foldAt` show misses clamped 3–5 or 5, no fold if ≤1 left, words "+ {n} more" / "+ {n} more, all within target"); DataTable/EngineTable/PrintedDataTable `takeaway` + `expand`; PagedTable takeaway, bars, expand only (server pages); `tableTakeaway`/`printedTakeaway` in insight.ts. Seed from `plan/t619`. Budget ~files<=9 lines<=420.
-- **M3 G3.2 (Plan, ADR 0029, 24 Nov):** ticket 607's load script fails (p95 4449 ms; a read sends a 12.6 MB body). **Merge 607 as it is** (G3.2 unticked). **#628** (gzipped body built once per kept run, ETag/304, `node:http` readers): seed `plan/t628` @ b2207858, blocked by 607, 10 red + 4 regression guards. A spike proved p95 196 ms. Tick G3.2 only after 628 plus a full `pnpm load:figures` run ≤ 300 ms. Open risk: the 12.6 MB decoded reply on phones (ADR 0029).
-- 613–615 **not closed yet**, worktrees not cleaned (coordinator).
+- **Merged today:** #646 (619 kit: four takeaway rules + tile yardstick), #639 (635), #638 (guard fix), #631 (kit carve-out).
+- **History load on staging (Mac `~/argus-logs/history-load3.sh`, log `history-load3.log`):** running since 16:12 via `tools/load-legacy.ts --data ~/argus-data/flat --tenant cosmos --retired drop`. Read phase done: tickets to load 2022 892, 2023 1106, 2024 1045, 2025 1177 (4220). **Not yet confirmed in the DB**: wait for a `LOAD EXIT` line, then count rows per year in staging and compare MTTR/MTBF to the workbook sheets. Rollback = RDS snapshot `uptimo-before-history-load-202611241554`. Tunnel: kill stale `session-manager-plugin` before restarting (a 14:29 one held port 15432 and hung the first run).
+- **Screens:** #642 Shift KPIs (Haiku) building via `~/argus-logs/lane-642.sh`; #620 (insight tables) seed rebased by Opus, rebuilding via `plan-620.sh`. When 642's PR is green: render the screen to self-contained HTML + screenshot and send Nimish (his ask). Then 641, and after 620 merges 640 + 643; #644 (S22) is over budget, needs a plan split.
+- **16:25 finding:** #642 built, its tests pass (3066), but `pnpm ui:check` fails: seed test titles hold `(#642)` and `#642` reads as a raw hex colour. A plan job is rewriting `#N` to `ticket N` in seeds 640-643 (`~/argus-logs/fix-seeds.sh`, log `fix-seeds.log`), then rebuilds 642 and 641 and finishes them. Do not start those builds again while it runs. #620 is building (`plan-620.log`).
+- **Real red, not stale:** #633 is over its size budget (4 files / 461 lines vs 6 / 90): split or rule via `loop plan`. #645 was Prettier on ADR 0031 (fixed, pushed). #634 pr-meta: quality:pr verdicts; read the log.
+- **Open PRs:** #645 (ADR 0031, screens batch 1) and #633/#634/#637 (M3-H1/H2/H3) were red on stale checks; branches updated to main at 16:20, re-check. Merge each when green.
+- **After #620 merges:** restore `apps/web/src/ui/**` in `.loop.json` via a plan PR (ADR 0028 addendum).
 
 ## Next step
 
-1. Coordinator: build #635 (`loop run-ticket 635`). 2. Plan: ticket the ADR 0027 §4 server setting + `load-legacy --data-from`. 3. No staging history load until 623, 624 and that ticket merge and Nimish says go (then 69d or `tools/load-legacy.ts --allow-remote`). 4. Screens lane: 619 issue body, 620 seed + body, S20–S26 issues (see ADR 0028).
+1. Check `history-load3.log` for LOAD EXIT; verify counts in staging; report per year. 2. Merge green PRs (645 first, then 633, 634, 637). 3. Send Nimish screen 1. 4. Update the tracker artifact (66c8a2ff-0830-443b-9f71-6b36d53fa901).
 
 ## Blocked / open questions (Nimish)
 
-- S20 availability target source; S22 has no previous-period figure (yardstick vs target only until engine has one); S26 new attention badges need server counts (build v1's jobs badge only); C shift in any answer-key row.
+- Answer key books 2 breakdowns (3.00 h) to "shift 3 (no window)" and prints 21.0 working hours/day; conflicts with the 2-shift, 16 h decision. Which is right for the figures?
+- For Bhavin: sheet "STAR" in 2022-23; confirm only TC-3, TC-5, VC-6 are spare; 14 unmapped fault codes (loaded blank); ~10 impossible-year rows left out.
+- Nimish later: make repo private; upload `~/cornerstone/_upload-to-google-drive`; ask Bhavin whether support tickets count as zero downtime.
 
 ## Don't repeat
 
-- Never load legacy years with `pnpm import:bhavin`; only `tools/load-legacy.ts` (with `--data-from` once built). Never loosen the alias rule in `imports/references.ts`.
-- `apps/web/src/ui/**` is protected: kit work needs ADR 0028's carve-out. Seeds' stub files need the eslint unused-vars disable line. Never force-push. "ticket N" in comments.
+- Never load legacy years with `pnpm import:bhavin`; only `tools/load-legacy.ts`. Don't pipe a long job through `tail` (no output for minutes); log to a file and check the process.
+- Check a background job's process and log every few minutes; a silent step over 10 min is a stall, not progress.
+- Update a PR's branch (`gh api -X PUT .../pulls/N/update-branch`) before reading red checks; most reds were stale.
