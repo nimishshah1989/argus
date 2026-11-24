@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { FIGURES } from '@uptimo/domain';
 import { withTenant } from '../src/kernel/index.js';
 import { runForTenant } from '../src/modules/analytics/service.js';
-import { servedRun, STAMPED_TABLES } from '../src/modules/analytics/served.js';
+import { servedRun, STAMPED_TABLES, warmServedRun } from '../src/modules/analytics/served.js';
 import { A, M_FREE, M_USED, startFixture, type Fixture } from './plant-settings-fixture.js';
 
 // Ticket 75a: a figures read serves the stored run. The engine's `run` is wrapped so the test can count how often
@@ -41,6 +41,8 @@ const figures = async (token = f.tokens.head!, asOf = ASOF) => {
   expect(res.statusCode).toBe(200);
   return res.json() as { figures: unknown[]; rows: Record<string, number>; profile: unknown };
 };
+/** The warm job's work (ticket 606): what brings a kept run up to date once the data moved. */
+const warm = (asOf = ASOF) => warmServedRun(f.db.app, { tenantId: A, asOf });
 const computes = async <T>(read: () => Promise<T>) => {
   const before = runCalls.n;
   const answer = await read();
@@ -119,28 +121,40 @@ describe('figures served from the stored run (75a)', () => {
         ),
     ],
   ];
-  it.each(changes)('computes again, and only once, after %s', async (_name, change) => {
-    await figures();
-    expect((await computes(() => figures())).ran).toBe(0);
-    const before = await figures();
-    await change();
-    const after = await computes(() => figures());
-    expect(after.ran).toBe(1);
-    expect(after.answer).not.toEqual(before);
-    expect(after.answer.figures).toEqual((await fresh()).figures);
-    expect((await computes(() => figures())).ran).toBe(0);
-  });
+  it.each(changes)(
+    'serves the kept run after %s, and one warm run brings it up to date (606)',
+    async (_name, change) => {
+      await figures();
+      await warm();
+      expect((await computes(() => figures())).ran).toBe(0);
+      const before = await figures();
+      await change();
+      const stale = await computes(() => figures());
+      expect(stale.ran).toBe(0);
+      expect(stale.answer).toEqual(before);
+      expect((await computes(warm)).ran).toBe(1);
+      const after = await computes(() => figures());
+      expect(after.ran).toBe(0);
+      expect(after.answer).not.toEqual(before);
+      expect(after.answer.figures).toEqual((await fresh()).figures);
+    },
+  );
 
-  it('computes again after the plant changes its analytics profile', async () => {
+  it('serves the old profile after the plant changes it, until the warm run (606)', async () => {
     await figures();
+    await warm();
     const list = await f.call('GET', '/api/v1/analytics-profile', f.tokens.head!);
     const row = list.json().items[0] as { id: string; mmThroughput: number };
     const put = await f.call('PUT', `/api/v1/analytics-profile/${row.id}`, f.tokens.head!, {
       mmThroughput: row.mmThroughput + 100,
     });
     expect(put.statusCode).toBe(200);
+    const stale = await computes(() => figures());
+    expect(stale.ran).toBe(0);
+    expect((stale.answer.profile as { mmThroughput: number }).mmThroughput).toBe(row.mmThroughput);
+    await warm();
     const after = await computes(() => figures());
-    expect(after.ran).toBe(1);
+    expect(after.ran).toBe(0);
     expect((after.answer.profile as { mmThroughput: number }).mmThroughput).toBe(
       row.mmThroughput + 100,
     );
@@ -200,7 +214,7 @@ describe('the stamp covers what the engine reads (75a)', () => {
 });
 
 describe('the stamp and the lock under concurrent writers (75a)', () => {
-  it('sees a write that commits after a newer transaction already committed', async () => {
+  it('the warm run sees a write that commits after a newer transaction already committed (606)', async () => {
     const day = '2026-11-14';
     await f.admin.query(
       `INSERT INTO ticket (tenant_id, ref, kind, status, machine_id, problem, reported_at, raised_channel, severity)
@@ -216,11 +230,14 @@ describe('the stamp and the lock under concurrent writers (75a)', () => {
       await late.query('BEGIN');
       await late.query("UPDATE ticket SET problem = 'Belt B' WHERE ref = 'BD-7501'");
       await late.query('COMMIT');
-      expect((await computes(() => figures(f.tokens.head!, day))).ran).toBe(1);
+      // The read serves the kept run; the warm run sees the write that committed late (ticket 606).
       expect((await computes(() => figures(f.tokens.head!, day))).ran).toBe(0);
+      expect((await computes(() => warm(day))).ran).toBe(1);
+      expect((await computes(() => warm(day))).ran).toBe(0);
       await early.query("UPDATE ticket SET problem = 'Belt A' WHERE ref = 'BD-7503'");
       await early.query('COMMIT');
-      expect((await computes(() => figures(f.tokens.head!, day))).ran).toBe(1);
+      expect((await computes(() => figures(f.tokens.head!, day))).ran).toBe(0);
+      expect((await computes(() => warm(day))).ran).toBe(1);
     } finally {
       early.release();
       late.release();
@@ -263,7 +280,8 @@ describe('the stamp and the lock under concurrent writers (75a)', () => {
     const [first, second] = await Promise.all([leader, waiter]);
     expect(waiterComputed).toBe(0);
     expect(second).toEqual(first);
-    expect((await computes(() => figures(f.tokens.head!, day))).ran).toBe(1);
+    expect((await computes(() => figures(f.tokens.head!, day))).ran).toBe(0);
+    expect((await computes(() => warm(day))).ran).toBe(1);
   });
 
   it('writes one kept row for the date and no stored-figure row on a read', async () => {

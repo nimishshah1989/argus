@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { M_B, M_FREE, M_USED, startFixture, type Fixture } from './plant-settings-fixture.js';
+import { warmServedRun } from '../src/modules/analytics/served.js';
+import { A, M_B, M_FREE, M_USED, startFixture, type Fixture } from './plant-settings-fixture.js';
 
 /**
  * Ticket 77a: the plant switches a spare-capacity machine to "not counted in production data". The switch is one audit
@@ -27,6 +28,7 @@ const lines = async (id: string) =>
   ).rows as Array<{ action: string; before: unknown; after: unknown; username: string }>;
 const metadata = async (id: string) =>
   (await f.admin.query('SELECT metadata FROM machine WHERE id = $1', [id])).rows[0].metadata;
+const warm = () => warmServedRun(f.db.app, { tenantId: A, asOf: AS_OF });
 const figures = async () => {
   const res = await f.call('GET', `/api/v1/analytics/figures?asOf=${AS_OF}`, f.tokens.head!);
   expect(res.statusCode).toBe(200);
@@ -136,11 +138,13 @@ describe('switching a machine out of production data', () => {
     expect(before.excludedMachines).toBe(0);
     expect(production(before)).toBe(2);
     await f.call('PUT', path(M_USED), f.tokens.head!, { excludedFromProduction: true });
+    await warm();
     const during = await figures();
     expect(during.excludedMachines).toBe(1);
     expect(production(during)).toBe(1);
     expect(cncCount(during)).toBe(cncCount(before));
     await f.call('PUT', path(M_USED), f.tokens.head!, { excludedFromProduction: false });
+    await warm();
     const after = await figures();
     expect([after.excludedMachines, production(after)]).toEqual([0, 2]);
     expect(await lines(M_USED)).toHaveLength(2);
@@ -154,6 +158,7 @@ describe('switching a machine out of production data', () => {
     ];
     const before = await figures();
     await f.call('PUT', path(M_USED), f.tokens.head!, { excludedFromProduction: true });
+    await warm();
     const during = await figures();
     await f.call('PUT', path(M_USED), f.tokens.head!, { excludedFromProduction: false });
     // Whether these tiles drop a left-out machine is an open product question (ledger, 19 Nov): they stay as on main.

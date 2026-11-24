@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withTenant } from '../src/kernel/index.js';
 import { loadEngineData } from '../src/modules/analytics/load.js';
+import { warmServedRun } from '../src/modules/analytics/served.js';
 import { A, M_FREE, M_USED, startFixture, type Fixture } from './plant-settings-fixture.js';
 
 // 41c-2: the analytics loader reads the latest why_why payload per ticket, so A6 turns that ticket Completed.
@@ -80,6 +81,7 @@ describe('the Why-Why figures after a save', () => {
     const savedRecord = await put(f.tokens.head!, saved('The bearing was worn.'), ticketId);
     expect(savedRecord.statusCode, savedRecord.body).toBe(201);
 
+    await warmServedRun(f.db.app, { tenantId: A, asOf: plantToday() });
     const after = await figures();
     expect(rowOf(a6Rows(after), 'VC-02')).toEqual([
       'VC-02',
