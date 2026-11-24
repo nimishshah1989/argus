@@ -64,7 +64,8 @@ function Value({ kpi }: { kpi: KpiData }) {
 
 /** The change against its period, signed, with its direction; nothing when the engine holds no earlier figure. */
 function Delta({ kpi, tone }: { kpi: KpiData; tone: Tone }) {
-  if (kpi.delta.text === '') return null;
+  if (kpi.delta.text === '')
+    return kpi.yardstick ? <span className="v2-yardstick">{kpi.yardstick}</span> : null;
   return (
     <span className={`v2-delta v2-delta-${tone}`}>
       {kpi.delta.flat ? null : <Icon name={kpi.delta.up ? 'up' : 'down'} size={12} />}

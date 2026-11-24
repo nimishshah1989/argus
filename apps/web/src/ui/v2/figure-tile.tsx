@@ -41,6 +41,7 @@ export function FigureTile({ figure }: { figure: FigureData }) {
           {value.text}
         </div>
       )}
+      {figure.yardstick ? <span className="v2-yardstick">{figure.yardstick}</span> : null}
       {figure.sub ? <p className="v2-kpi-meaning">{figure.sub}</p> : null}
     </section>
   );
