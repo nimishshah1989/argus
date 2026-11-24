@@ -43,7 +43,7 @@ const model = modelWith([
   }),
 ]);
 
-describe('Machine page insight pass (#643)', () => {
+describe('Machine page insight pass (ticket 643)', () => {
   it('marks the spares table: downtime hours, high is worse, they add up', () => {
     expect(model.spares.table).toMatchObject({
       meaning: { column: 2, worse: 'high', additive: true },

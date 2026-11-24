@@ -48,7 +48,7 @@ const SECTIONS: Record<string, string[]> = {
 type WithTakeaways = { takeaways?: Takeaways } | null;
 /** A finished screen's model, when its frozen provider needs params or it has none (a test-support file builds it). */
 const MODELS: Record<string, () => Promise<WithTakeaways>> = {
-  // Cast until #643 adds `takeaways` to MachinePageModel.
+  // Cast until ticket 643 adds `takeaways` to MachinePageModel.
   machine: async () =>
     machinePageModel(
       realReply(),
