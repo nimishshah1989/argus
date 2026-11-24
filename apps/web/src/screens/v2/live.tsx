@@ -13,6 +13,7 @@ import { BdPmView } from './bd-pm/View.js';
 import { CategoryCellView } from './category-cell/View.js';
 import { MttrMtbfView } from './mttr-mtbf/View.js';
 import { CellLogView } from './cell-change-log/View.js';
+import { ComparePage } from './compare/Page.js';
 import { DataChecklistLive } from './data-checklist/Page.js';
 import { DashboardPage } from './dashboard/Page.js';
 import { BottleneckView } from './bottleneck/View.js';
@@ -125,6 +126,7 @@ const LIVE: readonly Live[] = [
     page: () => <BreakdownLogPage />,
   },
   { group: 'pm', section: 'reports', screen: 'pm-calendar', page: () => <PmCalendarPage /> },
+  { group: 'machines', section: 'machines', screen: 'compare', page: () => <ComparePage /> },
   {
     group: 'machines',
     section: 'machines',
