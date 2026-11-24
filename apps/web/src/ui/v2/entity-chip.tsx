@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 import { Icon, type IconName } from './icons.js';
+import type { SegmentKey } from './segment.js';
 
 /** The four things a screen names: a machine, a cell, a person, a decision. */
 export type EntityKind = 'machine' | 'cell' | 'person' | 'decision';
@@ -9,6 +10,11 @@ export type EntityChipProps = EntityRef & {
   label: string;
   /** A machine's type colour, 1 to 5. */
   cat?: number;
+  /**
+   * A machine's segment (ADR 0036 R23), printed as `data-seg`; the chip colour then follows the segment. With `seg`
+   * set the chip carries no `data-cat` (seg wins over cat).
+   */
+  seg?: SegmentKey;
 };
 
 const ICON: Record<EntityKind, IconName> = {
