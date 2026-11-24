@@ -1,5 +1,8 @@
 # HANDOFF
 
+> **24 Nov 15:40 — loop-guard fix (Nimish yes):** a build branch that merged main no longer counts main's files (HANDOFF, ADRs) as builder changes.
+
+> **24 Nov 14:33 — kit carve-out applied (ADR 0028 addendum, Nimish yes):** 8 kit files open to builders until #620 merges; then restore `apps/web/src/ui/**` in `.loop.json`.
 > **24 Nov 14:50 — ADR 0030 (Bhavin):** S-1/S-2 = Star-01/02; plain STAR, TC-2, VC-2, VC-3, VC-5 left out; unmapped codes load blank; spare-capacity exclusion (TC-3, TC-5, VC-6) deferred; ~10 impossible-year rows out.
 
 > **Read ADR 0012 first.** Nimish is away; the loop runs unattended. Plan decides (ADR each) except answer-key changes, production, money, irreversible data steps.
