@@ -1,6 +1,7 @@
 import type { PagedWords } from '../../../ui/v2/paged-table.js';
 import type { EntityChipProps } from '../../../ui/v2/entity-chip.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
 
 export type LogFilterId = 'date' | 'month' | 'shift' | 'machine' | 'code' | 'person';
 export type LogSortKey =
@@ -82,6 +83,8 @@ export type LogWords = {
 /** One page of the log and what it needs to draw its table; never more than 10 rows. */
 export type LogModel = {
   verdict: VerdictData;
+  /** ADR 0031 §3: `log`, over the hours by machine of the matching entries (not the page), PM rows and dashes left out. */
+  takeaways?: Takeaways;
   rows: LogRow[];
   query: LogQuery;
   /** Rows that match the filters; the pager counts these. */
