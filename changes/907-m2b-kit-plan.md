@@ -1,0 +1,1 @@
+- Internal planning only: the M2b screen work now goes through two shared kit changes first (takeaway rules, insight-aware tables). Nothing changes in the app yet.

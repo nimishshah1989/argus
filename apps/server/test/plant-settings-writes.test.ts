@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { warmServedRun } from '../src/modules/analytics/served.js';
 import {
+  A,
   GROUP_A,
   ITEM_A,
   M_B,
@@ -725,6 +727,7 @@ describe('an admin corrects a cell move date within the plant bounds', () => {
     const { machine, newest } = await history('CM-8', [-6]);
     const target = day(-9);
     expect((await correct(machine.id, newest.id, target)).statusCode).toBe(200);
+    await warmServedRun(f.db.app, { tenantId: A, asOf: plantToday() });
     const figures = (await f.call('GET', '/api/v1/analytics/figures', head())).json()
       .figures as Array<{
       key: string;
