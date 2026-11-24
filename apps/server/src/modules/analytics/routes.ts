@@ -25,6 +25,7 @@ import {
 import { withTenant } from '../../kernel/index.js';
 import { requireAuth } from '../identity/index.js';
 import { actorOf, forbidden, plantToday, registerResource } from '../plant/index.js';
+import { registerCompareRoute } from './compare-route.js';
 import { registerFocusNoteRoutes } from './focus-notes.js';
 import { loadEngineData } from './load.js';
 import { registerNudgeRoutes, type NudgeBoardOf } from './nudges.js';
@@ -169,6 +170,7 @@ export function registerAnalyticsRoutes(app: FastifyInstance, pool: Pool): void 
   registerResource(app, pool, profileResource);
   registerNudgeRoutes(app, pool, boardOf);
   registerFocusNoteRoutes(app, pool);
+  registerCompareRoute(app, pool);
   app.get('/api/v1/analytics/figures', async (request, reply) => {
     const ctx = await requireAuth(pool, request, reply);
     if (!ctx) return;
