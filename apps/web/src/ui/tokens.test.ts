@@ -78,6 +78,23 @@ describe('token contrast', () => {
     expect(contrastErrors(dark)).toEqual([]);
   });
 
+  // ADR 0036: the v2 status words (good, watch, bad, neutral) on their tints, in light and in dark.
+  it('keeps the v2 status inks at 4.5:1 or better on their tints', () => {
+    const low = [light, dark].flatMap((set) =>
+      ['good', 'watch', 'bad', 'neutral']
+        .map(
+          (s) =>
+            [
+              `color-v2-${s}`,
+              ratio(colour(set, `color-v2-${s}`), colour(set, `color-v2-${s}-tint`)),
+            ] as const,
+        )
+        .filter(([, r]) => r < MIN)
+        .map(([name, r]) => `${name}: ${r.toFixed(2)}`),
+    );
+    expect(low).toEqual([]);
+  });
+
   it('keeps the pressed fill (a card under a finger) at 4.5:1 under neutral-600, in light and dark', () => {
     for (const tokens of [light, dark])
       expect(

@@ -51,3 +51,5 @@ _Exact time definitions (downtime, repair, response, hands-on) live in `docs/spe
 | Gallery                | `/gallery`: v2 screens rendered from the frozen answer-key fixtures, no server needed; staging and dev only                    | the live screens                               |
 | Kit                    | The shared v2 UI parts in `apps/web/src/ui/v2/` (shell, data table, KPI card, entity chip, drawer, chart card)                 | the loop's global design kit                   |
 | Entity chip            | How a machine, cell, person or decision is always shown: a chip that opens its drawer                                          | a plain link                                   |
+| Status                 | How a figure is doing against its yardstick or target: good, watch, bad, or neutral when there is none                         | tone (what kind of figure it is: loss, gain)   |
+| Period                 | The one span of dates every figure on a page counts over, stated on the page (this year, or history and live)                  | as-of date (where the period ends)             |
