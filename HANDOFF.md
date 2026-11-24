@@ -11,13 +11,13 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 - #713 (energy adapter split, fixes `static` on main): updated onto main, body now `Screens: S21-energy`. Its `browser (2/5)` failed 3x on `escalation-history.spec.ts:179` ("Acknowledge" expected, "Start work" shown) around 23:57–00:01 IST. Suspected date-rollover race, NOT proven. Failed job re-run (run 45459725813) at 00:05 IST: read its result first.
 - #710, #712: Screens line removed from the body (`Screens: none (no wireframe id)` is read as an unapproved screen, even after 0038). #711 only fails `static`. All three fail `static` only because main has the 433-line energy adapter: after #713 merges, `gh pr update-branch` each (a fresh push is needed so loop-guard re-reads the edited body).
 - #707 (643): conflict in `insight-coverage.test.ts` (keep both sides) plus the machine reliability browser spec at phone layout. The hook blocks the coordinator from editing `.loop/wt/643`: `loop prep 643` then the builder.
-- 657 and 664: builder reports done, tests green, no Blocked text, yet `loop finish` verdict is FAILED x3 and `b-<N>.log` never says why. `loop finish 657` was started by hand at 23:57 (task output `/tmp/claude-501/finish-657.log`, empty at 00:05; pool also ran finish 665, 666). Find the real reason before spending the Fable rescue.
+- 657 and 664: FOUND the reason. `loop finish` runs the fast suite; the only reds are 2 tests in `packages/domain/test/engine-scale.test.ts` (10,000-row plant must finish in 20 s; the second times out at 60 s), which fail when the Mac is busy (pool builds + CI at once). 3095 of 3097 pass; the age ticket does not touch the engine. Not a ticket fault and not a test to edit. Fix: run `loop finish 657` / `664` when no other build or finish is running (or one at a time); no Fable rescue needed unless it fails on an idle machine. `finish-657.log` is `/tmp/claude-501/finish-657.log`.
 
 ## Next step
 
 1. Read result of run 45459725813; if green, merge #713 (all checks finished). If the same spec fails again at a non-midnight time, it is a real regression on main: look at it first.
 2. Then update-branch #712, #711, #710, #707 one at a time, merging each when all checks finish.
-3. Reason for 657/664 finish failures; then rescue or escalate per CLAUDE.md §2.
+3. Re-run `loop finish 657`, then `664`, one at a time on an idle machine. Likely the same load-timing failure for other pool tickets (665, 666, 667, 668).
 4. Not started: 640, 644, 665, 668–679, rebuilds 641/656, kit #684–#701. Housekeeping from Nimish's paste: duplicate ADR 0035, restore `apps/web/src/ui/**` protection in `.loop.json`, tracker artifact 66c8a2ff is stale.
 
 ## Blocked / open questions
