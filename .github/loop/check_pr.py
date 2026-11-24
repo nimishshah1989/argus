@@ -91,7 +91,12 @@ def main():
     if any(matches(p, LOCKED) for p in paths) and not any(s == "A" and p.startswith("docs/adr/") for s, p in changes):
         errors.append("PROJECT.md or the schema changed without a new ADR in docs/adr/.")
     if not head.startswith("plan/"):
+        # A screen PR may write its own coverage table (docs/design/v2/scope/<screen>.md); Nimish, 24 Nov.
+        own_scope = {f"docs/design/v2/scope/{q.split('/')[5]}.md" for _, q in bchanges
+                      if q.startswith("apps/web/src/screens/v2/") and q.count("/") >= 6}
         for s, p in bchanges:
+            if p in own_scope:
+                continue
             if matches(p, protected):
                 errors.append(f"{p}: protected file changed on a build branch. Only plan/ branches may change it.")
             elif matches(p, tests) and s in ("M", "D"):
