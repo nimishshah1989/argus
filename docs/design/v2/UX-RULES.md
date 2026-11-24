@@ -98,3 +98,14 @@ Motion is a second channel for information, not decoration. It lets a page hold 
 58. Each screen also earns its place with intelligence v1 lacked, built from data we already hold: rank, compare with peers or the fleet, show the trend break, name the repeat cause, forecast, warn early, put a rupee figure on it, say how sure we are. A new insight is computed by the engine and printed by the screen (rule 29), never worked out in the View.
 59. **[check]** A screen PR carries its coverage table (`COVERAGE.md`) in its body and in `docs/design/v2/scope/<screen>.md` (`pnpm quality:pr`, Q16). A row marked MISSING or DROPPED without "Nimish said yes: <date>" fails review and the milestone gate. The orchestrator checks the table against the v1 file and its e2e spec, not against the builder's own word.
 60. Simplifying means moving detail behind a click or into the drawer (rule 9), never removing it.
+
+## 11. Insight first (ADR 0023)
+
+60. Every table, chart and section opens with a one-line takeaway that names the outlier and its size, computed from the data.
+61. The outlier is marked with a tone tag (icon + word); everything else stays quiet. Colour still ≤ ~20 % of cells.
+62. Every key number carries a yardstick inline: delta tag vs last period, bullet bar vs target, or cell bar vs peers.
+63. Default sort is worst/biggest first; top 3 stand out; the long tail collapses ("+ 9 more, all within target").
+64. Rows expand in place for detail; the default view shows ≤ 5 columns.
+65. The same measure across a few groups (shifts, cells, months) is drawn as compared bars or heat cells with numbers beside them; the exact table stays behind "Show the numbers".
+66. Categories (machine type, cell, shift, severity) are chips/tags in their fixed colour, never plain text.
+67. **[review]** A screen PR fails review if any table or chart lacks a takeaway, a marked outlier, or a yardstick on its key number.
