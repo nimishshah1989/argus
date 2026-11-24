@@ -1,5 +1,7 @@
 # HANDOFF
 
+> **24 Nov 19:30 — main fix:** #633 and #637 each added `classifyLegacy` to tools/import-legacy.ts; merged together main failed typecheck. Duplicate import removed. Auto-merger merges green PRs that each pass alone; watch for this.
+
 > **24 Nov 19:15 — ADR 0035 (Nimish yes):** a screen PR may write its own coverage table; loop-guard exempts `docs/design/v2/scope/<screen>.md`.
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
