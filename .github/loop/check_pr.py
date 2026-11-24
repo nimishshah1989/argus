@@ -104,13 +104,29 @@ def main():
         extra = cfg.get("budget_exclude", ["changes/**", "CHANGELOG.md"])
         skip = lambda p: (p == "HANDOFF.md" or p.startswith("docs/loop/") or matches(p, tests) or matches(p, extra)
                           or p.endswith((".lock", "lock.json", "lock.yaml")))
-        files = [p for s_, p in bchanges if not skip(p)]
-        lines = 0
-        # --no-renames keeps full paths so the same "only this PR's files" filter as above applies.
-        for row in sh("git", "diff", "--numstat", "--no-renames", f"{bbase}...HEAD").splitlines():
-            a, d, p = (row.split("\t") + ["", "", ""])[:3]
-            if a.isdigit() and d.isdigit() and p in paths and not skip(p):
-                lines += int(a) + int(d)
+        # Diff the build against the seed applied on top of the main it merged in, so lines from main and from the
+        # seed never count, even in a file all three changed. -M counts a rename once, under its new path.
+        rng = [f"{bbase}...HEAD"]
+        if bbase != base:
+            mb = sh("git", "merge-base", base, "HEAD").strip()
+            mt = subprocess.run(["git", "merge-tree", "--write-tree", mb, bbase], capture_output=True, text=True)
+            # shortcut: if the seed conflicts with main (or git < 2.38), Plan-base...HEAD still counts lines from main
+            # in files the PR also changed; upgrade if that ever fails a real build (ADR 0032).
+            if mt.returncode == 0:
+                rng = [mt.stdout.split()[0], "HEAD"]
+        files, lines = [], 0
+        tok = sh("git", "diff", "--numstat", "-M", "-z", *rng).split("\0")
+        i = 0
+        while i < len(tok):
+            a, d, p = (tok[i].split("\t") + ["", "", ""])[:3]
+            if p == "" and d:  # rename record: counts, then the old path, then the new path
+                p, i = tok[i + 2], i + 3
+            else:
+                i += 1
+            if d and p in paths and not skip(p):
+                files.append(p)
+                if a.isdigit() and d.isdigit():
+                    lines += int(a) + int(d)
         slack = 1.2
         if len(files) > max_files * slack or lines > max_lines * slack:
             errors.append(f"Over the ticket's size budget: {len(files)} files / {lines} lines vs "

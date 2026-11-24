@@ -1,1 +1,1 @@
-loop-guard: the size-budget line count uses only the PR's own files, like the file count (ADR 0032 §1).
+loop-guard: the size budget counts only the build's own work: main's and the plan seed's lines never count, and a rename counts once (ADR 0032 §1).
