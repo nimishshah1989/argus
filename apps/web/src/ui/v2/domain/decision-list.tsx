@@ -27,7 +27,7 @@ export function DecisionList({
   words: DecisionListWords;
   selected?: string;
   onOpen: (id: string) => void;
-} & DecisionCallbacks) {
+} & Partial<DecisionCallbacks>) {
   const decided = decisions.filter((d) => d.decided).length;
   const count = decided
     ? fill(words.done, { n: decided, total: decisions.length })
