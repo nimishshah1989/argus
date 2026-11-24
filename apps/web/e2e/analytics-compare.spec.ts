@@ -142,27 +142,23 @@ async function openTeamFocus(page: Page): Promise<void> {
     .not.toBe('');
 }
 
-/** Money Matters: the ten KPIs, both tables and the one chart, then the ticket drill. */
+/** Money Matters (the v2 screen at its v1 address, ticket 679): the ten KPIs, both tables, the one chart, then the ticket drill. */
 async function openMoney(page: Page): Promise<void> {
   await page.goto('/analytics/cost');
-  await expect(page.getByRole('heading', { name: MM.title, exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: MM.title })).toBeVisible();
   for (const kpi of MM.kpis) {
     await expect(page.getByText(kpi.label, { exact: true }).first()).toBeVisible();
     await expect(page.getByText(kpi.value, { exact: true }).first()).toBeVisible();
   }
   for (const table of MM.tables)
-    await expect(page.getByRole('heading', { name: table.title, exact: true })).toBeVisible();
+    await expect(page.getByRole('region', { name: table.title, exact: true })).toBeVisible();
   await expect(page.getByRole('cell', { name: '₹ 38.23 lakh', exact: true })).toBeVisible();
   const charts = page.getByTestId('chart');
   await expect(charts).toHaveCount(1);
   await expect(charts.first()).toHaveAttribute('data-chart-state', 'ready');
-  await expect(page.getByText('Where the money was lost', { exact: true }).first()).toBeVisible();
-  await page.getByRole('link', { name: 'See the rows', exact: true }).click();
-  await expect(page).toHaveURL(/drill=ticket%3A/);
-  await expect(
-    page.getByRole('heading', { name: 'The rows behind this figure', exact: true }),
-  ).toBeVisible();
-  await expect(page.getByRole('cell', { name: ticket.ref, exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /Show the rows behind Money Matters/ }).click();
+  await expect(page).toHaveURL(/[?&]drawer=figure:money-matters$/);
+  await expect(page.getByRole('link', { name: ticket.ref, exact: true })).toBeVisible();
 }
 
 /** Fix Finder (the v2 screen at its v1 address): its four figures, the rows sorted both ways, then the ticket drill. */
