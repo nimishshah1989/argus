@@ -7,6 +7,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 ## State
 
+- S22 Money Matters (#644) split by Plan: `plan/s22-model` puts the model types, register, gallery view, its own catalogue `analytics-v2-money` and the coverage table on main; adapter and View are skeletons the tickets fill.
 - Screens batch 2 groundwork: ADR 0035 (one ticket per screen on disjoint files; no edits to `insight-coverage.test.ts` or shared catalogues) and five kit words `insight.yardstick.*`.
 - Batch 2 seeding in flight (parallel Plan agents: 4 screen groups + S22 split); ticket numbers land in the next handoff.
 - ADR 0034 (#652) merged: seeds t640, t641, t643 carry critical tests only.
