@@ -63,19 +63,19 @@ describe('legacy review tray', () => {
       row(2024, '2024-02-02', 5),
     ];
     expect(trayOf(classify(rows))).toEqual([
-      { year: 2022, machine: 'ZZ-1', excelRow: 40, reason: 'stray_year' },
-      { year: 2023, machine: 'ZZ-2', excelRow: 6, reason: 'stray_year' },
-      { year: 2023, machine: 'ZZ-2', excelRow: 8, reason: 'bad_date' },
-      { year: 2023, machine: 'ZZ-2', excelRow: 12, reason: 'stray_year' },
+      { year: 2022, machine: 'ZZ-1', excelRow: 40, reason: 'stray_year', shift: '' },
+      { year: 2023, machine: 'ZZ-2', excelRow: 6, reason: 'stray_year', shift: '' },
+      { year: 2023, machine: 'ZZ-2', excelRow: 8, reason: 'bad_date', shift: '' },
+      { year: 2023, machine: 'ZZ-2', excelRow: 12, reason: 'stray_year', shift: '' },
     ]);
   });
 
   it('writes the header and one line per held row', () => {
     const csv = trayCsv([
-      { year: 2023, machine: 'ZZ-2', excelRow: 6, reason: 'stray_year' },
-      { year: 2024, machine: 'ZZ-1', excelRow: 9, reason: 'bad_date' },
+      { year: 2023, machine: 'ZZ-2', excelRow: 6, reason: 'stray_year', shift: '' },
+      { year: 2024, machine: 'ZZ-1', excelRow: 9, reason: 'bad_date', shift: '' },
     ]);
-    expect(csv).toBe(`${TRAY_HEADER}\n2023,ZZ-2,6,stray_year\n2024,ZZ-1,9,bad_date\n`);
+    expect(csv).toBe(`${TRAY_HEADER}\n2023,ZZ-2,6,stray_year,\n2024,ZZ-1,9,bad_date,\n`);
   });
 
   it('reads a row with a problem but a blank date as a bad date, and still skips an empty template row', () => {

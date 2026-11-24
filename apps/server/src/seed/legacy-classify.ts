@@ -27,7 +27,14 @@ export const DEFAULT_SWITCHES: Switches = {
 };
 
 export type RowClass =
-  'bad_date' | 'stray_year' | 'duplicate' | 'gap_month' | 'unknown_machine' | 'utility' | 'ticket';
+  | 'bad_date'
+  | 'stray_year'
+  | 'duplicate'
+  | 'gap_month'
+  | 'unknown_machine'
+  | 'held_shift'
+  | 'utility'
+  | 'ticket';
 
 export interface ClassifiedRow {
   row: LegacyRow;
@@ -84,6 +91,8 @@ export interface YearReport {
   /** Of those, machines whose merged rows carried two different non-blank codes (the first is kept). */
   utilityCodeConflicts?: number;
   strayShift: number;
+  /** Ticket 624: rows held because their shift names neither A (1) nor B (2); never loaded, sent to the tray. */
+  heldShift: number;
   blankCode: number;
   blankMinutes: number;
   utiOnBreakdown: number;
@@ -147,6 +156,7 @@ function emptyReport(year: number): YearReport {
     events: 0,
     possibleDuplicatePeople: 0,
     strayShift: 0,
+    heldShift: 0,
     blankCode: 0,
     blankMinutes: 0,
     utiOnBreakdown: 0,
