@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars -- skeleton: the builder fills the bodies and deletes this line */
+import type { ReactElement } from 'react';
 import type { KpiData } from './kpi-card.js';
 
 /** A tile and its figure as a number, so the set can tell when every figure is zero. */
@@ -19,6 +20,6 @@ export function splitTiles(items: TileItem[], max = 4): { shown: TileItem[]; fol
  * ({n}: how many, {labels}: their labels joined by ", "), no cards. Otherwise `KpiCard`s for `shown`, then the
  * `folded` ones inside `<ShowDetail>`; no disclosure when nothing is folded. Wrapper: `<div class="v2-tile-set">`.
  */
-export function TileSet({ items, max = 4 }: { items: TileItem[]; max?: number }) {
+export function TileSet({ items, max = 4 }: { items: TileItem[]; max?: number }): ReactElement {
   throw new Error('not implemented');
 }
