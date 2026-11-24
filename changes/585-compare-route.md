@@ -1,0 +1,1 @@
+- Compare: `GET /analytics/compare` answers the chosen pair, the picker's codes and each machine's year, with money for heads only (#585).
