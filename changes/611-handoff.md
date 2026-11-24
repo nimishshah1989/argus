@@ -1,0 +1,1 @@
+- Handoff: Compare live, ADR 0024 M3 tickets seeded, PR 610 red, M2b kit and S20–S26 redraw in flight.
