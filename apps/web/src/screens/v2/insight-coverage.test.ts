@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FROZEN, PROVIDERS } from './data.js';
+import { hasYardstick, tilesIn } from './insight.js';
 import type { Takeaways } from '../../ui/v2/takeaway.js';
 import { ENGINE_DATA } from '../../../../../packages/domain/test/answer-key/fixture.js';
 import { realReply } from './figures/real-reply.js';
@@ -93,6 +94,12 @@ describe('insight coverage (M2b)', () => {
         const line = model?.takeaways?.[id];
         expect(line?.text.length, `${key}/${id} takeaway`).toBeGreaterThan(0);
       }
+      // ADR 0026 §4: every figure tile names what it is measured against.
+      const bare = tilesIn(model).filter((tile) => !hasYardstick(tile));
+      expect(
+        bare.map((tile) => tile.id),
+        `${key}: tiles without a yardstick`,
+      ).toEqual([]);
     });
   }
 });
