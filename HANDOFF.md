@@ -1,5 +1,7 @@
 # HANDOFF
 
+> **24 Nov — ADR 0024:** M3 G3.2 (figures never computed in a read) pulled forward while wireframes wait; tickets 606 (serve kept + warm job) and 607 (load script, blocked by 606) seeded.
+
 > **24 Nov 10:15 — ADR 0023 Insight first (Nimish):** screens feel flat — plain monochrome number tables. Do NOT ask Nimish to approve S20–S26 as drawn: **redraw them under UX rules 60–67** and put them back for approval. After Compare goes live, run **M2b Insight pass** (one ticket per live v2 screen) before the rest of M2. Reviewer fails any screen without takeaway + marked outlier + yardstick.
 
 > **24 Nov — ADR 0016 (Nimish: yes to all):** Breakdown Log Excel keeps both ticket columns, screen + CSV show one (G1.2a unblocked); draft Shift KPIs + Energy wireframes for his approval; answer key stays frozen; budget 150k; helpers = `helper` (Sonnet), never general-purpose.
