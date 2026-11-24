@@ -1,5 +1,7 @@
 # HANDOFF
 
+> **24 Nov 14:33 — kit carve-out applied (ADR 0028 addendum, Nimish yes):** 8 kit files open to builders until #620 merges; then restore `apps/web/src/ui/**` in `.loop.json`.
+
 > **Read ADR 0012 first.** Nimish is away; the loop runs unattended. Plan decides (ADR each) except answer-key changes, production, money, irreversible data steps.
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
