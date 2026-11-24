@@ -3,31 +3,29 @@
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-24 · **By:** Plan · **Model:** Opus 5.5
-**Milestone:** M2b screens lane + M3 history lane · **Branch:** plan/adr-0034-critical-tests
+**Milestone:** M2b screens lane · **Branch:** plan/adr-0036-colour-shifts-language
 
 ## State
 
-- Nimish's rule (loop PR 6): seeds carry critical tests only. Recorded in ADR 0034, applied to seeds t640, t641, t643 (pushed).
-- Kept / removed: t640 7 / 3, t641 3 / 0, t643 5 / 2 (counts include the insight-coverage entry). Kept tests assert figures, not sentences or tone.
-- Proof: on each seed, `pnpm exec vitest run <seed test> apps/web/src/screens/v2/insight-coverage.test.ts` is red only on missing takeaways/yardsticks (t640 6 red, t641 3, t643 5); `pnpm exec tsc --noEmit` 0 errors after merging main into each seed.
-- Not applied: t642 (building), t644 (no seed branch; seeding blocked by #619/#620). t644's seed must follow ADR 0034.
-- Carried from the 17:25 handoff, **not rechecked**: #651 waits on Nimish's yes; #649 (#642) needs `loop build 642` rerun; #650 and #634 red.
+- ADR 0036 is the one v2 kit rulebook (R1–R25). Nimish: English only (Gujarati hidden, #701); two shift windows as configured, no shift calendar.
+- Every kit ticket is seeded (`plan/t<N>`, red for the real reason, root `tsc --noEmit` 0 errors, critical tests only per ADR 0034): #684–#701. t686 got return types today (it did not typecheck).
+- Bases: kit seeds on this branch (#683); #688/#689 on `plan/t687`; #695/#696 on `plan/t694`; #703 on main.
+- Remaining 1–4 written: **#703** Shift KPIs one span (engine bug, seeded; answer-key fixture is 2026-only so no expected number moves) · **#704** verdict status chip + FigureTile status (size:small, seeded) · **#705** drawers ≤3 figures + full-page link (blocked by #666, not seeded) · **#706** sweep tracker (one ticket per screen, cut as each batch-2 ticket merges).
 
 ## Next step
 
-Coordinator: `loop build 640`, `641`, `643` from the updated seeds (they now include main).
+Coordinator: merge #683 when green (kit seeds need its tokens/words/Status). Build in parallel: #684–#687 #690–#694 #697–#701 #703 #704. After #687: #688 #689. After #694: #695 #696. Plan: seed #705 after #666 merges; cut per-screen sweep tickets (#706) as batch-2 tickets merge.
 
 ## Blocked / open questions
 
-- Nimish: yes/no on #651 (ADR 0032 §1).
-- Nimish: answer key's shift 3 (3.00 h) and 21.0 h/day vs the 2-shift, 16 h decision.
+- Robots are not a segment in the data (a CNC-segment `category === 'Robot'`); `segmentKey` never yields `robot`. Nimish to say whether category wins for colour (#706, #700).
+- #705: which 3 figures per drawer — assumption: first 3 in each model's order.
+- #696: `HeatCell` has no number; the ranked-list fallback parses `text` for totals (tests check rows, not order).
+- Untested by design (reviewer checks): #701 AccountSheet hides the language choice (Radix portal); #688 Reset shows only when chosen; #690 the click that saves the file.
+- Still open from before: S22 "vs the 320 days before" yes (#679); #651 yes/no.
 
 ## Don't repeat
 
-- ADR numbers: check every `origin/plan/*` branch before picking one (0033 was taken on plan/t642).
-- Seeds 7 commits behind main did not typecheck (`KpiData.yardstick`); merge main before proving red.
-
-## Files touched this session
-
-- `docs/adr/0034-critical-tests-only.md` — the rule and the per-seed counts.
-- Seeds: `dashboard/insight.test.ts`, `breakdown-log/takeaway.test.ts`, `machine/insight.test.ts`, `machine/model.ts` (`takeaways?`).
+- Seed worktrees with symlinked node_modules resolve `@uptimo/shared` to the main checkout: words only on a plan branch read as missing. Use `pnpm install --frozen-lockfile --offline` in the worktree.
+- A throwing skeleton component needs an explicit `ReactElement` return type, or `createElement` in tests fails tsc.
+- `git add` named files only; the main checkout is shared, commit from a temp worktree.

@@ -162,11 +162,18 @@ export function readSheet(
   if (!cols) return null;
   const machine = foldMachine(sheet, known);
   const rows: LegacyRow[] = [];
+  let dated = 0;
   for (let at = cols.header + 1; at < grid.length; at++) {
     const cells = grid[at];
-    if (!cells || parseDate(cells[cols.date]) === 'blank') continue;
+    if (!cells) continue;
+    const blankDate = parseDate(cells[cols.date]) === 'blank';
+    // A blank date is a template row, unless it carries a problem or minutes: then a person must look (ticket 623).
+    const carries =
+      text(cells[cols.problem]) !== '' || (cols.minutes >= 0 && text(cells[cols.minutes]) !== '');
+    if (blankDate && !carries) continue;
+    if (!blankDate) dated++;
     const base = { year, machine, excelRow: at + 1 } as Omit<LegacyRow, 'date'>;
     rows.push(rowOf(cells, cols, base));
   }
-  return { machine, rows, dated: rows.length };
+  return { machine, rows, dated };
 }
