@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyBaseLogger, FastifyInstance, FastifyReply } from 'fastify';
 import type { Pool } from 'pg';
 import type { PgBoss } from 'pg-boss';
 import type { ZodError } from 'zod';
@@ -53,7 +53,7 @@ function shownProfile(profile: AnalyticsProfile, money: boolean): FiguresReply['
 }
 
 /** Ticket 606: a stale read queues one warm job per plant and date (`short` policy: one queued at a time). A failed enqueue never fails the read. */
-function warmLater(boss: PgBoss | undefined) {
+function warmLater(boss: PgBoss | undefined, log: FastifyBaseLogger) {
   return async (tenantId: string, asOf: string): Promise<void> => {
     if (!boss) return;
     try {
@@ -63,8 +63,9 @@ function warmLater(boss: PgBoss | undefined) {
         { v: 1, tenantId, asOf },
         { singletonKey: `${tenantId}:${asOf}` },
       );
-    } catch {
+    } catch (error) {
       // the kept run is still served; the daily warm catches up
+      log.error({ err: error, tenantId, asOf }, 'figures.warm enqueue failed');
     }
   };
 }
@@ -73,6 +74,7 @@ function warmLater(boss: PgBoss | undefined) {
 async function figuresReply(input: {
   pool: Pool;
   boss: PgBoss | undefined;
+  log: FastifyBaseLogger;
   tenantId: string;
   money: boolean;
   asked: string | undefined;
@@ -80,11 +82,13 @@ async function figuresReply(input: {
   /** True for a read: the kept run is served, and a warm job queued when the data moved. A POST always computes. */
   serve: boolean;
 }): Promise<FiguresReply> {
-  const { pool, boss, tenantId, money, asked, store, serve } = input;
+  const { pool, boss, log, tenantId, money, asked, store, serve } = input;
   const result = await withTenant(pool, tenantId, async (tx) => {
     const asOf = asked ?? (await plantToday(tx, tenantId));
     const compute = () => runForTenant(tx, { tenantId, asOf, store });
-    return serve ? servedRun(tx, { tenantId, asOf, compute, onStale: warmLater(boss) }) : compute();
+    return serve
+      ? servedRun(tx, { tenantId, asOf, compute, onStale: warmLater(boss, log) })
+      : compute();
   });
   return {
     ...result,
@@ -203,6 +207,7 @@ export function registerAnalyticsRoutes(app: FastifyInstance, pool: Pool, boss?:
       await figuresReply({
         pool,
         boss,
+        log: request.log,
         tenantId: ctx.tenantId,
         money: canMoney(actor),
         asked,
@@ -223,6 +228,7 @@ export function registerAnalyticsRoutes(app: FastifyInstance, pool: Pool, boss?:
       await figuresReply({
         pool,
         boss: undefined,
+        log: request.log,
         tenantId: ctx.tenantId,
         money: true,
         asked: asked as string | undefined,

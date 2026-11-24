@@ -105,11 +105,17 @@ const warmSchema = z.object({
 async function warmJob(pool: Pool, data: unknown): Promise<void> {
   const { tenantId, asOf } = warmSchema.parse(data);
   if (tenantId && asOf) return warmServedRun(pool, { tenantId, asOf });
+  const errors: unknown[] = [];
   for (const id of tenantId ? [tenantId] : await jobTenantIds(pool))
-    await warmServedRun(pool, {
-      tenantId: id,
-      asOf: await withTenant(pool, id, (tx) => plantToday(tx, id)),
-    });
+    try {
+      await warmServedRun(pool, {
+        tenantId: id,
+        asOf: await withTenant(pool, id, (tx) => plantToday(tx, id)),
+      });
+    } catch (error) {
+      errors.push(error);
+    }
+  if (errors.length > 0) throw new AggregateError(errors, 'figures.warm failed');
 }
 
 /**
