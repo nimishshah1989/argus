@@ -43,3 +43,25 @@
   padding: var(--space-v2-inner);
   background: var(--color-v2-well);
 }
+
+/* Insight-aware tables (ticket 620): the takeaway under the title, the marked worst row, the folded tail, the open row. */
+.v2-table-card > .v2-takeaway {
+  padding: 0 var(--space-v2-inner) var(--space-v2-inner);
+}
+.v2-table tr[data-worst='true'] > td {
+  background: var(--color-v2-well);
+}
+.v2-fold {
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--color-v2-ink-3);
+  font: inherit;
+  cursor: pointer;
+}
+.v2-fold:hover {
+  color: var(--color-v2-ink);
+}
+.v2-expand-row > td {
+  background: var(--color-v2-well);
+}
