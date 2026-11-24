@@ -1,34 +1,31 @@
 # HANDOFF
 
-> **24 Nov 19:30 — main fix:** #633 and #637 each added `classifyLegacy` to tools/import-legacy.ts; merged together main failed typecheck. Duplicate import removed. Auto-merger merges green PRs that each pass alone; watch for this.
-
-> **24 Nov 19:15 — ADR 0035 (Nimish yes):** a screen PR may write its own coverage table; loop-guard exempts `docs/design/v2/scope/<screen>.md`.
-
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-24 · **By:** Plan · **Model:** Opus 5.5
-**Milestone:** M2b screens lane · **Branch:** plan/screens-batch2-tickets
+**Milestone:** M2b screens lane · **Branch:** plan/adr-0036-colour-shifts-language
 
 ## State
 
-- Screens batch 2 seeded (ADR 0035 + addendum). #653 (kit yardstick words) and #677 (S22 model/skeleton) merged.
-- Insight tickets, all independent, seeds `plan/t<N>` pushed, red only on missing takeaways/yardsticks, tsc 0 errors: #654 #655 #656 #657 #658 #660 #661 #662 #663 #664 #665 #666 #667 #668 #669 #670 #671 #672 #673 #674 #675 #676.
-- S22 Money Matters: #644 adapter and #678 View build in parallel; #679 go-live after both.
-- Every seed (batch 1 and 2) merges cleanly with main; no two batch-2 tickets list the same file.
+- ADR 0036 is the one v2 kit rulebook (R1–R25). Nimish: English only (Gujarati hidden, #701); two shift windows as configured, no shift calendar.
+- Every kit ticket is seeded (`plan/t<N>`, red for the real reason, root `tsc --noEmit` 0 errors, critical tests only per ADR 0034): #684–#701. t686 got return types today (it did not typecheck).
+- Bases: kit seeds on this branch (#683); #688/#689 on `plan/t687`; #695/#696 on `plan/t694`; #703 on main.
+- Remaining 1–4 written: **#703** Shift KPIs one span (engine bug, seeded; answer-key fixture is 2026-only so no expected number moves) · **#704** verdict status chip + FigureTile status (size:small, seeded) · **#705** drawers ≤3 figures + full-page link (blocked by #666, not seeded) · **#706** sweep tracker (one ticket per screen, cut as each batch-2 ticket merges).
 
 ## Next step
 
-Coordinator: `loop build` each batch-2 ticket (any order, in parallel), plus #644 and #678; #679 last. Close superseded #613 #614 #615.
+Coordinator: merge #683 when green (kit seeds need its tokens/words/Status). Build in parallel: #684–#687 #690–#694 #697–#701 #703 #704. After #687: #688 #689. After #694: #695 #696. Plan: seed #705 after #666 merges; cut per-screen sweep tickets (#706) as batch-2 tickets merge.
 
 ## Blocked / open questions
 
-- Nimish: written yes for S22's unbuilt "vs the 320 days before" yardstick (needed before #679 merges).
-- Nimish: yes/no on #651 (ADR 0032 §1); answer key's shift 3 vs the 2-shift decision.
-- Plan, after the batch merges: sweep finished screens from `NOT_YET` into `SECTIONS`; decide "—"/date tiles (ADR 0035 addendum §3); shared chart-takeaway slot in `PageBody` (§1).
-- Unverified: #679's rewritten e2e specs (`openMoney`, shell spec) were not run.
+- Robots are not a segment in the data (a CNC-segment `category === 'Robot'`); `segmentKey` never yields `robot`. Nimish to say whether category wins for colour (#706, #700).
+- #705: which 3 figures per drawer — assumption: first 3 in each model's order.
+- #696: `HeatCell` has no number; the ranked-list fallback parses `text` for totals (tests check rows, not order).
+- Untested by design (reviewer checks): #701 AccountSheet hides the language choice (Radix portal); #688 Reset shows only when chosen; #690 the click that saves the file.
+- Still open from before: S22 "vs the 320 days before" yes (#679); #651 yes/no.
 
 ## Don't repeat
 
-- Batch tickets must not edit `insight-coverage.test.ts` or shared catalogues (ADR 0035).
-- The main checkout is shared with other sessions: commit from a temp worktree.
-- A PR body edit doesn't rerun pr-meta: push a commit after editing. Body must follow the PR template.
+- Seed worktrees with symlinked node_modules resolve `@uptimo/shared` to the main checkout: words only on a plan branch read as missing. Use `pnpm install --frozen-lockfile --offline` in the worktree.
+- A throwing skeleton component needs an explicit `ReactElement` return type, or `createElement` in tests fails tsc.
+- `git add` named files only; the main checkout is shared, commit from a temp worktree.
