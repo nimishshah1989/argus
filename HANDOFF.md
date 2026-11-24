@@ -7,27 +7,27 @@
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-24 · **By:** Plan · **Model:** claude-opus-5-5
-**Milestone:** M2 Finish the analytics redesign (building) · **Branch:** plan/e2e-who-is-acting-flake
+**Milestone:** M2 Finish the analytics redesign (building) · **Branch:** plan/handoff-m2-cmp1
 
 ## State
 
-- Merged: **#583** TF-2 (reviewer PASS after 1 fix: unknown status counts as open; #579 closed).
-- **#592 TF-3** (#580, Team Focus live + saving, v1 deleted): builder attempt 4 addressed review 1 (no table filtering on owner drawer; "I'll take it" shows failures + disabled until user known; EditForm keyed on row id). CI all green except `browser (3/5)` = known who-is-acting flake → rerun of run 45289148683 pending. Body is `/tmp/b580.md`-style (Plan-base `ed282b10`). Next: `loop ci 592` → **reviewer (second review)** → merge → `loop clean 580`. Attempts used 4/3+: a further failure → `--rescue`.
-- Compare seeds refreshed onto main: `plan/t584` `3fea68ee`, `plan/t586` `f0043b3a` (merge main again before prep if main moved).
+- Merged this session: **#592** TF-3 (Team Focus live, v1 deleted; #580 closed) · **#595** CMP-1 `comparePair` (#584; budget 760 for a verbatim move, ADR 0022) · **#597** CMP-3 six tables in the Compare view (#586) · **#596** wireframes S20–S26 (drafts, waiting for Nimish).
+- **TF-4 #594** → PR **#598** (review 1 FAIL: dead "I'll take it" on list rows; blank owner name in the owner drawer). Plan fixed the seed `plan/t594` @ `cd537609`: kit callbacks optional (ADR 0022) + `assign-list.test.ts`. Attempt 2 BLOCKED twice: builder says `team-focus.test.ts:104` (gallery `drawer=decision:a02` shows "Assign to Meera K") gets no handlers. The gallery view DOES pass `onAssign` (`gallery/v2-team-focus-view.tsx:41`) → check how the drawer path (`local.tsx` `localAction` / `EntityShell`) gets handlers; likely the drawer is built without View's props. Decide, write it in the ticket, rebuild. Body template = #597's body.
+- Compare next: **#585** CMP-2 route (unblocked by #584) → **#587** CMP-4 adapter (Don't now asks for non-empty scorecard/checkup) → **#588** CMP-5 go live (blocked #587).
 
 ## Next step
 
-1. Finish #592 (above). 2. Compare #584 CMP-1 and #586 CMP-3 (no blockers) → #585 → #587 → #588. 3. Then M2 wireframes (Money Matters, Monthly, Annual, Guide, Settings) → Nimish.
+1. Unblock #594 (above) → `loop finish 594` → re-apply body → review → merge. 2. #585 → #587 → #588. 3. S20–S26 wait for Nimish's approval.
 
 ## Blocked / open questions
 
-- **Wireframes for Shift KPIs + Energy, Money Matters, Monthly, Annual, Guide, Settings** need Nimish's sign-off.
-- Untested by unit tests (no DOM test setup in apps/web): TF-3 "Saved." surviving a refresh, "I'll take it" failure path — reviewer must read the code.
-- For Nimish: ADR 0019 extra drill on Data Checklist; Compare spares ₹0 frozen; ADR 0020 §5–6 "later" items on Team Focus.
+- **Nimish:** approve wireframes S20–S26 (PR #596 lists his questions). ADR 0019 extra drill on Data Checklist; Compare spares ₹0 frozen; ADR 0020 §5–6 "later" Team Focus items.
+- Follow-up (review of #595): `compareFigure` now runs `pairYear` twice per call and discards it; no visible test for a pair outside the top category.
 
 ## Don't repeat
 
-- `loop finish` overwrites the PR body with a thin one every run: keep a full body file, re-apply it (`gh pr edit --body-file`) and push an empty commit from a `/tmp` worktree so pr-meta/loop-guard re-read it.
-- After any seed change: merge seed into the build folder (`cd .loop/wt/<N> && git merge origin/plan/t<N>` as its own Bash call), set `Plan-base` to the new seed sha.
-- Orchestrator can't run tests in `.loop/wt/` (hook); start Bash calls that touch `/tmp` with `cd /tmp && …`, never chain a `cd` into a wt folder with other commands.
-- **Never force-push.** Write "ticket N" in code comments, never `#N`. Every PR needs `changes/<N>-*.md`.
+- **After every merge to main**, refresh each open seed: `git -C /tmp/t<N> merge origin/main`, push, merge the seed into the PR branch from a `/tmp` worktree, set `Plan-base` to the new seed sha. Otherwise loop-guard flags protected files.
+- `loop finish` overwrites the PR body every run: keep `/tmp/body<PR>.md`, `gh pr edit --body-file`, then push an empty commit (worktree at `/tmp/e<PR>`, `git commit --allow-empty`, push `HEAD:<branch>`).
+- Budget is always `files<=N lines<=M`; N counts `changes/` + handoff. A screen PR must change `scope/<screen>.md` itself (Q16).
+- To merge a seed into a build folder: `cd .loop/wt/<N> && git merge -q --no-edit origin/plan/t<N>` as its own Bash call; `loop` commands from the repo root in a separate call.
+- **Never force-push.** "ticket N" in comments, never `#N`.
