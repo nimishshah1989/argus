@@ -1,6 +1,6 @@
 # HANDOFF
 
-> **24 Nov 12:30 — ADR 0026 (Nimish):** Cosmos runs **two shifts (A, B), 16 h; no C shift** — drop C from S20/S26 and any fixture. S20–S26 are **approved** (#617); S27–S30 still need redrawing under ADR 0023 before he approves. From loop 0.8.0 you coordinate on **Sonnet** and send every planning job to Opus with `loop plan "<job>"`; **no handoff-only PRs** — use the standing `plan/handoff` branch.
+> **24 Nov 12:30 — ADR 0026 (Nimish):** Cosmos runs **two shifts (A, B), 16 h; no C shift** — drop C from S20/S26 and any fixture. S20–S26 are **approved** (#617); S27–S30 still need redrawing under ADR 0023 before he approves. From loop 0.8.0 you coordinate on **Sonnet** and send every planning job to Opus with `loop plan "<job>"`; **no handoff-only PRs** — use the standing `plan/handoff` branch. **Two lanes (ADR 0026 §3):** screens (S20–S26, then M2b) and history (M3 history load, from `docs/plan/history-registers-plan.md`) run side by side — `loop plan` the history tickets now.
 
 > **24 Nov 10:15 — ADR 0023 Insight first (Nimish):** screens feel flat. Redraw S20–S26 under UX rules 60–67 before asking for approval; run **M2b Insight pass** (one ticket per live v2 screen) before the rest of M2. Reviewer fails any screen without takeaway + marked outlier + yardstick.
 
