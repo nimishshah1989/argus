@@ -1,0 +1,1 @@
+S22 Money Matters groundwork (plan): model types, register and gallery view, the `analytics-v2-money` catalogue and the coverage table, so its tickets build in parallel. Nothing a user sees changes yet.

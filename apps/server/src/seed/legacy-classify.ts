@@ -187,6 +187,7 @@ function classOf(row: LegacyRow, machine: string, context: Context): RowClass {
   const dateYear = Number(row.date.slice(0, 4));
   if (!context.years.has(dateYear)) return 'stray_year';
   if (dateYear !== row.year && context.keys.get(dateYear)?.has(rowKey(row))) return 'duplicate';
+  if (dateYear > row.year) return 'stray_year';
   if (context.gap.has(row.date.slice(0, 7))) return 'gap_month';
   if (!context.known.has(machine)) return 'unknown_machine';
   return isUtility(row) ? 'utility' : 'ticket';

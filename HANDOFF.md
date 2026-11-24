@@ -1,35 +1,34 @@
 # HANDOFF
 
+> **24 Nov 19:30 — main fix:** #633 and #637 each added `classifyLegacy` to tools/import-legacy.ts; merged together main failed typecheck. Duplicate import removed. Auto-merger merges green PRs that each pass alone; watch for this.
+
+> **24 Nov 19:15 — ADR 0035 (Nimish yes):** a screen PR may write its own coverage table; loop-guard exempts `docs/design/v2/scope/<screen>.md`.
+
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-24 · **By:** Plan · **Model:** Opus 5.5
-**Milestone:** M2b screens lane + M3 history lane · **Branch:** plan/handoff-0034 · **PR:** #652 merged (b1f158bf)
+**Milestone:** M2b screens lane · **Branch:** plan/screens-batch2-tickets
 
 ## State
 
-- Nimish's rule (loop PR 6): seeds carry critical tests only. Recorded in ADR 0034, applied to seeds t640, t641, t643 (pushed).
-- Kept / removed: t640 7 / 3, t641 3 / 0, t643 5 / 2 (counts include the insight-coverage entry). Kept tests assert figures, not sentences or tone.
-- Proof: on each seed, `pnpm exec vitest run <seed test> apps/web/src/screens/v2/insight-coverage.test.ts` is red only on missing takeaways/yardsticks (t640 6 red, t641 3, t643 5); `pnpm exec tsc --noEmit` 0 errors after merging main into each seed.
-- Not applied: t642 (building), t644 (no seed branch; seeding blocked by #619/#620). t644's seed must follow ADR 0034.
-- Carried from the 17:25 handoff, **not rechecked**: #651 waits on Nimish's yes; #649 (#642) needs `loop build 642` rerun; #650 and #634 red.
+- Screens batch 2 seeded (ADR 0035 + addendum). #653 (kit yardstick words) and #677 (S22 model/skeleton) merged.
+- Insight tickets, all independent, seeds `plan/t<N>` pushed, red only on missing takeaways/yardsticks, tsc 0 errors: #654 #655 #656 #657 #658 #660 #661 #662 #663 #664 #665 #666 #667 #668 #669 #670 #671 #672 #673 #674 #675 #676.
+- S22 Money Matters: #644 adapter and #678 View build in parallel; #679 go-live after both.
+- Every seed (batch 1 and 2) merges cleanly with main; no two batch-2 tickets list the same file.
 
 ## Next step
 
-Coordinator: `loop build 640`, `641`, `643` from the updated seeds (they now include main).
+Coordinator: `loop build` each batch-2 ticket (any order, in parallel), plus #644 and #678; #679 last. Close superseded #613 #614 #615.
 
 ## Blocked / open questions
 
-- Nimish: yes/no on #651 (ADR 0032 §1).
-- Nimish: answer key's shift 3 (3.00 h) and 21.0 h/day vs the 2-shift, 16 h decision.
+- Nimish: written yes for S22's unbuilt "vs the 320 days before" yardstick (needed before #679 merges).
+- Nimish: yes/no on #651 (ADR 0032 §1); answer key's shift 3 vs the 2-shift decision.
+- Plan, after the batch merges: sweep finished screens from `NOT_YET` into `SECTIONS`; decide "—"/date tiles (ADR 0035 addendum §3); shared chart-takeaway slot in `PageBody` (§1).
+- Unverified: #679's rewritten e2e specs (`openMoney`, shell spec) were not run.
 
 ## Don't repeat
 
-- The main checkout is shared with other sessions: one switched it to plan/screens-batch2 mid-session and my commit landed there (reverted on that branch). Do commits in a temp worktree; check the branch before every commit.
-
-- ADR numbers: check every `origin/plan/*` branch before picking one (0033 was taken on plan/t642).
-- Seeds 7 commits behind main did not typecheck (`KpiData.yardstick`); merge main before proving red.
-
-## Files touched this session
-
-- `docs/adr/0034-critical-tests-only.md` — the rule and the per-seed counts.
-- Seeds: `dashboard/insight.test.ts`, `breakdown-log/takeaway.test.ts`, `machine/insight.test.ts`, `machine/model.ts` (`takeaways?`).
+- Batch tickets must not edit `insight-coverage.test.ts` or shared catalogues (ADR 0035).
+- The main checkout is shared with other sessions: commit from a temp worktree.
+- A PR body edit doesn't rerun pr-meta: push a commit after editing. Body must follow the PR template.

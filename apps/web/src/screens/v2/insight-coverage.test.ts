@@ -35,6 +35,7 @@ const NOT_YET = new Set([
   'shift-kpis',
   'team-focus',
   'why-why',
+  'money-matters',
 ]);
 
 /** Each finished screen's sections, written out so a section added later without a takeaway fails here. */

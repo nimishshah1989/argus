@@ -1,0 +1,1 @@
+- `import:legacy --grid <Jul-23.xlsx>` prints, per machine, the July 2023 breakdown minutes in the grid beside the register's: `equal`, or the gap in minutes. A cross-check only; the grid loads nothing.

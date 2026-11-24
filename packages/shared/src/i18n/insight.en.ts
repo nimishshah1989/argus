@@ -13,4 +13,13 @@ export const insightEn = {
   'insight.concentration': '{k} of {n} make up {pct}% of the total.',
   'insight.change': '{delta} on {period}.',
   'insight.change.flat': 'No change on {period}.',
+  'insight.fold.more': '+ {n} more',
+  'insight.fold.within': '+ {n} more, all within target',
+  'insight.expand': 'Show detail: {name}',
+  // ADR 0035: a tile's yardstick in kit words, so screen tickets never edit a shared catalogue.
+  'insight.yardstick.rank': '{rank} of {n}, highest first',
+  'insight.yardstick.share': '{pct}% of {total}',
+  'insight.yardstick.average': 'Average {value}',
+  'insight.yardstick.target': 'Target {value}',
+  'insight.yardstick.prior': '{period}: {value}',
 };
