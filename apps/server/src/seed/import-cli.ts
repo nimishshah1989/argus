@@ -28,6 +28,22 @@ import {
  * reach both `imports` and `accountability`.
  */
 
+/** Ticket 635: a legacy year file loads only through the runner that first adds its people and list entries. */
+export const LEGACY_REFUSAL =
+  'This is a legacy year file (legacy-<year>.json): load it with tools/load-legacy.ts, which adds its placeholder people and the Utility failure work type first (slice 69 R8, R17, R20). Nothing was written.';
+
+/** Slice 69 R12: a file is a legacy year file when any ticket's `legacyId` reads `lg-<year>-…`. Never throws. */
+export function isLegacyYearFile(input: unknown): boolean {
+  const tickets = (input as { tickets?: unknown } | null)?.tickets;
+  return (
+    Array.isArray(tickets) &&
+    tickets.some((t) => {
+      const legacyId = (t as { legacyId?: unknown } | null)?.legacyId;
+      return typeof legacyId === 'string' && /^lg-\d{4}-/.test(legacyId);
+    })
+  );
+}
+
 function printUsage(): void {
   console.error('usage: import:bhavin <file.json> --tenant <slug> [--production-confirm]');
   console.error(
@@ -74,6 +90,7 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
   assertProductionAccess(command, process.env.APP_ENV);
   if (command.mode === 'undo') return runUndo(command);
   const input = readImportFile(command);
+  if (isLegacyYearFile(input)) throw new Error(LEGACY_REFUSAL);
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL is required');
   const pool = createPool(url);
