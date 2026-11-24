@@ -1,0 +1,1 @@
+- When the plant's data-from date is set, every figure now reads only tickets, tasks, reports, plant events and Why-Why records from that date on, so loading older years of history no longer moves any 2026 figure; a run that names a period still reads that period.

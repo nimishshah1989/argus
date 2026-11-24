@@ -49,7 +49,20 @@ export function dataAsOf(data: EngineData, asOf: string): EngineData {
  * unchanged.
  */
 export function dataFrom(data: EngineData, from: string): EngineData {
-  void data;
-  void from;
-  throw new Error('not built: ticket 621');
+  const { timeZone } = data;
+  const reported = (t: TicketRow) => plantDay(t.reportedAt, timeZone) >= from;
+  const tickets = data.tickets.filter(reported);
+  const tasks = data.tasks.filter(reported);
+  const cut = new Set([...tickets, ...tasks].map((t) => t.id));
+  const inCut = (row: { ticketId: string }) => cut.has(row.ticketId);
+  return {
+    ...data,
+    tickets,
+    tasks,
+    reports: data.reports.filter(
+      (r) => r.date >= from && (r.ticketId === null || cut.has(r.ticketId)),
+    ),
+    ...(data.plantEvents && { plantEvents: data.plantEvents.filter(inCut) }),
+    ...(data.whyWhy && { whyWhy: data.whyWhy.filter(inCut) }),
+  };
 }
