@@ -50,16 +50,9 @@ const SHIFT_FOLD: Record<string, string> = {
   '2': '2',
   '2ND': '2',
   '2D': '2',
-  '3': '2',
-  '3RD': '2',
-  '3ND': '2',
 };
 const EPOCH = Date.UTC(2022, 0, 1);
 
-const shiftOf = (raw: string): { code: string; stray: boolean } => {
-  const code = SHIFT_FOLD[raw];
-  return code ? { code, stray: false } : { code: '1', stray: true };
-};
 const closeOf = (date: string, shift: string): string =>
   addMinutes(`${date}T${SHIFT_START[shift] ?? '08:00'}:00${PLANT_OFFSET}`, CLOSE_INTO_SHIFT_MIN);
 
@@ -71,8 +64,8 @@ const observedOf = (cell: string): string | null => {
 function ticket(c: ClassifiedRow, people: People, fold: AliasMap): Record<string, unknown> {
   const { row } = c;
   const date = row.date ?? '';
-  const shift = shiftOf(row.shift);
-  const close = closeOf(date, shift.code);
+  const shift = SHIFT_FOLD[row.shift] ?? ''; // a held shift never reaches here (classOf)
+  const close = closeOf(date, shift);
   const at = addMinutes(close, -row.minutes);
   const doneBy = people.codesOf(row.doneBy);
   const by = doneBy[0] ?? SUBMITTER_FALLBACK;
@@ -105,7 +98,7 @@ function ticket(c: ClassifiedRow, people: People, fold: AliasMap): Record<string
         kind: 'breakdown',
         problem,
         date,
-        shiftCode: shift.code,
+        shiftCode: shift,
         observedBy: observedOf(row.observedBy),
         correctiveAction: action || null,
         downtimeMin: row.minutes,
@@ -311,7 +304,11 @@ export function writtenIdentity(report: YearReport, json: string): boolean {
     .flatMap((t) => t.events)
     .filter((e) => e.type === 'utility_loss').length;
   const dropped =
-    report.duplicate + report.strayYear + report.gapMonth + sum(report.unknownMachine);
+    report.duplicate +
+    report.strayYear +
+    report.gapMonth +
+    report.heldShift +
+    sum(report.unknownMachine);
   return report.read === tickets + lines + (report.utilityMerged ?? 0) + dropped;
 }
 
@@ -343,9 +340,6 @@ export function convertLegacy(
     report.identity = writtenIdentity(report, json);
     report.events = built.events;
     report.possibleDuplicatePeople = people.possibleDuplicates(built.codes);
-    report.strayShift = classified.filter(
-      (c) => c.row.year === report.year && c.cls === 'ticket' && shiftOf(c.row.shift).stray,
-    ).length;
     return { year: report.year, json, tickets: built.tickets, events: built.events };
   });
   return { files, reports };
