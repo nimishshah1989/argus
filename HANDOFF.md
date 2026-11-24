@@ -3,7 +3,7 @@
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-24 · **By:** Plan · **Model:** Opus 5.5
-**Milestone:** M2b screens lane + M3 history lane · **Branch:** plan/adr-0034-critical-tests
+**Milestone:** M2b screens lane + M3 history lane · **Branch:** plan/handoff-0034 · **PR:** #652 merged (b1f158bf)
 
 ## State
 
@@ -23,6 +23,8 @@ Coordinator: `loop build 640`, `641`, `643` from the updated seeds (they now inc
 - Nimish: answer key's shift 3 (3.00 h) and 21.0 h/day vs the 2-shift, 16 h decision.
 
 ## Don't repeat
+
+- The main checkout is shared with other sessions: one switched it to plan/screens-batch2 mid-session and my commit landed there (reverted on that branch). Do commits in a temp worktree; check the branch before every commit.
 
 - ADR numbers: check every `origin/plan/*` branch before picking one (0033 was taken on plan/t642).
 - Seeds 7 commits behind main did not typecheck (`KpiData.yardstick`); merge main before proving red.
