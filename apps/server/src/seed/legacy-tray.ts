@@ -5,7 +5,7 @@ import type { ClassifiedRow } from './legacy-classify.js';
  * look at, as a pointer into the workbook (year, machine sheet, Excel row) and the reason. No cell content ever:
  * the tray sits beside the export files, outside git, and is handed to Bhavin.
  */
-export type TrayReason = 'bad_date' | 'stray_year';
+export type TrayReason = 'bad_date' | 'stray_year' | 'held_shift';
 
 export interface TrayRow {
   /** The workbook's year (where the row is found), not the year of its date. */
@@ -13,16 +13,26 @@ export interface TrayRow {
   machine: string;
   excelRow: number;
   reason: TrayReason;
+  /** Ticket 624: the shift as written for a `held_shift` row, `''` for every other reason. */
+  shift: string;
 }
 
-export const TRAY_HEADER = 'year,machine,excel_row,reason';
+export const TRAY_HEADER = 'year,machine,excel_row,reason,shift';
 
-/** The held rows (`bad_date`, `stray_year`), sorted by year, machine, Excel row. */
+/** The held rows (`bad_date`, `stray_year`, `held_shift`), sorted by year, machine, Excel row. */
 export function trayOf(rows: readonly ClassifiedRow[]): TrayRow[] {
   return rows
     .flatMap(({ row, machine, cls }) =>
-      cls === 'bad_date' || cls === 'stray_year'
-        ? [{ year: row.year, machine, excelRow: row.excelRow, reason: cls }]
+      cls === 'bad_date' || cls === 'stray_year' || cls === 'held_shift'
+        ? [
+            {
+              year: row.year,
+              machine,
+              excelRow: row.excelRow,
+              reason: cls,
+              shift: cls === 'held_shift' ? row.shift : '',
+            },
+          ]
         : [],
     )
     .sort(
@@ -30,9 +40,14 @@ export function trayOf(rows: readonly ClassifiedRow[]): TrayRow[] {
     );
 }
 
+const quote = (s: string): string => (/[",]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s);
+
 /** `TRAY_HEADER`, then one line per row; every line ends with a newline. */
 export function trayCsv(rows: readonly TrayRow[]): string {
-  return [TRAY_HEADER, ...rows.map((t) => `${t.year},${t.machine},${t.excelRow},${t.reason}`)]
+  return [
+    TRAY_HEADER,
+    ...rows.map((t) => `${t.year},${t.machine},${t.excelRow},${t.reason},${quote(t.shift)}`),
+  ]
     .map((line) => `${line}\n`)
     .join('');
 }

@@ -1,8 +1,12 @@
 /* eslint-disable i18next/no-literal-string -- icon names and typed unions only; every visible word comes in as a prop or t() */
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { fill } from '../../i18n/fill.js';
+import type { Column } from './data-table.js';
 import { Icon } from './icons.js';
-import type { SortDir } from './table-model.js';
+import { KeyPill } from './key-pill.js';
+import { barOf, type SortDir } from './table-model.js';
+import type { TakeawayData } from './takeaway.js';
 
 export type SortState = { key: string; dir: SortDir };
 type HeadColumn = { key: string; label: string; numeric?: boolean; sortBy?: unknown };
@@ -161,5 +165,84 @@ export function TableBar({
         ))}
       </div>
     </div>
+  );
+}
+
+/** The table's measure column, when a screen declared one (ticket 620). */
+export const measureOf = <R,>(columns: Column<R>[]) => columns.find((c) => c.meaning);
+
+/** A measure cell: the number, a bar as long as its share of the largest (or the target), and the worst row's tag. */
+export function MeasureCell<R>({
+  column,
+  row,
+  largest,
+  pill,
+}: {
+  column: Column<R>;
+  row: R;
+  largest: number;
+  pill?: TakeawayData;
+}) {
+  const m = column.meaning;
+  if (!m) return column.cell(row);
+  const share = barOf(m.value(row), largest, m.target?.value);
+  return (
+    <>
+      <span className="v2-cellbar">
+        {column.cell(row)}
+        <span className="v2-cellbar-track" aria-hidden="true">
+          <span style={{ width: `${(share * 100).toFixed(1)}%` }} />
+        </span>
+      </span>
+      {pill ? <KeyPill text={pill.tag} tone={pill.tone} /> : null}
+    </>
+  );
+}
+
+/** A row's expand button: says whether the row is open; never opens the drawer. */
+export function ExpandButton({
+  name,
+  open,
+  onToggle,
+}: {
+  name: string;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      className="v2-icon-btn"
+      aria-expanded={open}
+      aria-label={fill(t('insight.expand'), { name })}
+      onClick={(e) => (e.stopPropagation(), onToggle())}
+    >
+      <Icon name="chevronDown" />
+    </button>
+  );
+}
+
+/** The folded tail of a table: one line that shows the rest. */
+export function FoldRow({
+  columns,
+  hidden,
+  within,
+  onShow,
+}: {
+  columns: number;
+  hidden: number;
+  within: boolean;
+  onShow: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <tr>
+      <td colSpan={columns + 1}>
+        <button type="button" className="v2-fold" onClick={onShow}>
+          {fill(t(within ? 'insight.fold.within' : 'insight.fold.more'), { n: hidden })}
+        </button>
+      </td>
+    </tr>
   );
 }
