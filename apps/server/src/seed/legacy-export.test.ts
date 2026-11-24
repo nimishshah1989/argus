@@ -5,6 +5,7 @@ import { parseSyntheticExport, parseTicket } from '../modules/imports/schema.js'
 import { DEFAULT_SWITCHES, type Switches } from './legacy-classify.js';
 import { convertLegacy, writtenIdentity, type PlantContext } from './legacy-export.js';
 import { KNOWN, fixtureRows } from './legacy-fixture.js';
+import type { LegacyRow } from './legacy-sheets.js';
 
 const plant: PlantContext = { machines: KNOWN, people: [], terms: [] };
 const convert = (switches: Partial<Switches> = {}, over: Partial<PlantContext> = {}) =>
@@ -71,7 +72,7 @@ describe('legacy export', () => {
     expect(long.reports[0].repairMin).toBe(2880);
   });
 
-  it('folds shifts (3ND to 2, stray to 1), keeps a blank code null and a blank minute 0', () => {
+  it('reads 2D as B and 1TS / 1STG as A, keeps a blank code null and a blank minute 0', () => {
     const t = tickets(2022);
     expect((t[3] as Obj).reports[0]).toMatchObject({
       shiftCode: '2',
@@ -200,8 +201,23 @@ describe('legacy export', () => {
     expect(out.tickets[0].reports[0].observedBy).toBeNull();
   });
 
-  it('counts stray shifts from the written tickets (7TH and a blank shift; 3ND is a known spelling)', () => {
-    expect(convert().reports[0]?.strayShift).toBe(2);
+  it('writes no ticket for a held shift (3ND, 7TH): same tickets, two held, identity holds', () => {
+    const held = (date: string, shift: string, excelRow: number): LegacyRow => ({
+      ...(fixtureRows().find((r) => r.date === '2022-08-01') as LegacyRow),
+      date,
+      shift,
+      excelRow,
+    });
+    const rows = [...fixtureRows(), held('2022-10-03', '3ND', 90), held('2022-10-04', '7TH', 91)];
+    const { files, reports } = convertLegacy(rows, plant, { ...DEFAULT_SWITCHES, star: {} });
+    expect(files.map((f) => [f.year, f.tickets, f.events])).toEqual([
+      [2022, 14, 2],
+      [2023, 4, 0],
+    ]);
+    expect(reports.map((r) => [r.read, r.heldShift, r.identity])).toEqual([
+      [28, 2, true],
+      [5, 0, true],
+    ]);
   });
 
   it('uses the tenant person code on an exact match', () => {

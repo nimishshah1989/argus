@@ -123,6 +123,12 @@ describe('v2 colour (UX-RULES.md §5)', () => {
     'cat-3',
     'cat-4',
     'cat-5',
+    'seg-cnc',
+    'seg-conv',
+    'seg-process',
+    'seg-robot',
+    'seg-util',
+    'seg-dg',
   ];
   for (const [name, tokens] of Object.entries({ light, dark })) {
     /** A token's real colour; an alias or a missing token fails here, never as a silent NaN below. */

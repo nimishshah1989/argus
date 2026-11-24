@@ -10,13 +10,16 @@ import {
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
+  classifyLegacy,
   DEFAULT_SWITCHES,
   type Switches,
   type YearReport,
 } from '../apps/server/src/seed/legacy-classify.js';
 import { convertLegacy, type PlantContext } from '../apps/server/src/seed/legacy-export.js';
+import { trayCsv, trayOf } from '../apps/server/src/seed/legacy-tray.js';
 import { readSheet, type LegacyRow } from '../apps/server/src/seed/legacy-sheets.js';
 import { readWorkbook } from './answer-key/xlsx.js';
+import { compareGrid, readMonthGrid } from './legacy-grid.js';
 
 /**
  * `pnpm import:legacy --data <folder> --out <folder> [--plant <file>] [--star ..] [--retired ..] [--gap ..] [--fold ..]`
@@ -31,9 +34,9 @@ const SEED_MACHINES = new URL(
   '../apps/server/src/seed/generated/cosmos-machines.json',
   import.meta.url,
 );
-const OPTIONS = ['data', 'out', 'plant', 'star', 'retired', 'gap', 'fold'];
+const OPTIONS = ['data', 'out', 'plant', 'star', 'retired', 'gap', 'fold', 'grid'];
 const USAGE =
-  'usage: import:legacy --data <folder> --out <folder> [--plant <file>] [--star A=B,..] [--retired drop|keep] [--gap none|YYYY-MM,..] [--fold A=B,..]';
+  'usage: import:legacy --data <folder> --out <folder> [--plant <file>] [--star A=B,..] [--retired drop|keep] [--gap none|YYYY-MM,..] [--fold A=B,..] [--grid <Jul-23.xlsx>]';
 
 function pairs(value: string, fallback: Record<string, string>): Record<string, string> {
   if (value === 'default') return fallback;
@@ -174,10 +177,10 @@ export function formatReport(report: YearReport, sheets: readonly string[]): str
     `rows read ${report.read} | bad date ${report.badDate} | moved out ${report.movedOut} in ${report.movedIn}`,
     `duplicate ${report.duplicate} | stray year ${report.strayYear} | gap month ${report.gapMonth} | unknown machine ${unknown} (${list(report.unknownMachine)})`,
     `utility rows ${report.utilityRows} -> ${report.events} events (${report.eventDays} days, ${report.utilityMerged ?? 0} merged into a same-machine line, ${report.utilityCodeConflicts ?? 0} with two codes) | tickets loaded ${report.tickets}`,
-    `stray shift ${report.strayShift} | blank code ${report.blankCode} | blank minutes ${report.blankMinutes} | uti hours on breakdown ${report.utiOnBreakdown} | possible repeat ${m.repeats} | possible duplicate person ${report.possibleDuplicatePeople}`,
+    `held shift ${report.heldShift} | blank code ${report.blankCode} | blank minutes ${report.blankMinutes} | uti hours on breakdown ${report.utiOnBreakdown} | possible repeat ${m.repeats} | possible duplicate person ${report.possibleDuplicatePeople}`,
     `codes: ${list(report.codes)}`,
     `loaded by machine: ${list(report.machines)}`,
-    `identity read = tickets + utility + duplicate + stray year + unknown + gap month: ${report.identity ? 'holds' : 'BROKEN'}`,
+    `identity read = tickets + utility + duplicate + stray year + unknown + gap month + held shift: ${report.identity ? 'holds' : 'BROKEN'}`,
     `plan check: with date ${m.withDate} own year ${m.ownYear} other year ${m.otherYear} already there ${m.alreadyThere} no workbook ${m.noWorkbook} | utility ${m.utilityRows} hours-only ${m.utilityHoursOnly} days ${m.utilityDays} most-one-day ${m.utilityMostOneDay} hours ${m.utilityHours} | breakdowns ${m.breakdowns} hours ${m.breakdownHours} | pm ${m.pm} blank code ${m.blankCode} blank minutes ${m.blankMinutes} | repeats ${m.repeats}`,
   ];
 }
@@ -208,12 +211,26 @@ export function main(argv = process.argv.slice(2)): void {
   for (const report of reports) {
     console.log(formatReport(report, sheets.get(report.year) ?? []).join('\n'));
   }
+  const gridFile = args.get('grid');
+  if (gridFile) {
+    const month = readMonthGrid(readWorkbook(gridFile), plant.machines);
+    const classified = classifyLegacy(rows, plant.machines, switches).rows;
+    console.log(
+      ['== Jul-23 grid vs register', ...compareGrid(month, classified, '2023-07')].join('\n'),
+    );
+  }
   if (files.length === 0) throw new Error('no workbook with a year in its name was found');
   if (reports.some((report) => !report.identity)) {
     throw new Error('the reconciliation identity is broken; nothing was written');
   }
   mkdirSync(out, { recursive: true });
   for (const file of files) writeFileSync(join(out, `legacy-${file.year}.json`), file.json);
+  const tray = trayOf(classifyLegacy(rows, plant.machines, switches).rows);
+  for (const { year } of reports) {
+    const held = tray.filter((t) => t.year === year);
+    writeFileSync(join(out, `review-${year}.csv`), trayCsv(held));
+    console.log(`review tray ${held.length} rows -> review-${year}.csv`);
+  }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
