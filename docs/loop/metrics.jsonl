@@ -17,3 +17,10 @@
 {"issue": 584, "size": "standard", "model": "sonnet", "attempts": 4, "result": "pr", "ts": "2026-11-24T06:41:05"}
 {"issue": 588, "size": "standard", "model": "sonnet", "attempts": 3, "result": "pr", "ts": "2026-11-24T10:04:45"}
 {"issue": 606, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-24T11:31:40"}
+{"issue": 623, "size": "standard", "model": "sonnet", "attempts": 3, "result": "pr", "ts": "2026-11-24T14:36:13"}
+{"issue": 624, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-24T14:45:53"}
+{"issue": 625, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-24T14:58:28"}
+{"issue": 635, "size": "small", "model": "haiku", "attempts": 1, "result": "pr", "ts": "2026-11-24T15:40:13"}
+{"issue": 619, "size": "standard", "model": "sonnet", "attempts": 2, "result": "pr", "ts": "2026-11-24T15:46:28"}
+{"issue": 620, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-24T16:36:22"}
+{"issue": 642, "size": "small", "model": "haiku", "attempts": 2, "result": "pr", "ts": "2026-11-24T16:36:22"}
