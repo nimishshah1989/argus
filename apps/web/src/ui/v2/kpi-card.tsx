@@ -4,6 +4,7 @@ import { DrillOpenContext, type Drill } from './drill.js';
 import { Icon, type IconName } from './icons.js';
 import { useTick } from './motion.js';
 import { Sparkline } from './sparkline.js';
+import type { Status } from './status.js';
 
 export type KpiData = {
   id: string;
@@ -32,6 +33,14 @@ export type KpiData = {
   yardstick?: string;
   /** Where the whole card goes when pressed (a register): it then outranks the value button as the card's way in. */
   link?: { href: string; label: string };
+  /** How the figure is doing against its target (`statusOf`): `data-status` on the card, which owns its edge and badge. ADR 0036 R7. */
+  status?: Status;
+  /** The unit, printed after the value inside the value element (`<span class="v2-kpi-unit">`). R8. */
+  unit?: string;
+  /** One line under the value row: how it was counted or what was left out (`<p class="v2-kpi-basis">`). R8. */
+  basis?: string;
+  /** The exact value, as the value element's `title` (the shown value is rounded for reading). R11. */
+  exact?: string;
 };
 
 type Tone = 'gain' | 'loss' | 'neutral';
