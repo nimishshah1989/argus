@@ -127,9 +127,9 @@ def main():
                 if a.isdigit() and d.isdigit():
                     lines += int(a) + int(d)
         slack = 1.2
-        if False and (len(files) > max_files * slack or lines > max_lines * slack):  # ADR 0038: warn-only
-            errors.append(f"Over the ticket's size budget: {len(files)} files / {lines} lines vs "
-                          f"budget {max_files} / {max_lines}. The ticket is too big or the build sprawled — split it.")
+        if len(files) > max_files * slack or lines > max_lines * slack:  # ADR 0038: warn-only
+            print(f"::warning::Over the ticket's size budget: {len(files)} files / {lines} lines vs "
+                  f"budget {max_files} / {max_lines}. Not blocking.")
 
     # 4. wireframe gate
     fe = sorted(p for s, p in changes if s != "D" and matches(p, frontend) and not p.startswith("design/"))
