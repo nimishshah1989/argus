@@ -1,4 +1,6 @@
 import { Fragment, useContext, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import { printedTakeaway } from '../../../screens/v2/insight.js';
 import { Button } from '../button.js';
 import { DataTable, type Column, type FilterChip, type TableWords } from '../data-table.js';
 import { EntityChip, EntityOpenContext, type EntityChipProps } from '../entity-chip.js';
@@ -52,14 +54,19 @@ const firstChip = (row: Row): EntityChipProps | undefined =>
   row.cells.find((c) => c.chip)?.chip ?? row.cells.find((c) => c.chips?.length)?.chips?.[0];
 
 function columnsOf(table: TableModel, onAction?: (id: string) => void): Column<Row>[] {
+  const { meaning } = table;
   return table.header.map((h, i) => ({
     key: `c${i}`,
     label: h.label,
     numeric: h.numeric,
     ...(h.fixed ? {} : { sortBy: (row: Row) => row.cells[i]?.sort ?? '' }),
+    ...(meaning?.column === i
+      ? { meaning: { ...meaning, value: (row: Row) => Number(row.cells[i]?.sort) } }
+      : {}),
     cell: (row) => {
       const cell = row.cells[i];
       if (!cell) return null;
+      if (meaning?.column === i) return cell.text; // the kit draws this column's bar
       if (cell.action)
         return (
           <span onClick={(e) => e.stopPropagation()}>
@@ -116,6 +123,7 @@ export function EngineTable({
   aside?: ReactNode;
 }) {
   const open = useContext(EntityOpenContext);
+  const { t } = useTranslation();
   const rows: Row[] = table.rows.map((cells, i) => ({ id: String(i), cells }));
   const named = rows.some((row) => firstChip(row));
   const filters: FilterChip<Row>[] = [
@@ -136,6 +144,7 @@ export function EngineTable({
       text={(row) => row.cells.map((c) => c.text).join(' ')}
       words={table.words}
       aside={aside}
+      takeaway={printedTakeaway(table, t) ?? undefined}
       onOpen={
         named
           ? (row) => {

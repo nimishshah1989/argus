@@ -1,10 +1,18 @@
 /* eslint-disable i18next/no-literal-string -- icon names and typed unions only; every visible word comes in as a prop or t() */
-import type { ReactNode } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
 import { fill } from '../../i18n/fill.js';
 import type { Column, FilterChip, TableWords } from './data-table.js';
-import type { TakeawayData } from './takeaway.js';
+import { Takeaway, type TakeawayData } from './takeaway.js';
 import { Icon } from './icons.js';
-import { TableBar, TableHead, TablePager, type SortState } from './table-parts.js';
+import {
+  ExpandButton,
+  MeasureCell,
+  TableBar,
+  TableHead,
+  TablePager,
+  measureOf,
+  type SortState,
+} from './table-parts.js';
 
 export type PagedWords = Omit<TableWords, 'showing'> & {
   /** `{from}`–`{to}` of `{total}` when the server counts the list. */
@@ -69,28 +77,47 @@ const indian = new Intl.NumberFormat('en-IN');
 
 /** The page's rows; each opens the drawer, by a click anywhere on it or by its action button. */
 function PageRows<R>({ t }: { t: Props<R> }) {
+  const [opened, setOpened] = useState<string[]>([]);
+  const m = measureOf(t.columns)?.meaning;
+  const largest = m ? Math.max(...t.rows.map(m.value)) : 0;
+  const toggle = (key: string) =>
+    setOpened((o) => (o.includes(key) ? o.filter((k) => k !== key) : [...o, key]));
   return (
     <tbody>
       {t.rows.map((row) => {
         const key = t.rowKey(row);
         return (
-          <tr key={key} data-selected={key === t.selected} onClick={() => t.onOpen(row)}>
-            {t.columns.map((c) => (
-              <td key={c.key} className={c.numeric ? 'v2-num-cell' : undefined}>
-                {c.cell(row)}
+          <Fragment key={key}>
+            <tr data-selected={key === t.selected} onClick={() => t.onOpen(row)}>
+              {t.columns.map((c) => (
+                <td key={c.key} className={c.numeric ? 'v2-num-cell' : undefined}>
+                  {c.meaning ? <MeasureCell column={c} row={row} largest={largest} /> : c.cell(row)}
+                </td>
+              ))}
+              <td className="v2-row-action">
+                {t.expand ? (
+                  <ExpandButton
+                    name={t.rowLabel?.(row) ?? key}
+                    open={opened.includes(key)}
+                    onToggle={() => toggle(key)}
+                  />
+                ) : null}
+                <button
+                  type="button"
+                  className="v2-icon-btn"
+                  aria-label={`${t.words.open} ${t.rowLabel?.(row) ?? key}`}
+                  onClick={(e) => (e.stopPropagation(), t.onOpen(row))}
+                >
+                  <Icon name="chevronRight" />
+                </button>
               </td>
-            ))}
-            <td className="v2-row-action">
-              <button
-                type="button"
-                className="v2-icon-btn"
-                aria-label={`${t.words.open} ${t.rowLabel?.(row) ?? key}`}
-                onClick={(e) => (e.stopPropagation(), t.onOpen(row))}
-              >
-                <Icon name="chevronRight" />
-              </button>
-            </td>
-          </tr>
+            </tr>
+            {t.expand && opened.includes(key) ? (
+              <tr className="v2-expand-row">
+                <td colSpan={t.columns.length + 1}>{t.expand(row)}</td>
+              </tr>
+            ) : null}
+          </Fragment>
         );
       })}
     </tbody>
@@ -159,6 +186,7 @@ export function PagedTable<R>(props: Props<R>) {
         onChip={props.onChip}
         hideSearch={props.onQuery === undefined}
       />
+      {props.takeaway ? <Takeaway data={props.takeaway} /> : null}
       {props.selects?.length ? <Selects selects={props.selects} /> : null}
       {props.extra}
       <div className="v2-table-scroll">

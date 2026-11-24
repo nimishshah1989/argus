@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars -- ticket 620 skeleton stubs; the builder deletes this line */
 import type { Meaning } from './takeaway.js';
 
 /** What a v2 table shows: search, one filter chip, one sort, one page of at most 10 rows (UX-RULES.md §4). */
@@ -58,7 +57,16 @@ export function tablePage<R>(all: R[], q: TableQuery<R>): TablePage<R> {
  * is worse. Rows with equal values keep their order; a value that is not finite goes last. Never changes `rows`.
  */
 export function worstFirst<R>(rows: R[], value: (row: R) => number, worse: Meaning['worse']): R[] {
-  throw new Error('not implemented: ticket 620');
+  const rank = (r: R) => {
+    const v = value(r);
+    return Number.isFinite(v) ? (worse === 'high' ? -v : v) : Infinity;
+  };
+  // Array.sort is stable, so equal values keep their order; Infinity (not finite) sorts last.
+  return [...rows].sort((a, b) => {
+    const x = rank(a);
+    const y = rank(b);
+    return x === y ? 0 : x < y ? -1 : 1;
+  });
 }
 
 /**
@@ -67,12 +75,16 @@ export function worstFirst<R>(rows: R[], value: (row: R) => number, worse: Meani
  * Never above 1.
  */
 export function barOf(value: number, largest: number, target?: number): number {
-  throw new Error('not implemented: ticket 620');
+  const scale = Math.max(largest, target ?? 0);
+  if (!(scale > 0) || !Number.isFinite(value) || value < 0) return 0;
+  return Math.min(1, value / scale);
 }
 
 /** The value is on the bad side of the meaning's target (equal meets it). No target: false. */
 export function missesTarget(value: number, meaning: Meaning): boolean {
-  throw new Error('not implemented: ticket 620');
+  const target = meaning.target?.value;
+  if (target === undefined) return false;
+  return meaning.worse === 'high' ? value > target : value < target;
 }
 
 /**
@@ -81,5 +93,8 @@ export function missesTarget(value: number, meaning: Meaning): boolean {
  * then `values.length`.
  */
 export function foldAt(values: number[], meaning: Meaning): number {
-  throw new Error('not implemented: ticket 620');
+  const n = meaning.target
+    ? Math.min(5, Math.max(3, values.filter((v) => missesTarget(v, meaning)).length))
+    : 5;
+  return values.length - n <= 1 ? values.length : n;
 }

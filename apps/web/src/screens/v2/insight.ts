@@ -190,5 +190,13 @@ export function printedTakeaway(
   table: { rows: PrintedRow[]; meaning?: Meaning & { column: number } },
   t: Say,
 ): TakeawayData | null {
-  throw new Error('not implemented: ticket 620');
+  const { rows, meaning } = table;
+  if (!meaning) return null;
+  const items: Item[] = [];
+  for (const row of rows) {
+    const value = row[meaning.column]?.sort;
+    if (typeof value === 'number' && Number.isFinite(value))
+      items.push({ name: row[0]?.text ?? '', value, shown: row[meaning.column]?.text ?? '' });
+  }
+  return items.length ? takeawayFor(items, meaning, t) : null;
 }

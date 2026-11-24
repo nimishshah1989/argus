@@ -1,4 +1,6 @@
 import { useContext } from 'react';
+import { useTranslation } from 'react-i18next';
+import { printedTakeaway } from '../../../screens/v2/insight.js';
 import {
   DataTable,
   type Column,
@@ -57,12 +59,17 @@ export function PrintedDataTable({
   selected?: string;
 }) {
   const open = useContext(EntityOpenContext);
+  const { t } = useTranslation();
   const rows: Row[] = table.rows.map((cells, at) => ({ id: String(at), cells }));
+  const { meaning } = table;
   const columns: Column<Row>[] = table.header.map((h, at) => ({
     key: String(at),
     label: h.label,
     numeric: h.numeric,
     sortBy: h.label === '' ? undefined : (r) => r.cells[at]?.sort ?? '',
+    ...(meaning?.column === at
+      ? { meaning: { ...meaning, value: (r: Row) => Number(r.cells[at]?.sort) } }
+      : {}),
     cell: (r) => (r.cells[at] ? content(r.cells[at]) : null),
   }));
   const filters: FilterChip<Row>[] = table.chips.map((c) => ({
@@ -83,6 +90,7 @@ export function PrintedDataTable({
         ...(table.note ? { sub: table.note } : {}),
       }}
       selected={selected}
+      takeaway={printedTakeaway(table, t) ?? undefined}
       onOpen={(r) => {
         const first = r.cells.flatMap((c) => c.chips)[0];
         if (first) open(first);
