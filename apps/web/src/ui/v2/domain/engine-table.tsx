@@ -1,7 +1,10 @@
 import { Fragment, useContext, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import { printedTakeaway } from '../../../screens/v2/insight.js';
 import { Button } from '../button.js';
 import { DataTable, type Column, type FilterChip, type TableWords } from '../data-table.js';
 import { EntityChip, EntityOpenContext, type EntityChipProps } from '../entity-chip.js';
+import type { Meaning } from '../takeaway.js';
 
 /** One printed cell: what it says, what it sorts by, and the thing it names when it names one. */
 export type Cell = {
@@ -37,6 +40,11 @@ export type TableModel = {
   /** Filter chips after "All": each keeps the rows whose `column` says `key`. */
   chips: { key: string; label: string; column: number }[];
   words: EngineTableWords;
+  /**
+   * The table's measure (ticket 620): its column, read by each cell's numeric `sort`, and what it means. The table then
+   * opens with the takeaway `printedTakeaway` picks, ranks worst first, marks the worst row, bars and folds.
+   */
+  meaning?: Meaning & { column: number };
 };
 
 type Row = { id: string; cells: Cell[] };
@@ -46,14 +54,19 @@ const firstChip = (row: Row): EntityChipProps | undefined =>
   row.cells.find((c) => c.chip)?.chip ?? row.cells.find((c) => c.chips?.length)?.chips?.[0];
 
 function columnsOf(table: TableModel, onAction?: (id: string) => void): Column<Row>[] {
+  const { meaning } = table;
   return table.header.map((h, i) => ({
     key: `c${i}`,
     label: h.label,
     numeric: h.numeric,
     ...(h.fixed ? {} : { sortBy: (row: Row) => row.cells[i]?.sort ?? '' }),
+    ...(meaning?.column === i
+      ? { meaning: { ...meaning, value: (row: Row) => Number(row.cells[i]?.sort) } }
+      : {}),
     cell: (row) => {
       const cell = row.cells[i];
       if (!cell) return null;
+      if (meaning?.column === i) return cell.text; // the kit draws this column's bar
       if (cell.action)
         return (
           <span onClick={(e) => e.stopPropagation()}>
@@ -110,6 +123,7 @@ export function EngineTable({
   aside?: ReactNode;
 }) {
   const open = useContext(EntityOpenContext);
+  const { t } = useTranslation();
   const rows: Row[] = table.rows.map((cells, i) => ({ id: String(i), cells }));
   const named = rows.some((row) => firstChip(row));
   const filters: FilterChip<Row>[] = [
@@ -130,6 +144,7 @@ export function EngineTable({
       text={(row) => row.cells.map((c) => c.text).join(' ')}
       words={table.words}
       aside={aside}
+      takeaway={printedTakeaway(table, t) ?? undefined}
       onOpen={
         named
           ? (row) => {

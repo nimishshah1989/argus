@@ -1,10 +1,12 @@
 import type { TFunction } from 'i18next';
 import { fill } from '../../../i18n/fill.js';
 import type { Point } from '../../../ui/v2/points.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { PageTable } from '../../analytics/page-content.js';
 import type { Translate } from '../figures/read.js';
+import { takeawayFor, type Item } from '../insight.js';
 import { chartOf, figuresOf, tablesOf } from '../printed-page/page-model.js';
-import type { PrintedPageModel } from '../printed-page/page-model.js';
+import type { ForecastLabModel } from './model.js';
 import { figureOf, numberValue, pageOf, shortDate } from '../printed-page/printed.js';
 import type { FiguresPart, Page } from '../printed-page/printed.js';
 import { say, strong } from '../printed-page/segs.js';
@@ -64,6 +66,37 @@ function methodsOf(page: Page): Rows | null {
 
 const nameOf = (cell: string): string => METHOD_NAME.exec(cell)?.[0] ?? cell;
 
+/** The section id of a printed table (ADR 0035): `methods` or `months`; '' for any other table, which opens with no takeaway. */
+export const sectionOf = (title: string): string =>
+  title === METHODS ? 'methods' : title.startsWith(DETAIL) ? 'months' : '';
+
+const itemsOf = (table: PageTable, name: number, value: number): Item[] =>
+  table.rows.map((row) => ({
+    name: nameOf(row[name] ?? ''),
+    value: numberValue(row[value] ?? ''),
+    shown: row[value] ?? '',
+  }));
+
+/** One takeaway per table, from the table the engine printed: the methods by accuracy score, the months by actual hours. */
+function takeawaysOf(page: Page, tables: PageTable[], t: TFunction): Takeaways {
+  const methods = methodsOf(page);
+  const detail = tables.find((table) => sectionOf(table.title) === 'months');
+  const hours = column(detail, 'Actual hrs');
+  return {
+    methods: methods
+      ? takeawayFor(itemsOf(methods.table, methods.method, methods.score), { worse: 'high' }, t)
+      : null,
+    months:
+      detail && hours >= 0
+        ? takeawayFor(
+            itemsOf(detail, column(detail, 'Month'), hours),
+            { worse: 'high', additive: true },
+            t,
+          )
+        : null,
+  };
+}
+
 /** The model in use is the engine's baseline row; the rest are the methods that were tried against it. */
 function baselineOf(rows: Rows) {
   return rows.table.rows.find((row) => /^Baseline/.test(row[rows.verdict] ?? ''));
@@ -113,19 +146,21 @@ function trackLine(page: Page, t: TFunction): Point | null {
  * chart of forecast against actual. A method's name and its note, which the platform printed as one run of text, are
  * said apart. Null when the engine has no page.
  */
-export function forecastLabModel(reply: FiguresPart, t: TFunction): PrintedPageModel | null {
+export function forecastLabModel(reply: FiguresPart, t: TFunction): ForecastLabModel | null {
   const page = pageOf(figureOf(reply, FIGURE), t);
   if (page === null) return null;
   const words = pageWords(t, 'v2l.source');
   const say_: Translate = (key, values) => t(key, { ...values }) as string;
   const source = fill(words.source, { date: shortDate(reply.asOf) });
+  const tables = page.tables.map(tidied);
   return {
     verdict: verdictOf(headlineOf(page, t), [bestLine(page, t), trackLine(page, t)], source),
     figures: figuresOf(page.kpis),
     charts: page.charts.map((spec) => chartOf(spec, words)),
-    tables: tablesOf(page.tables.map(tidied), words),
+    tables: tablesOf(tables, words),
     drill: drillFor(reply, FIGURE, say_),
     source,
     words,
+    takeaways: takeawaysOf(page, tables, t),
   };
 }
