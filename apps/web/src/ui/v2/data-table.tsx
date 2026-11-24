@@ -15,6 +15,7 @@ import {
 } from './table-parts.js';
 import { foldAt, missesTarget, tablePage, worstFirst } from './table-model.js';
 import { Takeaway, type Meaning, type TakeawayData } from './takeaway.js';
+import type { Status } from './status.js';
 
 export type Column<R> = {
   key: string;
@@ -29,6 +30,8 @@ export type Column<R> = {
    * ranks worst first, marks the worst row, draws the number as a bar and folds the tail.
    */
   meaning?: Meaning & { value: (row: R) => number };
+  /** What the cell's figure means (ADR 0036): the cell's `<td>` wears it as `data-status`; absent → no attribute. */
+  status?: (row: R) => Status;
 };
 export type FilterChip<R> = { key: string; label: string; test?: (row: R) => boolean };
 export type TableWords = {
@@ -65,6 +68,12 @@ type TableProps<R> = {
   takeaway?: TakeawayData;
   /** A row's detail, opened in place under it by the row's expand button (UX rule 64). */
   expand?: (row: R) => ReactNode;
+  /**
+   * The table's total (ADR 0036 R14), one cell per column in column order: drawn as the footer
+   * (`<tfoot><tr class="v2-total">`, one `<td>` per column, the action cell empty), never a row in `<tbody>`, never
+   * sorted, ranked or folded. Under 10 rows (`isSmall(rows.length)`, all rows) the table has no search and no pager.
+   */
+  total?: ReactNode[];
 };
 
 const rankedBy = <R,>(rows: R[], measure: Column<R>['meaning']) =>

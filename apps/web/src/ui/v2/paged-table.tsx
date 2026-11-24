@@ -53,7 +53,10 @@ type Props<R> = {
   sort?: SortState;
   onSort?: (sort: SortState) => void;
   selects?: SelectFilter[];
-  /** 1-based. `total` known: "1–10 of 1,343". Unknown: only whether another page follows (`hasNext`). */
+  /**
+   * 1-based. `total` known: "1–10 of 1,343". Unknown: only whether another page follows (`hasNext`). A known `total`
+   * under 10 (`isSmall`, ADR 0036 R13) draws no pager.
+   */
   page: number;
   total?: number;
   hasNext?: boolean;
