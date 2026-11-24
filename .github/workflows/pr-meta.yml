@@ -31,14 +31,17 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # The PR description is untrusted: it only ever reaches a tool through env, never a run script.
-      - run: pnpm parity:update
+      - continue-on-error: true # ADR 0037: paperwork warns, never blocks
+        run: pnpm parity:update
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
           PARITY_ALLOW_SKIP: ${{ contains(github.event.pull_request.labels.*.name, 'no-parity') && '1' || '' }}
-      - run: pnpm pr:size
+      - continue-on-error: true # ADR 0037: paperwork warns, never blocks
+        run: pnpm pr:size
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
           LEAN_ALLOW_LARGE: ${{ contains(github.event.pull_request.labels.*.name, 'size:large') && '1' || '' }}
-      - run: pnpm quality:pr
+      - continue-on-error: true # ADR 0037: paperwork warns, never blocks
+        run: pnpm quality:pr
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
