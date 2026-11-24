@@ -8,6 +8,7 @@ import type { BubbleDot, BubbleWords } from '../../../ui/v2/bubble-plot.js';
 import type { Drill } from '../../../ui/v2/drill.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
 import type { Point } from '../../../ui/v2/points.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
 
 /**
@@ -34,6 +35,8 @@ export type DashboardModel = {
   machines: TableModel | null;
   /** Where the figures came from and the day they are for. */
   source: string;
+  /** Ticket 613: the lines the tables open with, under the ids `needs`, `costliest` and `machines`. */
+  takeaways?: Takeaways;
   words: { why: string };
 };
 
