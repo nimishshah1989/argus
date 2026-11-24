@@ -11,6 +11,8 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 ## State
 
+- **#609** gallery fix: `analytics-order` SCREENS/PRINTED emptied (v1 Compare deleted by ticket 588; v2 Compare has `v2-compare.spec.ts`); the empty spec + data files can be deleted later. Seed 606 refreshed (older figure tests warm first; DEBT line).
+
 - Merged: **#603** CMP-5 Compare live, v1 MachinesPage deleted (588 closed; Compare done in M2) · **#608** ADR 0024 (figures never computed in a read; tickets 606, 607 seeded) · **#605** wireframes S27–S30 (Floor, Desk, Ticket, Board; drafts, questions for Nimish in the PR body).
 - **606** (M3-1 served-warm) → PR **#610**, CI RED: `api (2/5)`, `api (3/5)`, `static`, `pr-meta`. pr-meta = auto body; full body drafted at `/tmp/body606.md` (Plan-base `b06f1af6…`). api/static tails not read yet. Attempts used: 1.
 - **607** (M3-2 load script) blocked by 606; seed `plan/t607` (merge main into it first).
