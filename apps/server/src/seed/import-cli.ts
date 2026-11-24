@@ -34,8 +34,14 @@ export const LEGACY_REFUSAL =
 
 /** Slice 69 R12: a file is a legacy year file when any ticket's `legacyId` reads `lg-<year>-…`. Never throws. */
 export function isLegacyYearFile(input: unknown): boolean {
-  void input;
-  throw new Error('not built: ticket 635');
+  const tickets = (input as { tickets?: unknown } | null)?.tickets;
+  return (
+    Array.isArray(tickets) &&
+    tickets.some((t) => {
+      const legacyId = (t as { legacyId?: unknown } | null)?.legacyId;
+      return typeof legacyId === 'string' && /^lg-\d{4}-/.test(legacyId);
+    })
+  );
 }
 
 function printUsage(): void {
@@ -84,6 +90,7 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
   assertProductionAccess(command, process.env.APP_ENV);
   if (command.mode === 'undo') return runUndo(command);
   const input = readImportFile(command);
+  if (isLegacyYearFile(input)) throw new Error(LEGACY_REFUSAL);
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL is required');
   const pool = createPool(url);
