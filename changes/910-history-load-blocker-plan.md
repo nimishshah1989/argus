@@ -1,0 +1,1 @@
+- Plan: the staging history load failed because it used import:bhavin instead of tools/load-legacy.ts; ticket 635 makes import:bhavin refuse a legacy year file and point to the runner.
