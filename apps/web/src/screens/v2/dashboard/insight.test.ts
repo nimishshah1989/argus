@@ -8,7 +8,7 @@ import { dashboardModel } from './adapter.js';
 import { dashboardTestModel, priorReply } from './test-model.js';
 
 /**
- * Ticket 640, M2b (ADR 0031 §2; critical tests only, ADR 0033: figures, not wording or tone): the Dashboard says what to notice. In the frozen 11 November plant, against
+ * Ticket 640, M2b (ADR 0031 §2; critical tests only, ADR 0034: figures, not wording or tone): the Dashboard says what to notice. In the frozen 11 November plant, against
  * 12 October: Axis motor / drive / encoder / servo leads the costliest problems at 485.0 hrs; 13 of the 117 machines
  * on the bubble table make up 51% of the 3,060.11 hrs; no ticket is open; every card names its 12 October value.
  */
