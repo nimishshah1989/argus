@@ -1,37 +1,34 @@
-> **24 Nov (coordinator) — state:** #645 merged. #651 (loop-guard line-count fix, ADR 0032) CI green, held: guard change needs Nimish's yes; it unblocks #633/#634/#637 (false 'over budget' because main's lines count). #649 (#642) review FAIL (tile basis printed twice, backlog repeat); Plan fixed the ticket, builder was blocked by a stop hook wanting HANDOFF.md overwritten (builder brief says use docs/loop/handoff/642.md) — rerun `loop build 642`, or fix the hook. #650 (#620) red: loop-guard, pr-meta. #634 also red on static. Not reviewed: #637, #634, #633.
-
 # HANDOFF
-
-> **24 Nov 23:20 — main fix:** energy/adapter.ts split (433 > 400 lines) after #709 merged over a size failure (landed as #713).
-
-> **24 Nov 23:00 — ADR 0037 (Nimish yes):** PR paperwork checks (parity, size, quality fields, changelog) warn instead of block.
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-25 00:15 IST · **By:** Coordinator · **Model:** Sonnet 5.5
-**Milestone:** M2b screens lane · **Branch:** plan/handoff-2026-11-25-night
+**Updated:** 2026-11-25 00:40 IST · **By:** Coordinator · **Model:** Sonnet 5.5
+**Milestone:** M2b screens lane · **Branch:** plan/handoff
 
 ## State
 
-- #714 (ADR 0038, gates cut to the core) merged 18:27 UTC as 07ae3a51. `merger.sh`, `pool.sh`, `watchdog.sh` still running (merger merges any PR whose checks all finished with none failed, ≥10 check runs).
-- #713 (energy adapter split), #712 (663) and #710 (662) are merged on main (00:09 IST onward). #713's `browser (2/5)` had failed 3x on `escalation-history.spec.ts:179` around midnight IST; the re-run passed. Cause (date-rollover race?) NOT proven: if it fails again, look at it.
-- #712/#710 only merged after their body's `Screens: none (no wireframe id)` line was removed (the guard reads it as an unapproved screen, even after 0038). #711 (658) is the one screen PR left besides #707: it only failed `static`; `gh pr update-branch 711`, merge when all checks finish.
-- #707 (643): conflict in `insight-coverage.test.ts` (keep both sides) plus the machine reliability browser spec at phone layout. The hook blocks the coordinator from editing `.loop/wt/643`: `loop prep 643` then the builder.
-- 657 and 664: FOUND the reason. `loop finish` runs the fast suite; the only reds are 2 tests in `packages/domain/test/engine-scale.test.ts` (10,000-row plant must finish in 20 s; the second times out at 60 s), which fail when the Mac is busy (pool builds + CI at once). 3095 of 3097 pass; the age ticket does not touch the engine. Not a ticket fault and not a test to edit. Fix: run `loop finish 657` / `664` when no other build or finish is running (or one at a time); no Fable rescue needed unless it fails on an idle machine. `finish-657.log` is `/tmp/claude-501/finish-657.log`.
+- origin/main is at 6835d813. Merged tonight: #702 #709 #710 #712 #713, CI gates cut (#708 ADR 0037, #714 ADR 0038). Open PRs: #711 (658) and #707 (643); #300 is a parked docs PR.
+- #711: only `browser (2/5)` (`escalation-history.spec.ts:179`) and `browser (3/5)` (`who-is-acting.spec.ts`, `page.goto ERR_ABORTED`) failed. I ran `gh run rerun 45459761692 --failed`; at 00:35 IST the run was in progress, result not seen. `merger.sh` merges it when all checks finish clean.
+- Pattern: `escalation-history.spec.ts:179` failed on #713 and on #711, both inside 23:55–00:03 IST (18:25–18:33 UTC). Looks like an IST-midnight date rollover; not proven. If it fails again after midnight, it is a real bug: file a ticket.
+- #707 (643) is DIRTY (conflict in `insight-coverage.test.ts`, keep both sides). The hook blocks the coordinator from `.loop/wt/643`: `loop prep 643`, then the builder.
+- Load average was 55: `pool.sh` x6, `merger.sh`, several `loop build/finish` at once. The two engine-scale tests time out under that load, so finishes fail for a reason that is not the ticket.
 
 ## Next step
 
-1. update-branch #711 and #707, one at a time, merging each when all checks finish (`merger.sh` does it if left running).
-2. Re-run `loop finish 657`, then `664`, one at a time on an idle machine. Likely the same load-timing failure for other pool tickets (665, 666, 667, 668).
-3. Not started: 640, 644, 665, 668–679, rebuilds 641/656, kit #684–#701. Housekeeping from Nimish's paste: duplicate ADR 0035, restore `apps/web/src/ui/**` protection in `.loop.json`, tracker artifact 66c8a2ff is stale.
+1. Check #711 merged (`gh pr view 711`), then #707 as above.
+2. Nimish decides the carve-out (below), then `loop plan "Open <files> to builders for kit tickets, ADR 0028 §4 precedent"`.
+3. Run `loop finish` one at a time on a quiet machine: 657, 664, 665, 666, 667, 668. Do not start new builds while the load is above ~10.
+4. Kit tickets that can build now (no protected file): 684, 687, 688, 689, 690, 693, 698, 701, 703. Not started: 640, 644, 669–679.
 
 ## Blocked / open questions
 
-- Nimish has not yet seen a screenshot of any new screen tonight; none taken.
+- **Needs Nimish's yes:** the ADR 0028 §4 carve-out lapsed after #620, so builders cannot edit these kit files: 685 `kpi-tone.css` · 686 `cards.css` · 691 `action-strip.css` · 692 `severity-row.css` · 694 `ranked-bars.css` · 695 `pareto.tsx` + `domain.css` · 696 `domain/heat-matrix.tsx` · 697 `quadrant.css` · 699 `reason-chip.css` · 700 `entity-chip.tsx` + `v2.css` · 704 `verdict.tsx` + `v2.css`. The guard hook refused the edit in `b-685.log` and `b-686.log` (nothing committed). The pool will spend its 3 attempts on each for nothing: stop those pool jobs until this is settled.
+- 666 and 667: builders reported BLOCKED because `pnpm typecheck` was denied in the background session. `loop finish` runs the gate itself.
+- Still open from before: Robots colour (#706, #700); #705 which 3 figures; S22 "vs the 320 days before" (#679); #651; S27–S30 wireframes wait for Nimish.
 
 ## Don't repeat
 
-- zsh does not word-split `$var`: `set -- $r` fails. Use `${r%%:*}`.
-- `gh run rerun <id> --failed` re-runs one job; loop-guard reads the PR body from the event payload, so a body edit only counts on a new push.
-- Build folders: the loop hook stops the coordinator from `cd .loop/wt/<N>`.
-- `git add` named files only; commit from a temp worktree (main checkout is shared and has a dirty `docs/loop/metrics.jsonl`).
+- Check `.loop.json` `protected` against a ticket's "Files to change" before building a pool: a CSS file under `apps/web/src/ui/` is always protected.
+- `loop finish` under heavy load fails on `engine-scale.test.ts`; that is load, not the ticket. One at a time.
+- `git add` named files only; commit from a temp worktree (the main checkout has a dirty `docs/loop/metrics.jsonl`, not committed here).
+- zsh does not word-split `$var`: use `${r%%:*}`.
