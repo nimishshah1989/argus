@@ -74,7 +74,11 @@ export function registerCompareRoute(app: FastifyInstance, pool: Pool): void {
       const asOf = asked ?? (await plantToday(tx, ctx.tenantId));
       const data = await loadEngineData(tx, ctx.tenantId);
       const profile = await readProfile(tx, ctx.tenantId);
-      return { asOf, profile, result: comparePair({ data, asOf, profile }, a && b ? { a, b } : undefined) };
+      return {
+        asOf,
+        profile,
+        result: comparePair({ data, asOf, profile }, a && b ? { a, b } : undefined),
+      };
     });
     const { asOf, profile, result } = out;
     if (result.kind === 'unknown') {
