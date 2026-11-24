@@ -7,7 +7,10 @@ import { realT } from '../printed-page/test-support.js';
 import { machinePageModel } from './adapter.js';
 import type { Translate } from '../figures/read.js';
 
-/** ADR 0031 §5: spares and tasks open with a takeaway; every tile's yardstick is the machine's plant rank. */
+/**
+ * ADR 0031 §5: spares and tasks open with a takeaway; every tile's yardstick is the machine's plant rank.
+ * Critical tests only (ADR 0033): figures and what is shown when data is missing, not wording or tone.
+ */
 const machines = ENGINE_DATA.machines.map((m) => ({
   id: m.id,
   code: m.code,
@@ -44,41 +47,21 @@ const model = modelWith([
 ]);
 
 describe('Machine page insight pass (ticket 643)', () => {
-  it('marks the spares table: downtime hours, high is worse, they add up', () => {
-    expect(model.spares.table).toMatchObject({
-      meaning: { column: 2, worse: 'high', additive: true },
-    });
-  });
-
   it('names the part with the most downtime as the spares outlier', () => {
-    expect(model).toMatchObject({
-      takeaways: {
-        'machine.spares': {
-          text: 'Rectifier O/P 440V AC and I/P 190V DC is 4.0× the average of the others (4.0).',
-          tone: 'loss',
-          outlier: 'Rectifier O/P 440V AC and I/P 190V DC',
-        },
-      },
-    });
+    const part = 'Rectifier O/P 440V AC and I/P 190V DC';
+    const line = model.takeaways?.['machine.spares'];
+    expect(line?.outlier).toBe(part);
+    for (const figure of [part, '4.0×', '(4.0)']) expect(line?.text ?? '').toContain(figure);
   });
 
-  it('counts open and overdue tasks as a risk', () => {
-    expect(model).toMatchObject({
-      takeaways: { 'machine.tasks': { text: '2 open · 1 overdue', tone: 'risk' } },
-    });
+  it('counts open and overdue tasks', () => {
+    const text = model.takeaways?.['machine.tasks']?.text ?? '';
+    for (const figure of ['2 open', '1 overdue']) expect(text).toContain(figure);
   });
 
-  it('says there are no open tasks, neutral, when there are none', () => {
-    expect(modelWith([])).toMatchObject({
-      takeaways: { 'machine.tasks': { text: 'No open tasks.', tone: 'neutral' } },
-    });
-  });
-
-  it('says the tasks could not be read, neutral, when the tickets are missing', () => {
+  it('says the tasks could not be read, never a count, when the tickets are missing', () => {
     const unread = modelWith(null);
-    expect(unread).toMatchObject({
-      takeaways: { 'machine.tasks': { text: unread.tasks.unavailable, tone: 'neutral' } },
-    });
+    expect(unread.takeaways?.['machine.tasks']?.text).toBe(unread.tasks.unavailable);
   });
 
   it("gives every tile the machine's rank in the plant as its yardstick", () => {

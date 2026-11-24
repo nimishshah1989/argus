@@ -2,6 +2,7 @@ import type { Drill } from '../../../ui/v2/drill.js';
 import type { EntityChipProps } from '../../../ui/v2/entity-chip.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { TableModel } from '../figures/table.js';
 
 /** A label over its value, with a quiet line under it for what is not the value (a basis, why it is missing). */
@@ -36,6 +37,8 @@ export type TaskRow = {
  * zero and never a guess.
  */
 export type MachinePageModel = {
+  /** Ticket 643 (ADR 0031 §5): the lines the spares and tasks sections open with, ids `machine.spares` and `machine.tasks`. */
+  takeaways?: Takeaways;
   machine: {
     id: string;
     code: string;
