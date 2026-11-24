@@ -51,7 +51,7 @@ const SECTIONS: Record<string, string[]> = {
 type WithTakeaways = { takeaways?: Takeaways } | null;
 /** A finished screen's model, when its frozen provider needs params or it has none (a test-support file builds it). */
 const MODELS: Record<string, () => Promise<WithTakeaways>> = {
-  // Cast until #642 adds `takeaways` to ShiftModel.
+  // Cast until ticket 642 adds `takeaways` to ShiftModel.
   'shift-kpis': async () => shiftKpisModel(realReply(), realT) as WithTakeaways,
 };
 

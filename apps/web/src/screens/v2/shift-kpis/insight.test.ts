@@ -7,7 +7,7 @@ import { shiftKpisModel } from './adapter.js';
 /** ADR 0031 §4: a takeaway per section and the engine's basis line as each tile's yardstick, no new words. */
 const model = shiftKpisModel(realReply(), realT)!;
 
-describe('Shift-calendar KPIs insight pass (#642)', () => {
+describe('Shift-calendar KPIs insight pass (ticket 642)', () => {
   it('opens the platform comparison with the headline, neutral', () => {
     expect(model).toMatchObject({
       takeaways: {
