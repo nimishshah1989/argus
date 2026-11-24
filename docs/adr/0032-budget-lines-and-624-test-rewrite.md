@@ -1,19 +1,24 @@
-# 0032 — Budget line count includes main's merged-in lines (fix PROPOSED, needs Nimish); #624's export test is a rule rewrite, not a weakening
+# 0032 — Budget line count includes main's merged-in lines (fixed in PR #651, needs Nimish's yes to merge); #624's export test is a rule rewrite, not a weakening
 
 Date: 2026-11-24 · Decided by: Plan (unattended, ADR 0012)
 
-## 1. Budget lines should count only the PR's own files — PROPOSED, needs Nimish's yes
+## 1. Budget lines should count only the PR's own work — fix in PR #651, needs Nimish's yes
 
 PRs #633 (#623), #637 (#625) and #634 (#624) failed loop-guard as over budget (461, 481 and 494 lines). The builds were not big. The #638 fix made the guard count only the PR's own **files** after a build branch merges main, but the **line** count still added up every line in `Plan-base...HEAD`, including main's merged-in work (`.loop.json` +203, `insight.ts` +146, HANDOFF, ADRs).
 
-Real sizes, tests excluded as before: #623 is 4 files / 36 lines (budget 6 / 90), and #625 is 2 files / 56 lines (budget 4 / 120). Proposed fix, one condition in `.github/loop/check_pr.py` (the budget line loop):
+Real sizes, tests excluded as before: #623 is 4 files / 36 lines (budget 6 / 90), and #625 is 2 files / 56 lines (budget 4 / 120).
 
-```diff
--            if a.isdigit() and d.isdigit() and not skip(p):
-+            if a.isdigit() and d.isdigit() and not skip(p) and p in paths:  # main's merged-in files don't count
-```
+**Fix (PR #651, after review):** the budget now diffs the build against "the plan seed on top of the main the branch merged in" (`git merge-tree --write-tree <merge-base(main, HEAD)> <Plan-base>`), with `--numstat -M`. So:
 
-Ran the current guard and the patched guard on the three branches with their real PR bodies. Current: all three fail. Patched: all three pass. **Not applied.** A plan session may not change the CI guard on its own (permission denied, same as #638, which needed Nimish's yes). Raising the Budget lines or splitting the tickets would not help, because the extra lines come from main, not from the tickets.
+- main's lines never count, even in a file both main and the build changed;
+- the seed's lines never count, even in a file the builder also edited;
+- a renamed file counts once, under its new path, with only its changed lines.
+
+Files and lines both come from that one diff. Checked: `tools/check-pr-budget.test.ts` builds a repo with main merged in, a rename and a file changed by main, seed and builder; the old guard said 3 files / 142 lines, the new one says the true 2 / 4. On the real branches the new guard gives #633 4 / 36, #637 2 / 56, #634 4 / 69, all inside budget.
+
+**Shortcut:** if the seed conflicts with main (merge-tree fails) or git is older than 2.38, the guard falls back to `Plan-base...HEAD` limited to the PR's own paths. In that case main's lines in a file the PR also changed still count. Upgrade if that ever fails a real build.
+
+Still **needs Nimish's yes** before merge: a guard change, same as #638. Raising the Budget lines or splitting the tickets would not have helped, because the extra lines came from main, not from the tickets.
 
 ## 2. #624 rewrites two legacy-export tests because ADR 0026 changed the rule
 
