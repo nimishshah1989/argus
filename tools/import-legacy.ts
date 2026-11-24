@@ -16,6 +16,8 @@ import {
   type YearReport,
 } from '../apps/server/src/seed/legacy-classify.js';
 import { convertLegacy, type PlantContext } from '../apps/server/src/seed/legacy-export.js';
+import { classifyLegacy } from '../apps/server/src/seed/legacy-classify.js';
+import { trayCsv, trayOf } from '../apps/server/src/seed/legacy-tray.js';
 import { readSheet, type LegacyRow } from '../apps/server/src/seed/legacy-sheets.js';
 import { readWorkbook } from './answer-key/xlsx.js';
 import { compareGrid, readMonthGrid } from './legacy-grid.js';
@@ -224,6 +226,12 @@ export function main(argv = process.argv.slice(2)): void {
   }
   mkdirSync(out, { recursive: true });
   for (const file of files) writeFileSync(join(out, `legacy-${file.year}.json`), file.json);
+  const tray = trayOf(classifyLegacy(rows, plant.machines, switches).rows);
+  for (const { year } of reports) {
+    const held = tray.filter((t) => t.year === year);
+    writeFileSync(join(out, `review-${year}.csv`), trayCsv(held));
+    console.log(`review tray ${held.length} rows -> review-${year}.csv`);
+  }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
