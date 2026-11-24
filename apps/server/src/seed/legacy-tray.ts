@@ -25,7 +25,9 @@ export function trayOf(rows: readonly ClassifiedRow[]): TrayRow[] {
         ? [{ year: row.year, machine, excelRow: row.excelRow, reason: cls }]
         : [],
     )
-    .sort((a, b) => a.year - b.year || a.machine.localeCompare(b.machine) || a.excelRow - b.excelRow);
+    .sort(
+      (a, b) => a.year - b.year || a.machine.localeCompare(b.machine) || a.excelRow - b.excelRow,
+    );
 }
 
 /** `TRAY_HEADER`, then one line per row; every line ends with a newline. */
