@@ -11,7 +11,9 @@ import {
   type EnergyTile,
 } from '../../analytics/figure-content.js';
 import type { FigureData } from '../../../ui/v2/figure-tile.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { Translate } from '../figures/read.js';
+import { takeawayFor, type Item } from '../insight.js';
 import { drillFor } from '../rows-behind/drill.js';
 import { tileAddress } from '../rows-behind/tile.js';
 import { figureOf, shortDate, type FiguresPart } from '../printed-page/printed.js';
@@ -216,6 +218,56 @@ const totalsOf = (cells: EnergyTile[]): Totals => ({
 
 type Picks = { top: EnergyTile | undefined; densest: EnergyTile | undefined };
 
+/** The tiles that hold machines, as a takeaway reads them: the figure is the tile's value, shown as the tile prints it. */
+function itemsOf(
+  tiles: EnergyTile[],
+  value: (tile: EnergyTile) => number,
+  name: (tile: EnergyTile) => string,
+): Item[] {
+  return tiles
+    .filter((tile) => tile.machines > 0)
+    .map((tile) => ({ name: name(tile), value: value(tile), shown: oneDecimal(value(tile)) }));
+}
+
+/** One computed line per map (ADR 0035, ticket 660): concentration where the load adds up, else the outlier. */
+function takeawaysOf(content: EnergyContent, names: Names3, t: Translate): Takeaways {
+  const kva = (tile: EnergyTile) => tile.connectedKva;
+  return {
+    cell: takeawayFor(
+      itemsOf(content.byCell.tiles, kva, names.cell),
+      { worse: 'high', additive: true },
+      t,
+    ),
+    location: takeawayFor(
+      itemsOf(content.byLocation.tiles, kva, names.place),
+      { worse: 'high', additive: true },
+      t,
+    ),
+    machine: takeawayFor(
+      itemsOf(content.byMachine.tiles, (tile) => tile.avgConnectedKva, names.cell),
+      { worse: 'high' },
+      t,
+    ),
+  };
+}
+
+/** The kit's share yardstick, "20% of 2,812.0 KVA"; none when nothing is connected, so there is no division by zero. */
+function shareYardstick(part: number, total: Totals, t: TFunction): string | undefined {
+  if (total.connected === 0) return undefined;
+  const whole = `${oneDecimal(total.connected)} ${t('analytics.energy.unit')}`;
+  return fill(t('insight.yardstick.share'), {
+    pct: Math.round((part / total.connected) * 100),
+    total: whole,
+  });
+}
+
+/** The kit's average yardstick, "Average 22.3 KVA": the plant's connected load over its machines; none with no machine. */
+function averageYardstick(total: Totals, t: TFunction): string | undefined {
+  if (total.machines === 0) return undefined;
+  const value = `${oneDecimal(total.connected / total.machines)} ${t('analytics.energy.unit')}`;
+  return fill(t('insight.yardstick.average'), { value });
+}
+
 function verdictFor(
   input: { picks: Picks; total: Totals; pct: number; source: string },
   name: (tile: EnergyTile) => string,
@@ -260,12 +312,14 @@ function figuresFor(
       label: t('v2e.fig.connected'),
       value: `${oneDecimal(total.connected)} ${unit}`,
       sub: fill(t('v2e.fig.connectedSub'), { n: total.machines }),
+      yardstick: averageYardstick(total, t),
     },
     {
       id: 'running',
       label: t('v2e.fig.running'),
       value: `${oneDecimal(total.running)} ${unit}`,
       sub: fill(t('v2e.fig.runningSub'), { pct }),
+      yardstick: shareYardstick(total.running, total, t),
     },
     ...(top
       ? [
@@ -274,6 +328,7 @@ function figuresFor(
             label: t('v2e.fig.heaviest'),
             value: name(top),
             sub: `${oneDecimal(top.connectedKva)} ${unit} · ${machinesLine(top, t)}`,
+            yardstick: shareYardstick(top.connectedKva, total, t),
           },
         ]
       : []),
@@ -284,6 +339,7 @@ function figuresFor(
             label: t('v2e.fig.densest'),
             value: name(densest),
             sub: `${oneDecimal(densest.avgConnectedKva)} ${unit} ${t('v2e.fig.perMachine')}`,
+            yardstick: averageYardstick(total, t),
           },
         ]
       : []),
@@ -362,6 +418,7 @@ export function energyModel(reply: FiguresPart, t: TFunction): EnergyModel | nul
   const say_: Translate = (key, values) => t(key, { ...values }) as string;
   return {
     verdict: verdictFor({ picks, total, pct, source }, names.cell, t),
+    takeaways: takeawaysOf(content, names, say_),
     figures: figuresFor({ picks, total, pct }, names.cell, t),
     grids: gridsFor(content, names, t),
     drill: drillFor(reply, FIGURE, say_),
