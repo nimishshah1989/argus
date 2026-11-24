@@ -9,7 +9,7 @@ import {
   FOCUS_LANE_HINTS,
   FOCUS_LANE_LABELS,
 } from '../../analytics/team-focus-actions.js';
-import { STORED_OF } from './adapter.js';
+import { OWNER_PREFIX, STORED_OF } from './adapter.js';
 import type { ActionRow, ActionStatus, NoteChange, TeamFocusModel } from './model.js';
 import { laneTally, ownerRows } from './writes.js';
 
@@ -124,7 +124,7 @@ export function OwnerDetail({ model, chipId }: { model: TeamFocusModel; chipId: 
   const rows = ownerRows(model, chipId);
   return (
     <div className="v2-detail">
-      <DetailSection label={t('v2tf.owner.actions', { owner: rows[0]?.owner?.label ?? '' })}>
+      <DetailSection label={t('v2tf.owner.actions', { owner: chipId.slice(OWNER_PREFIX.length) })}>
         <ul className="v2-points">
           {rows.map((r) => (
             <li key={r.id}>

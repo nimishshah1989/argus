@@ -1,4 +1,5 @@
 import { useContext } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../../../ui/v2/button.js';
 import { DrillAction } from '../../../ui/v2/drill-action.js';
 import { DecisionList } from '../../../ui/v2/domain/decision-list.js';
@@ -39,8 +40,26 @@ function RebalanceCard({ model, act }: { model: TeamFocusModel; act: Acts }) {
   );
 }
 
+/** "I'll take it" did not save; said in the page body beside the decisions, not above the shell. */
+function AssignFailed() {
+  const { t } = useTranslation();
+  return (
+    <p role="alert" className="v2-sub v2-seg-loss">
+      {t('v2tf.edit.failed')}
+    </p>
+  );
+}
+
 /** The page under the header, top to bottom; a decision, a person, a machine or a row opens its detail in the drawer. */
-function Body({ model, act }: { model: TeamFocusModel; act: Acts }) {
+function Body({
+  model,
+  act,
+  assignFailed,
+}: {
+  model: TeamFocusModel;
+  act: Acts;
+  assignFailed: boolean;
+}) {
   const { words } = model;
   const open = useContext(EntityOpenContext);
   const { current } = useEntityParam();
@@ -59,11 +78,13 @@ function Body({ model, act }: { model: TeamFocusModel; act: Acts }) {
           <KpiCard key={k.id} kpi={k} />
         ))}
       </Row>
+      {assignFailed ? <AssignFailed /> : null}
       {model.start.length > 0 ? (
         <DecisionList
           decisions={model.start}
           words={words.decisions}
           {...decision}
+          // Absent until the user and the month are known: the rows then hide "I'll take it" (ticket 594).
           onDecide={act.onAssign}
           onUndo={act.onUnassign}
         />
@@ -100,22 +121,25 @@ export function TeamFocusView({
   model,
   nav,
   title,
-  onAssign = ignore,
-  onUnassign = ignore,
+  onAssign,
+  onUnassign,
   onRebalance = ignore,
   onSave = ignore,
   canSave = true,
+  assignFailed = false,
 }: {
   model: TeamFocusModel;
   nav: NavItem[];
   title: string;
   /** False while the plan names no month: the action drawer then offers no form. */
   canSave?: boolean;
+  /** The last "I'll take it" did not save; said beside the decisions. */
+  assignFailed?: boolean;
 } & TeamFocusActions) {
   const act: Acts = { onAssign, onUnassign, onRebalance, onSave };
   return (
     <EntityShell nav={nav} title={title} local={(ref) => localAction(model, ref, act, canSave)}>
-      <Body model={model} act={act} />
+      <Body model={model} act={act} assignFailed={assignFailed} />
     </EntityShell>
   );
 }

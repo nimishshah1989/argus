@@ -5,7 +5,9 @@ import { OWNER_PREFIX } from './adapter.js';
 import { ActionDetail, OwnerDetail } from './detail.js';
 import type { TeamFocusActions, TeamFocusModel } from './model.js';
 
-export type Acts = Required<TeamFocusActions>;
+/** "I'll take it" is absent until the signed-in person and the month are known (ticket 594), so its two are optional. */
+export type Acts = Omit<Required<TeamFocusActions>, 'onAssign' | 'onUnassign'> &
+  Pick<TeamFocusActions, 'onAssign' | 'onUnassign'>;
 
 /**
  * The drawers this page holds live: a start decision keeps its Assign button, any other action of the month opens its
@@ -18,11 +20,12 @@ export function localAction(
   act: Acts,
   canSave = true,
 ): LocalEntity | null {
+  // Never null for an owner: null would send `owner:` to the person lookup, and an owner with no actions is still one.
   if (ref.kind === 'person' && ref.id.startsWith(OWNER_PREFIX)) {
-    const label = model.actions.find((a) => a.owner?.id === ref.id)?.owner?.label;
-    return label === undefined
-      ? null
-      : { label, content: <OwnerDetail model={model} chipId={ref.id} /> };
+    return {
+      label: ref.id.slice(OWNER_PREFIX.length),
+      content: <OwnerDetail model={model} chipId={ref.id} />,
+    };
   }
   if (ref.kind !== 'decision') return null;
   const d = model.start.find((x) => x.id === ref.id);
