@@ -7,6 +7,7 @@ import { FigureTile } from '../../../ui/v2/figure-tile.js';
 import { Row } from '../../../ui/v2/row.js';
 import { EmptyState } from '../../../ui/v2/screen-states.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
+import { Takeaway, type TakeawayData } from '../../../ui/v2/takeaway.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
 import { EntityShell } from '../entity/EntityShell.js';
 import { useEntityParam } from '../entity/url.js';
@@ -17,10 +18,12 @@ const columnsFor = (n: number): 2 | 3 | 4 => (n <= 2 ? 2 : n === 3 || n === 6 ? 
 
 function SectionView({
   section,
+  takeaway,
   words,
   selected,
 }: {
   section: ShiftSection;
+  takeaway: TakeawayData | null;
   words: ShiftModel['words'];
   selected: string | undefined;
 }) {
@@ -29,6 +32,7 @@ function SectionView({
       title={section.title}
       action={section.drill ? <DrillAction drill={section.drill} /> : undefined}
     >
+      {takeaway ? <Takeaway data={takeaway} /> : null}
       {section.notComputed ? <EmptyState text={words.notComputed} /> : null}
       {section.figures.length > 0 ? (
         <Row cols={columnsFor(section.figures.length)}>
@@ -80,7 +84,13 @@ export function ShiftKpisView({
     <EntityShell nav={nav} title={title}>
       <Verdict verdict={model.verdict} whyLabel={model.words.why} />
       {model.sections.map((section) => (
-        <SectionView key={section.id} section={section} words={model.words} selected={selected} />
+        <SectionView
+          key={section.id}
+          section={section}
+          takeaway={model.takeaways[section.id] ?? null}
+          words={model.words}
+          selected={selected}
+        />
       ))}
       <SourceLine text={model.source} />
     </EntityShell>
