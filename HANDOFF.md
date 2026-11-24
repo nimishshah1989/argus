@@ -20,8 +20,8 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 ## Next step
 
 1. update-branch #711 and #707, one at a time, merging each when all checks finish (`merger.sh` does it if left running).
-3. Re-run `loop finish 657`, then `664`, one at a time on an idle machine. Likely the same load-timing failure for other pool tickets (665, 666, 667, 668).
-4. Not started: 640, 644, 665, 668–679, rebuilds 641/656, kit #684–#701. Housekeeping from Nimish's paste: duplicate ADR 0035, restore `apps/web/src/ui/**` protection in `.loop.json`, tracker artifact 66c8a2ff is stale.
+2. Re-run `loop finish 657`, then `664`, one at a time on an idle machine. Likely the same load-timing failure for other pool tickets (665, 666, 667, 668).
+3. Not started: 640, 644, 665, 668–679, rebuilds 641/656, kit #684–#701. Housekeeping from Nimish's paste: duplicate ADR 0035, restore `apps/web/src/ui/**` protection in `.loop.json`, tracker artifact 66c8a2ff is stale.
 
 ## Blocked / open questions
 
