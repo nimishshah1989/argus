@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { PoolClient } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 import type { EngineResult } from '@uptimo/domain';
 import { tenantInfo } from '../identity/index.js';
 
@@ -127,4 +127,29 @@ export async function servedRun(
   await tx.query(SAVE_SQL, [tenantId, asOf, randomUUID(), JSON.stringify({ stamp, result })]);
   await prune(tx, tenantId);
   return result;
+}
+
+/** Ticket 606: the queue whose job brings a plant date's kept run up to date after the data moved. */
+export const FIGURES_WARM_QUEUE = 'figures.warm';
+
+/** How many reads computed the engine themselves (a cold miss: nothing kept for the date). Must stay 0 once warm. */
+export function engineRunsInRead(): number {
+  throw new Error('not built');
+}
+
+/** Test helper: back to 0. */
+export function resetEngineRunsInRead(): void {
+  throw new Error('not built');
+}
+
+/**
+ * The warm job's body: compute the run for the plant date and keep it, exactly as `servedRun` does on a miss (same
+ * lock, same save, same prune), but skip when the kept stamp already equals the current data stamp. Does not count
+ * as a run in a read. Ticket 606.
+ */
+export async function warmServedRun(
+  _pool: Pool,
+  _input: { tenantId: string; asOf: string },
+): Promise<void> {
+  throw new Error('not built');
 }
