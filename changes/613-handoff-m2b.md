@@ -1,0 +1,1 @@
+- Handoff: M2b kit PR 609 red on gallery Compare spec; tickets 613–615 seeded.

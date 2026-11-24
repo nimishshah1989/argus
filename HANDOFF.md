@@ -14,12 +14,12 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 - Merged: **#603** CMP-5 Compare live, v1 MachinesPage deleted (588 closed; Compare done in M2) · **#608** ADR 0024 (figures never computed in a read; tickets 606, 607 seeded) · **#605** wireframes S27–S30 (Floor, Desk, Ticket, Board; drafts, questions for Nimish in the PR body).
 - **606** (M3-1 served-warm) → PR **#610**, CI RED: `api (2/5)`, `api (3/5)`, `static`, `pr-meta`. pr-meta = auto body; full body drafted at `/tmp/body606.md` (Plan-base `b06f1af6…`). api/static tails not read yet. Attempts used: 1.
 - **607** (M3-2 load script) blocked by 606; seed `plan/t607` (merge main into it first).
-- Helpers were still running at session end — look for their PRs: **M2b kit** (`plan/m2b-insight-kit`: PROJECT.md M2b milestone, kit `Takeaway` + expand row, `insight-coverage.test.ts`, then issues + seeds for Dashboard / Action Center / Breakdown Log) and **S20–S26 redraw** (`plan/wireframes-s20-s26-insight`). Check CI; merge if green and sane.
+- **S20–S26 redrawn** insight-first: merged **#612** (waits for Nimish). **M2b kit PR #609** (PROJECT.md M2b, ADR 0025 model convention `model.takeaways`, kit `Takeaway`/`ExpandRow`, `insight-coverage.test.ts`) is RED on required `gallery (1/4)`: `e2e/gallery/analytics-order.spec.ts` still expects v1 Compare headings at `/analytics/machines?screen=compare` — main is likely red there too since #603 (its gallery jobs were skipped). Plan fixes that spec (protected) on 609's branch. M2b tickets **613** Dashboard, **614** Action Center, **615** Breakdown Log seeded on `plan/t613..615` (based on the kit branch; refresh from main after 609 merges).
 
 ## Next step
 
 1. `gh pr edit 610 --body-file /tmp/body606.md` (rebuild from #603's body shape if /tmp is gone) → read the api/static failures with `loop ci 610` → Don't + rebuild, or fix the seed → review → merge.
-2. Merge the M2b kit PR, build the M2b tickets (ADR 0023: before the rest of M2), then 607.
+2. Fix the gallery Compare spec on #609 → merge → build 613–615, then the M2b tickets (ADR 0023: before the rest of M2), then 607.
 
 ## Blocked / open questions
 
