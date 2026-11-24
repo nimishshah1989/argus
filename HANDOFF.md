@@ -4,6 +4,8 @@
 
 _Overwritten at the end of every session. Facts only._
 
+> **24 Nov — ADR 0032 (Plan):** loop-guard counts main's merged-in lines against ticket budgets. The one-line `check_pr.py` fix is in the ADR, **needs Nimish's yes** (guard change). #633/#637/#634 are within budget; no splits or budget edits. #634's test rewrite is legitimate; its PR body carries `Tests removed:` → ADR 0032. After the fix merges, merge main into 633/637/634.
+
 **Updated:** 2026-11-24 16:25 IST · **By:** coordinator (long chat session, handing to `loop auto`) · **Milestone:** M2b screens lane + M3 history lane
 
 ## State
