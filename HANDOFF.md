@@ -7,10 +7,12 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-24 · **By:** Plan (history load blocker) · **Model:** claude-opus-5-5
-**Milestone:** M3 history lane · **Branch:** plan/t635 (seed), plan/handoff-t635 (this) · Job done.
+**Updated:** 2026-11-24 · **By:** Plan (screens batch 1) · **Model:** claude-opus-5-5
+**Milestone:** M2b screens lane · **Branch:** plan/screens-batch1 (this) · **Job NOT done: context budget hit.**
 
 ## State
+
+- **Screens batch 1 (24 Nov, ADR 0031):** issues **#640** Dashboard, **#641** Breakdown Log (size:small), **#642** Shift KPIs (size:small), **#643** Machine page, **#644** S22 Money Matters created with placeholder bodies. **No seed branches yet.** Every decision, expected takeaway text and file list is in ADR 0031: next Plan session writes seeds from `main` (not plan/t620), tests via `toMatchObject` on model output, each seed edits `insight-coverage.test.ts`, proves red + lint, pushes, writes the issue body (Blocked-by #619, #620).
 
 - **History lane — staging load blocker (24 Nov):** `pnpm import:bhavin legacy-<year>.json` on staging failed, 0 rows (unknown alias `Maint. Team`, `LG-` codes, work type `Utility failure`). Not a bug: the designed loader is `tools/load-legacy.ts` → `loadLegacyYears` (adds Plant/Utility failure + switched-off codes, a pending placeholder person per `LG-` code and `Maint. Team`, R8/R17/R20); same workbooks loaded 0 errors locally (`docs/plan/evidence/69c-real-load.md`). **#635** (size:small): import:bhavin refuses an `lg-<year>-` file and points to load-legacy; seed `plan/t635` @ 1785eb9e, 14 red, typecheck/lint green. Failed batch on staging wrote nothing; left as is. Open: #623 (seed ready), #624, #625; 621 merged (#627); **no ticket yet** for the server setting + `load-legacy --data-from` (ADR 0027 §4), then 69d.
 - **ADR 0028** (this PR): 613–615 superseded; kit tickets 619 + 620; rule order target → change → concentration (additive only) → outlier; `.loop.json` carve-out of 8 kit files is PROPOSED, not applied (blocked by permissions; needs Nimish), **restore `apps/web/src/ui/**` when 620 merges**.
@@ -21,11 +23,11 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 ## Next step
 
-1. Coordinator: build #635 (`loop run-ticket 635`). 2. Plan: ticket the ADR 0027 §4 server setting + `load-legacy --data-from`. 3. No staging history load until 623, 624 and that ticket merge and Nimish says go (then 69d or `tools/load-legacy.ts --allow-remote`). 4. Screens lane: 619 issue body, 620 seed + body, S20–S26 issues (see ADR 0028).
+0. Plan (`loop plan`): seed #640–#644 per ADR 0031, then write their bodies. 1. Coordinator: build #635 (`loop run-ticket 635`). 2. Plan: ticket the ADR 0027 §4 server setting + `load-legacy --data-from`. 3. No staging history load until 623, 624 and that ticket merge and Nimish says go (then 69d or `tools/load-legacy.ts --allow-remote`). 4. Screens lane: 619 issue body, 620 seed + body, S20–S26 issues (see ADR 0028).
 
 ## Blocked / open questions (Nimish)
 
-- S20 availability target source; S22 has no previous-period figure (yardstick vs target only until engine has one); S26 new attention badges need server counts (build v1's jobs badge only); C shift in any answer-key row.
+- S20 availability target source; S22 has no previous-period figure (yardstick vs target only until engine has one); S26 new attention badges need server counts (build v1's jobs badge only); C shift in any answer-key row — **it exists**: 2 breakdowns, 3.00 h on shift "3 (no window)", Working Hours/Day 21.0 (ADR 0031).
 
 ## Don't repeat
 
