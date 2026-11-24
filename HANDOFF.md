@@ -1,3 +1,5 @@
+> **24 Nov (coordinator) — state:** #645 merged. #651 (loop-guard line-count fix, ADR 0032) CI green, held: guard change needs Nimish's yes; it unblocks #633/#634/#637 (false 'over budget' because main's lines count). #649 (#642) review FAIL (tile basis printed twice, backlog repeat); Plan fixed the ticket, builder was blocked by a stop hook wanting HANDOFF.md overwritten (builder brief says use docs/loop/handoff/642.md) — rerun `loop build 642`, or fix the hook. #650 (#620) red: loop-guard, pr-meta. #634 also red on static. Not reviewed: #637, #634, #633.
+
 # HANDOFF
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
