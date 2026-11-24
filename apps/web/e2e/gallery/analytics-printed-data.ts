@@ -9,15 +9,5 @@ export interface Printed {
   rows: [string, number, string[], string?][];
 }
 
-export const PRINTED: Printed[] = [
-  {
-    path: '/analytics/machines?screen=compare',
-    tiles: [],
-    rows: [
-      ['Scorecard', 0, ['Health', '82', '74']],
-      ['Checkup', 0, ['Coolant', 'Ok']],
-      ['Specifications', 0, ['Year', '2019']],
-      ['Longest breakdowns', 0, ['01-02-2026', '6.5']],
-    ],
-  },
-];
+/** Empty for the same reason as `SCREENS` in analytics-order-data.ts. */
+export const PRINTED: Printed[] = [];
