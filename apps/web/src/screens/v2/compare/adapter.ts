@@ -3,8 +3,10 @@ import type { CompareReply } from '@uptimo/shared/compare-pair';
 import type { CompareFigure } from '../../../ui/v2/domain/compare-box.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
 import type { Point, Seg } from '../../../ui/v2/points.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { TrendData } from '../../../ui/v2/trend-chart.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
+import { takeawayFor, type Item } from '../insight.js';
 import { cellChip, machineChip, shortDate, type Page } from '../printed-page/printed.js';
 import { tablesOf } from '../printed-page/page-model.js';
 import { say, strong } from '../printed-page/segs.js';
@@ -280,6 +282,30 @@ function trendOf(worse: Year, better: Year, asOf: string, t: Words): TrendData {
 }
 
 /**
+ * The two takeaways (ticket 674, ADR 0035): "What is different" over the causes' hours, and the weekly chart over the
+ * pair's 12-week hours, both high-is-worse. Shared by the live model and the gallery fixture.
+ */
+export function compareTakeaways(
+  { causes, series }: { causes: Item[]; series: Item[] },
+  t: Words,
+): Takeaways {
+  return {
+    differences: takeawayFor(causes, { worse: 'high', additive: true }, t),
+    trend: takeawayFor(series, { worse: 'high' }, t),
+  };
+}
+
+/** One year's causes as takeaway items: named as the box prints them, valued and shown in hours. */
+const causeItems = (y: Year, t: Words): Item[] =>
+  y.causes.map((c) => ({ name: codeName(c.code, t), value: c.hours, shown: h1(c.hours) }));
+
+/** One year's 12 weeks of hours as a takeaway item, named by its machine. */
+const weeksItem = (y: Year): Item => {
+  const hours = y.weekly.reduce((s, v) => s + v, 0);
+  return { name: y.code, value: hours, shown: h1(hours) };
+};
+
+/**
  * Everything the live Compare prints (ticket 587, ADR 0021 §2–5): verdict, picker, key figures, the two boxes,
  * "What is different", the weekly chart, v1's six tables and the source line, from the pair's years so far and the
  * engine's page. The rules are the ticket's "How it must behave"; every word is a `v2cmp.*` catalogue key.
@@ -298,6 +324,10 @@ export function compareModel(reply: ComparedReply, page: Page, tf: TFunction): C
     figures: figs,
   });
   const words = pageWords(tf, 'v2cmp.source');
+  const takeaways = compareTakeaways(
+    { causes: causeItems(worse, t), series: reply.years.map(weeksItem) },
+    t,
+  );
   const points = topCodes(worse, better).map((code) =>
     say(t('v2cmp.say.difference'), {
       cause: strong(codeName(code, t)),
@@ -309,6 +339,7 @@ export function compareModel(reply: ComparedReply, page: Page, tf: TFunction): C
   );
   return {
     verdict: verdictOf(worse, better, reply.asOf, t),
+    takeaways,
     pick: { ...reply.pair, options: reply.options.map((code) => ({ key: code, label: code })) },
     kpis: kpisOf(worse, better, reply.rate, t),
     boxes: [box(a, fa), box(b, fb)],

@@ -4,6 +4,7 @@ import type { AckFormWords } from '../../../ui/v2/domain/ack-form.js';
 import type { EntityChipProps } from '../../../ui/v2/entity-chip.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
 import type { Point } from '../../../ui/v2/points.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
 
 /** What a person can do to one nudge: the three writes on an open one, Reopen on a stored one. */
@@ -107,6 +108,8 @@ export type ActionCenterModel = {
   /** Every nudge in the engine's order (priority, then the latest evidence first). */
   nudges: NudgeRow[];
   risk: RiskRow[];
+  /** Each table's computed line, `nudges` (open nudges by kind) and `risk` (ADR 0035, ticket 654). */
+  takeaways?: Takeaways;
   /** The people an owner can be chosen from (active only), as the plant lists them. */
   people: string[];
   snoozeDays: number;
