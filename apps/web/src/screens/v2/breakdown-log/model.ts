@@ -1,5 +1,6 @@
 import type { PagedWords } from '../../../ui/v2/paged-table.js';
 import type { EntityChipProps } from '../../../ui/v2/entity-chip.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
 
 export type LogFilterId = 'date' | 'month' | 'shift' | 'machine' | 'code' | 'person';
@@ -39,6 +40,8 @@ export type LogRow = {
   /** Only the exceptions are tagged: over 4 hours the entry is a long stop, over 1 hour a stop to watch. */
   severity: 'long' | 'watch' | null;
   code: string;
+  /** Ticket 615: this entry's hours as a share (0 to 1, two places) of the longest on the page; null for a dash. */
+  share?: number | null;
   /** What the plant's code list says the code means; null when it lists none (a dash, an unlisted code). */
   codeLabel: string | null;
   /** E, M or E/M, when the engine sent the row's type and it adds to the code. */
@@ -96,5 +99,7 @@ export type LogModel = {
   /** The plant's code list as `code` to what it means, for the Code filter's option text. */
   codeLabels: Record<string, string>;
   source: string;
+  /** Ticket 615: the line the table opens with, under the id `log`. */
+  takeaways?: Takeaways;
   words: LogWords;
 };

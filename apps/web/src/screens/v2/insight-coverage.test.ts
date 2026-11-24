@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import '../../i18n/index.js';
 import { FROZEN, PROVIDERS } from './data.js';
+import { EMPTY_QUERY } from './breakdown-log/model.js';
 import type { Takeaways } from '../../ui/v2/takeaway.js';
 
 /**
@@ -12,7 +14,6 @@ const NOT_YET = new Set([
   'age',
   'bd-pm',
   'bottleneck',
-  'breakdown-log',
   'category-cell',
   'cell-change-log',
   'compare',
@@ -37,11 +38,19 @@ const NOT_YET = new Set([
 ]);
 
 /** Each finished screen's sections, written out so a section added later without a takeaway fails here. */
-const SECTIONS: Record<string, string[]> = {};
+const SECTIONS: Record<string, string[]> = {
+  'breakdown-log': ['log'],
+};
 
 type WithTakeaways = { takeaways?: Takeaways } | null;
 /** A finished screen's model, when its frozen provider needs params or it has none (a test-support file builds it). */
-const MODELS: Record<string, () => Promise<WithTakeaways>> = {};
+const MODELS: Record<string, () => Promise<WithTakeaways>> = {
+  'breakdown-log': () =>
+    (FROZEN['breakdown-log'] as (query: unknown, ctx: object) => Promise<WithTakeaways>)(
+      EMPTY_QUERY,
+      {},
+    ),
+};
 
 describe('insight coverage (M2b)', () => {
   it('knows every v2 screen: finished, or on the not-yet list', () => {
