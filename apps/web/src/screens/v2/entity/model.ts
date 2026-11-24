@@ -4,13 +4,20 @@ import type { DecisionData } from '../../../ui/v2/domain/decision-row.js';
 import type { MachineDetailWords } from '../../../ui/v2/domain/machine-detail.js';
 import type { MachineData } from '../../../ui/v2/domain/plant.js';
 import type { PersonDetailData, PersonDetailWords } from '../../../ui/v2/domain/person-detail.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
 
 /**
  * Everything a drawer prints for one machine, cell, person or decision: the contract the API fills. `id` is what the
  * URL and the chips say, `label` names the drawer for a screen reader, and `source` is the figures' freshness line.
  * A model that is not found comes back as nothing, never as a model with holes.
  */
-export type EntityModel = { id: string; label: string; source: string } & (
+export type EntityModel = {
+  id: string;
+  label: string;
+  source: string;
+  /** ADR 0035: the cell drawer's `worst`, over every machine in the cell; the machine and person drawers have none. */
+  takeaways?: Takeaways;
+} & (
   | { kind: 'machine'; machine: MachineData; words: MachineDetailWords }
   | { kind: 'decision'; decision: DecisionData; words: DecisionDetailWords }
   | { kind: 'cell'; cell: CellDetailData; words: CellDetailWords }
