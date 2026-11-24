@@ -3,6 +3,7 @@ import type { TableWords } from '../../../ui/v2/data-table.js';
 import type { EntityChipProps } from '../../../ui/v2/entity-chip.js';
 import type { Drill } from '../../../ui/v2/drill.js';
 import type { FigureData } from '../../../ui/v2/figure-tile.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
 
 /** What a move names: the ids the server's write takes. They are handles, never printed. */
@@ -93,6 +94,8 @@ export type PmCalendarWords = {
 /** Everything the PM calendar prints, in the reader's words, ready to print, for one stretch of the calendar. */
 export type PmCalendarModel = {
   verdict: VerdictData;
+  /** ADR 0035: `calendar`, `judged`, `spread`, `jobs`; the calendar's over every day of the reply's range, not the month. */
+  takeaways?: Takeaways;
   figures: FigureData[];
   judged: Judged[];
   /** The six weeks (or the month, until the grid has said) these jobs are for. */
