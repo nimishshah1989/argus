@@ -2,7 +2,7 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-24 17:10 IST · **By:** Plan · **Model:** Opus 5.5
+**Updated:** 2026-11-24 17:25 IST · **By:** Plan · **Model:** Opus 5.5
 **Milestone:** M2b screens lane + M3 history lane · **Branch:** plan/loop-guard-budget-lines · **PR:** #651
 
 ## State
@@ -15,7 +15,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 ## Next step
 
-Get Nimish's yes on #651 (guard change), merge it when CI is green, then merge main into #633, #637, #634 and merge each when green.
+#651 CI is green (`loop ci 651`), not merged. Get Nimish's yes on #651 (guard change), merge it when CI is green, then merge main into #633, #637, #634 and merge each when green.
 
 ## Blocked / open questions
 
