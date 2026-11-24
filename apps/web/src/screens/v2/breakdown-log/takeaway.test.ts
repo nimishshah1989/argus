@@ -9,7 +9,7 @@ import { logFromWorkbook } from './source.js';
 const ask = async (query: Partial<LogQuery> = {}) =>
   (await logFromWorkbook({ ...EMPTY_QUERY, ...query }))!;
 
-/** Critical tests only (ADR 0033): the figures in the line, not its wording, tone or tag. */
+/** Critical tests only (ADR 0034): the figures in the line, not its wording, tone or tag. */
 const hasFigures = (text = '') => {
   for (const figure of ['13', '115', '51%']) expect(text).toContain(figure);
 };
