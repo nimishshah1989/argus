@@ -1,5 +1,56 @@
 # M4b-69 — legacy history 2022–2025
 
+## Amendment, 24 Nov 2026 — all 20 workbooks in hand; three converter gaps (M3 G3.1, history lane)
+
+This slice stays the history plan (ADR 0027 §1; draft #300 closes unmerged). It now runs as **M3 G3.1** in the
+**history lane**, beside the screens lane (ADR 0026 §3), not after M4a. Everything below the line is unchanged
+except where this amendment names a ruling.
+
+- **Where the files are.** Nimish supplied every register: `/Users/nimishshah/argus-data/history/{2022,2023,2024,2025}/*.xlsx`
+  on the operator's Mac (20 workbooks, 342 sheets). Pass that folder as `--data`; `findWorkbooks` walks the year
+  folders. Never copied into git, a test, a log or a PR; fixtures stay invented.
+- **Counts agree.** Nimish's read (24 Nov; rows with a problem or minutes, machine sheets only): 2022 1,092 ·
+  2023 3,075 on 67 sheets · 2024 2,319 · 2025 1,324. The table below counts rows with a date (1,098 · 3,078 · 2,327
+  · 1,329); the two bases differ by under 0.4 % a year. 2023 was never out of scope here (only #300 called it
+  absent): 1,823 of its rows are utility (`UTI`), so real breakdowns are about 1,250. Rows by month 2023: 156 93 143
+  101 134 253 262 499 422 446 288 197.
+- **`Jul-23.xlsx` is not a register.** `UNIT-1..3` are a machine × day grid of July 2023 breakdown time, plus
+  `Total MB`. `findWorkbooks` already skips it (no four-digit year in its name). It becomes a **cross-check** for
+  July 2023 only, never a source: **#625** (`import:legacy --grid`).
+- **Late-2022 rows in 2023 workbooks** (75, none repeating a 2022-workbook row) load under their own date: R1′ as
+  written.
+- **R1″ (new, amends R1′) — a row dated after its workbook's year is held, never loaded.** 3 rows in VTL-2023 read
+  2024-11-03; 2 in VMC-2025 read 2026 (already `stray_year`; must never reach the 2026 answer-key era). A row
+  already in the later year's workbook stays `duplicate`. Cost if wrong: a few real rows wait for Bhavin.
+- **The review tray (new).** Every held row a person must look at is listed in `review-<year>.csv` beside the
+  export files: year, machine, Excel row, reason — no cell content. Rows with a problem or minutes but a blank date
+  (4 in 2024, today dropped as template rows) join it as `bad_date`. **#623** (seeded on `plan/t623`).
+- **R13′ (amends R13) — two shifts (ADR 0026).** `1`/`1ST`/`1STG`/`1TS` → A (`1`); `2`/`2ND`/`2D` → B (`2`);
+  everything else (`3RD`, `3ND`, `4TH`…, `1 & 2`, blank) is held to the tray with its verbatim value, never folded
+  into A or B. **#624**.
+- **Text dates** (`dd.mm.yyyy`: 236 in 2022, 3 in 2023, 36 in 2024, 4 in 2025) are R5 as built.
+- **Order.** Load 2022 → 2023 → 2024 → 2025 (`tools/load-legacy.ts` already loads years ascending). Build: **623 →
+  624 → 625** (all three share `tools/import-legacy.ts`, one at a time) beside ADR 0027's **621 → server setting +
+  `load-legacy --data-from` → 69d**. Nothing loads on staging until 621 and the setting are merged and Nimish
+  has uploaded the files (69d).
+
+**#300's traps, mapped to what is built** (each has an invented fixture and a test today):
+
+| Trap                        | Rule here                       | Test                                                                           |
+| --------------------------- | ------------------------------- | ------------------------------------------------------------------------------ |
+| T1 power cut on every sheet | R6′, R20: one plant event a day | `legacy-export.test.ts` "turns the utility rows…", `legacy-merge.test.ts`      |
+| T2 repair over days         | not merged — see below          | —                                                                              |
+| T3 codes changed            | R14′, S5                        | `legacy-export.test.ts` "keeps codes as written except the folded MEC and ELE" |
+| T4 dates and shifts         | R5, R1′/R1″, R13′               | `legacy-sheets.test.ts` dates; #623, #624                                      |
+| T5 overlapping columns      | R4, `utiOnBreakdown`            | `legacy-classify.test.ts` counts; `legacy-check.test.ts`                       |
+| T6 people                   | R8–R10, pseudonyms              | `legacy-export.test.ts` "puts no name…", `legacy-people.test.ts`               |
+| T7 junk                     | R2, repeats                     | `legacy-sheets.test.ts` "ignores 50,000 empty styled rows"                     |
+| T8 no entries ≠ reliable    | S4 gap months                   | `legacy-load.test.ts` "prints the gap months as no records"                    |
+
+T2 stays one ticket per daily row on purpose: Bhavin's summary sheets, G3.1's yardstick, count each row (R7), so
+merging runs would put every multi-day machine-month off the check. Revisit only if Bhavin says a run is one
+breakdown.
+
 ## Re-plan, 19 Nov 2026 (replaces the plan of #406 and its amendment)
 
 The goals are ticket 69's six in `docs/plan/MILESTONES.md`. Nimish's rulings of 19 Nov are fixed here and not
