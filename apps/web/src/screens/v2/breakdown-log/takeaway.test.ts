@@ -11,7 +11,7 @@ const ask = async (query: Partial<LogQuery> = {}) =>
 
 const FULL = { text: '13 of 115 make up 51% of the total.', tone: 'risk', tag: 'Risk' };
 
-describe('Breakdown Log takeaway (#641)', () => {
+describe('Breakdown Log takeaway (ticket 641)', () => {
   it('says how few machines hold half the breakdown hours of the whole log', async () => {
     const model = await ask();
     expect(Object.keys(model.takeaways ?? {})).toEqual(['log']);
