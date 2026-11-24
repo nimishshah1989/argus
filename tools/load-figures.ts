@@ -52,6 +52,24 @@ export interface LoadReport {
   maxMs: number;
   /** `engineRunsInRead()` after the warm-up reads; must be 0. */
   engineRunsInRead: number;
+  /**
+   * Ticket 628: each route read, on its own. `figures` is GET /api/v1/analytics/figures, `board` is
+   * GET /api/v1/analytics/action-center. Each reader alternates the two (reader i starts on route i % 2), so both get
+   * about half the requests. The top-level numbers are both routes together.
+   */
+  routes: Record<'figures' | 'board', RouteReport>;
+}
+
+/** Ticket 628: one route's share of a run. G3.2 needs each route answered, each with p95 <= `P95_LIMIT_MS`. */
+export interface RouteReport {
+  requests: number;
+  errors: number;
+  p95Ms: number;
+}
+
+/** Skeleton (ticket 628): replaced by the per-route numbers of `readAll`. */
+function routesNotBuilt(): LoadReport['routes'] {
+  throw new Error('not built: ticket 628');
 }
 
 /** What is wrong with a run, one plain sentence each; empty when it passes G3.2. */
@@ -175,6 +193,7 @@ export async function runLoad(options: LoadOptions): Promise<LoadReport> {
       p95Ms: Math.round(at(sorted, 0.95)),
       maxMs: Math.round(sorted.at(-1) ?? 0),
       engineRunsInRead: engineRunsInRead(),
+      routes: routesNotBuilt(),
     };
   } finally {
     await app.close();
