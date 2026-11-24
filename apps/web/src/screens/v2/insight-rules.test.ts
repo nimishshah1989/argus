@@ -16,9 +16,12 @@ const target = { value: 98, shown: '98.0%' };
 
 describe('targetTakeaway (ticket 619)', () => {
   it('says how many miss and names the worst, low being worse', () => {
-    const got = targetTakeaway([...shifts, item('Day', 91.2)], target, t, { worse: 'low' });
+    // Two of four meet, so this is the miss line, not the only-one line.
+    const got = targetTakeaway([...shifts, item('Night', 99), item('Day', 91.2)], target, t, {
+      worse: 'low',
+    });
     expect(got).toEqual({
-      text: '2 of 3 miss 98.0%; worst is Day (91.2%).',
+      text: '2 of 4 miss 98.0%; worst is Day (91.2%).',
       tone: 'risk',
       tag: 'Risk',
     });
