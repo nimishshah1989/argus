@@ -1,38 +1,35 @@
 # HANDOFF
 
-> **24 Nov — ADR 0024:** M3 G3.2 (figures never computed in a read) pulled forward while wireframes wait; tickets 606 (serve kept + warm job) and 607 (load script, blocked by 606) seeded.
+> **24 Nov 10:15 — ADR 0023 Insight first (Nimish):** screens feel flat. Redraw S20–S26 under UX rules 60–67 before asking for approval; run **M2b Insight pass** (one ticket per live v2 screen) before the rest of M2. Reviewer fails any screen without takeaway + marked outlier + yardstick.
 
-> **24 Nov 10:15 — ADR 0023 Insight first (Nimish):** screens feel flat — plain monochrome number tables. Do NOT ask Nimish to approve S20–S26 as drawn: **redraw them under UX rules 60–67** and put them back for approval. After Compare goes live, run **M2b Insight pass** (one ticket per live v2 screen) before the rest of M2. Reviewer fails any screen without takeaway + marked outlier + yardstick.
-
-> **24 Nov — ADR 0016 (Nimish: yes to all):** Breakdown Log Excel keeps both ticket columns, screen + CSV show one (G1.2a unblocked); draft Shift KPIs + Energy wireframes for his approval; answer key stays frozen; budget 150k; helpers = `helper` (Sonnet), never general-purpose.
-
-> **Read ADR 0012 first.** Nimish is away; the loop runs unattended. Plan decides §6 (ADR each) except answer-key changes, production, money, irreversible data steps.
+> **Read ADR 0012 first.** Nimish is away; the loop runs unattended. Plan decides (ADR each) except answer-key changes, production, money, irreversible data steps.
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-24 · **By:** Plan · **Model:** claude-opus-5-5
-**Milestone:** M2 Finish the analytics redesign (building) · **Branch:** plan/handoff-m2-cmp5
+**Milestone:** M2b Insight pass (planning) · M3 G3.2 pulled forward (ADR 0024) · **Branch:** plan/handoff-m3-606
 
 ## State
 
-- Merged this session: **#598** TF-4 (ticket 594, Team Focus "I'll take it" edges) · **#600** CMP-2 `GET /analytics/compare` (585) · **#601** CMP-4 live Compare adapter (587; review 1 FAIL fixed: MTTR/MTBF dash only on the zero-breakdown side).
-- **CMP-5 ticket 588** (Compare goes live, v1 MachinesPage deleted): built; attempts used 2 of 3, both Plan's fault (outdated `data.test.ts`, fixed on seed `3cd3e5fb`) + unformatted handoff. Attempt 3 build ran (`loop build 588` done) — **next: `loop finish 588`**, not yet run. Seed already drops v1 Compare assertions from `live.test.ts` and `e2e/analytics-compare.spec.ts` → PR body needs a `Tests removed:` line.
-- Reviewer follow-ups (non-blocking, not ticketed): 585 — unknown query key answers 422 with field `asOf`; no visible 403 test. 587 — no assert that both sides' marks are `same` when one count is 0. 594 — `assignHandlers` test checks only that handlers exist, not the saved owner.
+- Merged: **#603** CMP-5 Compare live, v1 MachinesPage deleted (588 closed; Compare done in M2) · **#608** ADR 0024 (figures never computed in a read; tickets 606, 607 seeded) · **#605** wireframes S27–S30 (Floor, Desk, Ticket, Board; drafts, questions for Nimish in the PR body).
+- **606** (M3-1 served-warm) → PR **#610**, CI RED: `api (2/5)`, `api (3/5)`, `static`, `pr-meta`. pr-meta = auto body; full body drafted at `/tmp/body606.md` (Plan-base `b06f1af6…`). api/static tails not read yet. Attempts used: 1.
+- **607** (M3-2 load script) blocked by 606; seed `plan/t607` (merge main into it first).
+- **S20–S26 redrawn** insight-first: merged **#612** (waits for Nimish). **M2b kit PR #609** (PROJECT.md M2b, ADR 0025 model convention `model.takeaways`, kit `Takeaway`/`ExpandRow`, `insight-coverage.test.ts`) is RED on required `gallery (1/4)`: `e2e/gallery/analytics-order.spec.ts` still expects v1 Compare headings at `/analytics/machines?screen=compare` — main is likely red there too since #603 (its gallery jobs were skipped). Plan fixes that spec (protected) on 609's branch. M2b tickets **613** Dashboard, **614** Action Center, **615** Breakdown Log seeded on `plan/t613..615` (based on the kit branch; refresh from main after 609 merges).
 
 ## Next step
 
-1. `loop finish 588` → write the PR body from `/tmp/body601.md`'s shape (Q1–Q16, Coverage, `No parity:`/`Large PR:`/`Tests removed:` lines, Plan-base = `3cd3e5fb…`) → review → merge → tick Compare in PROJECT.md M2.
-2. Then the next M2 tickets (`loop status`, open issues labelled M2). S20–S26 still wait for Nimish.
+1. `gh pr edit 610 --body-file /tmp/body606.md` (rebuild from #603's body shape if /tmp is gone) → read the api/static failures with `loop ci 610` → Don't + rebuild, or fix the seed → review → merge.
+2. Fix the gallery Compare spec on #609 → merge → build 613–615, then the M2b tickets (ADR 0023: before the rest of M2), then 607.
 
 ## Blocked / open questions
 
-- **Nimish:** approve wireframes S20–S26 (PR #596 lists his questions). ADR 0019 extra drill on Data Checklist; Compare spares ₹0 frozen; ADR 0020 §5–6 "later" Team Focus items.
+- **Nimish:** approve S27–S30 (PR #605) and the redrawn S20–S26. M3 G3.1 needs his workbooks (N14, N17); §6 answer-key last digit and `support` downtime.
+- Follow-ups (not ticketed): Compare has no unit test that a pick keeps `screen=compare` and replaces history; a hand-typed refused pair shows the last good pair under the refused URL.
 
 ## Don't repeat
 
-- `loop finish` overwrites the PR body each run and its body always fails pr-meta: write the full quality body (Q1–Q16, What changed / How to try / What must be decided, Coverage, Reasons) to `/tmp/body<PR>.md`, `gh pr edit --body-file`, then an empty commit from a `/tmp/e<PR>` worktree pushed to the PR branch. PR size counts the seed: add `Large PR:` when >800. A seed that changes an assertion needs `Tests removed: <reason>`.
-- Plan-base in the body must be the **current** seed sha, or loop-guard counts seed files as builder changes.
-- Orchestrator can't touch `.loop/wt/<N>` except exactly `cd .loop/wt/<N> && git fetch -q origin plan/t<N> && git merge -q --no-edit origin/plan/t<N>` (its own call). Don't rerun `loop finish` just to read errors: it burns an attempt; read `.git/loop/tickets/<N>.json` notes.
-- Format files in `/tmp` seed worktrees with `/Users/nimishshah/argus/node_modules/.bin/prettier` run from inside the worktree (repo-root prettier ignores /tmp paths).
-- `e2e/who-is-acting.spec.ts:41` flaked once on PR 601 (passed on rerun of the failed job).
-- After every merge to main, refresh each open seed (`git -C /tmp/t<N> merge origin/main`, push). **Never force-push.** "ticket N" in comments, never `#N`.
+- `loop finish` writes a body that fails pr-meta: write Q1–Q16 + Reasons (`No parity:`, `Tests removed:`, `Large PR:`) to `/tmp/body<PR>.md`, `gh pr edit`, then push an empty commit from a `git worktree add --detach /tmp/e<PR>` (commit/push in a separate Bash call: the main-branch hook blocks commits from the repo root).
+- A screen PR must change `scope/<screen>.md` in its own diff (Q16); if main already has it, Plan adds a dated line on the seed.
+- After main moves: merge main into the seed, the seed into the PR branch, set Plan-base to the new seed sha; else loop-guard flags HANDOFF.md/ADRs as builder changes.
+- Check `ls docs/adr` on origin/main before numbering an ADR (0023 collided this session).
+- **Never force-push.** "ticket N" in comments, never `#N`.
