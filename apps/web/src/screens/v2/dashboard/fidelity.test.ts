@@ -327,7 +327,7 @@ describe('the page', () => {
     expect(out.match(/v2-grid v2-grid-hero/g)).toHaveLength(1);
     expect(out.match(/v2-kpi v2-kpi-hero/g)).toHaveLength(1);
     expect(out.match(/data-tone="gain"/g)).toHaveLength(1);
-    expect(out.match(/data-tone="loss"/g)).toHaveLength(4);
+    expect(out.match(/data-tone="loss"/g)).toHaveLength(6); // 4 figures + the two loss takeaways (ticket 613)
     expect(out.match(/data-stretch="link"/g)).toHaveLength(5);
     expect(out.match(/data-stretch="drill"/g)).toHaveLength(11);
     expect(out.match(/Open register/g)).toHaveLength(5);
