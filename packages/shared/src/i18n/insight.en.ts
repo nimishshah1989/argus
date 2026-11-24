@@ -6,4 +6,11 @@ export const insightEn = {
   'insight.tag.neutral': 'Note',
   'insight.outlier': '{name} is {n}× the average of the others ({value}).',
   'insight.none': 'Nothing stands out here.',
+  'insight.target.all': 'All {total} meet {target}.',
+  'insight.target.none': 'None of the {total} meet {target}.',
+  'insight.target.only': 'Only {name} meets {target}.',
+  'insight.target.miss': '{k} of {total} miss {target}; worst is {name} ({value}).',
+  'insight.concentration': '{k} of {n} make up {pct}% of the total.',
+  'insight.change': '{delta} on {period}.',
+  'insight.change.flat': 'No change on {period}.',
 };

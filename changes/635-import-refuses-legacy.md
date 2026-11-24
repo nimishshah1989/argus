@@ -1,0 +1,1 @@
+- `pnpm import:bhavin` now refuses a legacy year file (`legacy-<year>.json`) before any database work and points to `tools/load-legacy.ts`, which adds the placeholder people and the Utility failure work type first.

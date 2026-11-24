@@ -15,6 +15,21 @@ export type TakeawayData = {
   outlier?: string;
 };
 
+/**
+ * What a table's measure means, declared by the screen (ADR 0026 §4): which way is worse, and optionally a target in the
+ * measure's unit, a change against an earlier period, and whether the values add up to a total (hours, counts: yes;
+ * averages and percents: no). The takeaway rule and the table's ranking, bars and fold all read from this.
+ */
+export type Meaning = {
+  worse: 'high' | 'low';
+  /** `shown` is the target as the screen prints it ("98.0%"). A value equal to the target meets it. */
+  target?: { value: number; shown: string };
+  /** The section's total now and in `period` (the yardstick named in the line, e.g. "September"). */
+  change?: { now: number; before: number; period: string };
+  /** The values add up to a meaningful total: only then can a few rows "make up half". */
+  additive?: boolean;
+};
+
 /** The takeaways of one screen, by section id; `null` is a section with nothing worth saying (a quiet line shows). */
 export type Takeaways = Record<string, TakeawayData | null>;
 

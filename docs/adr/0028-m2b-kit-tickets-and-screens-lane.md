@@ -13,3 +13,7 @@ Date: 2026-11-24 · Decided by: Plan (under ADR 0026 §3–4, Nimish away per AD
 ## Why
 
 A carve-out of eight named files keeps every other kit file under CI guard while letting a builder, not Plan, write product code. Picking a rule from declared meaning makes every screen ticket a declaration, as Nimish asked.
+
+## Addendum — 24 Nov 14:33 IST
+
+Nimish said yes to the kit carve-out (§4). `.loop.json` now lists every `apps/web/src/ui` file except the eight named ones, plus all `ui` CSS; new non-CSS kit files (for example `ui/v2/table-*`, a yardstick part) are open to builders. **When #620 merges, restore the single glob `apps/web/src/ui/**` and drop `_kit_carve_out`.**

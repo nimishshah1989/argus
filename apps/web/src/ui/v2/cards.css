@@ -298,3 +298,10 @@
   font-weight: 400;
   white-space: normal;
 }
+/* What a figure is measured against (ADR 0026 §4): one quiet line under the value. */
+.v2-yardstick {
+  display: block;
+  margin: 4px 0 0;
+  color: var(--color-v2-ink-3);
+  font-size: var(--text-v2-label);
+}
