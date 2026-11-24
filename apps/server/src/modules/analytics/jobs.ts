@@ -1,9 +1,12 @@
 import type { Pool } from 'pg';
 import type { PgBoss } from 'pg-boss';
 import { z } from 'zod';
-import { logFailures, type JobRole } from '../../kernel/index.js';
+import { logFailures, withTenant, type JobRole } from '../../kernel/index.js';
+import { jobTenantIds } from '../identity/index.js';
+import { plantToday } from '../plant/index.js';
 import { ENGINE_FREEZE_QUEUE, runEngineFreeze } from './freeze.js';
 import { ENGINE_RUN_QUEUE, runEngineRun } from './run.js';
+import { FIGURES_WARM_QUEUE, warmServedRun } from './served.js';
 
 /**
  * The engine's queues (ticket 52, R18): created for every role so a caller can enqueue, worked and scheduled only
@@ -43,6 +46,7 @@ export async function startEngineJobs(
 ): Promise<void> {
   for (const queue of [ENGINE_FREEZE_QUEUE, ENGINE_RUN_QUEUE])
     if (!(await boss.getQueue(queue))) await boss.createQueue(queue, QUEUE);
+  await startWarmJobs(boss, deps.pool, role);
   if (role === 'api') return;
   const now = deps.now ?? (() => new Date());
   await boss.work<EnginePayload>(
@@ -73,4 +77,53 @@ export async function startEngineJobs(
     }),
   );
   await boss.schedule(ENGINE_RUN_QUEUE, ENGINE_RUN_CRON, {}, { tz: 'UTC' });
+}
+
+const warmQueues = new WeakMap<PgBoss, Promise<void>>();
+
+/** Creates the warm queue once per boss handle; startup and the first stale read both come through here. */
+export function ensureWarmQueue(boss: PgBoss): Promise<void> {
+  let ready = warmQueues.get(boss);
+  if (!ready) {
+    ready = (async () => {
+      if (!(await boss.getQueue(FIGURES_WARM_QUEUE)))
+        await boss.createQueue(FIGURES_WARM_QUEUE, { ...QUEUE, policy: 'short' });
+    })();
+    warmQueues.set(boss, ready);
+    ready.catch(() => warmQueues.delete(boss));
+  }
+  return ready;
+}
+
+const warmSchema = z.object({
+  v: z.literal(1),
+  tenantId: z.string().uuid().optional(),
+  asOf: z.string().optional(),
+});
+
+/** Ticket 606: with a plant and date, warm that one; without, warm every plant's today (the daily schedule). */
+async function warmJob(pool: Pool, data: unknown): Promise<void> {
+  const { tenantId, asOf } = warmSchema.parse(data);
+  if (tenantId && asOf) return warmServedRun(pool, { tenantId, asOf });
+  for (const id of tenantId ? [tenantId] : await jobTenantIds(pool))
+    await warmServedRun(pool, {
+      tenantId: id,
+      asOf: await withTenant(pool, id, (tx) => plantToday(tx, id)),
+    });
+}
+
+/**
+ * The `figures.warm` queue (`short`: one queued job per singleton key, so a burst of stale reads queues one). The
+ * daily schedule runs just after midnight plant time (the plants are in India) so each plant's new day is kept
+ * before the first read. shortcut: one fixed time zone, give each plant its own schedule when one is abroad.
+ */
+async function startWarmJobs(boss: PgBoss, pool: Pool, role: JobRole): Promise<void> {
+  await ensureWarmQueue(boss);
+  if (role === 'api') return;
+  await boss.work(
+    FIGURES_WARM_QUEUE,
+    { batchSize: 1, pollingIntervalSeconds: 30 },
+    logFailures(FIGURES_WARM_QUEUE, async ([job]) => warmJob(pool, job?.data ?? { v: 1 })),
+  );
+  await boss.schedule(FIGURES_WARM_QUEUE, '5 0 * * *', { v: 1 }, { tz: 'Asia/Kolkata' });
 }
