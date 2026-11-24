@@ -17,15 +17,16 @@ The SessionStart hook has already given you your role, HANDOFF.md, PROJECT.md §
 
 ## 2. How work runs
 
-Every session here is the loop. Nimish asks for something (or types `/loop:run`); the main session (Opus) follows the `loop-run` skill. He's needed only for product questions, `loop approve <screen>`, and escalations.
+Every session here is the loop. Nimish asks for something (or types `/loop:run`); the main session (the coordinator, Sonnet) follows the `loop-run` skill and hands every planning job to Opus with `loop plan`. He's needed only for product questions, `loop approve <screen>`, and escalations.
 
-| Who                         | Model                | Does                                                                                                                          |
-| --------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| main session (orchestrator) | Opus                 | PROJECT.md, schema, ADRs, wireframes, tickets, skeletons, visible + hidden tests, merge decisions. Never writes product code. |
-| `builder` subagent          | Sonnet               | Builds one ticket in `.loop/wt/<N>/` until its tests pass                                                                     |
-| `builder-small` subagent    | Haiku                | Same, for tickets labelled `size:small`                                                                                       |
-| `reviewer` subagent         | Opus (fresh context) | PASS/FAIL review of a ticket PR                                                                                               |
-| `rescuer` subagent          | Fable                | One last try after 3 failed attempts, then escalate                                                                           |
+| Who                        | Model                | Does                                                                                                         |
+| -------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------ |
+| main session (coordinator) | Sonnet               | Picks the next step, runs prep/build/finish/ci, merges green PRs, writes the handoff.                        |
+| `loop plan "<job>"`        | Opus                 | PROJECT.md, schema, ADRs, wireframes, tickets, skeletons, visible + hidden tests. Never writes product code. |
+| `builder` subagent         | Sonnet               | Builds one ticket in `.loop/wt/<N>/` until its tests pass                                                    |
+| `builder-small` subagent   | Haiku                | Same, for tickets labelled `size:small`                                                                      |
+| `reviewer` subagent        | Opus (fresh context) | PASS/FAIL review of a ticket PR                                                                              |
+| `rescuer` subagent         | Fable                | One last try after 3 failed attempts, then escalate                                                          |
 
 Build folders have no `tests/holdout/` (hidden tests); CI runs them. Hooks keep each role in its lane.
 
@@ -38,11 +39,11 @@ Build folders have no `tests/holdout/` (hidden tests); CI runs them. Hooks keep 
 
 ## 4. Building rules
 
-- One ticket = one seed branch `plan/t<N>` (skeleton + tests, by the orchestrator) → one build branch → one PR, opened by `loop finish` with the ticket's `Budget:` and `Screens:` lines. CI fails PRs >20% over budget.
+- One ticket = one seed branch `plan/t<N>` (skeleton + tests, by `loop plan`) → one build branch → one PR, opened by `loop finish` with the ticket's `Budget:` and `Screens:` lines. CI fails PRs >20% over budget.
 - Never edit or delete a test to make it pass. 3 failed attempts → one Fable rescue → `escalated`, back to plan.
 - UI uses design tokens only (`var(--…)` / the Tailwind preset). No raw hex, rgb, or arbitrary `[..px]` values; CI rejects them.
 - Spec looks wrong mid-build → stop, write it under "Blocked" in `docs/loop/handoff/<N>.md`. Never quietly build something different.
-- Review passes and CI is green → the orchestrator merges and ticks the goal in PROJECT.md.
+- Review passes and CI is green → the coordinator merges and ticks the goal in PROJECT.md.
 
 ## 5. Nothing important lives only in chat
 
