@@ -1,5 +1,7 @@
 # HANDOFF
 
+> **24 Nov 14:50 — ADR 0030 (Bhavin):** S-1/S-2 = Star-01/02; plain STAR, TC-2, VC-2, VC-3, VC-5 left out; unmapped codes load blank; spare-capacity exclusion (TC-3, TC-5, VC-6) deferred; ~10 impossible-year rows out.
+
 > **Read ADR 0012 first.** Nimish is away; the loop runs unattended. Plan decides (ADR each) except answer-key changes, production, money, irreversible data steps.
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
