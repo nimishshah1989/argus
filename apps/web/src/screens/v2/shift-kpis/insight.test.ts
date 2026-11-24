@@ -27,10 +27,9 @@ describe('Shift-calendar KPIs insight pass (ticket 642)', () => {
     });
   });
 
-  it('says the backlog is not computed when the engine has not computed it', () => {
-    expect(model).toMatchObject({
-      takeaways: { 'shift-kpis.backlog': { text: 'Not computed yet', tone: 'neutral' } },
-    });
+  it('puts no takeaway over a backlog the engine has not computed: its empty state says so, once (ADR 0033)', () => {
+    expect(model.sections.find((s) => s.id === 'shift-kpis.backlog')?.notComputed).toBe(true);
+    expect(model.takeaways['shift-kpis.backlog'] ?? null).toBeNull();
   });
 
   it('opens the breakdown map with the half-the-hours line, as a risk', () => {
@@ -42,6 +41,10 @@ describe('Shift-calendar KPIs insight pass (ticket 642)', () => {
         },
       },
     });
+  });
+
+  it('leaves the half-the-hours line to the map section: the verdict has no Why line a takeaway already says (ADR 0033)', () => {
+    expect(model.verdict.why).toEqual([]);
   });
 
   it('gives every tile its engine basis line as the yardstick', () => {
