@@ -7,6 +7,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 ## State
 
+- S22 Money Matters (#644) split by Plan: `plan/s22-model` puts the model types, register, gallery view, its own catalogue `analytics-v2-money` and the coverage table on main; adapter and View are skeletons the tickets fill.
 - Tests: `pnpm exec vitest run tools/check-pr-budget.test.ts` 1 passing (red before the fix: old guard said 3 files / 142 lines, truth 2 / 4).
 - Last thing done: reworked #651 after review FAIL. The budget diffs the build against "seed on top of the main it merged" (`git merge-tree`), `-M` counts a rename once, and main's and the seed's lines never count, even in shared files. Fallback shortcut recorded in ADR 0032 §1.
 - Real branches with the new guard: #633 4 files / 36 lines, #637 2 / 56, #634 4 / 69. All inside budget (old guard: 461 / 481 / 494, fail).
