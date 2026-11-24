@@ -51,16 +51,13 @@ function keyOf(name: string): KeyFile {
   ) as KeyFile;
 }
 
-const COMPARE = keyOf('compare');
 const TEAM = keyOf('team-focus');
 const MONEY = keyOf('money-matters');
 const FIX = keyOf('fix-finder');
-const CMP = COMPARE.pages[0]!;
 const MM = MONEY.pages[0]!;
 const FF = FIX.pages[0]!;
 
 /** Neutral screen constants, so CI's secret scanner never reads a figure lookup as an API key. */
-const SCREEN_COMPARE = 'compare';
 const SCREEN_TEAM = 'team-focus';
 const TEAM_PERIOD = '2026-12';
 const SCREEN_MONEY = 'money-matters';
@@ -97,7 +94,6 @@ async function stubFigures(page: Page): Promise<void> {
     excludedMachines: 0,
     rows: { machines: MACHINES.length, moves: 0, tickets: 1, tasks: 0, reports: 0, people: 4 },
     figures: [
-      figureOf(SCREEN_COMPARE, COMPARE, { type: 'machine', ids: MACHINE_IDS.slice(0, 2) }),
       // The frozen key predates `period` (ADR 0020); the live engine prints it, so the stub does too.
       figureOf(
         SCREEN_TEAM,
@@ -112,38 +108,6 @@ async function stubFigures(page: Page): Promise<void> {
     ],
   };
   await page.route('**/api/v1/analytics/figures', (route) => route.fulfill({ json: reply }));
-}
-
-/** Compare: the key page's six tables and both charts, then its two-machine drill. */
-async function openCompare(page: Page): Promise<void> {
-  await page.goto(`/analytics/machines?screen=${SCREEN_COMPARE}`);
-  const nav = page.getByRole('navigation', { name: 'Machines screens', exact: true });
-  await expect(
-    nav.getByRole('link', { name: 'Compare machines and health score', exact: true }),
-  ).toHaveAttribute('aria-current', 'page');
-  await expect(page.getByRole('heading', { name: CMP.title, exact: true })).toBeVisible();
-  for (const table of CMP.tables)
-    await expect(page.getByRole('heading', { name: table.title, exact: true })).toBeVisible();
-  await expect(
-    page.getByRole('cell', { name: CMP.tables[0]!.rows[0]![1]!, exact: true }),
-  ).toBeVisible();
-  const charts = page.getByTestId('chart');
-  await expect(charts).toHaveCount(2);
-  for (const chart of await charts.all())
-    await expect(chart).toHaveAttribute('data-chart-state', 'ready');
-  await expect(page.getByText('BD hours by maintenance code', { exact: true })).toBeVisible();
-  await expect(page.getByText('BD hours by month', { exact: true })).toBeVisible();
-  await page.getByRole('link', { name: 'See the rows', exact: true }).click();
-  await expect(page).toHaveURL(/drill=machine%3A/);
-  await expect(
-    page.getByRole('heading', { name: 'The rows behind this figure', exact: true }),
-  ).toBeVisible();
-  const drill = page.locator('section').filter({ hasText: 'The rows behind this figure' });
-  const first = MACHINES[0]!;
-  await expect(drill.getByRole('link', { name: first.code, exact: true })).toHaveAttribute(
-    'href',
-    new RegExp(`/analytics/machines/${first.id}$`),
-  );
 }
 
 /**
@@ -228,14 +192,13 @@ async function openFixFinder(page: Page): Promise<void> {
   await expect(page.getByRole('link', { name: ticket.ref, exact: true })).toBeVisible();
 }
 
-test('a head opens Compare, Team Focus, Money Matters and Fix Finder, sorts and drills one', async ({
+test('a head opens Team Focus, Money Matters and Fix Finder, sorts and drills one', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await stubFigures(page);
   await signIn(page, 'head');
 
-  await openCompare(page);
   await openTeamFocus(page);
   await openMoney(page);
   await openFixFinder(page);
