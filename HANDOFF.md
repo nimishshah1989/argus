@@ -7,17 +7,21 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 ## State
 
-- Screens batch 2 groundwork: ADR 0035 (one ticket per screen on disjoint files, no shared catalogue or coverage-test edits) and five kit yardstick words `insight.yardstick.*`.
-- Batch 2 seeding in flight (5 parallel Plan agents: 4 screen groups + S22 split); ticket numbers land in the next handoff.
+- Screens batch 2 groundwork: ADR 0035 (one ticket per screen on disjoint files; no edits to `insight-coverage.test.ts` or shared catalogues) and five kit words `insight.yardstick.*`.
+- Batch 2 seeding in flight (parallel Plan agents: 4 screen groups + S22 split); ticket numbers land in the next handoff.
+- ADR 0034 (#652) merged: seeds t640, t641, t643 carry critical tests only.
 
 ## Next step
 
-Plan: seed batch 2 tickets. Coordinator: keep building batch 1 (#640, #641, #643).
+Coordinator: `loop build 640`, `641`, `643`. Batch 2 tickets build once their seeds are pushed.
 
 ## Blocked / open questions
 
-- Carried, not rechecked: Nimish yes/no on #651; answer key's shift 3 vs the 2-shift decision; #652 (ADR 0034) open.
+- Nimish: yes/no on #651 (ADR 0032 §1); answer key's shift 3 vs the 2-shift decision.
+- Not rechecked: #649 (#642) needs `loop build 642` rerun; #650 and #634 red.
 
 ## Don't repeat
 
 - Batch 2 tickets must not edit `insight-coverage.test.ts` or shared i18n catalogues (ADR 0035); Plan sweeps NOT_YET after the batch merges.
+- The main checkout is shared with other sessions: commit from a temp worktree; check the branch before every commit.
+- ADR numbers: check every `origin/plan/*` branch before picking one.
