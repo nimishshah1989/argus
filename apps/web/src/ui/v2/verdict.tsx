@@ -10,7 +10,7 @@ export function Verdict({ verdict, whyLabel }: { verdict: VerdictData; whyLabel:
       <p className="v2-lede">
         <Segs point={verdict.headline} />
       </p>
-      <WhyToggle label={whyLabel} points={verdict.why} />
+      {verdict.why.length > 0 ? <WhyToggle label={whyLabel} points={verdict.why} /> : null}
       <p className="v2-sub">{verdict.context}</p>
     </div>
   );
