@@ -20,7 +20,6 @@ _Exact time definitions (downtime, repair, response, hands-on) live in `docs/spe
 | Escalation (ladder)    | Who is told (L1–L4 or vendor) when a clock is missed                                                                           | roster                                         |
 | Roster                 | Who is on duty at which ladder level, by date and shift                                                                        | escalation rule                                |
 | Shift                  | The plant's working periods; the production date is the date the shift started                                                 | calendar day                                   |
-| Shift calendar         | The set of shifts valid from a date; a day's figures use the calendar valid on that day                                        | shift, roster                                  |
 | Segment / group / cell | The machine hierarchy; a cell is a floor area, and a machine's cell moves are dated                                            | category (machine type)                        |
 | Crew / work segment    | The people on a job, and each person's stretches of hands-on time                                                              | segment (machine hierarchy)                    |
 | Coded close            | Failure codes on the breakdown report: component, mode, cause, action                                                          | free-text remarks                              |

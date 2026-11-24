@@ -69,10 +69,6 @@ const ARTIFACTS: Record<string, string> = {
                     WHERE table_schema = 'public' AND table_name = 'person' AND column_name = 'kind')
     AND NOT EXISTS (SELECT 1 FROM information_schema.columns
                     WHERE table_name = 'ticket' AND column_name IN ('sla_policy_id', 'handback_status')) AS installed`,
-  '0016_shift_calendar_person_language.sql': `SELECT EXISTS (SELECT 1 FROM information_schema.columns
-             WHERE table_name = 'shift' AND column_name = 'valid_from')
-    AND EXISTS (SELECT 1 FROM information_schema.columns
-                WHERE table_name = 'person' AND column_name = 'language') AS installed`,
   '0015_m4b_schema.sql': `SELECT to_regclass('public.forecast') IS NOT NULL
     AND to_regclass('public.intervention') IS NOT NULL
     AND to_regclass('public.pm_plan') IS NOT NULL

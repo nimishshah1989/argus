@@ -1,0 +1,1 @@
+- ADR 0036 is now the one v2 kit rulebook (colour with meaning, page budget, Bhavin's strips, filters, Excel, segment colours, English only for now); segment colour tokens and the kit's words land with it. Nothing on screen changes yet.
