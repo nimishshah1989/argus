@@ -30,5 +30,5 @@ export {
 
 export const analyticsModule = defineModule({
   name: 'analytics',
-  register: (app, config) => registerAnalyticsRoutes(app, config.pool),
+  register: (app, config) => registerAnalyticsRoutes(app, config.pool, config.jobBoss),
 });

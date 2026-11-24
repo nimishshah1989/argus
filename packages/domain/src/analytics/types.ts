@@ -255,6 +255,11 @@ export interface EngineSettings {
   amcRemindDays?: number;
   /** How many days before a legal test is due the Action Center warns; the platform's default is 15. */
   legalRemindDays?: number;
+  /**
+   * The plant date the platform's figures start from (ADR 0027): a run that names no span reads nothing before it, so
+   * loading older history moves no figure. Cosmos: `2026-01-01`. Absent: every year counts.
+   */
+  dataFrom?: string;
 }
 
 /**

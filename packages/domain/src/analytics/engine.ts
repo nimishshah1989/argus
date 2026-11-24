@@ -1,5 +1,5 @@
 import type { AnalyticsProfile } from '@uptimo/shared';
-import { dataAsOf } from './as-of.js';
+import { dataAsOf, dataFrom } from './as-of.js';
 import { gapMonths, recordedMonths, type Period } from './availability.js';
 import { canonicalOrder } from './canonical-order.js';
 import { COMPUTERS } from './computers.js';
@@ -144,7 +144,12 @@ export function runWith(
   const { asOf, profile } = input;
   if (!isPlantDate(asOf))
     throw new RangeError(`asOf must be a plant date like 2026-11-11, got ${asOf}`);
-  const data = dataAsOf(withListedExclusions(canonicalOrder(input.data)), asOf);
+  const from = input.data.settings?.dataFrom;
+  if (from !== undefined && !isPlantDate(from))
+    throw new RangeError(`dataFrom must be a plant date like 2026-01-01, got ${from}`);
+  const asOfData = dataAsOf(withListedExclusions(canonicalOrder(input.data)), asOf);
+  // A run that names a span reads that span; only the default read starts at the data-from date (ticket 621).
+  const data = from !== undefined && !input.span ? dataFrom(asOfData, from) : asOfData;
   const known = knownIds(data);
   const views = viewsOf(data, asOf, input.span);
   const figures = FIGURES.map((def): FigureResult => {

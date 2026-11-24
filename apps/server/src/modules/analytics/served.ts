@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import type { PoolClient } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 import type { EngineResult } from '@uptimo/domain';
+import { withTenant } from '../../kernel/index.js';
 import { tenantInfo } from '../identity/index.js';
+import { runForTenant } from './service.js';
 
 type Db = Pick<PoolClient, 'query'>;
 
@@ -64,16 +66,16 @@ function buildOf(): string {
   return /^[0-9a-f]{40}$/i.test(tag) ? tag.toLowerCase() : `boot-${BOOT}`;
 }
 
-const READ_SQL = `SELECT value, computed_at >= now() AS saved_since FROM kpi_snapshot
+const READ_SQL = `SELECT value FROM kpi_snapshot
   WHERE tenant_id = $1 AND profile = '${SERVED_PROFILE}' AND key = '${SERVED_KEY}'
     AND subject_kind = 'plant' AND as_of = $2::date`;
 
-type Kept = { value: { stamp: string; result: EngineResult }; savedSince: boolean };
+type Kept = { value: { stamp: string; result: EngineResult } };
 
-/** The kept row for this date, and whether it was saved after this request's transaction began. */
+/** The kept row for this date. */
 async function readKept(tx: Db, tenantId: string, asOf: string): Promise<Kept | null> {
   const row = (await tx.query(READ_SQL, [tenantId, asOf])).rows[0];
-  return row ? { value: row.value, savedSince: row.saved_since === true } : null;
+  return row ? { value: row.value } : null;
 }
 
 const SAVE_SQL = `INSERT INTO kpi_snapshot
@@ -100,31 +102,84 @@ async function prune(tx: Db, tenantId: string): Promise<void> {
   }
 }
 
+async function keep(
+  tx: Db,
+  key: { tenantId: string; asOf: string },
+  stamp: string,
+  result: EngineResult,
+): Promise<void> {
+  const { tenantId, asOf } = key;
+  await tx.query(SAVE_SQL, [tenantId, asOf, randomUUID(), JSON.stringify({ stamp, result })]);
+  await prune(tx, tenantId);
+}
+
 /**
- * The run for a plant date, served from the kept copy while the data is unchanged. A miss (nothing kept, or the stamp
- * moved) takes a per-plant-and-date lock, looks again (the reader ahead of this one has just kept the run), and only
- * then calls `compute` and keeps its result; so a burst of readers on a stale date runs the engine once. The stamp
- * is read before the data is loaded, so a write that lands during the compute leaves the kept stamp behind the data
- * and the next read computes again instead of serving a result that misses the write.
+ * The run for a plant date. A kept run is served as it is; when the data stamp has moved past it, `onStale` is told
+ * (the caller queues a warm job) and the old run still goes out: a read never recomputes what it already holds
+ * (ticket 606, ADR 0024). Only a cold miss (nothing kept for the date) takes a per-plant-and-date lock, looks again
+ * (the reader ahead of this one has just kept the run), and only then calls `compute` and keeps its result; so a
+ * burst of readers on a cold date runs the engine once. The stamp is read before the data is loaded, so a write that
+ * lands during the compute leaves the kept stamp behind the data and the warm job brings it up to date.
  */
 export async function servedRun(
   tx: Db,
-  input: { tenantId: string; asOf: string; compute: () => Promise<EngineResult> },
+  input: {
+    tenantId: string;
+    asOf: string;
+    compute: () => Promise<EngineResult>;
+    onStale?: (tenantId: string, asOf: string) => void | Promise<void>;
+  },
 ): Promise<EngineResult> {
-  const { tenantId, asOf, compute } = input;
+  const { tenantId, asOf, compute, onStale } = input;
   const first = await readKept(tx, tenantId, asOf);
-  if (first && first.value.stamp === (await dataStamp(tx, tenantId))) return first.value.result;
+  if (first) {
+    if (first.value.stamp !== (await dataStamp(tx, tenantId))) await onStale?.(tenantId, asOf);
+    return first.value.result;
+  }
   await tx.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
     `figures.served:${tenantId}:${asOf}`,
   ]);
-  // A run saved while this reader waited is served as it is, even when a later write has moved the stamp past it:
-  // otherwise each waiter would compute in turn, holding a connection each. The next read sees the moved stamp.
+  // A run saved while this reader waited is served as it is: otherwise each waiter would compute in turn.
   const kept = await readKept(tx, tenantId, asOf);
-  if (kept && (kept.savedSince || kept.value.stamp === (await dataStamp(tx, tenantId))))
-    return kept.value.result;
+  if (kept) return kept.value.result;
   const stamp = await dataStamp(tx, tenantId);
+  enginesInRead += 1;
   const result = await compute();
-  await tx.query(SAVE_SQL, [tenantId, asOf, randomUUID(), JSON.stringify({ stamp, result })]);
-  await prune(tx, tenantId);
+  await keep(tx, { tenantId, asOf }, stamp, result);
   return result;
+}
+
+/** Ticket 606: the queue whose job brings a plant date's kept run up to date after the data moved. */
+export const FIGURES_WARM_QUEUE = 'figures.warm';
+
+let enginesInRead = 0;
+
+/** How many reads computed the engine themselves (a cold miss: nothing kept for the date). Must stay 0 once warm. */
+export function engineRunsInRead(): number {
+  return enginesInRead;
+}
+
+/** Test helper: back to 0. */
+export function resetEngineRunsInRead(): void {
+  enginesInRead = 0;
+}
+
+/**
+ * The warm job's body: compute the run for the plant date and keep it, exactly as `servedRun` does on a miss (same
+ * lock, same save, same prune), but skip when the kept stamp already equals the current data stamp. Does not count
+ * as a run in a read. Ticket 606.
+ */
+export async function warmServedRun(
+  pool: Pool,
+  input: { tenantId: string; asOf: string },
+): Promise<void> {
+  const { tenantId, asOf } = input;
+  await withTenant(pool, tenantId, async (tx) => {
+    await tx.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+      `figures.served:${tenantId}:${asOf}`,
+    ]);
+    const stamp = await dataStamp(tx, tenantId);
+    if ((await readKept(tx, tenantId, asOf))?.value.stamp === stamp) return;
+    await keep(tx, { tenantId, asOf }, stamp, await runForTenant(tx, { tenantId, asOf }));
+  });
 }

@@ -1,0 +1,1 @@
+- Figures: a read serves the kept run and queues a `figures.warm` job when the data moved, and a daily job warms each plant's today; only a cold date computes inside the read.
