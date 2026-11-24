@@ -8,6 +8,7 @@ CMP-3 #586 (the six tables in the view), CMP-4 #587 (live adapter), CMP-5 #588 (
 
 **Live (CMP-5).** The screen is at `/analytics/machines?screen=compare` (v1's address) on `GET /analytics/compare`; the
 pair is the URL's `?a=&b=` (none: the engine's own pair, the one v1 showed). The gallery keeps the approved fixture.
+Shipped 24 Nov 2026 by ticket 588's PR, which deletes v1 `MachinesPage.tsx`.
 
 | Item                                                                         | Source                     | v2      | Where in v2                                                                                                     |
 | ---------------------------------------------------------------------------- | -------------------------- | ------- | --------------------------------------------------------------------------------------------------------------- |
