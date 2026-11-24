@@ -27,7 +27,14 @@ export const DEFAULT_SWITCHES: Switches = {
 };
 
 export type RowClass =
-  'bad_date' | 'stray_year' | 'duplicate' | 'gap_month' | 'unknown_machine' | 'utility' | 'ticket';
+  | 'bad_date'
+  | 'stray_year'
+  | 'duplicate'
+  | 'gap_month'
+  | 'unknown_machine'
+  | 'held_shift'
+  | 'utility'
+  | 'ticket';
 
 export interface ClassifiedRow {
   row: LegacyRow;
@@ -83,7 +90,8 @@ export interface YearReport {
   utilityMerged?: number;
   /** Of those, machines whose merged rows carried two different non-blank codes (the first is kept). */
   utilityCodeConflicts?: number;
-  strayShift: number;
+  /** Ticket 624: rows held because their shift names neither A (1) nor B (2); never loaded, sent to the tray. */
+  heldShift: number;
   blankCode: number;
   blankMinutes: number;
   utiOnBreakdown: number;
@@ -146,7 +154,7 @@ function emptyReport(year: number): YearReport {
     tickets: 0,
     events: 0,
     possibleDuplicatePeople: 0,
-    strayShift: 0,
+    heldShift: 0,
     blankCode: 0,
     blankMinutes: 0,
     utiOnBreakdown: 0,
@@ -182,14 +190,19 @@ interface Context {
   gap: Set<string>;
 }
 
+/** The shifts that plainly name A (1) or B (2); any other value is held (ADR 0026). */
+const PLAIN_SHIFTS = new Set(['1', '1ST', '1STG', '1TS', '2', '2ND', '2D']);
+
 function classOf(row: LegacyRow, machine: string, context: Context): RowClass {
   if (row.date === null) return 'bad_date';
   const dateYear = Number(row.date.slice(0, 4));
   if (!context.years.has(dateYear)) return 'stray_year';
   if (dateYear !== row.year && context.keys.get(dateYear)?.has(rowKey(row))) return 'duplicate';
+  if (dateYear > row.year) return 'stray_year';
   if (context.gap.has(row.date.slice(0, 7))) return 'gap_month';
   if (!context.known.has(machine)) return 'unknown_machine';
-  return isUtility(row) ? 'utility' : 'ticket';
+  if (isUtility(row)) return 'utility';
+  return PLAIN_SHIFTS.has(row.shift) ? 'ticket' : 'held_shift';
 }
 
 function measureRow(m: Measured, c: ClassifiedRow, years: Set<number>): void {
@@ -239,11 +252,13 @@ function tallyTicket(report: YearReport, row: LegacyRow): void {
   report.utiOnBreakdown += row.utiHours > 0 && row.minutes > 0 ? 1 : 0;
 }
 
-const CLASS_COUNT: Partial<Record<RowClass, 'duplicate' | 'strayYear' | 'gapMonth'>> = {
-  duplicate: 'duplicate',
-  stray_year: 'strayYear',
-  gap_month: 'gapMonth',
-};
+const CLASS_COUNT: Partial<Record<RowClass, 'duplicate' | 'strayYear' | 'gapMonth' | 'heldShift'>> =
+  {
+    duplicate: 'duplicate',
+    stray_year: 'strayYear',
+    gap_month: 'gapMonth',
+    held_shift: 'heldShift',
+  };
 
 function tally(
   rows: readonly ClassifiedRow[],
