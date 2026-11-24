@@ -213,3 +213,22 @@ describe('liveCompare', () => {
     expect(JSON.stringify(rest)).not.toContain('₹');
   });
 });
+
+describe('liveCompare, review 1', () => {
+  it('prints a dash for MTTR and MTBF on a machine with no breakdowns, and the real value on the other', () => {
+    const quiet = { ...B, count: 0, hours: 0, causes: [], weekly: B.weekly.map(() => 0) };
+    const m = model({ ...REPLY, years: [A, quiet] });
+    expect(plain(fig(m, 1, 'mttr').value)).toBe('—');
+    expect(plain(fig(m, 1, 'mtbf').value)).toBe('—');
+    expect(plain(fig(m, 0, 'mttr').value)).toBe('2.5 h');
+    expect(plain(fig(m, 0, 'mtbf').value)).toBe('623 h');
+  });
+
+  it('arrives with rows in the health scorecard and the health checkup for a real pair', () => {
+    const tables = model().tables!.items;
+    for (const prefix of ['Health scorecard', 'Health checkup']) {
+      const table = tables.find((x) => x.title.startsWith(prefix))!;
+      expect(table.rows.length).toBeGreaterThan(0);
+    }
+  });
+});
