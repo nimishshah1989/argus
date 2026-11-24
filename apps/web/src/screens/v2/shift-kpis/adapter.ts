@@ -2,9 +2,11 @@ import type { TFunction } from 'i18next';
 import { fill } from '../../../i18n/fill.js';
 import { levelOf, type HeatMatrixData, type HeatRow } from '../../../ui/v2/domain/heat-matrix.js';
 import type { Point } from '../../../ui/v2/points.js';
+import type { TakeawayData } from '../../../ui/v2/takeaway.js';
 import { FIGURE_LABELS } from '../../analytics/groups.js';
 import type { PageTable } from '../../analytics/page-content.js';
 import type { Translate } from '../figures/read.js';
+import { outlierTakeaway, tagOf } from '../insight.js';
 import { chartOf, figuresOf, tablesOf } from '../printed-page/page-model.js';
 import type { PageWords } from '../printed-page/page-model.js';
 import {
@@ -27,6 +29,7 @@ const SCREEN = 'shift-kpis';
 const COMPARE = 'shift-kpis.compare';
 const BACKLOG = 'shift-kpis.backlog';
 const MAP = 'shift-kpis.breakdown-map';
+const SPLIT = 'shift-kpis.shift-split';
 /** The screen's own name in English, which the engine also uses as the first figure's title. */
 const SCREEN_NAME = 'Shift-calendar KPIs';
 /** The two columns of a heat grid that are sums, not months: printed plain, never tinted. */
@@ -127,9 +130,12 @@ function sectionOf(
   return {
     id: figure.key,
     title: headingOf(page.title, t(FIGURE_LABELS[figure.key] ?? 'analytics.screen.unknown')),
-    figures: figuresOf(page.kpis).map((kpi, at) =>
-      at === onCount && drill ? { ...kpi, drill } : kpi,
-    ),
+    figures: figuresOf(page.kpis).map((kpi, at) => ({
+      ...kpi,
+      // shortcut: the engine's sub is a basis, not a yardstick; upgrade when the engine prints a prior period.
+      yardstick: kpi.sub,
+      ...(at === onCount && drill ? { drill } : {}),
+    })),
     charts: page.charts.map((spec) => chartOf(spec, words)),
     tables: tablesOf(plain, words),
     heat: page.tables
@@ -183,6 +189,38 @@ function halfLine(map: Page | undefined, t: TFunction): Point | null {
     : null;
 }
 
+/** A sentence as plain text: a takeaway is one line, its segments joined. */
+const sentenceOf = (point: Point): string => point.map((seg) => seg.text).join('');
+
+const sayOf = (t: TFunction) => (key: string) => t(key) as string;
+
+/** The shift with the most BD hours, the plant total row left out; the hours as printed. */
+function shiftTakeaway(split: Page | undefined, t: TFunction): TakeawayData | null {
+  const table = split?.tables.find((candidate) => candidate.header[2] === 'BD hours');
+  if (!table) return null;
+  const items = table.rows.flatMap((row) => {
+    const value = numeric(row[2] ?? '');
+    return row[0] === 'PLANT TOTAL' || value === null
+      ? []
+      : [{ name: row[0] ?? '', value, shown: row[2] ?? '' }];
+  });
+  return outlierTakeaway(items, sayOf(t));
+}
+
+/** The backlog line, neutral: how many breakdowns are open and how old the oldest is. */
+function backlogTakeaway(backlog: Page | undefined, t: TFunction): TakeawayData | null {
+  const line = backlogLine(backlog, t);
+  if (!line) return null;
+  return { text: sentenceOf(line), tone: 'neutral', tag: tagOf('neutral', sayOf(t)) };
+}
+
+/** The half-the-hours line, a risk: how few machines and cells carry half the breakdown hours. */
+function mapTakeaway(map: Page | undefined, t: TFunction): TakeawayData | null {
+  const line = halfLine(map, t);
+  if (!line) return null;
+  return { text: sentenceOf(line), tone: 'risk', tag: tagOf('risk', sayOf(t)) };
+}
+
 function wordsOf(t: TFunction): ShiftModel['words'] {
   const base: PageWords = pageWords(t, 'v2s.source');
   return {
@@ -210,11 +248,12 @@ export function shiftKpisModel(reply: FiguresPart, t: TFunction): ShiftModel | n
   const page = (key: string) => own.find((entry) => entry.figure.key === key)?.page ?? undefined;
   const source = fill(words.source, { date: shortDate(reply.asOf) });
   return {
-    verdict: verdictOf(
-      headline(page(COMPARE), t),
-      [backlogLine(page(BACKLOG), t), halfLine(page(MAP), t)],
-      source,
-    ),
+    verdict: verdictOf(headline(page(COMPARE), t), [], source),
+    takeaways: {
+      [SPLIT]: shiftTakeaway(page(SPLIT), t),
+      [BACKLOG]: backlogTakeaway(page(BACKLOG), t),
+      [MAP]: mapTakeaway(page(MAP), t),
+    },
     sections: own.map(({ figure, page: printed }) =>
       printed === null
         ? notComputed(figure, t)
