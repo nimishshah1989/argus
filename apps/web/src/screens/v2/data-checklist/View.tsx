@@ -10,6 +10,7 @@ import { Panel } from '../../../ui/v2/panel.js';
 import { Points } from '../../../ui/v2/points.js';
 import { Row } from '../../../ui/v2/row.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
+import { Takeaway, type TakeawayData } from '../../../ui/v2/takeaway.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
 import { EntityShell } from '../entity/EntityShell.js';
 import type {
@@ -21,6 +22,7 @@ import type {
 } from './model.js';
 
 const ignore = () => {};
+const line = (data: TakeawayData | null | undefined) => (data ? <Takeaway data={data} /> : null);
 type Acts = Required<DataChecklistActions>;
 
 /** One part of the data with something to fix: its checks, worst first, and the person who owns the fixes. */
@@ -117,8 +119,14 @@ function Body({ model, act }: { model: DataChecklistModel; act: Acts }) {
           <p className="v2-sub">{words.allClear}</p>
         </Panel>
       ) : (
-        model.groups.map((g) => <GroupCard key={g.id} group={g} words={words} act={act} />)
+        <>
+          {line(model.takeaways?.groups)}
+          {model.groups.map((g) => (
+            <GroupCard key={g.id} group={g} words={words} act={act} />
+          ))}
+        </>
       )}
+      {line(model.takeaways?.records)}
       <DataTable
         rows={model.records}
         rowKey={(r) => r.id}
@@ -131,6 +139,7 @@ function Body({ model, act }: { model: DataChecklistModel; act: Acts }) {
           if (r.entity.kind !== 'decision') open({ kind: r.entity.kind, id: r.entity.id });
         }}
       />
+      {line(model.takeaways?.passing)}
       <Panel title={words.passingTitle} sub={words.passingSub}>
         <Points points={model.passing} />
       </Panel>
