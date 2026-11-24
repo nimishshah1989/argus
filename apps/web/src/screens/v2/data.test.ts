@@ -78,8 +78,9 @@ describe('the v2 screen registry', () => {
     expect(unregistered).toEqual([]);
   });
 
-  it('serves the fixture of a registered screen', async () => {
-    const provider = PROVIDERS.compare as (pair: typeof DEFAULT_PAIR) => Promise<unknown>;
+  it('serves the frozen fixture of a registered screen', async () => {
+    // Compare is live (ticket 588): its fixture is the gallery's frozen answer now.
+    const provider = FROZEN.compare as (pair: typeof DEFAULT_PAIR) => Promise<unknown>;
     expect(await provider(DEFAULT_PAIR)).toEqual(compareFixture(DEFAULT_PAIR));
   });
 });
