@@ -1,5 +1,7 @@
 # HANDOFF
 
+> **24 Nov 19:15 — ADR 0035 (Nimish yes):** a screen PR may write its own coverage table; loop-guard exempts `docs/design/v2/scope/<screen>.md`.
+
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-24 · **By:** Plan · **Model:** Opus 5.5
