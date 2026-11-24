@@ -1,5 +1,7 @@
 # HANDOFF
 
+> **24 Nov 23:20 — main fix:** energy/adapter.ts split (433 > 400 lines) after #709 merged over a size failure.
+
 > **24 Nov 23:00 — ADR 0037 (Nimish yes):** PR paperwork checks (parity, size, quality fields, changelog) warn instead of block.
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
