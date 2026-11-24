@@ -8,7 +8,6 @@ import type { Takeaways } from '../../ui/v2/takeaway.js';
  * `SECTIONS` then names its section ids. The list only shrinks; a new screen is never added to it.
  */
 const NOT_YET = new Set([
-  'action-center',
   'age',
   'bd-pm',
   'bottleneck',
@@ -37,7 +36,9 @@ const NOT_YET = new Set([
 ]);
 
 /** Each finished screen's sections, written out so a section added later without a takeaway fails here. */
-const SECTIONS: Record<string, string[]> = {};
+const SECTIONS: Record<string, string[]> = {
+  'action-center': ['nudges', 'risk'],
+};
 
 type WithTakeaways = { takeaways?: Takeaways } | null;
 /** A finished screen's model, when its frozen provider needs params or it has none (a test-support file builds it). */

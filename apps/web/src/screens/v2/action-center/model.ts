@@ -4,6 +4,7 @@ import type { AckFormWords } from '../../../ui/v2/domain/ack-form.js';
 import type { EntityChipProps } from '../../../ui/v2/entity-chip.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
 import type { Point } from '../../../ui/v2/points.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
 
 /** What a person can do to one nudge: the three writes on an open one, Reopen on a stored one. */
@@ -57,6 +58,8 @@ export type NudgeRow = {
 
 /** One "Machines needing attention" row: the machine, the engine's score and the rules that fired. */
 export type RiskRow = {
+  /** Ticket 614: this machine's score as a share (0 to 1, two places) of the highest score. */
+  share?: number;
   machine: EntityChipProps | null;
   model: string;
   score: { shown: string; value: number };
@@ -111,6 +114,8 @@ export type ActionCenterModel = {
   people: string[];
   snoozeDays: number;
   source: string;
+  /** Ticket 614: the lines the two tables open with, under the ids `nudges` and `risk`. */
+  takeaways?: Takeaways;
   words: ActionCenterWords;
 };
 
