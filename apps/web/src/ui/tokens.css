@@ -277,6 +277,20 @@
   --color-v2-decide-tint: #f3e8ff;
   --color-v2-decide-fill: #7e3fc8;
   --color-v2-idle-fill: #8e8e93;
+  /* Status (ADR 0036): how a figure is doing against its yardstick. Aliases, so dark follows its own values. Red is
+     only ever `bad`. Ink (the base name) is text on the tint at 4.5:1 (tokens.test.ts); fill is an edge or a bar. */
+  --color-v2-good: var(--color-v2-gain);
+  --color-v2-good-fill: var(--color-v2-gain-fill);
+  --color-v2-good-tint: var(--color-v2-gain-tint);
+  --color-v2-watch: var(--color-v2-risk);
+  --color-v2-watch-fill: var(--color-v2-risk-fill);
+  --color-v2-watch-tint: var(--color-v2-risk-tint);
+  --color-v2-bad: var(--color-v2-loss);
+  --color-v2-bad-fill: var(--color-v2-loss-fill);
+  --color-v2-bad-tint: var(--color-v2-loss-tint);
+  --color-v2-neutral: var(--color-v2-ink-2);
+  --color-v2-neutral-fill: var(--color-v2-quiet);
+  --color-v2-neutral-tint: var(--color-v2-track);
   /* Machine types: one fixed colour each, the same on every screen (a dot or an edge, 3:1 on the panel). */
   --color-v2-cat-1: #4f5bd5;
   --color-v2-cat-2: #0e7c7b;

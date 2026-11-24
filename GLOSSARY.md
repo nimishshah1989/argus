@@ -20,6 +20,7 @@ _Exact time definitions (downtime, repair, response, hands-on) live in `docs/spe
 | Escalation (ladder)    | Who is told (L1–L4 or vendor) when a clock is missed                                                                           | roster                                         |
 | Roster                 | Who is on duty at which ladder level, by date and shift                                                                        | escalation rule                                |
 | Shift                  | The plant's working periods; the production date is the date the shift started                                                 | calendar day                                   |
+| Shift calendar         | The set of shifts valid from a date; a day's figures use the calendar valid on that day                                        | shift, roster                                  |
 | Segment / group / cell | The machine hierarchy; a cell is a floor area, and a machine's cell moves are dated                                            | category (machine type)                        |
 | Crew / work segment    | The people on a job, and each person's stretches of hands-on time                                                              | segment (machine hierarchy)                    |
 | Coded close            | Failure codes on the breakdown report: component, mode, cause, action                                                          | free-text remarks                              |
@@ -51,3 +52,5 @@ _Exact time definitions (downtime, repair, response, hands-on) live in `docs/spe
 | Gallery                | `/gallery`: v2 screens rendered from the frozen answer-key fixtures, no server needed; staging and dev only                    | the live screens                               |
 | Kit                    | The shared v2 UI parts in `apps/web/src/ui/v2/` (shell, data table, KPI card, entity chip, drawer, chart card)                 | the loop's global design kit                   |
 | Entity chip            | How a machine, cell, person or decision is always shown: a chip that opens its drawer                                          | a plain link                                   |
+| Status                 | How a figure is doing against its yardstick or target: good, watch, bad, or neutral when there is none                         | tone (what kind of figure it is: loss, gain)   |
+| Period                 | The one span of dates every figure on a page counts over, stated on the page (this year, or history and live)                  | as-of date (where the period ends)             |

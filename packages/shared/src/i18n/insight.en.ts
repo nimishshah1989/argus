@@ -19,4 +19,14 @@ export const insightEn = {
   'insight.yardstick.average': 'Average {value}',
   'insight.yardstick.target': 'Target {value}',
   'insight.yardstick.prior': '{period}: {value}',
+  // ADR 0036: the status word beside its colour (colour never works alone), the period a page states, a set of tiles
+  // that are all zero, and the note on a page Gujarati cannot cover.
+  'insight.status.good': 'On target',
+  'insight.status.watch': 'Watch',
+  'insight.status.bad': 'Off target',
+  'insight.period.year': 'This year, 1 Jan to {date}',
+  'insight.period.all': 'History and live, {from} to {date}',
+  'insight.tiles.allZero': 'All {n} are zero: {labels}.',
+  'insight.language.guIncomplete':
+    'Gujarati is not complete for this page, so it is shown in English.',
 };
