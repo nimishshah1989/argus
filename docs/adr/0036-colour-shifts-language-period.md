@@ -88,7 +88,7 @@ Each rule names its kit part and ticket. "Exists" means the kit already has it (
 
 Parallel now (disjoint files): **#684, #685, #686, #687, #690, #691, #692, #693, #694, #697, #698, #699, #700, #701**.
 Then: **#688, #689** (after #687) · **#695, #696** (after #694).
-Small (Haiku): #692, #693, #698, #699, #701. Every seed is `plan/t<N>` with visible tests red and hidden tests in a
+Small (Haiku): #692, #693, #698, #699, #701. **Seeded (red, pushed):** #684, #685, #686. **Not yet seeded** (the next Plan job seeds them from their issue bodies, which hold the full spec): #687–#701. Every seed is `plan/t<N>` with visible tests red and hidden tests in a
 `holdout/` folder beside them. Tests cover figures and rules only (ADR 0034: critical tests); colours, CSS and markup
 details are not tested.
 
