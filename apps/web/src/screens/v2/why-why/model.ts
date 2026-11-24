@@ -2,6 +2,7 @@ import type { TableWords } from '../../../ui/v2/data-table.js';
 import type { Drill } from '../../../ui/v2/drill.js';
 import type { EntityChipProps } from '../../../ui/v2/entity-chip.js';
 import type { WhyBody, WhyFormWords } from '../../../ui/v2/domain/why-form.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
 
 /** One breakdown that ran past the Why-Why limit. Every printed value is the engine's; `value` only sorts a column. */
@@ -34,6 +35,8 @@ export type WhyWhyWords = {
 /** Everything Why-Why prints: the engine's candidate list, whole, in the reader's words, ready to print. */
 export type WhyWhyModel = {
   verdict: VerdictData;
+  /** ADR 0035: `candidates`, over the hours down of every row (not the filter or page shown). */
+  takeaways?: Takeaways;
   rows: WhyWhyRow[];
   /** The rows behind the whole page's figure, as v1's link under the table. */
   drill?: Drill;
