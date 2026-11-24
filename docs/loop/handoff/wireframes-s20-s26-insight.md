@@ -1,0 +1,5 @@
+# Handoff: wireframes S20-S26 redrawn insight-first
+
+Redrew all seven drafts (Shift KPIs, Energy, Money Matters, Monthly report, Annual report, Guide, Settings) under UX rules 60-67 (ADR 0023): a computed one-line takeaway opens every table, chart and section; the outlier carries an icon-and-word tone tag; every key number has a yardstick (delta, bullet bar or cell bar); worst first, top 3 marked, long tail collapsed; five default columns with the rest expanding in place and every original column under "Show the numbers"; small multiples for grouped numbers. Each file ends with a coverage table (every v1 item and where it sits now) and its questions for Nimish. Guide and Settings are mostly text and forms, so the rules are applied only where data is shown, and each file says so.
+Fixture numbers were reworked so each takeaway matches the table beside it (the first drafts were only roughly consistent). Hand-drawn in kit classes and tokens; no product code.
+Nothing was approved; `design/approved.json` is untouched. Next: Nimish reviews each screen and approves it himself in his terminal.
