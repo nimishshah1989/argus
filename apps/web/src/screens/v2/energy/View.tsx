@@ -6,6 +6,7 @@ import { DrillAction, Section } from '../../../ui/v2/drill-action.js';
 import { FigureTile } from '../../../ui/v2/figure-tile.js';
 import { Row } from '../../../ui/v2/row.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
+import { Takeaway } from '../../../ui/v2/takeaway.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
 import { EntityShell } from '../entity/EntityShell.js';
 import type { EnergyGridModel, EnergyModel } from './model.js';
@@ -61,6 +62,7 @@ export function EnergyView({
       ) : null}
       {model.grids.map((grid) => (
         <Section key={grid.id} title={grid.title} sub={grid.sub}>
+          {model.takeaways?.[grid.id] ? <Takeaway data={model.takeaways[grid.id]!} /> : null}
           <HeatTiles
             title={grid.title}
             tiles={grid.tiles}
