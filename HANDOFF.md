@@ -1,5 +1,7 @@
 # HANDOFF
 
+> **24 Nov 16:10 — loop-guard size budget:** line count now uses only the PR's own files (same as the file count since #638). PR #633 went 461 → under budget.
+
 > **24 Nov 15:40 — loop-guard fix (Nimish yes):** a build branch that merged main no longer counts main's files (HANDOFF, ADRs) as builder changes.
 
 > **24 Nov 14:33 — kit carve-out applied (ADR 0028 addendum, Nimish yes):** 8 kit files open to builders until #620 merges; then restore `apps/web/src/ui/**` in `.loop.json`.

@@ -106,9 +106,10 @@ def main():
                           or p.endswith((".lock", "lock.json", "lock.yaml")))
         files = [p for s_, p in bchanges if not skip(p)]
         lines = 0
-        for row in sh("git", "diff", "--numstat", f"{bbase}...HEAD").splitlines():
+        # --no-renames keeps full paths so the same "only this PR's files" filter as above applies.
+        for row in sh("git", "diff", "--numstat", "--no-renames", f"{bbase}...HEAD").splitlines():
             a, d, p = (row.split("\t") + ["", "", ""])[:3]
-            if a.isdigit() and d.isdigit() and not skip(p):
+            if a.isdigit() and d.isdigit() and p in paths and not skip(p):
                 lines += int(a) + int(d)
         slack = 1.2
         if len(files) > max_files * slack or lines > max_lines * slack:
