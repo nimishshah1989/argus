@@ -12,6 +12,7 @@ describe('outlierTakeaway', () => {
       text: 'Shift C is 4.0× the average of the others (40 h).',
       tone: 'loss',
       tag: 'Loss',
+      outlier: 'Shift C',
     });
   });
 

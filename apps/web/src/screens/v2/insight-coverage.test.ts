@@ -39,6 +39,10 @@ const NOT_YET = new Set([
 /** Each finished screen's sections, written out so a section added later without a takeaway fails here. */
 const SECTIONS: Record<string, string[]> = {};
 
+type WithTakeaways = { takeaways?: Takeaways } | null;
+/** A finished screen's model, when its frozen provider needs params or it has none (a test-support file builds it). */
+const MODELS: Record<string, () => Promise<WithTakeaways>> = {};
+
 describe('insight coverage (M2b)', () => {
   it('knows every v2 screen: finished, or on the not-yet list', () => {
     const keys = Object.keys(PROVIDERS).sort();
@@ -58,8 +62,8 @@ describe('insight coverage (M2b)', () => {
       const provider = (FROZEN[key] ?? PROVIDERS[key]) as (
         params: object,
         ctx: object,
-      ) => Promise<{ takeaways?: Takeaways } | null>;
-      const model = await provider({}, {});
+      ) => Promise<WithTakeaways>;
+      const model = await (MODELS[key]?.() ?? provider({}, {}));
       expect(Object.keys(model?.takeaways ?? {}).sort()).toEqual([...sections].sort());
       for (const id of sections) {
         const line = model?.takeaways?.[id];

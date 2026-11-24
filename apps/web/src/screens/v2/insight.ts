@@ -30,5 +30,6 @@ export function outlierTakeaway(
     text: fill(t('insight.outlier'), { name: top.name, n: n.toFixed(1), value: top.shown }),
     tone: 'loss',
     tag: tagOf('loss', t),
+    outlier: top.name,
   };
 }

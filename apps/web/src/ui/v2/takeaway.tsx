@@ -7,7 +7,13 @@ import { KeyPill, type PillTone } from './key-pill.js';
 export type TakeawayTone = Extract<PillTone, 'loss' | 'risk' | 'gain' | 'neutral'>;
 
 /** One line a section opens with: what to notice, computed from the section's data. `tag` is the tone in words. */
-export type TakeawayData = { text: string; tone: TakeawayTone; tag: string };
+export type TakeawayData = {
+  text: string;
+  tone: TakeawayTone;
+  tag: string;
+  /** The key of the row or cell the line names, so the screen marks that one with the tone tag (rule 61). */
+  outlier?: string;
+};
 
 /** The takeaways of one screen, by section id; `null` is a section with nothing worth saying (a quiet line shows). */
 export type Takeaways = Record<string, TakeawayData | null>;
