@@ -8,15 +8,11 @@ import { shiftKpisModel } from './adapter.js';
 const model = shiftKpisModel(realReply(), realT)!;
 
 describe('Shift-calendar KPIs insight pass (ticket 642)', () => {
-  it('opens the platform comparison with the headline, neutral', () => {
-    expect(model).toMatchObject({
-      takeaways: {
-        'shift-kpis.compare': {
-          text: 'On working hours a machine runs 462.0 hrs between breakdowns (439.9 on the platform basis); a breakdown takes 2.39 hrs to fix and availability is 99.36%.',
-          tone: 'neutral',
-        },
-      },
-    });
+  it('prints the comparison headline once: the verdict carries it, the compare section has no takeaway (ADR 0033)', () => {
+    expect(model.verdict.headline.map((seg) => seg.text).join('')).toBe(
+      'On working hours a machine runs 462.0 hrs between breakdowns (439.9 on the platform basis); a breakdown takes 2.39 hrs to fix and availability is 99.36%.',
+    );
+    expect(model.takeaways['shift-kpis.compare'] ?? null).toBeNull();
   });
 
   it('names the shift with the most breakdown hours, leaving out the plant total row', () => {
@@ -31,10 +27,9 @@ describe('Shift-calendar KPIs insight pass (ticket 642)', () => {
     });
   });
 
-  it('says the backlog is not computed when the engine has not computed it', () => {
-    expect(model).toMatchObject({
-      takeaways: { 'shift-kpis.backlog': { text: 'Not computed yet', tone: 'neutral' } },
-    });
+  it('puts no takeaway over a backlog the engine has not computed: its empty state says so, once (ADR 0033)', () => {
+    expect(model.sections.find((s) => s.id === 'shift-kpis.backlog')?.notComputed).toBe(true);
+    expect(model.takeaways['shift-kpis.backlog'] ?? null).toBeNull();
   });
 
   it('opens the breakdown map with the half-the-hours line, as a risk', () => {
@@ -46,6 +41,10 @@ describe('Shift-calendar KPIs insight pass (ticket 642)', () => {
         },
       },
     });
+  });
+
+  it('leaves the half-the-hours line to the map section: the verdict has no Why line a takeaway already says (ADR 0033)', () => {
+    expect(model.verdict.why).toEqual([]);
   });
 
   it('gives every tile its engine basis line as the yardstick', () => {
