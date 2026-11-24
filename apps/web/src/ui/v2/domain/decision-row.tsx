@@ -49,7 +49,12 @@ export type DecisionCallbacks = {
 };
 
 /** The one action that settles a decision; pressed once it is taken, and pressing again takes it back. */
-export function DecisionAction({ d, onDecide, onUndo }: { d: DecisionData } & DecisionCallbacks) {
+export function DecisionAction({
+  d,
+  onDecide,
+  onUndo,
+}: { d: DecisionData } & Partial<DecisionCallbacks>) {
+  if (!onDecide || !onUndo) return null;
   return (
     <button
       type="button"
@@ -85,7 +90,7 @@ export function DecisionRow({
   words: DecisionWords;
   selected: boolean;
   onOpen: (id: string) => void;
-} & DecisionCallbacks) {
+} & Partial<DecisionCallbacks>) {
   const why = useWhy();
   return (
     <article className="v2-decision" data-selected={selected} onClick={onRow(() => onOpen(d.id))}>
