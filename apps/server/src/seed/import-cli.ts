@@ -28,6 +28,16 @@ import {
  * reach both `imports` and `accountability`.
  */
 
+/** Ticket 635: a legacy year file loads only through the runner that first adds its people and list entries. */
+export const LEGACY_REFUSAL =
+  'This is a legacy year file (legacy-<year>.json): load it with tools/load-legacy.ts, which adds its placeholder people and the Utility failure work type first (slice 69 R8, R17, R20). Nothing was written.';
+
+/** Slice 69 R12: a file is a legacy year file when any ticket's `legacyId` reads `lg-<year>-…`. Never throws. */
+export function isLegacyYearFile(input: unknown): boolean {
+  void input;
+  throw new Error('not built: ticket 635');
+}
+
 function printUsage(): void {
   console.error('usage: import:bhavin <file.json> --tenant <slug> [--production-confirm]');
   console.error(
