@@ -64,7 +64,9 @@ export function comparePair(input: ComputeInput, pair?: ComparePair): ComparePai
   if (a === undefined || b === undefined) return { kind: 'none' };
   const ordered = pair ? orderedOf(scored, a.machine.category) : first;
   const reference = referenceOf(
-    ordered.filter((row) => !row.machine.excludedFromProduction),
+    scored.filter(
+      (row) => row.machine.category === a.machine.category && !row.machine.excludedFromProduction,
+    ),
     true,
   );
   const page = comparePage(a, b, reference, asOf);
