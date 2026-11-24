@@ -16,7 +16,6 @@ const NOT_YET = new Set([
   'category-cell',
   'cell-change-log',
   'compare',
-  'dashboard',
   'data-checklist',
   'energy',
   'fix-finder',
@@ -37,11 +36,15 @@ const NOT_YET = new Set([
 ]);
 
 /** Each finished screen's sections, written out so a section added later without a takeaway fails here. */
-const SECTIONS: Record<string, string[]> = {};
+const SECTIONS: Record<string, string[]> = {
+  dashboard: ['needs', 'costliest', 'machines'],
+};
 
 type WithTakeaways = { takeaways?: Takeaways } | null;
 /** A finished screen's model, when its frozen provider needs params or it has none (a test-support file builds it). */
-const MODELS: Record<string, () => Promise<WithTakeaways>> = {};
+const MODELS: Record<string, () => Promise<WithTakeaways>> = {
+  dashboard: () => import('./dashboard/test-model.js').then((m) => m.dashboardTestModel()),
+};
 
 describe('insight coverage (M2b)', () => {
   it('knows every v2 screen: finished, or on the not-yet list', () => {
