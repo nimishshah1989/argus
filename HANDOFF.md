@@ -7,27 +7,28 @@
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-24 · **By:** Plan · **Model:** claude-opus-5-5
-**Milestone:** M2 Finish the analytics redesign (building) · **Branch:** plan/handoff-m2-cmp1
+**Milestone:** M2 Finish the analytics redesign (building) · **Branch:** plan/handoff-m2-cmp5
 
 ## State
 
-- Merged this session: **#592** TF-3 (Team Focus live, v1 deleted; #580 closed) · **#595** CMP-1 `comparePair` (#584; budget 760 for a verbatim move, ADR 0022) · **#597** CMP-3 six tables in the Compare view (#586) · **#596** wireframes S20–S26 (drafts, waiting for Nimish).
-- **TF-4 #594** → PR **#598** (review 1 FAIL: dead "I'll take it" on list rows; blank owner name in the owner drawer). Plan fixed the seed `plan/t594` @ `cd537609`: kit callbacks optional (ADR 0022) + `assign-list.test.ts`. Attempt 2 BLOCKED twice: builder says `team-focus.test.ts:104` (gallery `drawer=decision:a02` shows "Assign to Meera K") gets no handlers. The gallery view DOES pass `onAssign` (`gallery/v2-team-focus-view.tsx:41`) → check how the drawer path (`local.tsx` `localAction` / `EntityShell`) gets handlers; likely the drawer is built without View's props. Decide, write it in the ticket, rebuild. Body template = #597's body.
-- Compare next: **#585** CMP-2 route (unblocked by #584) → **#587** CMP-4 adapter (Don't now asks for non-empty scorecard/checkup) → **#588** CMP-5 go live (blocked #587).
+- Merged this session: **#598** TF-4 (ticket 594, Team Focus "I'll take it" edges) · **#600** CMP-2 `GET /analytics/compare` (585) · **#601** CMP-4 live Compare adapter (587; review 1 FAIL fixed: MTTR/MTBF dash only on the zero-breakdown side).
+- **CMP-5 ticket 588** (Compare goes live, v1 MachinesPage deleted): built; attempts used 2 of 3, both Plan's fault (outdated `data.test.ts`, fixed on seed `3cd3e5fb`) + unformatted handoff. Attempt 3 build ran (`loop build 588` done) — **next: `loop finish 588`**, not yet run. Seed already drops v1 Compare assertions from `live.test.ts` and `e2e/analytics-compare.spec.ts` → PR body needs a `Tests removed:` line.
+- Reviewer follow-ups (non-blocking, not ticketed): 585 — unknown query key answers 422 with field `asOf`; no visible 403 test. 587 — no assert that both sides' marks are `same` when one count is 0. 594 — `assignHandlers` test checks only that handlers exist, not the saved owner.
 
 ## Next step
 
-1. Unblock #594 (above) → `loop finish 594` → re-apply body → review → merge. 2. #585 → #587 → #588. 3. S20–S26 wait for Nimish's approval.
+1. `loop finish 588` → write the PR body from `/tmp/body601.md`'s shape (Q1–Q16, Coverage, `No parity:`/`Large PR:`/`Tests removed:` lines, Plan-base = `3cd3e5fb…`) → review → merge → tick Compare in PROJECT.md M2.
+2. Then the next M2 tickets (`loop status`, open issues labelled M2). S20–S26 still wait for Nimish.
 
 ## Blocked / open questions
 
 - **Nimish:** approve wireframes S20–S26 (PR #596 lists his questions). ADR 0019 extra drill on Data Checklist; Compare spares ₹0 frozen; ADR 0020 §5–6 "later" Team Focus items.
-- Follow-up (review of #595): `compareFigure` now runs `pairYear` twice per call and discards it; no visible test for a pair outside the top category.
 
 ## Don't repeat
 
-- **After every merge to main**, refresh each open seed: `git -C /tmp/t<N> merge origin/main`, push, merge the seed into the PR branch from a `/tmp` worktree, set `Plan-base` to the new seed sha. Otherwise loop-guard flags protected files.
-- `loop finish` overwrites the PR body every run: keep `/tmp/body<PR>.md`, `gh pr edit --body-file`, then push an empty commit (worktree at `/tmp/e<PR>`, `git commit --allow-empty`, push `HEAD:<branch>`).
-- Budget is always `files<=N lines<=M`; N counts `changes/` + handoff. A screen PR must change `scope/<screen>.md` itself (Q16).
-- To merge a seed into a build folder: `cd .loop/wt/<N> && git merge -q --no-edit origin/plan/t<N>` as its own Bash call; `loop` commands from the repo root in a separate call.
-- **Never force-push.** "ticket N" in comments, never `#N`.
+- `loop finish` overwrites the PR body each run and its body always fails pr-meta: write the full quality body (Q1–Q16, What changed / How to try / What must be decided, Coverage, Reasons) to `/tmp/body<PR>.md`, `gh pr edit --body-file`, then an empty commit from a `/tmp/e<PR>` worktree pushed to the PR branch. PR size counts the seed: add `Large PR:` when >800. A seed that changes an assertion needs `Tests removed: <reason>`.
+- Plan-base in the body must be the **current** seed sha, or loop-guard counts seed files as builder changes.
+- Orchestrator can't touch `.loop/wt/<N>` except exactly `cd .loop/wt/<N> && git fetch -q origin plan/t<N> && git merge -q --no-edit origin/plan/t<N>` (its own call). Don't rerun `loop finish` just to read errors: it burns an attempt; read `.git/loop/tickets/<N>.json` notes.
+- Format files in `/tmp` seed worktrees with `/Users/nimishshah/argus/node_modules/.bin/prettier` run from inside the worktree (repo-root prettier ignores /tmp paths).
+- `e2e/who-is-acting.spec.ts:41` flaked once on PR 601 (passed on rerun of the failed job).
+- After every merge to main, refresh each open seed (`git -C /tmp/t<N> merge origin/main`, push). **Never force-push.** "ticket N" in comments, never `#N`.
