@@ -52,7 +52,8 @@ test('the server asking again who is acting reopens the step', async ({ page }) 
       }),
     }),
   );
-  await page.goto('/floor');
+  // The 403 sends the app to its step at once; that redirect can abort a goto waiting for 'load' (ERR_ABORTED flake).
+  await page.goto('/floor', { waitUntil: 'commit' });
   await expect(page.getByRole('heading', { name: 'Who is using this phone?' })).toBeVisible();
 });
 
@@ -69,7 +70,8 @@ test('a login that must change its password goes to that step and checks the two
       }),
     }),
   );
-  await page.goto('/floor');
+  // The 403 sends the app to its step at once; that redirect can abort a goto waiting for 'load' (ERR_ABORTED flake).
+  await page.goto('/floor', { waitUntil: 'commit' });
   await expect(page.getByRole('heading', { name: 'Change your password' })).toBeVisible();
   await page.getByLabel('Current password').fill('correct-horse-battery');
   await page.getByLabel('New password (at least 8 characters)').fill('a-new-long-phrase');

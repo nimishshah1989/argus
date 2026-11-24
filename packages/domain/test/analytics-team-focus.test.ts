@@ -67,7 +67,15 @@ describe('the Team Focus figure', () => {
     const computed = compute();
     // Red first: 43b had not landed, so the engine answered not_computed for this key.
     expect(computed.status).toBe('ready');
-    expect(withoutCodeFields(computed.value)).toEqual(TEAM_FOCUS);
+    // `period` is newer than the frozen key (TF-2, ADR 0020); the next test pins it.
+    const { period: _period, ...whole } = computed.value as Record<string, unknown>;
+    expect(withoutCodeFields(whole)).toEqual(TEAM_FOCUS);
+  });
+
+  it('publishes the month it plans as `period` (YYYY-MM), the key the saved notes are stored under (ADR 0020)', () => {
+    // The key's last breakdown is in November 2026, so the plan is for December; lane A's keys carry the same month.
+    expect((compute().value as { period?: unknown }).period).toBe('2026-12');
+    expect(TEAM_FOCUS.extra[0]?.key).toBe('fc|WJ-01|2026-12');
   });
 
   it('drills the machines its actions name, and every id is a real machine', () => {

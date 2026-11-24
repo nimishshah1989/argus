@@ -84,7 +84,7 @@ function peopleColumns(words: TeamFocusWords['people']): Column<PersonLoad>[] {
     {
       key: 'load',
       label: words.columns.load,
-      cell: (p) => <KeyPill text={p.loadLabel} {...LOAD[p.load]} />,
+      cell: (p) => (p.load === null ? null : <KeyPill text={p.loadLabel} {...LOAD[p.load]} />),
     },
   ];
 }
@@ -144,6 +144,7 @@ function actionColumns(words: TeamFocusWords['actions']): Column<ActionRow>[] {
             ))}
           </div>
           <span>{a.title}</span>
+          {a.note === '' ? null : <span className="v2-sub">{a.note}</span>}
         </div>
       ),
     },
