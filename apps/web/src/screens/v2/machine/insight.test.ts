@@ -9,7 +9,7 @@ import type { Translate } from '../figures/read.js';
 
 /**
  * ADR 0031 §5: spares and tasks open with a takeaway; every tile's yardstick is the machine's plant rank.
- * Critical tests only (ADR 0033): figures and what is shown when data is missing, not wording or tone.
+ * Critical tests only (ADR 0034): figures and what is shown when data is missing, not wording or tone.
  */
 const machines = ENGINE_DATA.machines.map((m) => ({
   id: m.id,
