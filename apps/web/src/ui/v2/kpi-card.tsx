@@ -28,6 +28,8 @@ export type KpiData = {
   hero?: boolean;
   /** How full the meter under a hero's value is, 0 to 1: the engine's own percent, drawn and not recomputed. */
   meter?: number;
+  /** What the figure is measured against when `delta` has no text: a target or a peer ("Target 2.0 h"). ADR 0026 §4. */
+  yardstick?: string;
   /** Where the whole card goes when pressed (a register): it then outranks the value button as the card's way in. */
   link?: { href: string; label: string };
 };

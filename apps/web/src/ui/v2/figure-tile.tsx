@@ -11,6 +11,8 @@ export type FigureData = {
   value: string;
   /** The engine's own line under it, when it sent one. */
   sub: string;
+  /** What the figure is measured against: previous period, target or peer ("Last month 3.4 h"). ADR 0026 §4. */
+  yardstick?: string;
   /** The rows behind the figure: when given, the value is a button that opens them. */
   drill?: Drill;
 };
