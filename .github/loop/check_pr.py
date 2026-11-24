@@ -76,7 +76,7 @@ def main():
             bchanges.append((parts[0][0], parts[-1]))
             if parts[0][0] == "R":
                 bchanges.append(("D", parts[1]))
-        # A build branch that merged main in carries main's files in Plan-base...HEAD; only files this PR changes count.
+        # A build branch that merged main in carries the files of main in Plan-base...HEAD; only files this PR changes count.
         bchanges = [c for c in bchanges if c[1] in paths]
 
     # 1–3  (ticket PRs leave docs/loop/handoff/<N>.md; other PRs update HANDOFF.md)
