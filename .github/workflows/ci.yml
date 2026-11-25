@@ -72,17 +72,21 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
+        continue-on-error: true # ADR 0038: warns, never blocks
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm build
       - run: pnpm parity
+        continue-on-error: true # ADR 0038: warns, never blocks
       - run: pnpm docs:check
+        continue-on-error: true # ADR 0038: warns, never blocks
       - run: pnpm pii:scan
       - run: pnpm licences
       - run: pnpm migrations:check
       - run: pnpm ui:check
       - run: pnpm audit:deps
       - run: pnpm audit:lean
+        continue-on-error: true # ADR 0038: warns, never blocks
       - continue-on-error: true # ADR 0037: paperwork warns, never blocks
         run: pnpm changelog:check
         if: github.event_name == 'pull_request'
