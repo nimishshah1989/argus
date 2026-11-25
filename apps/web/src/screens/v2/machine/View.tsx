@@ -10,6 +10,7 @@ import { KeyPill } from '../../../ui/v2/key-pill.js';
 import { KpiCard } from '../../../ui/v2/kpi-card.js';
 import { Panel } from '../../../ui/v2/panel.js';
 import { Row } from '../../../ui/v2/row.js';
+import { Takeaway } from '../../../ui/v2/takeaway.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
 import { EntityShell } from '../entity/EntityShell.js';
@@ -120,6 +121,7 @@ export function MachineView({
 /** What has gone wrong, how it is likely to, the parts it uses and what is open on it. */
 function Health({ model }: { model: MachinePageModel }) {
   const rows = (drill?: Drill) => <SeeRows drill={drill} label={model.words.seeRows} />;
+  const { 'machine.spares': spares, 'machine.tasks': tasks } = model.takeaways;
   return (
     <>
       <Panel title={model.breakdowns.title} aside={rows(model.breakdowns.drill)}>
@@ -141,11 +143,16 @@ function Health({ model }: { model: MachinePageModel }) {
               {model.spares.topLine ? <p className="v2-sub">{model.spares.topLine}</p> : null}
             </>
           ) : (
-            <p className="v2-sub">{model.spares.note}</p>
+            <>
+              {/* with a table, the table draws its own takeaway from its declared measure */}
+              {spares ? <Takeaway data={spares} /> : null}
+              <p className="v2-sub">{model.spares.note}</p>
+            </>
           )}
         </Panel>
       </Row>
       <Panel title={model.tasks.title} sub={model.tasks.asOf}>
+        {tasks ? <Takeaway data={tasks} /> : null}
         {model.tasks.unavailable ? (
           <p className="v2-sub">{model.tasks.unavailable}</p>
         ) : (
