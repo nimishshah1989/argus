@@ -38,10 +38,15 @@ export function halfBars(values: readonly number[], rest: readonly boolean[] = [
 }
 
 /**
- * A ranked list (ADR 0036 R20): `<ol aria-label={label}>`, one `<li>` per `rankRows` row with an inline bar
- * (`.v2-cellbar` pattern, width = `width`) and the text `valueText · {round(share × 100)}% · countText` (missing parts
- * skipped), then `moneyText` when given. After the last of the first `halfBars` rows, one
- * `<li class="v2-half" aria-label={t('insight.half')}>`; none when `halfBars` is 0.
+ * A ranked list (ADR 0036 R20): `<ol class="v2-ranked" aria-label={label}>`, one `<li class="v2-ranked-row">` per
+ * `rankRows` row with an inline bar (`.v2-cellbar` pattern, width = `width`) and the text
+ * `valueText · {round(share × 100)}% · countText` (missing parts skipped), then `moneyText` when given. After the last
+ * of the first `halfBars` rows, one `<li class="v2-half" aria-label={t('insight.half')}>`; none when `halfBars` is 0.
+ * Row markup (styles in `ranked-bars.css`, written by Plan, auto-loaded by `sheets.ts`):
+ * `<span class="v2-ranked-label">{label}</span>`,
+ * `<span class="v2-ranked-track" aria-hidden="true"><span style={{ width: `${width × 100}%` }} /></span>`,
+ * `<span class="v2-ranked-text">{the text}{moneyText ? <span class="v2-ranked-money">{moneyText}</span> : null}</span>`;
+ * `data-half` on the rows inside the half (their bars are bad), `data-rest` on a rest row.
  */
 export function RankedBars({ rows, label }: { rows: RankedRow[]; label: string }): ReactNode {
   throw new Error('not implemented');
