@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { expect, test } from './test.js';
+import { openShowDetail } from './show-detail.js';
 import { commandViaApi, getJson } from './fixtures-actions.js';
 import { apiLogin, raiseTicketViaApi, signIn } from './fixtures.js';
 
@@ -96,8 +97,10 @@ test('a head opens A10, sees its eight KPIs and both charts, sorts the groups an
   await expect(page.getByRole('heading', { level: 1, name: 'Problem Analysis' })).toBeVisible();
 
   // The 4 page KPIs and the 4 what-if KPIs, every label and value from the key (the folded ones behind Show detail).
-  for (const s of await page.locator('details.v2-show-detail:not([open]) > summary').all())
-    await s.click();
+  await openShowDetail(
+    page,
+    page.getByRole('region', { name: PAGE.kpis[0]!.label, exact: true }).first(),
+  );
   for (const kpi of PAGE.kpis) {
     await expect(page.getByText(kpi.label, { exact: true })).toBeVisible();
     await expect(page.getByText(kpi.value, { exact: true }).first()).toBeVisible();
