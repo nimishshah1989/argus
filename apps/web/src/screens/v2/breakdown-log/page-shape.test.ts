@@ -5,7 +5,6 @@ import { realReply, realReplyWithUuids, UUID } from '../figures/real-reply.js';
 import { realT } from '../printed-page/test-support.js';
 import { everyMatchOf, liveLog, logFromFigures, printedLog } from './live.js';
 import { EMPTY_QUERY } from './model.js';
-import { logCsv } from './csv.js';
 import { workbookFigures } from './source.js';
 
 /** A log as the engine writes it: newest first, the highest Sr No at the head, a dash for a NO DT row. */
@@ -136,7 +135,7 @@ describe('the Breakdown Log on a plant whose machine ids are UUIDs, as the serve
     );
     const everything = everyMatchOf(keyed, EMPTY_QUERY, realT);
     expect(everything.rows.length).toBe(model.count);
-    expect(logCsv(everything.header, everything.rows)).not.toMatch(UUID);
+    // The export sheet's id check moved to sweep.test.ts (sweep #706: Excel replaces the CSV).
   });
 
   it('still filters by a printed code', () => {

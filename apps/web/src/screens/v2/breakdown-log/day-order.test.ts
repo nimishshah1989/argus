@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { dayValue } from '../printed-page/printed.js';
-import { logCsv } from './csv.js';
 
 describe('the platform day sorts as a date', () => {
   it('orders DD-MM-YYYY chronologically across months and years, not as text', () => {
@@ -10,15 +9,4 @@ describe('the platform day sorts as a date', () => {
   });
 });
 
-describe('the export file', () => {
-  it('leaves the eye column out and keeps every other cell as the engine printed it', () => {
-    const csv = logCsv(
-      ['', 'Sr No', 'Problem'],
-      [
-        ['\u{1F441}', '2', 'Belt, slipping'],
-        ['\u{1F441}', '1', '—'],
-      ],
-    );
-    expect(csv.split('\n')).toEqual(['Sr No,Problem', '2,"Belt, slipping"', '1,—']);
-  });
-});
+// The export-file test moved to sweep.test.ts (sweep #706: Excel replaces the CSV).
