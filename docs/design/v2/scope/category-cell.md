@@ -42,3 +42,19 @@ Bhavin's A2 is `renderA2` in the 11 Nov file (B11).
 | ---------------------------------------------------------------------------------------------------- | ------------------------ | ---------------------------------------------------------------- | --------------------- | -------------------------------- |
 | Notes under the four per-machine average charts ("Category BD hours ÷ machines in the category ...") | B11:3277-3278, 3294-3295 | better                                                           | matches, in his words | the chart's line under its title |
 | "By Category / By Cell" mode of Machine-Level Detail and its note                                    | B11:3331-3350            | needs server: the engine prints per-category machine tables only | not built             | queued                           |
+
+## ADR 0036 kit rules (ticket #751, sweep #706 batch B)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25.
+
+| Rule                          | Status         | Where, or why not                                                                                                     |
+| ----------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------- |
+| R1 / R10 TileSet + ShowDetail | done           | `View.tsx`: the first 4 figures go to `PageBody`, the rest in `ShowDetail` through `after`                            |
+| R2 ActionStrips               | not applicable | dashboard only; no other page has counts with a way in (ADR 0041)                                                     |
+| R4 PeriodToggle               | not applicable | the engine serves one period only (`figuresReplySchema`); a toggle would compute figures it did not print (ADR 0041)  |
+| R5 ReviewMarker               | not applicable | no model carries a held-for-review count and there is no review-tray route (ADR 0041)                                 |
+| R6 Download Excel             | not applicable | not one of Bhavin's exports (ADR 0041)                                                                                |
+| R11 readable / rupees / exact | not applicable | it formats nothing itself; engine-printed strings are never re-rounded (ADR 0041)                                     |
+| R17 ReasonChips               | not applicable | only the Action Center risk table carries reasons; other repeat columns are engine-printed counts (ADR 0041)          |
+| R20 RankedBars                | not applicable | the Pareto is drawn by `printed-page/PageBody`, which no batch may edit; it waits for a PageBody ticket (ADR 0043 §2) |
+| R21 Quadrant                  | not applicable | no bubble chart on this page (ADR 0041)                                                                               |

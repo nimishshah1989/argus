@@ -47,3 +47,19 @@ Bhavin's A1 is `renderA1` in the 11 Nov file (B11); the three A pages are identi
 | Note under BD Hours by Cell: each cell's share of the year's total                                                 | B11:3228      | better                                                                               | matches without the year's total figure, which the table prints in its own Total column | the line under the table's title               |
 | "Days so far / Full year" switch                                                                                   | B11:944       | needs server: the engine has one window (year to date); full year needs a second run | not built                                                                               | queued                                         |
 | Year selector                                                                                                      | B11:3200      | needs server: the route takes only the as-of day                                     | not built                                                                               | queued                                         |
+
+## ADR 0036 kit rules (ticket #751, sweep #706 batch B)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25.
+
+| Rule                          | Status         | Where, or why not                                                                                                     |
+| ----------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------- |
+| R1 / R10 TileSet + ShowDetail | done           | `View.tsx`: the first 4 figures go to `PageBody`, the rest in `ShowDetail` through `after`                            |
+| R2 ActionStrips               | not applicable | dashboard only; no other page has counts with a way in (ADR 0041)                                                     |
+| R4 PeriodToggle               | not applicable | the engine serves one period only (ADR 0041); the "annual" sub-line is the candidate once the engine serves both      |
+| R5 ReviewMarker               | not applicable | no model carries a held-for-review count and there is no review-tray route (ADR 0041)                                 |
+| R6 Download Excel             | not applicable | not one of Bhavin's exports (ADR 0041)                                                                                |
+| R11 readable / rupees / exact | done           | the hours total and the plant whole print through `readable` at 1 lakh or more                                        |
+| R17 ReasonChips               | not applicable | only the Action Center risk table carries reasons; other repeat columns are engine-printed counts (ADR 0041)          |
+| R20 RankedBars                | not applicable | the Pareto is drawn by `printed-page/PageBody`, which no batch may edit; it waits for a PageBody ticket (ADR 0043 §2) |
+| R21 Quadrant                  | not applicable | no bubble chart on this page (ADR 0041)                                                                               |
