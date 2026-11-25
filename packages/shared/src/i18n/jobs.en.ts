@@ -8,9 +8,10 @@ export const jobsEn = {
     'Work the system does on its own, such as sending alerts. A job that failed is listed here with the reason. Retry runs it once more.',
   'jobs.empty': 'No failed jobs. Everything ran.',
   'jobs.count': '{{n}} failed',
-  'jobs.takeaway_one': '1 job has failed: {{kind}}, {{attempts}}, failed {{ago}} ({{when}})',
+  'jobs.ago': '{{time}} ago',
+  'jobs.takeaway_one': '1 job has failed: {{kind}}, {{attempts}}, failed {{when}}',
   'jobs.takeaway_other':
-    '{{count}} jobs have failed. The oldest: {{kind}}, {{attempts}}, failed {{ago}} ({{when}})',
+    '{{count}} jobs have failed. The oldest: {{kind}}, {{attempts}}, failed {{when}}',
   'jobs.tag.failed': 'Failed',
   'jobs.tag.running': 'Running',
   'jobs.tag.retryFailed': 'Retry failed',

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { FailedJobsReply } from '@uptimo/shared/replies';
 import { getConfig, getMe } from '../../../api.js';
-import { elapsedLabel, formatDateTime } from '../../../components/format.js';
+import { formatDateTime, formatMinutes } from '../../../components/format.js';
 import { useOnline } from '../../../data/index.js';
 import { viewState } from '../../../patterns/view-state.js';
 import { KeyPill } from '../../../ui/v2/key-pill.js';
@@ -17,7 +17,7 @@ import {
   useFailedJobs,
   useRetryJob,
 } from '../../settings/Jobs.js';
-import { jobsTakeaway } from './model.js';
+import { jobsTakeaway, when } from './model.js';
 
 type FailedJob = FailedJobsReply['items'][number];
 
@@ -35,15 +35,15 @@ function JobRow({
   const kind = kindWords(job.queue, (key) => t(key));
   const retry = useRetryJob(job, kind, onRetried);
   const tag = retry.isPending
-    ? { text: t('jobs.tag.running'), tone: 'neutral' as const }
+    ? { text: t('jobs.tag.running'), tone: 'neutral' as const, icon: 'clock' as const }
     : retry.isError
-      ? { text: t('jobs.tag.retryFailed'), tone: 'risk' as const }
-      : { text: t('jobs.tag.failed'), tone: 'loss' as const };
+      ? { text: t('jobs.tag.retryFailed'), tone: 'risk' as const, icon: 'alert' as const }
+      : { text: t('jobs.tag.failed'), tone: 'loss' as const, icon: 'stop' as const };
   return (
     <li className="v2-card v2-stack v2-gap-6">
       <div className="v2-row v2-gap-6">
         <strong>{kind}</strong>
-        <KeyPill text={tag.text} tone={tag.tone} icon="alert" />
+        <KeyPill text={tag.text} tone={tag.tone} icon={tag.icon} />
       </div>
       <p>{job.error || t('jobs.noError')}</p>
       <p className="v2-sub">
@@ -51,7 +51,11 @@ function JobRow({
         {job.failedAt ? ' · ' : null}
         {t('jobs.attempts', { count: job.attempts })}
       </p>
-      {retry.isError ? <p role="alert">{t('jobs.retryError', { kind })}</p> : null}
+      {retry.isError ? (
+        <p role="alert" className="v2-seg v2-seg-loss">
+          {t('jobs.retryError', { kind })}
+        </p>
+      ) : null}
       <button
         type="button"
         className="v2-btn v2-btn-ghost"
@@ -77,8 +81,7 @@ function Lead({ items, timeZone }: { items: FailedJob[]; timeZone?: string }) {
           count: lead.failed,
           kind: kindWords(lead.kind, (key) => t(key)),
           attempts: t('jobs.attempts', { count: lead.attempts }),
-          ago: elapsedLabel(lead.failedAt),
-          when: formatDateTime(lead.failedAt, timeZone),
+          when: `${t('jobs.ago', { time: formatMinutes((Date.now() - Date.parse(lead.failedAt)) / 60000) })} (${formatDateTime(lead.failedAt, timeZone)})`,
         }),
         tone: 'loss',
         tag: t('jobs.count', { n: countLabel(lead.failed) }),
@@ -131,9 +134,17 @@ export function JobsView() {
       >
         {(rows) => (
           <ul className="v2-stack v2-gap-6">
-            {rows.map((job) => (
-              <JobRow key={job.id} job={job} timeZone={config.data?.timeZone} onRetried={setDone} />
-            ))}
+            {/* oldest first, so the failure the takeaway names leads */}
+            {[...rows]
+              .sort((a, b) => Date.parse(when(a)) - Date.parse(when(b)))
+              .map((job) => (
+                <JobRow
+                  key={job.id}
+                  job={job}
+                  timeZone={config.data?.timeZone}
+                  onRetried={setDone}
+                />
+              ))}
           </ul>
         )}
       </ScreenStates>

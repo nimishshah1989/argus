@@ -118,7 +118,7 @@ export function Body({ page }: { page: PlantPage }) {
   if (page === 'people' || page === 'logins') return <PeopleSettings page={page} />;
   if (page === 'audit') return <AuditSettings />;
   const found = PLANT_PAGES.find((p) => p.page === page);
-  if (!found) return null;
+  if (!found || (!found.screen && !found.spec)) return null;
   if (found.screen) {
     const Screen = found.screen;
     return <Screen />;
