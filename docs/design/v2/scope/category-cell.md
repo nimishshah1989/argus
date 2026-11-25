@@ -42,3 +42,13 @@ Bhavin's A2 is `renderA2` in the 11 Nov file (B11).
 | ---------------------------------------------------------------------------------------------------- | ------------------------ | ---------------------------------------------------------------- | --------------------- | -------------------------------- |
 | Notes under the four per-machine average charts ("Category BD hours ÷ machines in the category ...") | B11:3277-3278, 3294-3295 | better                                                           | matches, in his words | the chart's line under its title |
 | "By Category / By Cell" mode of Machine-Level Detail and its note                                    | B11:3331-3350            | needs server: the engine prints per-category machine tables only | not built             | queued                           |
+
+## ADR 0036 kit rules (ticket #751, sweep #706 batch B)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25. Rows from the builder's `docs/loop/handoff/751.md` and ticket #751.
+
+| Item                          | v2                                                                   | Where in v2                                                                                                                                           |
+| ----------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1 TileSet + ShowDetail       | changed                                                              | the first four figures go to the page body, any more fold under Show detail; the key prints none today, so nothing moves; tables and charts unchanged |
+| R6 Download Excel             | not applicable: not one of Bhavin's exports (ADR 0041)               | none                                                                                                                                                  |
+| R11 readable / rupees / exact | not applicable: R11 none, the page formats nothing itself (ADR 0041) | none                                                                                                                                                  |
