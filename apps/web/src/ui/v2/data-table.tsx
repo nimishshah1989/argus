@@ -1,5 +1,6 @@
 /* eslint-disable i18next/no-literal-string -- icon names and typed unions only; every visible word comes in as a prop or t() */
 import { useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { fill } from '../../i18n/fill.js';
 import { Icon } from './icons.js';
 import { MOTION } from './motion.js';
@@ -17,6 +18,8 @@ import { isSmall } from './table-rules.js';
 import { foldAt, missesTarget, tablePage, worstFirst } from './table-model.js';
 import { Takeaway, type Meaning, type TakeawayData } from './takeaway.js';
 import type { Status } from './status.js';
+import { applyFilters, optionsOf, type TableSelect } from './table-filters.js';
+import { SelectField } from './select-field.js';
 
 export type Column<R> = {
   key: string;
@@ -75,13 +78,24 @@ type TableProps<R> = {
    * sorted, ranked or folded. Under 10 rows (`isSmall(rows.length)`, all rows) the table has no search and no pager.
    */
   total?: ReactNode[];
+  /**
+   * Dropdown filters (ADR 0036 R16): one `SelectField` per select (first option `insight.filter.all` with {label},
+   * options `optionsOf(rows, select)`), then a "Reset filters" button (`insight.filter.reset`) that clears them all,
+   * shown only when something is chosen. Rows go through `applyFilters` before search and sort.
+   */
+  selects?: TableSelect<R>[];
 };
 
 const rankedBy = <R,>(rows: R[], measure: Column<R>['meaning']) =>
   measure ? worstFirst(rows, measure.value, measure.worse) : rows;
 
+const filtered = <R,>(t: TableProps<R>, chosen: Record<string, string>) =>
+  applyFilters(t.rows, t.selects ?? [], chosen);
+
 /** What the reader has asked of a table (search, chip, sort, page) and the page that answers it. */
-function useTable<R>({ rows, columns, filters, text, initialSort }: TableProps<R>) {
+function useTable<R>(props: TableProps<R>) {
+  const { columns, filters, text, initialSort } = props;
+  const [chosen, setChosen] = useState<Record<string, string>>({});
   const [query, setQuery] = useState('');
   const [chip, setChip] = useState(filters[0]?.key ?? '');
   const [sort, setSort] = useState<SortState | undefined>(initialSort);
@@ -98,8 +112,9 @@ function useTable<R>({ rows, columns, filters, text, initialSort }: TableProps<R
   const [unfolded, setUnfolded] = useState(false);
   const measure = measureOf(columns)?.meaning;
   // Worst first until the reader chooses a sort; a chosen sort wins.
-  const ranked = rankedBy(rows, measure);
-  const view = tablePage(sort ? rows : ranked, {
+  const kept = filtered(props, chosen);
+  const ranked = rankedBy(kept, measure);
+  const view = tablePage(sort ? kept : ranked, {
     query,
     text,
     filter: filters.find((f) => f.key === chip)?.test,
@@ -117,6 +132,8 @@ function useTable<R>({ rows, columns, filters, text, initialSort }: TableProps<R
     onQuery: changed(setQuery),
     onChip: changed(setChip),
     onSort: changed(setSort),
+    chosen,
+    onChosen: changed(setChosen),
     setPage,
   };
   return {
@@ -143,6 +160,40 @@ function foldOf<R>(
   const hidden = ranked.slice(at);
   const within = !!measure.target && !hidden.some((r) => missesTarget(measure.value(r), measure));
   return { at, hidden: hidden.length, within };
+}
+
+/** The dropdown filters (ADR 0036 R16), and the button that clears them all once any is chosen. */
+function Selects<R>({
+  selects,
+  rows,
+  chosen,
+  onChosen,
+}: {
+  selects: TableSelect<R>[];
+  rows: R[];
+  chosen: Record<string, string>;
+  onChosen: (chosen: Record<string, string>) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="v2-table-selects">
+      {selects.map((s) => (
+        <SelectField
+          key={s.key}
+          label={s.label}
+          all={fill(t('insight.filter.all'), { label: s.label })}
+          value={chosen[s.key] ?? ''}
+          options={optionsOf(rows, s).map((o) => ({ key: o, label: o }))}
+          onChange={(v) => onChosen({ ...chosen, [s.key]: v })}
+        />
+      ))}
+      {Object.values(chosen).some(Boolean) ? (
+        <button type="button" className="v2-btn v2-btn-ghost" onClick={() => onChosen({})}>
+          {t('insight.filter.reset')}
+        </button>
+      ) : null}
+    </div>
+  );
 }
 
 /** A row's action cell: its expand button and the button that opens it in the drawer. */
@@ -314,6 +365,14 @@ export function DataTable<R>(props: TableProps<R>) {
         onChip={ask.onChip}
         hideSearch={small}
       />
+      {props.selects?.length ? (
+        <Selects
+          selects={props.selects}
+          rows={props.rows}
+          chosen={ask.chosen}
+          onChosen={ask.onChosen}
+        />
+      ) : null}
       {props.takeaway ? <Takeaway data={props.takeaway} /> : null}
       <div className="v2-table-scroll">
         <table className="v2-table">
