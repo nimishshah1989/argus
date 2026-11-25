@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars -- skeleton: the builder fills the bodies and deletes this line */
 import type { ReactElement } from 'react';
 
 /** How urgent a strip is (ADR 0036 R2): high wears the bad status, medium watch, low neutral. */
@@ -16,12 +15,17 @@ export type Strip = {
   severity: Severity;
 };
 
+const RANK: Record<Severity, number> = { high: 0, medium: 1, low: 2 };
+
 /**
  * The strips a page shows (ADR 0036 R2): drop every strip with `count <= 0`, order high → medium → low keeping the
  * input order within a severity (stable), keep the first 3.
  */
 export function topStrips(strips: Strip[]): Strip[] {
-  throw new Error('not implemented');
+  return strips
+    .filter((s) => s.count > 0)
+    .sort((a, b) => RANK[a.severity] - RANK[b.severity])
+    .slice(0, 3);
 }
 
 /**
@@ -31,5 +35,16 @@ export function topStrips(strips: Strip[]): Strip[] {
  * Nothing left → `null`.
  */
 export function ActionStrips({ strips }: { strips: Strip[] }): ReactElement | null {
-  throw new Error('not implemented');
+  const kept = topStrips(strips);
+  if (kept.length === 0) return null;
+  return (
+    <div className="v2-strips">
+      {kept.map((s) => (
+        <a key={s.key} className="v2-strip" data-severity={s.severity} href={s.href}>
+          <strong>{s.count}</strong> {s.what}
+          <span className="v2-strip-link">{s.link}</span>
+        </a>
+      ))}
+    </div>
+  );
 }
