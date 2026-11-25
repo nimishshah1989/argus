@@ -44,6 +44,9 @@ const NOT_YET = new Set([
 const SECTIONS: Record<string, string[]> = {
   // ADR 0033: shift-kpis.compare opens with the verdict, not a takeaway that would repeat it.
   'shift-kpis': ['shift-kpis.shift-split', 'shift-kpis.backlog', 'shift-kpis.breakdown-map'],
+  // Ticket 767 (S27-A): the report wizard has no table, chart or figure tile, so no takeaway; T2 (#768) adds
+  // My complaints' line ("Waiting longest") here when its list joins the floor.
+  floor: [],
 };
 
 type Said = { text: string }[];
