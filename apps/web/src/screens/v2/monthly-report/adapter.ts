@@ -191,7 +191,7 @@ function verdictFor(page: Page, t: TFunction, period: string, month: string) {
 
 /**
  * The Monthly Report from the engine's `monthly-report` figure, whole (2 charts, 8 tables), with the period line, the
- * two downloads and one takeaway per section (#763). The untitled table is the blank commentary form: captioned, kept
+ * two downloads and one takeaway per section (ticket 763). The untitled table is the blank commentary form: captioned, kept
  * with its empty columns, and with no takeaway. Null when the engine has no page.
  */
 export function monthlyReportModel(reply: FiguresPart, t: TFunction): MonthlyReportModel | null {
