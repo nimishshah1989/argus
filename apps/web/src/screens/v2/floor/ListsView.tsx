@@ -5,7 +5,8 @@ import type { CancelModel, DisputeModel, MineModel, PmModel } from './lists-mode
  * Draws the floor lists inside #767's `FloorFrame` (tabs, Account, Drafts). Page order is pinned by
  * `e2e/gallery/floor-order-lists.ts` (`MINE`, `MINE_TECH`, `DISPUTE`, `CANCEL`, `PM`): title `h2`, then per card
  * Cancel, then `h3` "Is it fixed?" with "Yes, it is fixed" / "Not fixed"; no `h1`, no extra button or link.
- * Reuses `MachineCard` (`ui/floor-pieces`), `StatusPill`, `Button`, `Sheet`, `Label`/`Textarea`, `StateNotice`.
+ * Reuses `MachineCard` (`ui/floor-pieces`), `StatusPill`, `Button`, `Sheet`, `Label`/`Textarea`, `PatternFrame`/`StateNotice`,
+ * and the kit `Takeaway` (`ui/v2/takeaway`).
  */
 
 export type MineActions = {

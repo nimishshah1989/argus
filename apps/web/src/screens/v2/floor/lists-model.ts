@@ -1,5 +1,6 @@
 import type { Machine, Me, Ticket } from '../../../api.js';
 import type { ViewState } from '../../../patterns/view-state.js';
+import type { TakeawayData } from '../../../ui/v2/takeaway.js';
 
 /**
  * S27-B floor lists (ADR 0045 T2): My complaints (`/floor/mine`) and PM jobs (`/floor/pm`). Pure rules only; the
@@ -28,13 +29,11 @@ export type Longest = {
   of: number;
 };
 
-/** What a takeaway says and how it is tagged. */
-export type ListTakeaway = {
-  text: string;
-  tone: 'warn' | 'neutral';
-  tag: string;
-  yardstick: string;
-};
+/**
+ * The kit's takeaway (`ui/v2/takeaway.tsx`, drawn with `Takeaway`: a `p`, no heading or button, so the pinned floor
+ * order is untouched) plus its yardstick line. Tone `risk` with `outlier` = the named ticket's id.
+ */
+export type ListTakeaway = TakeawayData & { yardstick: string };
 
 /** The "Is it fixed?" block, or what production said once the question is over. */
 export type SignoffModel =

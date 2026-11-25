@@ -114,7 +114,8 @@ describe('S27-B takeaway figures come from the loaded rows', () => {
 
   it('My complaints says it: place and wait in the takeaway, warn tone; cards keep the server’s order', () => {
     const model = mineModel(rows, ctx(), realT);
-    expect(model.takeaway?.tone).toBe('warn');
+    expect(model.takeaway?.tone).toBe('risk');
+    expect(model.takeaway?.outlier).toBe('t1');
     expect(model.takeaway?.text).toContain('VC-17');
     expect(model.takeaway?.text).toContain(formatMinutes(130));
     expect(model.takeaway?.tag).toBeTruthy();
