@@ -4,11 +4,12 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-24 · **By:** Plan · **Model:** Opus 5.5
-**Milestone:** M2b screens lane · **Branch:** plan/adr-0036-colour-shifts-language
+**Updated:** 2026-11-25 · **By:** Plan · **Model:** Opus 5.5
+**Milestone:** M2b screens lane · **Branch:** plan/t701
 
 ## State
 
+- 25 Nov: seed `plan/t701` fixed (c8509f4c). PR #731's browser shards were red because the Gujarati specs could not switch Gujarati on. ADR 0038: `GUJARATI_ON` = `localStorage['uptimo.gujarati'] === 'on'`, read once at load; e2e option `gujaratiOn` (test.ts) sets it for the `gujarati` project, account language choice and translations spec; account.spec keeps a hidden-by-default check. New visible test `gujarati-switch.test.ts` (red on the seed). Proven locally with the one-line flag read on the build branch: vitest i18n 19/19, e2e account+translations+floor+i18n 57/57. Issue #701 has rule 0; #731 body `Screens:` → `S01-dashboard` (loop-guard rejected `none (kit only)`).
 - ADR 0036 is the one v2 kit rulebook (R1–R25). Nimish: English only (Gujarati hidden, #701); two shift windows as configured, no shift calendar.
 - Every kit ticket is seeded (`plan/t<N>`, red for the real reason, root `tsc --noEmit` 0 errors, critical tests only per ADR 0034): #684–#701. t686 got return types today (it did not typecheck).
 - Bases: kit seeds on this branch (#683); #688/#689 on `plan/t687`; #695/#696 on `plan/t694`; #703 on main.
@@ -16,7 +17,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 ## Next step
 
-Coordinator: merge #683 when green (kit seeds need its tokens/words/Status). Build in parallel: #684–#687 #690–#694 #697–#701 #703 #704. After #687: #688 #689. After #694: #695 #696. Plan: seed #705 after #666 merges; cut per-screen sweep tickets (#706) as batch-2 tickets merge.
+#701: builder merges `origin/plan/t701`, changes the `GUJARATI_ON` line per rule 0, re-runs; `loop ci 731`; reviewer. Other `Screens: none (kit only)` tickets (#689, #693, …) will hit the same loop-guard error — use an approved screen id. Coordinator: merge #683 when green (kit seeds need its tokens/words/Status). Build in parallel: #684–#687 #690–#694 #697–#701 #703 #704. After #687: #688 #689. After #694: #695 #696. Plan: seed #705 after #666 merges; cut per-screen sweep tickets (#706) as batch-2 tickets merge.
 
 ## Blocked / open questions
 
@@ -28,6 +29,7 @@ Coordinator: merge #683 when green (kit seeds need its tokens/words/Status). Bui
 
 ## Don't repeat
 
+- Flakes seen on #731, not Gujarati: pm-plans.spec:94 and who-is-acting.spec:60 (both passed on retry); who-is-acting.spec:219 also failed once, retry not confirmed.
 - Seed worktrees with symlinked node_modules resolve `@uptimo/shared` to the main checkout: words only on a plan branch read as missing. Use `pnpm install --frozen-lockfile --offline` in the worktree.
 - A throwing skeleton component needs an explicit `ReactElement` return type, or `createElement` in tests fails tsc.
 - `git add` named files only; the main checkout is shared, commit from a temp worktree.
