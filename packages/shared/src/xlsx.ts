@@ -111,13 +111,27 @@ function sheetXml(rows: readonly (readonly (string | number)[])[]): string {
 }
 
 /**
+ * Excel-safe sheet names, one per input in order (ticket 732, ADR 0041). Per name: replace each of `: \ / ? * [ ]`
+ * with `-`, trim spaces, cut to 31 characters, trim again; empty → `Sheet<N>` (N = its 1-based position). Then unique
+ * ignoring case, first come first kept: a later clash becomes `<base> (<n>)` with the smallest n >= 2 not yet taken
+ * (ignoring case), `base` cut so the whole name stays within 31 characters.
+ */
+export function sheetNames(names: readonly string[]): string[] {
+  void names;
+  throw new Error('not implemented');
+}
+
+/**
  * An .xlsx workbook as bytes, built in the browser (ADR 0036 R6): a stored (uncompressed) zip with correct CRC-32s
  * holding `[Content_Types].xml`, `_rels/.rels`, `xl/workbook.xml`, `xl/_rels/workbook.xml.rels` and one
  * `xl/worksheets/sheetN.xml` per sheet, in order. Port of `apps/server/src/modules/reports/xlsx.ts` on `Uint8Array`
  * + `TextEncoder` (no `Buffer`, no `node:` imports).
  * - A finite number is a numeric cell with its exact value (`<v>1234.5678</v>`, never rounded, never a string);
  *   anything else is an inline string. Text is XML-escaped (& < > " ') and XML-forbidden control characters dropped.
- * - Sheet names are escaped and cut to Excel's 31 characters.
+ * - Sheet names come from `sheetNames` (banned characters replaced, 31 characters, unique ignoring case), then escaped.
+ * - No sheets → one empty sheet named `Sheet1` (it still gets the DOC. NO. row): Excel will not open a workbook with none.
+ * - Every zip entry's DOS date field is 0x21 (1 Jan 1980), local header offset 12 and central header offset 14, as
+ *   `apps/server/src/modules/reports/xlsx.ts` writes it; 0 is not a valid DOS date.
  * - `docRef` → row 1 of every sheet is the single text cell `DOC. NO. <docRef>`; the sheet's rows follow from row 2.
  * - A sheet with no rows is still written (an empty `<sheetData/>`).
  */

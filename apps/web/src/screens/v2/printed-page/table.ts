@@ -35,8 +35,7 @@ function cellOf(kind: ReturnType<typeof kindOf>, printed: string, numeric: boole
 
 /**
  * An engine table as the screen prints it. A column whose every cell the engine left empty is left out (the platform
- * printed an input there, which carries no text); `keep` lists the columns that stay whatever they hold. A row whose
- * first cell matches `/^(plant )?total\b/i` leaves `rows`; the last such row becomes `total` (ADR 0036 R14).
+ * printed an input there, which carries no text); `keep` lists the columns that stay whatever they hold.
  */
 export function printedTable(
   table: PageTable,

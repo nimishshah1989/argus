@@ -1,6 +1,6 @@
 import { EntityChip, type EntityChipProps } from '../entity-chip.js';
 import { KeyPill } from '../key-pill.js';
-import { DetailFigure, DetailSection, SourceLine } from './detail-parts.js';
+import { DetailFigure, DetailSection, SourceLine, type FullPage } from './detail-parts.js';
 import { STATE_ICON, STATE_TONE, type MachineState } from './plant.js';
 
 /** A cell as its drawer prints it: every figure and word ready, the machines that matter as chips. */
@@ -27,6 +27,8 @@ export function CellDetail({
   c: CellDetailData;
   words: CellDetailWords;
   source: string;
+  /** The entity's full page (ADR 0036 R24): drawn once as `FullPageLink` just above the source line; absent → no link. */
+  full?: FullPage;
 }) {
   return (
     <div className="v2-detail">

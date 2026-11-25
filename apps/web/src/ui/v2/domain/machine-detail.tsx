@@ -2,7 +2,7 @@ import { EntityChip } from '../entity-chip.js';
 import { KeyPill } from '../key-pill.js';
 import { Points } from '../points.js';
 import { Sparkline } from '../sparkline.js';
-import { DetailFigure, DetailSection, SourceLine } from './detail-parts.js';
+import { DetailFigure, DetailSection, SourceLine, type FullPage } from './detail-parts.js';
 import {
   cellChip,
   machineChip,
@@ -31,6 +31,8 @@ export function MachineDetail({
   m: MachineData;
   words: MachineDetailWords;
   source: string;
+  /** The entity's full page (ADR 0036 R24): drawn once as `FullPageLink` just above the source line; absent → no link. */
+  full?: FullPage;
 }) {
   return (
     <div className="v2-detail">

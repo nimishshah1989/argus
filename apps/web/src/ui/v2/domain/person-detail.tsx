@@ -1,5 +1,5 @@
 import { EntityChip, type EntityChipProps } from '../entity-chip.js';
-import { DetailFigure, DetailSection, SourceLine } from './detail-parts.js';
+import { DetailFigure, DetailSection, SourceLine, type FullPage } from './detail-parts.js';
 
 /** A person as their drawer prints it: what they are on now as chips, and this month in figures ready to print. */
 export type PersonDetailData = {
@@ -30,6 +30,8 @@ export function PersonDetail({
   p: PersonDetailData;
   words: PersonDetailWords;
   source: string;
+  /** The entity's full page (ADR 0036 R24): drawn once as `FullPageLink` just above the source line; absent → no link. */
+  full?: FullPage;
 }) {
   return (
     <div className="v2-detail">

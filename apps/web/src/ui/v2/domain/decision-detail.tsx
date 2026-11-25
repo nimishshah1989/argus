@@ -8,7 +8,7 @@ import {
   type DecisionCallbacks,
   type DecisionData,
 } from './decision-row.js';
-import { DetailFigure, DetailSection, SourceLine } from './detail-parts.js';
+import { DetailFigure, DetailSection, SourceLine, type FullPage } from './detail-parts.js';
 
 export type DecisionDetailWords = {
   worth: string;
@@ -25,7 +25,13 @@ export function DecisionDetail({
   words,
   source,
   ...act
-}: { d: DecisionData; words: DecisionDetailWords; source: string } & Partial<DecisionCallbacks>) {
+}: {
+  d: DecisionData;
+  words: DecisionDetailWords;
+  source: string;
+  /** The entity's full page (ADR 0036 R24): drawn once as `FullPageLink` just above the source line; absent → no link. */
+  full?: FullPage;
+} & Partial<DecisionCallbacks>) {
   return (
     <div className="v2-detail">
       <div className="v2-row v2-gap-8">

@@ -29,12 +29,24 @@ export type PrintedTable = {
    * opens with the takeaway `printedTakeaway` picks, ranks worst first, marks the worst row, bars and folds.
    */
   meaning?: Meaning & { column: number };
-  /**
-   * The table's total row (the engine's "PLANT TOTAL"), taken out of `rows` (ADR 0036 R14): drawn as the table's
-   * footer, `PrintedDataTable` passing `total.map((c) => c.text)` as DataTable `total`. Absent when the engine printed none.
-   */
-  total?: PrintedCell[];
 };
+
+/** A row that is the engine's total ("PLANT TOTAL", "Total"), never a ranked row (ADR 0036 R14). */
+export const TOTAL_ROW = /^(plant )?total\b/i;
+
+/**
+ * Takes the total rows out of a printed table's rows (ADR 0036 R14, ADR 0041): every row whose first cell's text
+ * matches `TOTAL_ROW` leaves `rows`; the last such row is `total`. No such row → `total` undefined, `rows` unchanged.
+ * `PrintedDataTable` draws `total.map((c) => c.text)` as DataTable `total` (the footer) and computes its takeaway over
+ * the remaining rows only.
+ */
+export function splitTotal(rows: PrintedCell[][]): {
+  rows: PrintedCell[][];
+  total?: PrintedCell[];
+} {
+  void rows;
+  throw new Error('not implemented');
+}
 
 type Row = { id: string; cells: PrintedCell[] };
 

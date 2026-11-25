@@ -1,5 +1,5 @@
 /* eslint-disable i18next/no-literal-string -- icon names and typed unions only; every visible word comes in as a prop or t() */
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { Icon } from '../icons.js';
 import { useTick } from '../motion.js';
 
@@ -31,6 +31,35 @@ export function DetailFigure({
       {note ? <div className="v2-sub">{note}</div> : null}
     </div>
   );
+}
+
+/** A drawer shows at most this many figures (ADR 0036 R24); the rest live on the entity's full page. */
+export const DETAIL_MAX_FIGURES = 3;
+
+/** One figure a drawer may show; `value` empty or absent → dropped before the cap (never a "—" filling a slot). */
+export type DetailFigureData = { label: string; value?: string; note?: string };
+
+/** The way from a drawer to the entity's full page: the route the chip opens, and the link's own words. */
+export type FullPage = { href: string; label: string };
+
+/**
+ * A drawer's figures (ADR 0036 R24, ADR 0041): drop every figure whose `value` is empty or absent, keep the first
+ * `DETAIL_MAX_FIGURES` in the order given, each a `DetailFigure`, inside `<div className="v2-figures">`. Nothing left
+ * → `null`.
+ */
+export function DetailFigures({ figures }: { figures: DetailFigureData[] }): ReactElement | null {
+  void figures;
+  throw new Error('not implemented');
+}
+
+/**
+ * The drawer's one link to the entity's full page (ADR 0036 R24, ADR 0041):
+ * `<a className="v2-link" data-full-page="" href={href}>{label}</a>`.
+ */
+export function FullPageLink({ href, label }: FullPage): ReactElement {
+  void href;
+  void label;
+  throw new Error('not implemented');
 }
 
 /** Where the figures came from and how fresh they are, at the foot of a drawer or a card. */
