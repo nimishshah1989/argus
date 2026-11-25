@@ -1,9 +1,9 @@
 import type { ScreenEntry } from '../data.js';
-import type { PrintedPageModel } from '../printed-page/page-model.js';
+import type { BdPmModel } from './model.js';
 
 declare module '../data.js' {
   interface Screens {
-    'bd-pm': { params: Record<string, never>; model: PrintedPageModel };
+    'bd-pm': { params: Record<string, never>; model: BdPmModel };
   }
 }
 
