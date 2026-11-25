@@ -2,33 +2,34 @@
 
 _Overwritten at the end of every session. Facts only._
 
-**Updated:** 2026-11-25 · **By:** Coordinator (Sonnet), 4th session in the chain
+**Updated:** 2026-11-25 9:45 · **By:** Coordinator (Sonnet), 5th session in the chain · ended on the context budget (a big attempt-notes dump), not on a problem.
 
 ## State
 
-- Merged in the kit lane: #718 (#684), #720 (#661), #727, #728 (#690), #729 (#693), #730 (#698), #733 (#703). #698 reviewer PASS after the merge; follow-ups for plan: the amber watch tone never shows (no CSS targets `data-status` on `.v2-ref`, no icon) and the guard `count <= 0` lets NaN through (use `!Number.isInteger(count) || count <= 0`, add a holdout test).
-- v2 screen folders under apps/web/src/screens/v2: 52 (count only, NOT checked that each is routed and live; do that before reporting a "screens done" number to Nimish).
-- Open PRs: #731 (#701, red), #726 (#687), #707 (#643), #300 parked.
-- A plan job is RUNNING (started 9:22, pid 25882, `loop plan "Seed the missing kit stylesheets..."`): it writes the missing kit stylesheets onto seed branches plan/t685,686,691,692,694,697,699,700,704 so builders only write tsx. Check `git fetch; git log origin/plan/t686` etc. and `pgrep -fl "loop plan"` first. Do not start another plan job on the same seeds while it runs.
+- The CSS-seed plan job FINISHED (no PR; it only pushed seed branches). Seeds with their stylesheet are on origin: plan/t685, 686, 691, 692, 694, 697, 699, 700, 704 (each "Seed #N: kit stylesheet written by Plan"). Ticket bodies now say the CSS is "already written in the seed; do not edit it".
+- I added a "Builder shell rules" line (Write/Edit only; one simple Bash per call; no heredocs/redirects/subshells/braces/$?; CSS is already on the seed) to the Don't section of issues 685, 686, 691, 692, 694, 695, 696, 697, 699, 700, 704. Not yet added: 687, 701, 705+ (not needed yet).
+- Nothing merged this session. Open PRs unchanged: #731 (#701), #726 (#687), #707 (#643), #300 parked. Merged earlier in the lane: #718, #720, #727, #728, #729, #730, #733.
+- **#686** (fresh build folder from the new seed, attempt 1 of 3 used): the builder did the tsx and DONE; `loop finish 686` failed ONLY on `prettier --check` of its own `docs/loop/handoff/686.md`. Fix: `loop prep 686` (keeps folder, brief carries the note) then `loop build 686`; or the quicker route: tell the builder to run `pnpm exec prettier --write docs/loop/handoff/686.md` as its last step. Then `loop finish 686`.
+- **#691** builder ended BLOCKED: the seed's `action-strip.css` sets a `transition` on `.v2-strip` with no `@media (prefers-reduced-motion: reduce)` rule, so `apps/web/src/ui/v2/language.test.ts` ("turns every animation and transition off under reduced motion") fails. Only 691's seed has a transition (checked the 9 seed diffs). Needs `loop plan "Fix the seed on plan/t691: add the reduced-motion rule for .v2-strip to action-strip.css"`, then `loop prep 691 --fresh` and build again. 691 build folder holds the finished tsx (not pushed).
+- Untouched and ready to build (seed + CSS in place): 685, 692, 694, 697, 699, 700, 704. 695/696 wait for 694. 692's old build branch has tsx only; use `loop prep N --fresh` so the new seed is picked up.
 
 ## Next step
 
-1. When the CSS-seed plan job has landed, build 686, 691, 697, 699, 700, 704 one or two at a time when `uptime` load is under ~10 (never rebuild the Blocked ones below without Nimish's word). 695/696 wait for 694.
-2. Open #732 (KIT-7b) still needs `loop plan "Seed issue 732"` before the ADR 0036 sweep.
-3. Final report to Nimish (5 lines): merged, what he can click on staging, what needs him, screens done.
+1. Fix 686 (prettier line above), finish, CI, reviewer, merge. Plan job for 691, then rebuild.
+2. Build 697 and 699 next (two at a time, only when `uptime` load is under ~10), then 685, 700, 704, 692, 694 (then 695, 696). Then `loop plan "Seed issue 732"` for the ADR 0036 sweep.
+3. Final 5-line report to Nimish: merged, what he can click on staging, what needs him, screens done (52 v2 screen folders exist; NOT checked that each is routed and live — check before quoting a number).
 
-## Blocked (no further attempt, per Nimish's stop rule)
+## Blocked (stop rule: no further attempt without Nimish's word)
 
-- **#685, #692, #694**: builders BLOCKED; kit stylesheets (kpi-tone.css, severity-row.css, ranked-bars.css) are plan-owned. 692 code is committed on its build branch (36c65b74, 599e540f, tsx only, no PR yet); 694 wrote ranked-bars.tsx, nothing committed. The CSS-seed plan job should fix the cause; a rebuild needs Nimish's yes to the stop rule.
-- **#701** (PR #731): seed fix is on origin/plan/t701 (c8509f4c). The haiku builder (loop build 701 --bg) edited i18n/index.ts but ended BLOCKED (Bash denied) and its branch does NOT contain c8509f4c; `loop finish 701` refused (attempt 2 failed, Blocked section in its handoff). Needs: merge origin/plan/t701 into the build branch, commit, finish. That is builder/Nimish territory per the stop rule.
-- **#687** (PR #726): ticket rule 1 vs hidden test compare/holdout/tables-edges.test.ts. Plan must change one.
-- **#643** (PR #707): merge plan/t643-e2e (a6521bc) into the build branch, delete the spares note line at machine/View.tsx:149, set PR body `Plan-base: a6521bc6b7e24790b6ff1dfdb5000bc542a26995`, `loop ci 707`.
-- **Needs Nimish's yes**: the classifier DENIED a plan job that would extend the ADR 0039 carve-out / protected list in .loop.json. Not done, not worked around. Only needed if the CSS-seed job proves not enough.
+- #701 (PR #731): needs origin/plan/t701 (c8509f4c) merged into its build branch, then commit and finish. #687 (PR #726): ticket rule 1 vs hidden test compare/holdout/tables-edges.test.ts, plan must change one. #643 (PR #707): merge plan/t643-e2e (a6521bc) into the build branch, delete the spares note line at machine/View.tsx:149, set PR body `Plan-base: a6521bc6b7e24790b6ff1dfdb5000bc542a26995`, `loop ci 707`.
+- Follow-ups for plan from #698 review: amber watch tone never shows (no CSS on `data-status` in `.v2-ref`); guard `count <= 0` lets NaN through (use `!Number.isInteger(count) || count <= 0`, add holdout test).
 
 ## Don't repeat
 
-- `loop build N --bg` builders are denied Bash: they cannot run checks or commit and report BLOCKED. Plan for it (finish may refuse because of the Blocked section they write).
-- Never write a ticket number like #693 in a code comment (loop-guard reads it as a hex colour). Put it in every brief.
-- The hook blocks any command that names a build folder path (git -C inside it is blocked too); the orchestrator cannot merge or edit there.
-- merger.sh merges green PRs before the reviewer finishes; a FAIL then needs a follow-up issue.
-- Commit from a detached worktree: `git worktree add --detach`, `git -C`, `git push origin HEAD:plan/handoff`. Start every command with `cd /Users/nimishshah/argus &&`.
+- `loop prep N` keeps an old build folder and its OLD seed. When the seed changed, use `loop prep N --fresh` (also resets the attempt count).
+- #686's first 3 attempts failed on `packages/domain/test/engine-scale.test.ts` (20 s limit): it takes 9 s on an idle Mac and 23–26 s at load 14–20. It is a load flake, not a builder fault. Never run more than two builders at once; wait for load under ~10 first.
+- Never run `cat .git/loop/tickets/N.json` or any command that dumps attempt notes: they are huge ANSI test logs and cost ~30k tokens. Use `loop prep N | grep attempts_so_far`.
+- A `Monitor` with `pgrep -f "<text>"` matches itself; wait on a pid with `kill -0`.
+- Builders run in dontAsk mode (no heredocs/redirects/subshells/braces/$?). They must run `pnpm exec prettier --write docs/loop/handoff/<N>.md` after writing their handoff. Never write a ticket number like #693 in a code comment (loop-guard reads it as a hex colour).
+- The hook blocks any command that names a build folder path (even `ls`). merger.sh can merge green PRs before the reviewer finishes; a FAIL then needs a follow-up issue.
+- Commit handoffs from a detached worktree: `git worktree add --detach`, `git -C`, `git push origin HEAD:plan/handoff`. Start every command with `cd /Users/nimishshah/argus &&`.
