@@ -14,8 +14,15 @@ export function sheetFields<Row extends CrudRow>(
   row: Row | null,
   ctx: CrudCtx,
 ): FormField[] {
-  void [spec, row, ctx];
-  throw new Error('not implemented');
+  return spec.fields
+    .filter((f) => !row || !f.addOnly)
+    .map((f) => ({
+      name: f.name,
+      label: ctx.t(f.labelKey),
+      required: f.required || (!row && f.requiredOnAdd),
+      kind: f.kind,
+      choices: f.choices?.(ctx),
+    }));
 }
 
 /**
@@ -28,18 +35,24 @@ export function switchFields<Row extends CrudRow>(
   row: Row,
   t: TFunction,
 ): FormField[] | null {
-  void [spec, row, t];
-  throw new Error('not implemented');
+  if (row.active)
+    return spec.switchOff
+      ? [{ name: 'reason', label: t('kit.crud.reason'), required: true, multiline: true }]
+      : null;
+  return spec.switchOn
+    ? [{ name: spec.switchOn.field, label: t(spec.switchOn.labelKey), required: true }]
+    : null;
 }
 
 /** True when a required field is empty after trimming: the only check the client makes (the server validates the rest). */
 export function missingRequired(fields: FormField[], values: Record<string, string>): boolean {
-  void [fields, values];
-  throw new Error('not implemented');
+  return fields.some((f) => f.required && (values[f.name] ?? '').trim() === '');
 }
 
 /** Why the submit waits, or null when it may be sent; offline wins over everything (writes are never queued here). */
 export function submitHeld(state: HoldState): 'offline' | 'pending' | 'missing' | 'blocked' | null {
-  void state;
-  throw new Error('not implemented');
+  if (!state.online) return 'offline';
+  if (state.pending) return 'pending';
+  if (state.missing) return 'missing';
+  return state.blocked ? 'blocked' : null;
 }
