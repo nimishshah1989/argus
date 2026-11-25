@@ -313,9 +313,10 @@ async function expectChecklist(page: Page, reply: FiguresReply) {
     checklist !== undefined && typeof checklist.value === 'object' && checklist.value !== null
       ? (checklist.value as { items: { plain: string }[] }).items
       : [];
-  await expect(page.locator('.v2-kpi', { hasText: 'Records to fix' })).toContainText(
-    items.length.toLocaleString('en-IN'),
-  );
+  // Four zero tiles fold into one line saying so (sweep 706, TileSet); the card itself before that.
+  await expect(
+    page.locator('.v2-kpi, .v2-zero-line').filter({ hasText: 'Records to fix' }),
+  ).toContainText(items.length === 0 ? /0|zero/ : items.length.toLocaleString('en-IN'));
   if (checklist !== undefined && checklist.drill.ids.length > 0) {
     await page.getByRole('button', { name: 'Show the rows behind Data checklist' }).click();
     await expect(page).toHaveURL(/[?&]drawer=figure:data-checklist/);
@@ -352,6 +353,9 @@ test('a head lands on Today with the live figures, a drill and the data checklis
   const dashboard = reply.figures.filter((figure) => figure.screen === 'dashboard');
   const ready = dashboard.filter((figure) => figure.status === 'ready');
   expect(ready.length).toBeGreaterThan(0);
+  // Figures past the fourth fold under "Show detail" (sweep 706); a no-op before the fold lands.
+  for (const s of await page.locator('details.v2-show-detail:not([open]) > summary').all())
+    await s.click();
   for (const figure of dashboard) await expect(tile(page, figure.key)).toBeVisible();
   for (const figure of ready) await expectReadyFigure(page, figure);
   await expect(page.getByText('Ready', { exact: true })).toHaveCount(0);
@@ -426,6 +430,12 @@ test('a ready figure opens the rows behind it', async ({ page }, testInfo) => {
   );
 
   await page.goto('/analytics/today');
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true }),
+  ).toBeVisible();
+  // Figures past the fourth fold under "Show detail" (sweep 706); a no-op before the fold lands.
+  for (const s of await page.locator('details.v2-show-detail:not([open]) > summary').all())
+    await s.click();
 
   // A ready figure prints its value and offers the rows it came from.
   await expect(tile(page, 'dashboard.total-machines')).toContainText('Total machines');

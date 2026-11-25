@@ -56,6 +56,9 @@ test('the Dashboard opens at its v1 address with the engine’s figures; a machi
     (figure) => figure.screen === 'dashboard' && typeof figure.value === 'number',
   );
   expect(numbers.length).toBeGreaterThan(5);
+  // Figures past the fourth fold under "Show detail" (sweep 706); a no-op before the fold lands.
+  for (const s of await page.locator('details.v2-show-detail:not([open]) > summary').all())
+    await s.click();
   await expect(page.getByRole('region', { name: 'Total machines', exact: true })).toBeVisible();
   await expect(page.getByRole('region', { name: 'What needs you now' })).toBeVisible();
   await expect(page.getByRole('alert')).toHaveCount(0);

@@ -21,6 +21,9 @@ for (const scheme of ['light', 'dark'] as const) {
       page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true }),
     ).toBeVisible();
     await expect(page.getByRole('heading', { name: 'What needs you now' })).toBeVisible();
+    // Figures past the fourth fold under "Show detail" (sweep 706); a no-op before the fold lands.
+    for (const s of await page.locator('details.v2-show-detail:not([open]) > summary').all())
+      await s.click();
     const machines = page.getByRole('region', { name: 'Total machines', exact: true });
     await expect(machines).toBeVisible();
 
