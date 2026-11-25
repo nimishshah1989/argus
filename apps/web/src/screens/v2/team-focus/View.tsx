@@ -6,27 +6,26 @@ import { DecisionList } from '../../../ui/v2/domain/decision-list.js';
 import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
 import { EntityOpenContext, type EntityKind } from '../../../ui/v2/entity-chip.js';
 import { KeyPill } from '../../../ui/v2/key-pill.js';
-import { KpiCard } from '../../../ui/v2/kpi-card.js';
+import { DownloadExcel } from '../../../ui/v2/download-excel.js';
 import { Panel } from '../../../ui/v2/panel.js';
 import { Points } from '../../../ui/v2/points.js';
 import { Row } from '../../../ui/v2/row.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
 import { Takeaway, type TakeawayData } from '../../../ui/v2/takeaway.js';
+import { TileSet } from '../../../ui/v2/tile-set.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
 import { EntityShell } from '../entity/EntityShell.js';
 import { useEntityParam } from '../entity/url.js';
+import { numberIn } from '../figures/read.js';
 import { localAction, type Acts } from './local.js';
 import type { TeamFocusActions, TeamFocusModel } from './model.js';
+import { teamFocusSheets } from './sweep.js';
 import { ActionTable, PeopleTable } from './tables.js';
 
 const ignore = () => {};
 
 const Kpis = ({ kpis }: { kpis: TeamFocusModel['kpis'] }) => (
-  <Row cols={4}>
-    {kpis.map((k) => (
-      <KpiCard key={k.id} kpi={k} />
-    ))}
-  </Row>
+  <TileSet items={kpis.map((kpi) => ({ kpi, n: numberIn(kpi.value) ?? Number.NaN }))} />
 );
 
 /** A section's takeaway, drawn at its top; nothing when the section has none. */
@@ -103,6 +102,9 @@ function Body({
         </Panel>
       )}
       <Line data={model.takeaways?.people} />
+      <div>
+        <DownloadExcel file="team-focus" sheets={teamFocusSheets(model)} />
+      </div>
       {model.rebalance ? (
         <Row wide>
           <PeopleTable people={model.people} words={words.people} {...person} />

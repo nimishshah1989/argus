@@ -24,9 +24,26 @@ import type { ActionCenterModel } from './model.js';
  * [{ text: 'Frequent breakdowns', n: 2 }, { text: 'Recurring fault' }].
  */
 export function riskReasons(why: string, labels: readonly string[]): Reason[] {
-  void why;
-  void labels;
-  throw new Error('not implemented');
+  const reasons: Reason[] = [];
+  let rest = why.trim();
+  while (rest !== '') {
+    const label = labels
+      .filter(
+        (l) =>
+          l !== '' && rest.startsWith(l) && (rest.length === l.length || rest[l.length] === ' '),
+      )
+      .sort((a, b) => b.length - a.length)[0];
+    if (label === undefined) {
+      reasons.push({ text: rest });
+      break;
+    }
+    rest = rest.slice(label.length);
+    const times = /^ [x×](\d+)(?= |$)/.exec(rest);
+    if (times) rest = rest.slice(times[0].length);
+    reasons.push(times ? { text: label, n: Number(times[1]) } : { text: label });
+    rest = rest.slice(1).trimStart();
+  }
+  return reasons;
 }
 
 /**
@@ -43,6 +60,37 @@ export function riskReasons(why: string, labels: readonly string[]): Reason[] {
  * Empty tables still give their sheet with the header row only.
  */
 export function actionCenterSheets(model: ActionCenterModel): Sheet[] {
-  void model;
-  throw new Error('not implemented');
+  const { columns: c, risk } = model.words;
+  const status = (n: ActionCenterModel['nudges'][number]) =>
+    [
+      n.statusLabel,
+      ...(n.status !== 'open' && n.ack ? [n.ack.due, n.ack.note].filter((s) => s !== '') : []),
+    ].join(' · ');
+  return [
+    {
+      name: model.words.table.title,
+      rows: [
+        [c.priority, c.nudge, c.type, c.entries, c.latest, c.status],
+        ...model.nudges.map((n) => [
+          n.severityLabel,
+          n.titleText,
+          n.ruleLabel,
+          n.count,
+          n.latest.shown,
+          status(n),
+        ]),
+      ],
+    },
+    {
+      name: risk.table.title,
+      rows: [
+        [risk.machine, risk.score, risk.why],
+        ...model.risk.map((r) => [
+          `${r.machine?.label ?? ''} ${r.model}`.trim(),
+          r.score.value,
+          r.why,
+        ]),
+      ],
+    },
+  ];
 }

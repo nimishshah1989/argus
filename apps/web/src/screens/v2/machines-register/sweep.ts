@@ -14,6 +14,26 @@ import type { RegisterPageModel } from './model.js';
  * No tables → `[]`. Never mutates the page.
  */
 export function registerSheets(page: RegisterPageModel): Sheet[] {
-  void page;
-  throw new Error('not implemented');
+  return page.tables.map((table) => {
+    const keep = table.header.flatMap((h, i) => (h.fixed ? [] : [i]));
+    return {
+      name: table.title,
+      rows: [
+        keep.map((i) => table.header[i]!.label),
+        ...table.rows.map((cells) =>
+          keep.map((i) => {
+            const cell = cells[i];
+            if (!cell) return '';
+            if (
+              table.header[i]!.numeric &&
+              typeof cell.sort === 'number' &&
+              Number.isFinite(cell.sort)
+            )
+              return cell.sort;
+            return cell.note ? `${cell.text} ${cell.note}` : cell.text;
+          }),
+        ),
+      ],
+    };
+  });
 }

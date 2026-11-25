@@ -16,6 +16,40 @@ import type { TeamFocusModel } from './model.js';
  * Empty tables still give their sheet with the header row only. Never mutates the model.
  */
 export function teamFocusSheets(model: TeamFocusModel): Sheet[] {
-  void model;
-  throw new Error('not implemented');
+  const { people, actions } = model.words;
+  const pc = people.columns;
+  const ac = actions.columns;
+  return [
+    {
+      name: people.title,
+      rows: [
+        [pc.person, pc.open, pc.hours, pc.done, pc.load],
+        ...[...model.people]
+          .sort((a, b) => b.open - a.open)
+          .map((p) => [
+            p.role === '' ? p.chip.label : `${p.chip.label} · ${p.role}`,
+            p.open,
+            p.hours.value,
+            p.done,
+            p.loadLabel,
+          ]),
+      ],
+    },
+    {
+      name: actions.title,
+      rows: [
+        [ac.action, ac.owner, ac.status, ac.hours],
+        ...[...model.actions]
+          .sort((a, b) => b.hours.value - a.hours.value)
+          .map((a) => [
+            [a.kindLabel, ...a.chips.map((c) => c.label), a.title, a.note]
+              .filter((s) => s !== '')
+              .join(' · '),
+            a.owner?.label ?? actions.noOwner,
+            a.statusLabel,
+            a.hours.value,
+          ]),
+      ],
+    },
+  ];
 }

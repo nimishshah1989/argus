@@ -1,7 +1,12 @@
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import type { Strip } from '../../../ui/v2/action-strip.js';
 import type { RankedRow } from '../../../ui/v2/ranked-bars.js';
+import { fill } from '../../../i18n/fill.js';
+import { bannerOf } from '../../analytics/action-center.js';
+import { ACTION_CENTER_PATH } from '../../analytics/groups.js';
+import { focusActions } from '../../analytics/team-focus-actions.js';
 import type { Translate } from '../figures/read.js';
+import { TEAM_FOCUS_PATH } from './banners.js';
 import type { CostliestModel, DashboardFacts } from './model.js';
 
 /** Sweep #706, batch A (ADR 0041, 0043): the pure helpers the Dashboard's kit pieces are fed from. */
@@ -26,10 +31,42 @@ export function dashboardStrips(
   reply: FiguresReply,
   t: Translate,
 ): Strip[] {
-  void board;
-  void reply;
-  void t;
-  throw new Error('not implemented');
+  const banner = board === null ? null : bannerOf(board);
+  const figure = reply.figures.find((f) => f.key === 'team-focus');
+  const tf =
+    figure?.status === 'ready'
+      ? focusActions(figure.value).filter((a) => a.status === 'open' || a.status === 'prog').length
+      : 0;
+  const what = (key: string, n: number) => t(n === 1 ? `${key}.one` : key);
+  const high = banner?.high ?? 0;
+  const medium = banner?.medium ?? 0;
+  const link = t('v2d.strip.ac.open');
+  return [
+    {
+      key: 'ac-high',
+      severity: 'high',
+      count: high,
+      what: what('v2d.strip.high', high),
+      link,
+      href: ACTION_CENTER_PATH,
+    },
+    {
+      key: 'ac-medium',
+      severity: 'medium',
+      count: medium,
+      what: what('v2d.strip.medium', medium),
+      link,
+      href: ACTION_CENTER_PATH,
+    },
+    {
+      key: 'tf',
+      severity: 'low',
+      count: tf,
+      what: what('v2d.strip.tf', tf),
+      link: t('v2d.tf.open'),
+      href: TEAM_FOCUS_PATH,
+    },
+  ];
 }
 
 /**
@@ -44,7 +81,14 @@ export function dashboardStrips(
  * No `moneyText`, no `rest`.
  */
 export function costliestRows(costliest: CostliestModel, t: Translate): RankedRow[] {
-  void costliest;
-  void t;
-  throw new Error('not implemented');
+  return (costliest.table?.rows ?? []).map((cells, i) => {
+    const hours = cells[1]?.sort;
+    return {
+      key: String(i),
+      label: cells[0]?.text ?? '',
+      value: typeof hours === 'number' && Number.isFinite(hours) ? hours : Number.NaN,
+      valueText: cells[1]?.text ?? '',
+      countText: fill(t('v2d.bubble.tip.breakdowns'), { value: cells[3]?.text ?? '' }),
+    };
+  });
 }
