@@ -255,6 +255,7 @@ test('a head reads one machine’s fit, its parts, and drills from each', async 
   ).toBeVisible();
   await expect(spares.getByRole('cell', { name: 'Break Rectifier 2 amp' })).toBeVisible();
   await expect(spares.getByRole('cell', { name: '03-Oct-2026', exact: true })).toHaveCount(2);
+  // Downtime h is the table's measure (ticket 643): the worst part's hours carry the takeaway's Loss pill.
   await expect(spares.getByRole('cell', { name: '4.0 Loss', exact: true })).toBeVisible();
   await expect(spares.getByRole('cell', { name: '3.0', exact: true })).toBeVisible();
   await expect(spares.getByRole('cell', { name: '0.0', exact: true })).toHaveCount(2);

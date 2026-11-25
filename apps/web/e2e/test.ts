@@ -29,7 +29,13 @@ async function seedWorkerTenant(language: 'en' | 'gu'): Promise<void> {
 
 export type Translate = (key: MessageKey, vars?: Record<string, string | number>) => string;
 
-export const test = base.extend<{ t: Translate }, { workerTenant: void; uiLanguage: 'en' | 'gu' }>({
+/** The phone switch the app reads once at load for `GUJARATI_ON` (apps/web/src/i18n/index.ts, ADR 0041). */
+const GUJARATI_SWITCH = 'uptimo.gujarati';
+
+export const test = base.extend<
+  { t: Translate; gujaratiOn: boolean },
+  { workerTenant: void; uiLanguage: 'en' | 'gu' }
+>({
   /** A catalogue string in the tenant language, English where gu is empty (as the app does). */
   t: async ({ uiLanguage }, use) => {
     const catalogue: Record<string, string> = uiLanguage === 'gu' ? gu : en;
@@ -38,6 +44,13 @@ export const test = base.extend<{ t: Translate }, { workerTenant: void; uiLangua
         String(vars[name]),
       ),
     );
+  },
+  /** Gujarati is hidden unless switched on (ADR 0036 R25); the `gujarati` project and the Gujarati specs switch it on. */
+  gujaratiOn: [false, { option: true }],
+  page: async ({ page, gujaratiOn }, use) => {
+    if (gujaratiOn)
+      await page.addInitScript((key) => localStorage.setItem(key, 'on'), GUJARATI_SWITCH);
+    await use(page);
   },
   /** The tenant language this worker is seeded with; the `gujarati` project sets `gu`. */
   uiLanguage: ['en', { scope: 'worker', option: true }],

@@ -1,0 +1,1 @@
+- #692 KIT-9: severity count row (High priority · Medium · Low · Good news), one row of four counts for pages that rank issues (ADR 0036 R3).

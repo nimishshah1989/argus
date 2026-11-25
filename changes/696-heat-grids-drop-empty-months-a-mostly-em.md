@@ -1,0 +1,1 @@
+- Heat grids no longer show a month with nothing in it, and a grid that is mostly empty is drawn as a ranked list of row totals instead.

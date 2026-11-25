@@ -3,32 +3,27 @@
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-25 · **By:** Plan · **Model:** Opus 5.5
-**Milestone:** M2b screens lane · **Branch:** plan/kit-carve-out-0036
+**Milestone:** M2b screens lane · **Branch:** plan/v2-floor-desk (stopped at context budget)
 
 ## State
 
-- **Kit carve-out (ADR 0039, Nimish yes 25 Nov):** PR on `plan/kit-carve-out-0036` opens 13 kit files to builders (685 686 691 692 694 695 696 697 699 700 704). Every kit ticket 684–704 checked against the new list with loop-guard's `matches()`: none needs another locked file. Ends when 684–704 merge: restore `apps/web/src/ui/**` (also closes ADR 0028 §4, which was never restored after #620).
-- origin/main is at 6835d813. Merged tonight: #702 #709 #710 #712 #713, CI gates cut (#708 ADR 0037, #714 ADR 0038). Open PRs: #711 (658) and #707 (643); #300 is a parked docs PR.
-- #711: only `browser (2/5)` (`escalation-history.spec.ts:179`) and `browser (3/5)` (`who-is-acting.spec.ts`, `page.goto ERR_ABORTED`) failed. I ran `gh run rerun 45459761692 --failed`; at 00:35 IST the run was in progress, result not seen. `merger.sh` merges it when all checks finish clean.
-- Pattern: `escalation-history.spec.ts:179` failed on #713 and on #711, both inside 23:55–00:03 IST (18:25–18:33 UTC). Looks like an IST-midnight date rollover; not proven. If it fails again after midnight, it is a real bug: file a ticket.
-- #707 (643) is DIRTY (conflict in `insight-coverage.test.ts`, keep both sides). The hook blocks the coordinator from `.loop/wt/643`: `loop prep 643`, then the builder.
-- Load average was 55: `pool.sh` x6, `merger.sh`, several `loop build/finish` at once. The two engine-scale tests time out under that load, so finishes fail for a reason that is not the ticket.
+- Plan PR #764 (this branch). Nimish's S27-S30 approvals (25 Nov) are NOT in it: the loop guard blocks Plan from staging the approvals file; it is still uncommitted in the main checkout.
+- Coverage tables written from the v1 code + e2e specs: `docs/design/v2/scope/{floor,desk,ticket,board}.md` (0 MISSING rows that drop v1 scope; each lists "Unbuilt from the wireframe" items needing Nimish's written yes, and "Selectors the e2e specs rely on").
+- ADR 0045 decides the split: 6 tickets (S27-A, S27-B, S28-A, S28-B, S29, S30), files, kept logic, which v1 tests the seeds retarget, and that locked control-order specs (`e2e/gallery/floor-order-lists.ts`, `desk-order.spec.ts`, `board-settings-order.spec.ts`) win over the wireframe.
+- **No issues and no seed branches created yet.**
 
-## Next step
+## Next
 
-1. Check #711 merged (`gh pr view 711`), then #707 as above.
-2. Merge the ADR 0039 carve-out PR when green, then restart the kit pool jobs (685 686 691 692 694–697 699 700 704).
-3. Run `loop finish` one at a time on a quiet machine: 657, 664, 665, 666, 667, 668. Do not start new builds while the load is above ~10.
-4. Kit tickets that can build now (no protected file): 684, 687, 688, 689, 690, 693, 698, 701, 703. Not started: 640, 644, 669–679.
+1. `loop ci 764`, merge when green. Get the approvals committed by an allowed route (Nimish runs `loop approve`).
+2. New Plan session: create the 6 issues from ADR 0045 "Tickets" (loop-ticket format; builder notes: dontAsk, no heredocs/redirects/subshells/brace lists; handoff `## Blocked` reads exactly `None.`), then seed `plan/t<N>` each: skeleton `model.ts`/`View.tsx`, visible `view.test.ts` + `insight.test.ts`, hidden `screens/v2/holdout/<screen>-*.test.ts`, and the test retargets ADR 0045 names (T3: `TasksList.test.ts`; T4: `team-waiting.test.ts`, `fetch-guard.test.ts:17`). Prove red, lint, push.
+3. Coordinator: ask Nimish for written yes/no on each scope file's "Unbuilt from the wireframe" rows.
 
-## Blocked / open questions
+## Blocked
 
-- 666 and 667: builders reported BLOCKED because `pnpm typecheck` was denied in the background session. `loop finish` runs the gate itself.
-- Still open from before: Robots colour (#706, #700); #705 which 3 figures; S22 "vs the 320 days before" (#679); #651; S27–S30 wireframes wait for Nimish.
+None.
 
 ## Don't repeat
 
-- Check `.loop.json` `protected` against a ticket's "Files to change" before building a pool: outside a carve-out, a CSS file under `apps/web/src/ui/` is protected.
-- `loop finish` under heavy load fails on `engine-scale.test.ts`; that is load, not the ticket. One at a time.
-- `git add` named files only; commit from a temp worktree (the main checkout has a dirty `docs/loop/metrics.jsonl`, not committed here).
-- zsh does not word-split `$var`: use `${r%%:*}`.
+- Builders cannot modify or delete existing tests (`.github/loop/check_pr.py`): every e2e/unit test edit goes on the seed.
+- v1 floor has no offline send queue and no lockout (ADR 0045 §6); the server already serves `GET /api/v1/tickets/:id/pdf`.
+- The inventory seed notes were in this session's scratchpad only; the facts needed are in ADR 0045 and the scope files.

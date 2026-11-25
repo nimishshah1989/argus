@@ -1,0 +1,1 @@
+- The kit has a "Download Excel" button that builds a real .xlsx in the browser with exact, unrounded values and the page's DOC. NO. on the first row of every sheet.

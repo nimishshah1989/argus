@@ -69,6 +69,52 @@
   color: var(--color-v2-plan);
 }
 
+/* Status (ADR 0036 R7): how the figure is doing against its target owns the edge and the badge. After the tone rules,
+   so a status wins over a kind; red is only ever bad. Neutral keeps the quiet edge. */
+.v2-kpi[data-status='good'] {
+  border-top-color: var(--color-v2-good-fill);
+}
+.v2-kpi[data-status='watch'] {
+  border-top-color: var(--color-v2-watch-fill);
+}
+.v2-kpi[data-status='bad'] {
+  border-top-color: var(--color-v2-bad-fill);
+}
+.v2-kpi[data-status='neutral'] {
+  border-top-color: var(--color-v2-line);
+}
+.v2-kpi[data-status='good'] .v2-kpi-icon {
+  background: var(--color-v2-good-tint);
+  color: var(--color-v2-good);
+}
+.v2-kpi[data-status='watch'] .v2-kpi-icon {
+  background: var(--color-v2-watch-tint);
+  color: var(--color-v2-watch);
+}
+.v2-kpi[data-status='bad'] .v2-kpi-icon {
+  background: var(--color-v2-bad-tint);
+  color: var(--color-v2-bad);
+}
+.v2-kpi[data-status='neutral'] .v2-kpi-icon {
+  background: var(--color-v2-neutral-tint);
+  color: var(--color-v2-neutral);
+}
+
+/* Unit after the value, quieter than the number; one basis line under the value row (R8). */
+.v2-kpi-unit {
+  margin-left: 4px;
+  color: var(--color-v2-ink-3);
+  font-family: var(--font-v2-text);
+  font-size: var(--text-v2-secondary);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.v2-kpi-basis {
+  margin: 2px 0 0;
+  color: var(--color-v2-ink-3);
+  font-size: var(--text-v2-label);
+}
+
 /* The lead figure: twice as wide and as tall as the cards beside it, with a meter under the value. */
 .v2-grid-hero {
   grid-template-columns: repeat(4, minmax(0, 1fr));

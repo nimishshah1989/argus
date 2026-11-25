@@ -1,0 +1,25 @@
+/* The verdict's status chip (verdict.tsx, ADR 0036 R7): the page's answer says how it is doing in a word on its
+   status tint, so colour never works alone. Neutral draws no chip. A FigureTile's status edge is the `.v2-kpi`
+   `[data-status]` rule in kpi-tone.css (#685). Tokens only. */
+
+.v2-status-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: var(--text-v2-label);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.v2-status-chip[data-status='good'] {
+  background: var(--color-v2-good-tint);
+  color: var(--color-v2-good);
+}
+.v2-status-chip[data-status='watch'] {
+  background: var(--color-v2-watch-tint);
+  color: var(--color-v2-watch);
+}
+.v2-status-chip[data-status='bad'] {
+  background: var(--color-v2-bad-tint);
+  color: var(--color-v2-bad);
+}
