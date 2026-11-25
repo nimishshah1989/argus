@@ -1,5 +1,4 @@
 import type { TFunction } from 'i18next';
-import { fill } from '../../../i18n/fill.js';
 import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { PageTable } from '../../analytics/page-content.js';
 import type { Translate } from '../figures/read.js';
@@ -141,7 +140,7 @@ export function moneyMattersModel(
   if (page === null) return null;
   const words = pageWords(t, 'v2mm.source');
   const say_: Translate = (key, values) => t(key, { ...values }) as string;
-  const source = fill(words.source, { date: shortDate(reply.asOf) });
+  const source = t('v2mm.source', { date: shortDate(reply.asOf) });
   return {
     refused: false,
     verdict: verdictFor(page, source, t),

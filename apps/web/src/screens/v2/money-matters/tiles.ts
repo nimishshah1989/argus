@@ -55,7 +55,7 @@ export function groupsOf(figures: FigureData[], t: TFunction): TileGroup[] {
     if (VS_AVERAGE.has(label) && average > 0) {
       const pct = Math.round(((rupees(value) - average) / average) * 100);
       return t('v2mm.yardstick.vsAverage', {
-        delta: `${pct > 0 ? '+' : '−'}${Math.abs(pct)}%`,
+        delta: `${pct > 0 ? '+' : pct < 0 ? '−' : ''}${Math.abs(pct)}%`,
       });
     }
     if (label === 'Throughput per machine-hour')
