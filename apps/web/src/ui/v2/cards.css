@@ -305,3 +305,56 @@
   color: var(--color-v2-ink-3);
   font-size: var(--text-v2-label);
 }
+
+/* A page's tiles (tile-set.tsx, ADR 0036 R1, R10): at most 4 side by side, 2 then 1 on narrower screens; the rest
+   fold under "Show detail", which spans the row and lays its tiles on the same grid. */
+.v2-tile-set,
+.v2-tile-set > .v2-show-detail[open] {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
+  gap: var(--space-v2-gap);
+}
+.v2-tile-set > .v2-show-detail {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+.v2-tile-set > .v2-show-detail > summary {
+  grid-column: 1 / -1;
+}
+@media (max-width: 1180px) {
+  .v2-tile-set,
+  .v2-tile-set > .v2-show-detail[open] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .v2-tile-set,
+  .v2-tile-set > .v2-show-detail[open] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+/* Every tile is zero: one quiet line instead of a row of zeros. */
+.v2-zero-line {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--color-v2-ink-2);
+  font-size: var(--text-v2-secondary);
+}
+
+/* What a section keeps below the fold (show-detail.tsx): the same quiet disclosure as "Show the numbers". */
+.v2-show-detail {
+  margin-top: var(--space-v2-inner);
+}
+.v2-show-detail > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-v2-ink-2);
+  font-size: var(--text-v2-secondary);
+  font-weight: 600;
+  cursor: pointer;
+}
+.v2-show-detail > summary:hover {
+  color: var(--color-v2-ink);
+}
