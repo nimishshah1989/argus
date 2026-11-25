@@ -3,21 +3,22 @@
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-25 · **By:** Plan · **Model:** Opus 5.5
-**Milestone:** M2b screens lane · **Branch:** plan/kit-css-seeds
+**Milestone:** M2b kit lane · **Branch:** plan/adr-0041
 
 ## State
 
-- Kit stylesheets seeded by Plan (tokens only, ADR 0036) and pushed; `sheets.ts` auto-loads every `ui/v2/*.css`, so no imports were needed. Typecheck clean on all nine; visible tests red only on `not implemented` / undrawn `data-status`/`data-seg`.
-  685 `11530921` kpi-tone.css status edge+badge, unit, basis · 686 `7fb74175` cards.css tile-set, zero-line, show-detail · 691 `66fc63ec` action-strip.css (+ `.v2-strip-link` named in skeleton) · 692 `2cab2f72` severity-row.css · 694 `0362f993` ranked-bars.css (+ row classes, `data-half`/`data-rest` in skeleton) · 697 `1766556d` quadrant.css (+ classes in skeleton) · 699 `2e4159cd` reason-chip.css · 700 `6b2bda83` v2.css `[data-seg]` + entity-chip.css edge · 704 `9b29a06b` status-chip.css (FigureTile edge comes from 685's `.v2-kpi[data-status]`).
-- No new tokens: status (`--color-v2-good|watch|bad|neutral-*`) and segment tokens are already on main. #704's body says `--color-v2-status-*`; those do not exist, the CSS uses the real ones.
-- Issue bodies of all nine: the CSS line now says "already written in the seed by Plan; do not edit". #692 and #697 were blanked by a failed `gh` read (TLS error) and restored by hand, keeping the coordinator's "Builder shell rules" note. Re-check the nine bodies once; the last full check timed out (GitHub TLS flaky).
+- ADR 0041 (Nimish yes): kit tickets #687 #688 #689 #692 #695 #696 #700 #704 #705 #732 → ONE ticket, ONE PR. ADR written on this branch.
+- Seed pushed: `origin/plan/kit-combined` @ `fffd3d58` (all 8 seeds merged + #689 moved into ui + #705/#732 skeleton and tests). Proven: typecheck 0, lint 0 errors, format clean; fast suite 66 failed (all new kit tests, assertions / `not implemented`), 3305 passed.
+- Context ran out (150k) before the GitHub steps. Nothing below is done yet.
 
-## Next step
+## Next (Plan, in order)
 
-1. Build branches for 685 and 692 (and 694 if started) must take their seed: merge `plan/t<N>` into the build branch, repoint `Plan-base`, then re-run the builder (tsx only).
-2. Start 686 691 697 699 700 704 from the updated seeds.
+1. On this branch, apply ADR 0041 "Still to do": unprotect the 5 drawer files in `.loop.json` and update `_kit_carve_out`; add `"packages/shared/src/xlsx.ts"` to `KIT_ONLY` in `.github/loop/check_pr.py`; drop the first `expect` in "uses the words it is handed" in `apps/web/src/screens/v2/compare/holdout/tables-edges.test.ts`. Open the plan PR, wait with `loop ci`, merge.
+2. Create the combined issue. Its body is the 10 issue bodies' Rules merged, with the Files list from `git diff --stat origin/main...origin/plan/kit-combined` plus the impl files; `Budget: files<=26 lines<=1070`; `Screens: none (kit only)`; and a `## Builder limits` section (Write/Edit only; one simple Bash command per call; no heredocs, `>`/`>>`, `( )`, `{a,b}` or `$?`; handoff has NO `## Blocked` heading unless genuinely blocked). No size:small label.
+3. Push the seed as `plan/t<N>` (`git push origin origin/plan/kit-combined:refs/heads/plan/t<N>`), then merge main into it once step 1 has merged.
+4. Close the 10 issues as "folded into #N (ADR 0041)"; close PR #726.
 
 ## Don't repeat
 
-- Never `gh issue edit --body-file` from a read that may have failed: check the file is non-empty first.
-- A seed must carry every plan-owned file in its ticket's "Files to change" (LESSONS 25 Nov).
+- The loop guard reads the **main checkout's** branch. Commit from a scratch worktree only while the main checkout is on a plan/ branch.
+- #689: never edit `screens/v2/printed-page/` (another session owns it); `splitTotal` in the kit replaces it.
