@@ -2,37 +2,33 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-24 17:25 IST · **By:** Plan · **Model:** Opus 5.5
-**Milestone:** M2b screens lane + M3 history lane · **Branch:** plan/loop-guard-budget-lines · **PR:** #651
+**Updated:** 2026-11-25 · **By:** Plan · **Model:** Opus 5.5
+**Milestone:** M2b screens lane · **Branch:** plan/kit-carve-out-0036
 
 ## State
 
-- Tests: `pnpm exec vitest run tools/check-pr-budget.test.ts` 1 passing (red before the fix: old guard said 3 files / 142 lines, truth 2 / 4).
-- Last thing done: reworked #651 after review FAIL. The budget diffs the build against "seed on top of the main it merged" (`git merge-tree`), `-M` counts a rename once, and main's and the seed's lines never count, even in shared files. Fallback shortcut recorded in ADR 0032 §1.
-- Real branches with the new guard: #633 4 files / 36 lines, #637 2 / 56, #634 4 / 69. All inside budget (old guard: 461 / 481 / 494, fail).
-- Read ADR 0012, 0026, 0028, 0030, 0031, 0032 first. Nimish wants the loop to run itself (`loop auto`); report only screen 1 as HTML, history counts, blockers.
-- Carried from the 16:25 coordinator handoff, **not rechecked by this session**: history load running (`~/argus-logs/history-load3.log`, rollback snapshot `uptimo-before-history-load-202611241554`); seeds 640–643 `#N` → `ticket N` fix running (`fix-seeds.log`), then 642 and 641 rebuild; #620 building (`plan-620.log`); #644 over budget, needs a plan split. After #620 merges, restore `apps/web/src/ui/**` in `.loop.json` (ADR 0028 addendum).
+- **Kit carve-out (ADR 0039, Nimish yes 25 Nov):** PR on `plan/kit-carve-out-0036` opens 13 kit files to builders (685 686 691 692 694 695 696 697 699 700 704). Every kit ticket 684–704 checked against the new list with loop-guard's `matches()`: none needs another locked file. Ends when 684–704 merge: restore `apps/web/src/ui/**` (also closes ADR 0028 §4, which was never restored after #620).
+- origin/main is at 6835d813. Merged tonight: #702 #709 #710 #712 #713, CI gates cut (#708 ADR 0037, #714 ADR 0038). Open PRs: #711 (658) and #707 (643); #300 is a parked docs PR.
+- #711: only `browser (2/5)` (`escalation-history.spec.ts:179`) and `browser (3/5)` (`who-is-acting.spec.ts`, `page.goto ERR_ABORTED`) failed. I ran `gh run rerun 45459761692 --failed`; at 00:35 IST the run was in progress, result not seen. `merger.sh` merges it when all checks finish clean.
+- Pattern: `escalation-history.spec.ts:179` failed on #713 and on #711, both inside 23:55–00:03 IST (18:25–18:33 UTC). Looks like an IST-midnight date rollover; not proven. If it fails again after midnight, it is a real bug: file a ticket.
+- #707 (643) is DIRTY (conflict in `insight-coverage.test.ts`, keep both sides). The hook blocks the coordinator from `.loop/wt/643`: `loop prep 643`, then the builder.
+- Load average was 55: `pool.sh` x6, `merger.sh`, several `loop build/finish` at once. The two engine-scale tests time out under that load, so finishes fail for a reason that is not the ticket.
 
 ## Next step
 
-#651 CI is green (`loop ci 651`), not merged. Get Nimish's yes on #651 (guard change), merge it when CI is green, then merge main into #633, #637, #634 and merge each when green.
+1. Check #711 merged (`gh pr view 711`), then #707 as above.
+2. Merge the ADR 0039 carve-out PR when green, then restart the kit pool jobs (685 686 691 692 694–697 699 700 704).
+3. Run `loop finish` one at a time on a quiet machine: 657, 664, 665, 666, 667, 668. Do not start new builds while the load is above ~10.
+4. Kit tickets that can build now (no protected file): 684, 687, 688, 689, 690, 693, 698, 701, 703. Not started: 640, 644, 669–679.
 
 ## Blocked / open questions
 
-- Nimish: yes/no on #651 (ADR 0032 §1).
-- Nimish: answer key books 2 breakdowns (3.00 h) to "shift 3 (no window)" and prints 21.0 working hours/day, against the 2-shift, 16 h decision. Which is right?
-- Bhavin: sheet "STAR" in 2022-23; only TC-3, TC-5, VC-6 spare?; 14 unmapped fault codes; ~10 impossible-year rows; do support tickets count as zero downtime?
-- Nimish later: make repo private; upload `~/cornerstone/_upload-to-google-drive`.
+- 666 and 667: builders reported BLOCKED because `pnpm typecheck` was denied in the background session. `loop finish` runs the gate itself.
+- Still open from before: Robots colour (#706, #700); #705 which 3 figures; S22 "vs the 320 days before" (#679); #651; S27–S30 wireframes wait for Nimish.
 
 ## Don't repeat
 
-- `--no-renames` + a path filter (first #651 attempt): counts renames twice and still counts main's lines in shared files.
-- Never load legacy years with `pnpm import:bhavin`; only `tools/load-legacy.ts`. Log long jobs to a file; a silent step over 10 min is a stall.
-- Update a PR's branch before reading red checks; most reds were stale.
-
-## Files touched this session
-
-- `.github/loop/check_pr.py` — budget counts only the build's own work.
-- `tools/check-pr-budget.test.ts` — temp-repo test: main merged in, a rename, a shared file.
-- `docs/adr/0032-budget-lines-and-624-test-rewrite.md` — §1 describes the applied fix and its shortcut.
-- `changes/651-guard-budget-lines.md` — changes note.
+- Check `.loop.json` `protected` against a ticket's "Files to change" before building a pool: outside a carve-out, a CSS file under `apps/web/src/ui/` is protected.
+- `loop finish` under heavy load fails on `engine-scale.test.ts`; that is load, not the ticket. One at a time.
+- `git add` named files only; commit from a temp worktree (the main checkout has a dirty `docs/loop/metrics.jsonl`, not committed here).
+- zsh does not word-split `$var`: use `${r%%:*}`.

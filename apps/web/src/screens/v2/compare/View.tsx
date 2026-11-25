@@ -9,6 +9,7 @@ import { Points } from '../../../ui/v2/points.js';
 import { Row } from '../../../ui/v2/row.js';
 import { Segmented } from '../../../ui/v2/segmented.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
+import { Takeaway } from '../../../ui/v2/takeaway.js';
 import { TrendChart } from '../../../ui/v2/trend-chart.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
 import { EntityShell } from '../entity/EntityShell.js';
@@ -54,6 +55,7 @@ function Differences({ model, onAddFocus }: { model: CompareModel; onAddFocus: (
   const d = model.differences;
   return (
     <Panel title={d.title}>
+      {model.takeaways?.differences ? <Takeaway data={model.takeaways.differences} /> : null}
       <Points points={d.points} />
       {d.done ? (
         // eslint-disable-next-line i18next/no-literal-string -- a tone and an icon name, not copy
@@ -96,7 +98,10 @@ export function CompareView({
       </Row>
       <Row wide>
         <Differences model={model} onAddFocus={onAddFocus} />
-        <TrendChart data={model.trend} />
+        <div className="v2-stack v2-gap-12">
+          {model.takeaways?.trend ? <Takeaway data={model.takeaways.trend} /> : null}
+          <TrendChart data={model.trend} />
+        </div>
       </Row>
       {/* Ticket 586: v1's six tables, whole; a gallery model without them draws none */}
       {model.tables?.items.map((table, at) => (
