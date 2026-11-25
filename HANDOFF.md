@@ -9,7 +9,7 @@ _Overwritten at the end of every session. Facts only._
 - Merged in the kit lane: #718 (#684), #720 (#661), #727, #728 (#690 xlsx), #733 (#703 Shift KPIs one span). ADR 0039 carve-out (#717) is in.
 - Open PRs: #729 (#693, `#693` removed from a comment, `loop finish 693` was re-running), #730 (#698, same fix, `loop finish 698` was re-running), #731 (#701, RED, see Blocked), #726 (#687, Blocked), #707 (#643, Blocked), #300 parked.
 - UPDATE (end of session): #729 CI is GREEN (needs reviewer then merge). #730: `loop finish 698` failed to push (network, 'could not resolve github.com'); rerun `loop finish 698` (the fix is committed in .loop/wt/698, a090d597). The next-session start_session call was DENIED by the auto-mode classifier, so Nimish must type /loop:run (or start a session) himself.
-- A `loop plan` job to fix the seed on `plan/t701` was started in the background. Check `git log origin/plan/t701` and issue 701 for its result before touching 701.
+- #701 seed FIXED by the plan job (58c11776 on `plan/t701`, ADR 0038: Gujarati e2e specs switch Gujarati on via `uptimo.gujarati`; one hidden-by-default check). Issue 701 has a new rule 0 naming the flag `GUJARATI_ON` in `apps/web/src/i18n/index.ts`. The PR #731 body already says `Screens: S01-dashboard`. Next: `loop prep 701`, `loop build 701` (builder merges `origin/plan/t701`, changes the one `GUJARATI_ON` line), `loop finish 701`, `loop ci 731`.
 - Follow-up issue #732 (KIT-7b): the reviewer FAILED #728 after the merger had merged it (xlsx sheet names, empty workbook, DOS date, button test). No screen uses `DownloadExcel` yet, but #732 must be seeded (`loop plan`) and built BEFORE the ADR 0036 sweep adopts it.
 - Screens done: count the v2 screens that are routed and live (`ls apps/web/src/screens/v2`, check each is routed, not a stub). Nimish asked for this number; report it.
 
@@ -26,7 +26,7 @@ _Overwritten at the end of every session. Facts only._
 - **#685**: builder BLOCKED. `kpi-tone.css` is plan-owned and the `[data-status]` edit is refused; the ADR 0039 carve-out list lacks it. Needs the carve-out extended (plan job + ADR), then a rebuild.
 - **#687** (PR #726): ticket rule 1 (no search on tables under 10 rows) conflicts with the hidden test `compare/holdout/tables-edges.test.ts` (needs at least 6 search-word occurrences). Plan must change the ticket or the hidden test.
 - **#643** (PR #707): 3 e2e tests red. The planner's fix is on `plan/t643-e2e` (a6521bc). Merge it into the 643 branch; delete `<p className="v2-sub">{model.spares.note}</p>` at machine/View.tsx:149; set the PR body line `Plan-base: a6521bc6b7e24790b6ff1dfdb5000bc542a26995`; `loop ci 707`.
-- **#701** (PR #731): existing Gujarati e2e specs (floor, account:40, settings-translations:27, pm-plans:94, who-is-acting:60 and :219) expect `lang=gu`; hiding Gujarati broke them. The seed fix is a plan job (started). The builder is not at fault.
+- **#701** (PR #731): existing Gujarati e2e specs (floor, account:40, settings-translations:27, pm-plans:94, who-is-acting:60 and :219) expect `lang=gu`; hiding Gujarati broke them. The plan job has fixed the seed; rebuild #701 now. The builder was not at fault.
 
 ## Don't repeat
 
