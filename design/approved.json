@@ -122,22 +122,6 @@
     "S26-settings": {
       "date": "2026-11-24",
       "hash": "adf038f21a224cc4"
-    },
-    "S27-floor": {
-      "date": "2026-11-25",
-      "hash": "3e1934799758b3ba"
-    },
-    "S28-desk": {
-      "date": "2026-11-25",
-      "hash": "87cddd1e1e4df108"
-    },
-    "S29-ticket": {
-      "date": "2026-11-25",
-      "hash": "b79da6aad01a4d7d"
-    },
-    "S30-board": {
-      "date": "2026-11-25",
-      "hash": "b7884c554914fec9"
     }
   }
 }
