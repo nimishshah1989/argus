@@ -12,6 +12,8 @@ describe('statusOf (ADR 0036 R7)', () => {
     expect(statusOf({ value: 70, target: 90, better: 'higher' })).toBe('bad');
     expect(statusOf({ value: 2.1, target: 2, better: 'lower' })).toBe('watch');
     expect(statusOf({ value: 3, target: 2, better: 'lower' })).toBe('bad');
+    // exactly on the 10 % band edge: 2.2 - 2 is 0.2000…02 in floating point, so compare with a small tolerance
+    expect(statusOf({ value: 2.2, target: 2, better: 'lower' })).toBe('watch');
     expect(statusOf({ value: 3, better: 'lower' })).toBe('neutral');
   });
 });
@@ -45,6 +47,15 @@ describe('KpiCard status, unit, basis and exact value', () => {
       /title="6,22,000 hrs"[^>]*>6\.22 lakh<span class="v2-kpi-unit">hrs<\/span>/,
     );
     expect(html).toContain('<p class="v2-kpi-basis">Hours to 16 Oct</p>');
+  });
+
+  it('names the unit to a screen reader on the drill button', () => {
+    const html = renderToStaticMarkup(
+      createElement(KpiCard, {
+        kpi: { ...kpi, unit: 'hrs', drill: { figure: 'mttr', label: 'Open the rows' } },
+      }),
+    );
+    expect(html).toMatch(/aria-label="[^"]*6\.22 lakh hrs[^"]*Open the rows"/);
   });
 
   it('adds nothing when none is given', () => {
