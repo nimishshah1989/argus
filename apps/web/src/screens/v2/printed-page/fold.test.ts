@@ -13,7 +13,7 @@ import { answerKey, realT, testT } from './test-support.js';
 import type { PrintedPageModel } from './page-model.js';
 
 /**
- * #752 review: on MTTR/MTBF and Bottleneck the figures past the first four fold right under the tiles (PageBody's
+ * ticket 752 review: on MTTR/MTBF and Bottleneck the figures past the first four fold right under the tiles (PageBody's
  * `fold` slot), as on Fix Finder and Problem Analysis, not below the tables.
  */
 const draw = (view: ReactElement) =>

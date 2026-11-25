@@ -48,7 +48,7 @@ describe('costRows, hidden edges', () => {
   });
 });
 
-describe('costRows with the groups table, hidden edges (#752 review)', () => {
+describe('costRows with the groups table, hidden edges (ticket 752 review)', () => {
   const groups = (header: string[], hours: string[]) =>
     table(
       'All problem groups',
