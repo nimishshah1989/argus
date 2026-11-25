@@ -24,8 +24,10 @@ export type FigureData = {
 export function FigureTile({ figure }: { figure: FigureData }) {
   const value = useTick(figure.value);
   const open = useContext(DrillOpenContext);
+  // neutral draws nothing: no attribute
+  const status = figure.status === 'neutral' ? undefined : figure.status;
   return (
-    <section className="v2-card v2-kpi" tabIndex={0} aria-label={figure.label}>
+    <section className="v2-card v2-kpi" tabIndex={0} aria-label={figure.label} data-status={status}>
       <div className="v2-kpi-label">{figure.label}</div>
       {figure.drill ? (
         <button
