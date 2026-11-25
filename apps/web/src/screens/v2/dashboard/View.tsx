@@ -50,7 +50,10 @@ function Costliest({ costliest }: { costliest: CostliestModel }) {
   if (costliest.table)
     return (
       <Panel title={costliest.title} sub={costliest.sub} aside={aside}>
-        <RankedBars rows={costliestRows(costliest, t)} label={costliest.title} />
+        <RankedBars
+          rows={costliestRows(costliest, (key, values) => t(key, { ...values }) as string)}
+          label={costliest.title}
+        />
       </Panel>
     );
   return (

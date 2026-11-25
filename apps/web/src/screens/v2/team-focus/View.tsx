@@ -1,3 +1,4 @@
+/* eslint-disable i18next/no-literal-string -- the file name is an id, not a visible word; every visible word comes from the model */
 import { useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../../ui/v2/button.js';
@@ -102,9 +103,7 @@ function Body({
         </Panel>
       )}
       <Line data={model.takeaways?.people} />
-      <div>
-        <DownloadExcel file="team-focus" sheets={teamFocusSheets(model)} />
-      </div>
+      <DownloadExcel file="team-focus" sheets={teamFocusSheets(model)} />
       {model.rebalance ? (
         <Row wide>
           <PeopleTable people={model.people} words={words.people} {...person} />
