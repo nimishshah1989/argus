@@ -174,6 +174,8 @@ async function openFixFinder(page: Page): Promise<void> {
     'true',
   );
   await expect(page.getByRole('heading', { level: 1, name: 'Fix Finder' })).toBeVisible();
+  for (const s of await page.locator('details.v2-show-detail:not([open]) > summary').all())
+    await s.click();
   for (const kpi of FF.kpis) {
     await expect(page.getByText(kpi.label, { exact: true }).first()).toBeVisible();
     await expect(page.getByText(kpi.value, { exact: true }).first()).toBeVisible();
