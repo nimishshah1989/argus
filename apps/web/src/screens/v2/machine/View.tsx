@@ -143,19 +143,15 @@ function Health({ model }: { model: MachinePageModel }) {
               {model.spares.topLine ? <p className="v2-sub">{model.spares.topLine}</p> : null}
             </>
           ) : (
-            <>
-              {/* with a table, the table draws its own takeaway from its declared measure */}
-              {spares ? <Takeaway data={spares} /> : null}
-              <p className="v2-sub">{model.spares.note}</p>
-            </>
+            // with a table, the table draws its own takeaway from its declared measure; without one, the takeaway carries the note
+            spares && <Takeaway data={spares} />
           )}
         </Panel>
       </Row>
       <Panel title={model.tasks.title} sub={model.tasks.asOf}>
         {tasks ? <Takeaway data={tasks} /> : null}
-        {model.tasks.unavailable ? (
-          <p className="v2-sub">{model.tasks.unavailable}</p>
-        ) : (
+        {/* unreadable tickets: the takeaway already says so */}
+        {model.tasks.unavailable ? null : (
           <Row>
             <TaskList {...model.tasks.open} />
             <TaskList {...model.tasks.pm} />
