@@ -2,7 +2,7 @@ import type { Sheet } from '@uptimo/shared/xlsx';
 import type { LogWords } from './model.js';
 
 /**
- * The Breakdown Log's Excel download (sweep #706, ADR 0041: replaces the CSV export; the page passes
+ * The Breakdown Log's Excel download (sweep 706, ADR 0041: replaces the CSV export; the page passes
  * `docRef={DOC_REF.breakdowns}`). `log` is `everyMatchOf(reply, query, t)`: the engine's header (its first column is
  * the eye, `''`) plus Supported by, and every row of the whole narrowed log in the order asked.
  *

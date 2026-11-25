@@ -7,7 +7,7 @@ import { workbookLog } from '../source.js';
 import { logSheets } from '../sweep.js';
 import { logWords } from '../words.js';
 
-/** Hidden edges of the log's Excel sheet (sweep #706). Critical tests only (ADR 0034): figures and data. */
+/** Hidden edges of the log's Excel sheet (sweep 706). Critical tests only (ADR 0034): figures and data. */
 const words = logWords(realT);
 
 describe('the Breakdown Log Excel sheet, at its edges', () => {
