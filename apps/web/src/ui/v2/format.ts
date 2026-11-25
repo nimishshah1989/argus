@@ -12,8 +12,8 @@ const withUnit = (text: string, unit?: string) => (unit ? `${text} ${unit}` : te
 export function readable(value: number, unit?: string): string {
   if (!Number.isFinite(value)) return '—';
   const abs = Math.abs(value);
-  const sign = value < 0 ? '-' : '';
   const plain = Number(abs.toFixed(1));
+  const sign = value < 0 && plain > 0 ? '-' : ''; // sign after rounding: never "-0"
   const lakh = Number((abs / 1e5).toFixed(2));
   let text: string;
   if (plain < 1e5) text = sign + indian(plain, 1);
@@ -29,5 +29,7 @@ export function rupees(value: number): string {
 
 /** The exact value: Indian grouping, up to 2 decimals, `unit` after one space ("6,22,000.5 hrs"); not finite → "—". */
 export function exact(value: number, unit?: string): string {
-  return Number.isFinite(value) ? withUnit(indian(value, 2), unit) : '—';
+  return Number.isFinite(value)
+    ? withUnit(indian(Math.round(value * 100) / 100 || 0, 2), unit)
+    : '—';
 }
