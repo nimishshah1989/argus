@@ -13,8 +13,10 @@ import {
   measureOf,
   type SortState,
 } from './table-parts.js';
+import { isSmall } from './table-rules.js';
 import { foldAt, missesTarget, tablePage, worstFirst } from './table-model.js';
 import { Takeaway, type Meaning, type TakeawayData } from './takeaway.js';
+import type { Status } from './status.js';
 
 export type Column<R> = {
   key: string;
@@ -29,6 +31,8 @@ export type Column<R> = {
    * ranks worst first, marks the worst row, draws the number as a bar and folds the tail.
    */
   meaning?: Meaning & { value: (row: R) => number };
+  /** What the cell's figure means (ADR 0036): the cell's `<td>` wears it as `data-status`; absent → no attribute. */
+  status?: (row: R) => Status;
 };
 export type FilterChip<R> = { key: string; label: string; test?: (row: R) => boolean };
 export type TableWords = {
@@ -65,6 +69,12 @@ type TableProps<R> = {
   takeaway?: TakeawayData;
   /** A row's detail, opened in place under it by the row's expand button (UX rule 64). */
   expand?: (row: R) => ReactNode;
+  /**
+   * The table's total (ADR 0036 R14), one cell per column in column order: drawn as the footer
+   * (`<tfoot><tr class="v2-total">`, one `<td>` per column, the action cell empty), never a row in `<tbody>`, never
+   * sorted, ranked or folded. Under 10 rows (`isSmall(rows.length)`, all rows) the table has no search and no pager.
+   */
+  total?: ReactNode[];
 };
 
 const rankedBy = <R,>(rows: R[], measure: Column<R>['meaning']) =>
@@ -194,7 +204,11 @@ function DataRow<R>({
         onClick={t.onOpen && (() => t.onOpen?.(row))}
       >
         {t.columns.map((c) => (
-          <td key={c.key} className={c.numeric ? 'v2-num-cell' : undefined}>
+          <td
+            key={c.key}
+            className={c.numeric ? 'v2-num-cell' : undefined}
+            data-status={c.status?.(row)}
+          >
             {c.meaning ? (
               <MeasureCell column={c} row={row} largest={largest} pill={worst ? pill : undefined} />
             ) : (
@@ -258,6 +272,25 @@ function TableRows<R>({
   );
 }
 
+/** The table's total: one cell per column, the action cell empty; a footer, so never sorted, ranked or folded. */
+function TotalFoot<R>({ columns, cells }: { columns: Column<R>[]; cells: ReactNode[] }) {
+  return (
+    <tfoot>
+      <tr className="v2-total">
+        {cells.map((cell, i) => (
+          <td
+            key={columns[i]?.key ?? i}
+            className={columns[i]?.numeric ? 'v2-num-cell' : undefined}
+          >
+            {cell}
+          </td>
+        ))}
+        <td className="v2-row-action" />
+      </tr>
+    </tfoot>
+  );
+}
+
 /**
  * A v2 table: search, filter chips, sort on the columns that matter, ten rows a page, a sticky header, numbers right
  * in tabular figures. A row opens the drawer (click it, or its action from the keyboard); the action shows on hover.
@@ -266,6 +299,7 @@ function TableRows<R>({
 export function DataTable<R>(props: TableProps<R>) {
   const { words, columns, filters } = props;
   const { view, changes, ask, fold, unfold, worst } = useTable(props);
+  const small = isSmall(props.rows.length);
   return (
     <section className="v2-card v2-table-card" aria-label={words.title}>
       <TableBar
@@ -278,6 +312,7 @@ export function DataTable<R>(props: TableProps<R>) {
         chips={filters}
         chip={ask.chip}
         onChip={ask.onChip}
+        hideSearch={small}
       />
       {props.takeaway ? <Takeaway data={props.takeaway} /> : null}
       <div className="v2-table-scroll">
@@ -291,17 +326,20 @@ export function DataTable<R>(props: TableProps<R>) {
             fold={fold}
             onUnfold={unfold}
           />
+          {props.total ? <TotalFoot columns={columns} cells={props.total} /> : null}
         </table>
         <div role="status">
           {view.total === 0 ? <p className="v2-no-results">{words.noResults}</p> : null}
         </div>
       </div>
-      <TablePager
-        showing={fill(words.showing, { from: view.from, to: view.to, total: view.total })}
-        page={view.page}
-        pages={view.pages}
-        onPage={ask.setPage}
-      />
+      {small ? null : (
+        <TablePager
+          showing={fill(words.showing, { from: view.from, to: view.to, total: view.total })}
+          page={view.page}
+          pages={view.pages}
+          onPage={ask.setPage}
+        />
+      )}
     </section>
   );
 }
