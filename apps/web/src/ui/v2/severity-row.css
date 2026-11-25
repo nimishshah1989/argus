@@ -1,0 +1,40 @@
+/* The severity count row (severity-row.tsx, ADR 0036 R3): High priority · Medium · Low · Good news, each a count and
+   its word on its status tint, so colour never works alone. Tokens only. */
+
+.v2-severity-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.v2-severity-row > [data-severity] {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px var(--space-v2-inner);
+  border-left: 3px solid var(--color-v2-neutral-fill);
+  border-radius: 8px;
+  background: var(--color-v2-neutral-tint);
+  color: var(--color-v2-neutral);
+  font-size: var(--text-v2-secondary);
+}
+.v2-severity-row > [data-severity] > strong {
+  font-family: var(--font-v2-num);
+  font-size: var(--text-v2-body);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.v2-severity-row > [data-severity='high'] {
+  border-left-color: var(--color-v2-bad-fill);
+  background: var(--color-v2-bad-tint);
+  color: var(--color-v2-bad);
+}
+.v2-severity-row > [data-severity='medium'] {
+  border-left-color: var(--color-v2-watch-fill);
+  background: var(--color-v2-watch-tint);
+  color: var(--color-v2-watch);
+}
+.v2-severity-row > [data-severity='good'] {
+  border-left-color: var(--color-v2-good-fill);
+  background: var(--color-v2-good-tint);
+  color: var(--color-v2-good);
+}
