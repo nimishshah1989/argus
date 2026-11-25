@@ -48,11 +48,7 @@ export function AnalyticsFace() {
   if (live) return live;
   return (
     <AnalyticsShell>
-      {found.id === 'reports' ? (
-        <ReportsPage group={found} />
-      ) : (
-        <GroupPage group={found} />
-      )}
+      {found.id === 'reports' ? <ReportsPage group={found} /> : <GroupPage group={found} />}
     </AnalyticsShell>
   );
 }
