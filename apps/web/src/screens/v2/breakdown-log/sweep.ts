@@ -16,7 +16,6 @@ export function logSheets(
   log: { header: readonly string[]; rows: readonly (readonly string[])[] },
   words: LogWords,
 ): Sheet[] {
-  void log;
-  void words;
-  throw new Error('not implemented');
+  const rows = log.header.length === 0 ? [] : [log.header, ...log.rows].map((r) => r.slice(1));
+  return [{ name: words.table.title, rows }];
 }
