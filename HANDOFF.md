@@ -2,36 +2,33 @@
 
 _Overwritten at the end of every session. Facts only._
 
-**Updated:** 2026-11-25 · **By:** Coordinator (Sonnet)
+**Updated:** 2026-11-25 · **By:** Coordinator (Sonnet), 4th session in the chain
 
 ## State
 
-- Merged in the kit lane: #718 (#684), #720 (#661), #727, #728 (#690 xlsx), #733 (#703 Shift KPIs one span). ADR 0039 carve-out (#717) is in.
-- Open PRs: #729 (#693, `#693` removed from a comment, `loop finish 693` was re-running), #730 (#698, same fix, `loop finish 698` was re-running), #731 (#701, RED, see Blocked), #726 (#687, Blocked), #707 (#643, Blocked), #300 parked.
-- UPDATE (end of session): #729 CI is GREEN (needs reviewer then merge). #730: `loop finish 698` failed to push (network, 'could not resolve github.com'); rerun `loop finish 698` (the fix is committed in .loop/wt/698, a090d597). The next-session start_session call was DENIED by the auto-mode classifier, so Nimish must type /loop:run (or start a session) himself.
-- #701 seed FIXED by the plan job (58c11776 on `plan/t701`, ADR 0038: Gujarati e2e specs switch Gujarati on via `uptimo.gujarati`; one hidden-by-default check). Issue 701 has a new rule 0 naming the flag `GUJARATI_ON` in `apps/web/src/i18n/index.ts`. The PR #731 body already says `Screens: S01-dashboard`. Next: `loop prep 701`, `loop build 701` (builder merges `origin/plan/t701`, changes the one `GUJARATI_ON` line), `loop finish 701`, `loop ci 731`.
-- Follow-up issue #732 (KIT-7b): the reviewer FAILED #728 after the merger had merged it (xlsx sheet names, empty workbook, DOS date, button test). No screen uses `DownloadExcel` yet, but #732 must be seeded (`loop plan`) and built BEFORE the ADR 0036 sweep adopts it.
-- Screens done: count the v2 screens that are routed and live (`ls apps/web/src/screens/v2`, check each is routed, not a stub). Nimish asked for this number; report it.
+- Merged in the kit lane: #718 (#684), #720 (#661), #727, #728 (#690), #729 (#693), #730 (#698), #733 (#703). #698 reviewer PASS after the merge; follow-ups for plan: the amber watch tone never shows (no CSS targets `data-status` on `.v2-ref`, no icon) and the guard `count <= 0` lets NaN through (use `!Number.isInteger(count) || count <= 0`, add a holdout test).
+- v2 screen folders under apps/web/src/screens/v2: 52 (count only, NOT checked that each is routed and live; do that before reporting a "screens done" number to Nimish).
+- Open PRs: #731 (#701, red), #726 (#687), #707 (#643), #300 parked.
+- A plan job is RUNNING (started 9:22, pid 25882, `loop plan "Seed the missing kit stylesheets..."`): it writes the missing kit stylesheets onto seed branches plan/t685,686,691,692,694,697,699,700,704 so builders only write tsx. Check `git fetch; git log origin/plan/t686` etc. and `pgrep -fl "loop plan"` first. Do not start another plan job on the same seeds while it runs.
 
 ## Next step
 
-1. `gh pr list`, then `loop ci 729` and `loop ci 730`; both must be GREEN. If the guard still says `Screens: none (kit only)`, edit the PR body to `Screens: S01-dashboard`, then `gh pr close N && gh pr reopen N` (re-triggers the guard when the branch is already up to date; `gh pr update-branch N` does it otherwise). Then reviewer, merge. The merger often merges first; fine when the review passes.
-2. Not yet built: 686, 691, 692, 694, 695, 696, 697, 699, 700, 704. 688 and 689 wait on 687. Run one or two at a time when `uptime` load is under ~10.
-3. #731/#701: after the plan fix lands, `loop prep 701`, `loop build 701`, `loop finish 701`, then set the body `Screens: S01-dashboard`.
-4. #732: `loop plan "Seed issue 732"`, then build.
-5. A handoff "## Blocked" section with ANY text makes `loop finish` refuse. Tell builders to delete the section when empty.
+1. When the CSS-seed plan job has landed, build 686, 691, 697, 699, 700, 704 one or two at a time when `uptime` load is under ~10 (never rebuild the Blocked ones below without Nimish's word). 695/696 wait for 694.
+2. Open #732 (KIT-7b) still needs `loop plan "Seed issue 732"` before the ADR 0036 sweep.
+3. Final report to Nimish (5 lines): merged, what he can click on staging, what needs him, screens done.
 
 ## Blocked (no further attempt, per Nimish's stop rule)
 
-- **#685**: builder BLOCKED. `kpi-tone.css` is plan-owned and the `[data-status]` edit is refused; the ADR 0039 carve-out list lacks it. Needs the carve-out extended (plan job + ADR), then a rebuild.
-- **#687** (PR #726): ticket rule 1 (no search on tables under 10 rows) conflicts with the hidden test `compare/holdout/tables-edges.test.ts` (needs at least 6 search-word occurrences). Plan must change the ticket or the hidden test.
-- **#643** (PR #707): 3 e2e tests red. The planner's fix is on `plan/t643-e2e` (a6521bc). Merge it into the 643 branch; delete `<p className="v2-sub">{model.spares.note}</p>` at machine/View.tsx:149; set the PR body line `Plan-base: a6521bc6b7e24790b6ff1dfdb5000bc542a26995`; `loop ci 707`.
-- **#701** (PR #731): existing Gujarati e2e specs (floor, account:40, settings-translations:27, pm-plans:94, who-is-acting:60 and :219) expect `lang=gu`; hiding Gujarati broke them. The plan job has fixed the seed; rebuild #701 now. The builder was not at fault.
+- **#685, #692, #694**: builders BLOCKED; kit stylesheets (kpi-tone.css, severity-row.css, ranked-bars.css) are plan-owned. 692 code is committed on its build branch (36c65b74, 599e540f, tsx only, no PR yet); 694 wrote ranked-bars.tsx, nothing committed. The CSS-seed plan job should fix the cause; a rebuild needs Nimish's yes to the stop rule.
+- **#701** (PR #731): seed fix is on origin/plan/t701 (c8509f4c). The haiku builder (loop build 701 --bg) edited i18n/index.ts but ended BLOCKED (Bash denied) and its branch does NOT contain c8509f4c; `loop finish 701` refused (attempt 2 failed, Blocked section in its handoff). Needs: merge origin/plan/t701 into the build branch, commit, finish. That is builder/Nimish territory per the stop rule.
+- **#687** (PR #726): ticket rule 1 vs hidden test compare/holdout/tables-edges.test.ts. Plan must change one.
+- **#643** (PR #707): merge plan/t643-e2e (a6521bc) into the build branch, delete the spares note line at machine/View.tsx:149, set PR body `Plan-base: a6521bc6b7e24790b6ff1dfdb5000bc542a26995`, `loop ci 707`.
+- **Needs Nimish's yes**: the classifier DENIED a plan job that would extend the ADR 0039 carve-out / protected list in .loop.json. Not done, not worked around. Only needed if the CSS-seed job proves not enough.
 
 ## Don't repeat
 
-- Never write a ticket number like `#693` in a code comment: loop-guard reads it as a raw hex colour and fails the PR. Put it in every brief. Worth a LESSONS entry or a guard regex fix (plan job).
-- loop-guard rejects `Screens: none (kit only)`. For kit-only PRs write `Screens: S01-dashboard`; `loop finish` writes the wrong line, so fix the body right after it opens the PR.
-- merger.sh merges green PRs before the reviewer finishes; a FAIL then needs a follow-up issue/PR (see #732).
-- Builders hit "Bash/git denied" in background runs and report BLOCKED although the work is on disk; run `loop finish N` straight away. Check `git status` in `.loop/wt/N` first.
-- `git add` named files only; commit from a temp worktree with `git -C <worktree>`. `plan/handoff` is checked out in another worktree, so use a detached worktree and `git push origin HEAD:plan/handoff`. Never `cd` into `.loop/wt/N` in the main shell; start every command with `cd /Users/nimishshah/argus &&`.
+- `loop build N --bg` builders are denied Bash: they cannot run checks or commit and report BLOCKED. Plan for it (finish may refuse because of the Blocked section they write).
+- Never write a ticket number like #693 in a code comment (loop-guard reads it as a hex colour). Put it in every brief.
+- The hook blocks any command that names a build folder path (git -C inside it is blocked too); the orchestrator cannot merge or edit there.
+- merger.sh merges green PRs before the reviewer finishes; a FAIL then needs a follow-up issue.
+- Commit from a detached worktree: `git worktree add --detach`, `git -C`, `git push origin HEAD:plan/handoff`. Start every command with `cd /Users/nimishshah/argus &&`.
