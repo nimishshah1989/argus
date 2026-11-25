@@ -237,6 +237,9 @@ async function openA4(page: Page): Promise<void> {
     'true',
   );
   await expect(page.getByRole('heading', { level: 1, name: 'Manpower' })).toBeVisible();
+  // Sweep #706: a figure past the fourth folds under "Show detail"; open every one first (none folds today).
+  for (const s of await page.locator('details.v2-show-detail:not([open]) > summary').all())
+    await s.click();
   for (const kpi of A4_KPIS) {
     const tile = page.getByRole('region', { name: kpi.label, exact: true }).first();
     await expect(tile).toBeVisible();

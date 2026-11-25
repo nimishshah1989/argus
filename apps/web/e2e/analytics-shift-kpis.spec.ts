@@ -5,7 +5,7 @@ import { apiLogin, raiseTicketViaApi, signIn } from './fixtures.js';
 
 /**
  * 48c: the shift-calendar KPIs screen. A head opens Breakdowns then Shift-calendar KPIs, reads the platform column
- * beside the working-hour column, reads a cell of the breakdown map's heat grids, sees the four Paretos draw and
+ * beside the working-hour column, reads a cell of the breakdown map's heat grids, sees the four Paretos as ranked bars and
  * drills from the map to the rows behind it. An operator is refused, as for every analytics screen. The figures
  * reply is stubbed (the established seam), so the journey proves the screen and the chart chrome, not the engine;
  * the two tickets the drill names are real, so the drill reply is live.
@@ -385,10 +385,9 @@ async function readMap(page: Page): Promise<void> {
   await expect(
     machines.getByRole('cell', { name: 'TMC-2, Mar: no hours', exact: true }),
   ).not.toHaveAttribute('data-level', /.+/);
-  const charts = page.locator('[data-chart-state]');
-  await expect(charts).toHaveCount(4);
-  for (let index = 0; index < 4; index += 1)
-    await expect(charts.nth(index)).toHaveAttribute('data-chart-state', 'ready');
+  // Sweep #706 (ADR 0043): the four Paretos are ranked bar lists now, each under its own title; no chart is left.
+  await expect(page.locator('[data-chart-state]')).toHaveCount(0);
+  await expect(page.locator('ol.v2-ranked')).toHaveCount(4);
   await expect(
     page.getByRole('heading', { name: 'BD hours by machine — Pareto', exact: true }),
   ).toBeVisible();
