@@ -6,7 +6,7 @@ import { teamFocusFixture } from '../fixture.js';
 import type { ActionRow, PersonLoad, TeamFocusModel } from '../model.js';
 import { teamFocusSheets } from '../sweep.js';
 
-/** The edges of Team Focus's sweep helper (#706 batch A): empty tables, ties, missing owner, role and note. */
+/** The edges of Team Focus's sweep helper (706 batch A): empty tables, ties, missing owner, role and note. */
 const chip = (label: string) =>
   ({ kind: 'machine', id: label, label }) as unknown as EntityChipProps;
 const person = (label: string, role: string, open: number, hours: number): PersonLoad =>

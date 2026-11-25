@@ -10,7 +10,7 @@ import { actionCenterSheets, riskReasons } from './sweep.js';
 import { PEOPLE, recordedBoard } from './test-board.js';
 import { ActionCenterView } from './View.js';
 
-/** Sweep #706 batch A on the Action Center (ADR 0041): the risk reasons as chips, and the Excel of its two tables. */
+/** Sweep 706 batch A on the Action Center (ADR 0041): the risk reasons as chips, and the Excel of its two tables. */
 const t = (key: string, values?: Record<string, string | number>) =>
   i18n.t(key, { ...values }) as string;
 const BOARD = recordedBoard();

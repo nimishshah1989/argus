@@ -4,7 +4,7 @@ import type { TableModel } from '../../../../ui/v2/domain/engine-table.js';
 import type { RegisterPageModel } from '../model.js';
 import { registerSheets } from '../sweep.js';
 
-/** The edges of the register's sweep helper (#706 batch A): no tables, button columns, notes, short rows, exact numbers. */
+/** The edges of the register's sweep helper (706 batch A): no tables, button columns, notes, short rows, exact numbers. */
 const table = (over: Partial<TableModel>): TableModel =>
   ({
     id: 'list',
