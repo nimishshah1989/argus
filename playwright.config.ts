@@ -12,7 +12,7 @@ import { defineConfig, devices } from '@playwright/test';
  */
 const WEB_URL = process.env.E2E_WEB_URL ?? 'http://127.0.0.1:3000';
 
-export default defineConfig<object, { uiLanguage: 'en' | 'gu' }>({
+export default defineConfig<{ gujaratiOn: boolean }, { uiLanguage: 'en' | 'gu' }>({
   testDir: './apps/web/e2e',
   testIgnore: '**/gallery/**',
   fullyParallel: true,
@@ -38,12 +38,12 @@ export default defineConfig<object, { uiLanguage: 'en' | 'gu' }>({
       use: { ...devices['Pixel 5'] },
       testIgnore: ['**/gallery/**', '**/actions.spec.ts'],
     },
-    // The tenant language is Gujarati. The floor journey (ticket 24 goal 2) and the language check run here.
+    // The tenant language is Gujarati, with Gujarati switched on (it is hidden by default, ADR 0036 R25). The floor journey (ticket 24 goal 2) and the language check run here.
     // The other journeys still locate English strings and run on chromium and phone until they move to the
     // `t` fixture (follow-up).
     {
       name: 'gujarati',
-      use: { ...devices['Pixel 5'], uiLanguage: 'gu' },
+      use: { ...devices['Pixel 5'], uiLanguage: 'gu', gujaratiOn: true },
       testMatch: ['**/i18n.spec.ts', '**/floor.spec.ts'],
     },
   ],

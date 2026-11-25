@@ -3,6 +3,7 @@ import { useContext } from 'react';
 import { DrillOpenContext, type Drill } from './drill.js';
 import { Icon } from './icons.js';
 import { useTick } from './motion.js';
+import type { Status } from './status.js';
 
 export type FigureData = {
   id: string;
@@ -15,14 +16,18 @@ export type FigureData = {
   yardstick?: string;
   /** The rows behind the figure: when given, the value is a button that opens them. */
   drill?: Drill;
+  /** How the figure is doing against its target (ADR 0036 R7): `data-status` on the card; absent → none. */
+  status?: Status;
 };
 
 /** A key figure the engine printed with a line of its own and no change to compare: the value ticks in, the line stays. */
 export function FigureTile({ figure }: { figure: FigureData }) {
   const value = useTick(figure.value);
   const open = useContext(DrillOpenContext);
+  // neutral draws nothing: no attribute
+  const status = figure.status === 'neutral' ? undefined : figure.status;
   return (
-    <section className="v2-card v2-kpi" tabIndex={0} aria-label={figure.label}>
+    <section className="v2-card v2-kpi" tabIndex={0} aria-label={figure.label} data-status={status}>
       <div className="v2-kpi-label">{figure.label}</div>
       {figure.drill ? (
         <button

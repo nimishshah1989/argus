@@ -4,6 +4,7 @@ import { DrillOpenContext, type Drill } from './drill.js';
 import { Icon, type IconName } from './icons.js';
 import { useTick } from './motion.js';
 import { Sparkline } from './sparkline.js';
+import type { Status } from './status.js';
 
 export type KpiData = {
   id: string;
@@ -32,6 +33,14 @@ export type KpiData = {
   yardstick?: string;
   /** Where the whole card goes when pressed (a register): it then outranks the value button as the card's way in. */
   link?: { href: string; label: string };
+  /** How the figure is doing against its target (`statusOf`): `data-status` on the card, which owns its edge and badge. ADR 0036 R7. */
+  status?: Status;
+  /** The unit, printed after the value inside the value element (`<span class="v2-kpi-unit">`). R8. */
+  unit?: string;
+  /** One line under the value row: how it was counted or what was left out (`<p class="v2-kpi-basis">`). R8. */
+  basis?: string;
+  /** The exact value, as the value element's `title` (the shown value is rounded for reading). R11. */
+  exact?: string;
 };
 
 type Tone = 'gain' | 'loss' | 'neutral';
@@ -41,10 +50,12 @@ function Value({ kpi }: { kpi: KpiData }) {
   const value = useTick(kpi.value);
   const open = useContext(DrillOpenContext);
   const { drill } = kpi;
+  const unit = kpi.unit ? <span className="v2-kpi-unit">{kpi.unit}</span> : null;
   if (!drill)
     return (
-      <div key={value.n} className="v2-kpi-value" data-flash={value.flash}>
+      <div key={value.n} className="v2-kpi-value" data-flash={value.flash} title={kpi.exact}>
         {value.text}
+        {unit}
       </div>
     );
   return (
@@ -53,10 +64,12 @@ function Value({ kpi }: { kpi: KpiData }) {
       type="button"
       className="v2-kpi-value v2-drill-value"
       data-flash={value.flash}
-      aria-label={`${value.text}. ${drill.label}`}
+      title={kpi.exact}
+      aria-label={`${value.text}${kpi.unit ? ` ${kpi.unit}` : ''}. ${drill.label}`}
       onClick={() => open(drill)}
     >
       {value.text}
+      {unit}
       <Icon name="list" size={14} />
     </button>
   );
@@ -85,6 +98,7 @@ export function KpiCard({ kpi }: { kpi: KpiData }) {
     <section
       className={kpi.hero ? 'v2-card v2-kpi v2-kpi-hero' : 'v2-card v2-kpi'}
       data-tone={kpi.tone}
+      data-status={kpi.status}
       data-open={stretch ? '' : undefined}
       data-stretch={stretch}
       tabIndex={0}
@@ -103,6 +117,7 @@ export function KpiCard({ kpi }: { kpi: KpiData }) {
         </div>
         {kpi.trend ? <Sparkline values={kpi.trend} tone={tone} draw /> : null}
       </div>
+      {kpi.basis ? <p className="v2-kpi-basis">{kpi.basis}</p> : null}
       {kpi.meter === undefined ? null : (
         <div className="v2-kpi-meter" aria-hidden="true">
           <span style={{ width: `${Math.min(100, Math.max(0, kpi.meter * 100)).toFixed(1)}%` }} />
