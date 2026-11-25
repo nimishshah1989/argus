@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { openShowDetail } from '../show-detail.js';
 
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 test.use({ trace: 'retain-on-failure' });
@@ -36,8 +37,10 @@ test('BD % and PM split: six figures, two charts and the five tables are up; a c
 }) => {
   await open(page);
   // Figures past the fourth fold under "Show detail" (sweep 706); a no-op before the fold lands.
-  for (const s of await page.locator('details.v2-show-detail:not([open]) > summary').all())
-    await s.click();
+  await openShowDetail(
+    page,
+    page.getByRole('region', { name: 'Avg Available Hrs / Machine', exact: true }),
+  );
   for (const label of [
     'Avg Available Hrs / Machine',
     'Total Machines',
