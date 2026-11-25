@@ -1,6 +1,7 @@
 import type { TaskState } from '@uptimo/shared/tasks';
 import type { Config, Me, State, Ticket } from '../../../api.js';
 import type { ActionSpec } from '../../../components/actionSpecs.js';
+import { DESK_ROLES } from '../../../roles.js';
 import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { ChipFilter } from '../../desk/openLists.js';
 
@@ -18,22 +19,18 @@ export type OpenSection = 'desk.breakdowns' | 'desk.tasks';
  * the plant head opens Open and Team, not Mine; every other role (operator, board) opens none.
  */
 export function mayOpen(view: DeskView, role: string): boolean {
-  void view;
-  void role;
-  throw new Error('not implemented');
+  const desk: readonly string[] = DESK_ROLES;
+  return desk.includes(role) && (view !== 'mine' || role !== 'plant_head');
 }
 
 /** Today where the plant is, `YYYY-MM-DD` (moved here from v1 `desk/TasksList.tsx`). */
 export function plantToday(timeZone: string, now: Date): string {
-  void timeZone;
-  void now;
-  throw new Error('not implemented');
+  return new Intl.DateTimeFormat('en-CA', { timeZone }).format(now);
 }
 
 /** "Plant settings" and "Settings" links: admin and head only (not plant head). */
 export function showsSettings(role: string | undefined): boolean {
-  void role;
-  throw new Error('not implemented');
+  return role === 'admin' || role === 'head';
 }
 
 /** What the Open adapter reads: the `/state`, `/config` and `/auth/me` replies plus the screen's own choices. */
@@ -98,5 +95,17 @@ export type OpenModel = {
   /** UX rule 60: one computed line per section; null when there is nothing worth saying. */
   takeaways: Takeaways;
   /** The words the View prints that are not list data. */
-  words: { longest: string; pickTicket: string; ticketPane: string; fillReport: string };
+  words: {
+    longest: string;
+    pickTicket: string;
+    ticketPane: string;
+    fillReport: string;
+    chips: string;
+    segments: string;
+    waiting: string;
+    needsReport: string;
+  };
+  /** What `components/TicketCard.tsx` needs to draw a card: the state's clock and who is who. */
+  now: string;
+  names: Record<string, string>;
 };

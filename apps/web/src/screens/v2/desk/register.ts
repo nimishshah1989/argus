@@ -1,4 +1,8 @@
+import i18n from 'i18next';
+import { getConfig, getMe, getState } from '../../../api.js';
 import type { ScreenEntry } from '../data.js';
+import { deskFixture } from './fixture.js';
+import { openModel } from './adapter.js';
 import type { OpenInput, OpenModel } from './model.js';
 
 declare module '../data.js' {
@@ -13,6 +17,14 @@ declare module '../data.js' {
  */
 export const screen: ScreenEntry<'desk'> = {
   key: 'desk',
-  provider: () => Promise.reject(new Error('not implemented')),
-  frozen: () => Promise.reject(new Error('not implemented')),
+  provider: async ({ filter, segment }, { client }) => {
+    if (!client) throw new Error('desk: no query client');
+    const [state, config, me] = await Promise.all([
+      client.fetchQuery({ queryKey: ['state'], queryFn: getState }),
+      client.fetchQuery({ queryKey: ['config'], queryFn: getConfig }),
+      client.fetchQuery({ queryKey: ['me'], queryFn: getMe }),
+    ]);
+    return openModel({ state, config, me: me.user, filter, segment }, i18n.t.bind(i18n));
+  },
+  frozen: async () => openModel(deskFixture, i18n.t.bind(i18n)),
 };
