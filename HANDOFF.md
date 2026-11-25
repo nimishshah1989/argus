@@ -3,7 +3,7 @@
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-25 · **By:** Plan · **Model:** Opus 5.5
-**Milestone:** M2 (last old-design screens) · **Branch:** plan/v2-last-screens (PR open)
+**Milestone:** M2 (last old-design screens) · **Branch:** plan/v2-last-screens (pushed; PR NOT opened yet: context budget)
 
 ## State
 
@@ -17,7 +17,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 ## Next
 
-1. Coordinator: clean `plan/t763` first (see Blocked). Then build #763, then #765. #760 before S26-2…8.
+1. Coordinator: open the PR for `plan/v2-last-screens` (ADR 0044 + coverage + HANDOFF; say #760 #761 #762 are already seeded and building). Clean `plan/t763` first (see Blocked). Then build #763, then #765. #760 before S26-2…8.
 2. Plan: S26-1…8 issues + seeds (ADR 0044 decision 4) once #760 merges.
 
 ## Blocked
