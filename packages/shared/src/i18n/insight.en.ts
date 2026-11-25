@@ -47,4 +47,9 @@ export const insightEn = {
   'insight.filter.all': 'All {label}',
   'insight.filter.reset': 'Reset filters',
   'insight.half': 'Half the hours',
+  // ADR 0041/0043: the four Quadrant names; each page maps "often" and "long" onto its own axes.
+  'insight.quad.often-long': 'Often and long',
+  'insight.quad.often-short': 'Often, short',
+  'insight.quad.rare-long': 'Rare but long',
+  'insight.quad.rare-short': 'Rare and short',
 };

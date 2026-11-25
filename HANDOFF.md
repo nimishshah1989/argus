@@ -1,33 +1,35 @@
 # HANDOFF
 
-> **24 Nov 23:00 — ADR 0037 (Nimish yes):** PR paperwork checks (parity, size, quality fields, changelog) warn instead of block.
-
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-24 · **By:** Plan · **Model:** Opus 5.5
-**Milestone:** M2b screens lane · **Branch:** plan/adr-0036-colour-shifts-language
+**Updated:** 2026-11-25 · **By:** Plan · **Model:** Opus 5.5
+**Milestone:** M2b screens lane · **Branch:** plan/sweep-706-batches
 
 ## State
 
-- ADR 0036 is the one v2 kit rulebook (R1–R25). Nimish: English only (Gujarati hidden, #701); two shift windows as configured, no shift calendar.
-- Every kit ticket is seeded (`plan/t<N>`, red for the real reason, root `tsc --noEmit` 0 errors, critical tests only per ADR 0034): #684–#701. t686 got return types today (it did not typecheck).
-- Bases: kit seeds on this branch (#683); #688/#689 on `plan/t687`; #695/#696 on `plan/t694`; #703 on main.
-- Remaining 1–4 written: **#703** Shift KPIs one span (engine bug, seeded; answer-key fixture is 2026-only so no expected number moves) · **#704** verdict status chip + FigureTile status (size:small, seeded) · **#705** drawers ≤3 figures + full-page link (blocked by #666, not seeded) · **#706** sweep tracker (one ticket per screen, cut as each batch-2 ticket merges).
+- ADR 0043 (coordinator, 25 Nov) amends ADR 0041: machine page out of batch A (no Blocked-by #707); `RankedBars` on dashboard (A), problem-analysis (C), shift-kpis (D); the dashboard bubble → Quadrant swap is A's last, separate commit and A merges only with Nimish's written yes. Numbered 0043: 0042 is taken by the unmerged ADR on `plan/adr-0041`.
+- Words on this branch: `insight.quad.*` (insight.en.ts), `v2d.strip.*`, `v2d.quad.sub|aria` (analytics-v2-today.en.ts).
+- Sweep #706 batch tickets A–D: SEE "Tickets" below (filled in when cut).
 
-## Next step
+## Tickets
 
-Coordinator: merge #683 when green (kit seeds need its tokens/words/Status). Build in parallel: #684–#687 #690–#694 #697–#701 #703 #704. After #687: #688 #689. After #694: #695 #696. Plan: seed #705 after #666 merges; cut per-screen sweep tickets (#706) as batch-2 tickets merge.
+- **No issue cut yet; no `plan/t<N>` pushed.** Context ran out (150k) while 4 seed agents were still running. Each one works in a scratch worktree `/private/tmp/claude-501/-Users-nimishshah-argus/478ac98d-b58a-4b9a-96fc-caa4fa1971a7/scratchpad/wt-{A,B,C,D}` on a local branch `seed/{A,B,C,D}` (from this branch) and writes its issue body to `.../scratchpad/issues/{A,B,C,D}.md` (`<N>` placeholders). Brief: `.../scratchpad/issues/seed-brief.md`; shared rules: `common-rules.md` (pasted into every body, with the builder notes from #679).
+- Next Plan session: for each batch, check that the commit exists on `seed/X` (if not, re-seed from the brief) and that its tests are red only on `not implemented`. Then `gh issue create` with the body (label M2b, no size:small), replace `<N>`, and `git push origin seed/X:refs/heads/plan/t<N>`. Close nothing; #706 stays the tracker.
 
-## Blocked / open questions
+## Tests
 
-- Robots are not a segment in the data (a CNC-segment `category === 'Robot'`); `segmentKey` never yields `robot`. Nimish to say whether category wins for colour (#706, #700).
-- #705: which 3 figures per drawer — assumption: first 3 in each model's order.
-- #696: `HeatCell` has no number; the ranked-list fallback parses `text` for totals (tests check rows, not order).
-- Untested by design (reviewer checks): #701 AccountSheet hides the language choice (Radix portal); #688 Reset shows only when chosen; #690 the click that saves the file.
-- Still open from before: S22 "vs the 320 days before" yes (#679); #651 yes/no.
+- `pnpm exec vitest run packages/shared` → 11 files / 244 passed.
+
+## Blocked
+
+- Nothing blocked.
+
+## Next
+
+1. Coordinator: ask Nimish for his written yes on the dashboard bubble → Quadrant swap (batch A merges only with it).
+2. Coordinator: run the batch tickets (disjoint folders; any order).
 
 ## Don't repeat
 
-- Seed worktrees with symlinked node_modules resolve `@uptimo/shared` to the main checkout: words only on a plan branch read as missing. Use `pnpm install --frozen-lockfile --offline` in the worktree.
-- A throwing skeleton component needs an explicit `ReactElement` return type, or `createElement` in tests fails tsc.
-- `git add` named files only; the main checkout is shared, commit from a temp worktree.
+- printed-page/PageBody is shared by B, C, D: no batch may edit it (its Pareto charts wait for a PageBody ticket).
+- Two ADRs numbered 0041 exist (main: sweep map; `plan/adr-0041` uncommitted: Gujarati switch, plus kit-folded as 0042). That session must renumber before merging.

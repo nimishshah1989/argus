@@ -1,6 +1,7 @@
 import type { TableModel } from '../../../ui/v2/domain/engine-table.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
 import type { Drill } from '../../../ui/v2/drill.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
 
 /** One register: the engine's own count, load and age cards, its splits and its lists, with the answer first. */
@@ -24,6 +25,8 @@ export type RegistersModel = {
   pages: RegisterPageModel[];
   /** "See the machines": every machine the registers list, whatever page is open (no count on a page equals it). */
   drill?: Drill;
+  /** Every table's computed line on every page, keyed `<page id>-<table id>` (ADR 0035, ticket 655). */
+  takeaways?: Takeaways;
   source: string;
   words: RegistersWords;
 };
