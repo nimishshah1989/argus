@@ -49,6 +49,11 @@ describe('a filtered paged table keeps its count: edges (ticket 757)', () => {
     expect(paged(2, { selects: [select('cell', ''), select('shift', 'B')] })).toContain('1–2 of 2');
   });
 
+  it('narrowed from outside counts as a filter on its own, with the head blank', () => {
+    expect(paged(3, { narrowed: true, query: '', chip: 'all', selects: [select('cell', '')] })).toContain('1–3 of 3');
+    expect(paged(25, { narrowed: true })).toContain('1–10 of 25');
+  });
+
   it('a filtered list of 10 or more pages as before', () => {
     const html = paged(25, { query: 'press' });
     expect(html).toContain('1–10 of 25');

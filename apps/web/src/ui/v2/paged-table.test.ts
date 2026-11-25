@@ -48,8 +48,13 @@ describe('a filtered paged table keeps its count (ADR 0036 R13: small is judged 
     expect(paged(2, { chip: 'high' })).toContain('1–2 of 2');
   });
 
+  it('a select beside the table (narrowed) that leaves 1 row still says "1–1 of 1"', () => {
+    expect(paged(1, { narrowed: true })).toContain('1–1 of 1');
+  });
+
   it('with nothing filtered, under 10 rows in all, there is still no pager', () => {
     expect(paged(4)).not.toContain('1–4 of 4');
     expect(paged(4, { query: '', selects: [select('')] })).not.toContain('1–4 of 4');
+    expect(paged(4, { narrowed: false })).not.toContain('1–4 of 4');
   });
 });
