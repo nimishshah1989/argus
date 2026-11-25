@@ -33,3 +33,14 @@ Built from `screens/analytics/ManpowerPage.tsx` (deleted in the PR that made thi
 | Who handled the most breakdowns, with their share, and who put in the most hours | Manpower table            | yes (pick in the adapter) | built                                                                 |
 | Spend per person's hours                                                         | hours times cost per hour | no                        | later: rupees per person, head, plant head, admin only (needs server) |
 | Who covers each machine category (single point of failure)                       | Specialization            | the matrix, not the risk  | later: full category names and a coverage flag (needs server)         |
+
+## ADR 0036 kit rules (ticket #753, sweep #706 batch D)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25. Rows from the builder's `docs/loop/handoff/753.md` and ticket #753.
+
+| Rule                          | Status         | Where, or why not                                                                 |
+| ----------------------------- | -------------- | --------------------------------------------------------------------------------- |
+| R1 TileSet + ShowDetail       | done           | first 4 figures to `PageBody`, the rest under Show detail; 3 today, nothing folds |
+| R6 Download Excel             | not applicable | not one of Bhavin's exports (ADR 0041)                                            |
+| R11 readable / rupees / exact | done           | the sums and the team share total through `sumText`; under 1 lakh unchanged       |
+| R20 RankedBars                | not applicable | no Pareto or ranked bar on this page in ADR 0043's map                            |
