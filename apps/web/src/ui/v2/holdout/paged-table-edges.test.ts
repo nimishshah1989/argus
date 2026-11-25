@@ -50,7 +50,9 @@ describe('a filtered paged table keeps its count: edges (ticket 757)', () => {
   });
 
   it('narrowed from outside counts as a filter on its own, with the head blank', () => {
-    expect(paged(3, { narrowed: true, query: '', chip: 'all', selects: [select('cell', '')] })).toContain('1–3 of 3');
+    expect(
+      paged(3, { narrowed: true, query: '', chip: 'all', selects: [select('cell', '')] }),
+    ).toContain('1–3 of 3');
     expect(paged(25, { narrowed: true })).toContain('1–10 of 25');
   });
 
