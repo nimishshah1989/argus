@@ -1,3 +1,5 @@
+import { readable } from '../../../ui/v2/format.js';
+
 /**
  * Sweep #706 (ADR 0041, batch D): Manpower's own sums in the kit's readable form (ADR 0036 R11). In
  * `manpower/adapter.ts`: `whole` (~57) → `(n) => sumText(n, 0)` and `oneDecimal` (~58) → `(n) => sumText(n, 1)`, so
@@ -14,7 +16,11 @@
  *    99,999.96 with digits 1 → "1.00 lakh", 1,50,00,000 → "1.50 cr".
  */
 export function sumText(n: number, digits: 0 | 1): string {
-  void n;
-  void digits;
-  throw new Error('not implemented');
+  if (!Number.isFinite(n)) return '—';
+  if (Math.abs(Number(n.toFixed(digits))) < 1e5)
+    return n.toLocaleString('en-IN', {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    });
+  return readable(n);
 }

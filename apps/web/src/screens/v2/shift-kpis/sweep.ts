@@ -1,4 +1,5 @@
 import type { ChartSpec } from '../../../ui/chart/chart-spec.js';
+import { exact } from '../../../ui/v2/format.js';
 import type { RankedRow } from '../../../ui/v2/ranked-bars.js';
 
 /**
@@ -15,6 +16,14 @@ import type { RankedRow } from '../../../ui/v2/ranked-bars.js';
  * left out. No `countText`, `moneyText` or `rest`. A Pareto with no bar series or no categories → `[]`.
  */
 export function paretoRows(spec: ChartSpec): RankedRow[] | null {
-  void spec;
-  throw new Error('not implemented');
+  let bar;
+  if (spec.kind === 'pareto') bar = spec.series[0];
+  else if (spec.kind === 'mixed') bar = spec.bars[0];
+  else return null;
+  return spec.categories.flatMap((category, at) => {
+    const value = bar?.values[at];
+    return value === undefined || !Number.isFinite(value)
+      ? []
+      : [{ key: category, label: category, value, valueText: exact(value) }];
+  });
 }

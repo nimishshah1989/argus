@@ -1,3 +1,5 @@
+import { readable } from '../../../ui/v2/format.js';
+
 /**
  * Sweep #706 (ADR 0041, batch D): Energy's KVA figures in the kit's readable form (ADR 0036 R11). Every
  * `oneDecimal(` call in `energy/adapter.ts` and `energy/takeaways.ts` becomes `kvaText(`, and `oneDecimal` is deleted.
@@ -13,6 +15,8 @@
  *    -1,50,000 → "-1.50 lakh", 1,50,00,000 → "1.50 cr".
  */
 export function kvaText(n: number): string {
-  void n;
-  throw new Error('not implemented');
+  if (!Number.isFinite(n)) return '—';
+  if (Math.abs(Number(n.toFixed(1))) < 1e5)
+    return n.toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  return readable(n);
 }

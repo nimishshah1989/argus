@@ -1,6 +1,8 @@
 import type { Sheet } from '@uptimo/shared/xlsx';
 import type { ForecastLabModel } from './model.js';
 
+const PLAIN = /^-?[\d,]+(\.\d+)?$/;
+
 /**
  * Sweep #706 (ADR 0041 #690): the Forecast Lab's tables for "Download Excel", one sheet per table, in the page's order.
  *
@@ -12,6 +14,17 @@ import type { ForecastLabModel } from './model.js';
  * No tables → `[]`.
  */
 export function labSheets(model: Pick<ForecastLabModel, 'tables'>): Sheet[] {
-  void model;
-  throw new Error('not implemented');
+  return model.tables.map((table) => ({
+    name: table.title,
+    rows: [
+      table.header.map((h) => h.label),
+      ...table.rows.map((row) =>
+        row.map((cell, at) =>
+          table.header[at]?.numeric && PLAIN.test(cell.text)
+            ? Number(cell.text.replaceAll(',', ''))
+            : cell.text,
+        ),
+      ),
+    ],
+  }));
 }
