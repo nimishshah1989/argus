@@ -2,26 +2,19 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-25 · **By:** Plan · **Model:** Opus 5.5
-**Milestone:** M2 (last old-design screens) · **Branch:** plan/s26-a (from origin/main; pushed; no PR)
+**Updated:** 2026-11-25 · **By:** Coordinator (last-screens session 3) · **Model:** Sonnet 5.5
+**Milestone:** M2 last old-design screens · **Branch:** plan/v2-last-screens (context budget)
 
 ## State
 
-- Job: issues + seeds for S26-1 (Settings shell + jobs) and S26-2 (machines, groups, shifts) per ADR 0044 decision 4.
-- Done: read ADR 0044, wireframe `S26-settings.html`, kit `ui/v2/crud-page.tsx`/`crud-model.ts`, v1 `Plant.tsx`,
-  `Jobs.tsx`, `plant-specs.tsx`, `machine-production.tsx`, e2e `settings-plant`/`settings-jobs` selectors.
-- Decisions written: `docs/adr/0046-s26-shell-and-plant-pages.md` (folders, shell, registry, jobs list, S26-2 shape).
-- NOT done: no issues, no seed branches, no coverage tables yet (context budget hit while designing).
-
-## Next
-
-1. New Plan session: from ADR 0046, create issue S26-1, seed `plan/t<N>`: `screens/v2/settings/{model.ts,registry.ts}`
-   skeleton (`mayOpenSettings`, `visiblePages`, `railFor`, `kindWords`, `countLabel`, `jobsWorstFirst`,
-   `jobsTakeaway`), new i18n keys in `settings.en.ts`/`.gu.ts`, visible tests + `screens/v2/holdout/settings-*.test.ts`,
-   `docs/design/v2/scope/settings.md`. Prove red, lint clean, push.
-2. Then S26-2 the same way (`screens/v2/settings-plant/`), depending on S26-1.
-3. Open the plan PR for `plan/s26-a` (ADR 0046 + handoff), merge when green.
+- Merged on main: #760 S26-0 kit (PR #776), #761 S19 sign-in (PR #775), #777 sign-in heading fix (PR #778; the wrong-password e2e failed because the v2 page had no "Sign in" heading).
+- #762 S25 Guide: PR #779 open, CI green, NOT reviewed or merged yet: run reviewer subagent, merge on PASS, `loop clean 762`.
+- #763 S23 Monthly: builder ran out of context with Bash denied; `loop finish 763` ran and failed 2 tests in `monthly-report.test.ts`: `monthlyReportModel(reply, realT)` returns null (attempt 1 of 3 used). Next: `loop prep 763`, `loop build 763 --bg` (notes are in the brief), then prettier on `docs/loop/handoff/763.md` via a builder-small subagent, `loop finish 763`.
+- #765 S24 Annual: not prepped (after #763).
+- S26-1..8: planning started on branch `plan/s26-a` (ADR 0046 written there, issues not yet created). Next: fresh `loop plan "S26-1 then S26-2 per ADR 0046 on plan/s26-a"`, 2 to 3 tickets per job.
+- Action Center spec "opens at its v1 address" failure is NOT sign-in related: it waits for text "Nothing needs attention with the current limits." (other PR's change / stale gallery).
 
 ## Don't repeat
 
-- Don't re-read the v1 files: ADR 0046 + ADR 0044 carry what is needed. Wireframe text dump: grep line 1402 of the html.
+- Builders cannot run prettier: after `loop build`, have a `loop:builder-small` subagent run `pnpm exec prettier --write docs/loop/handoff/<N>.md` and commit, before `loop finish`.
+- Builders can lose Bash mid-run ("don't ask mode"); check `loop wait` text for BLOCKED.
