@@ -1,43 +1,30 @@
 # HANDOFF
 
-_Overwritten at the end of every session. Facts only._
+_Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-25 (afternoon) · **By:** Coordinator (Opus 5.5), top session of the chain.
+**Updated:** 2026-11-25 · **By:** Coordinator (kit tickets session) · **Model:** Opus 5.5
+**Milestone:** M2b kit lane · **Branch:** plan/handoff
 
-## Now (supersedes the older notes below)
-
-- **Nimish decided (25 Nov):** all remaining ADR 0036 kit pieces are built as ONE ticket / ONE PR (session "Kit: all remaining pieces, one PR"); in parallel the 24 v2 pages adopt the kit pieces already on main in 4 batches + Money Matters #644/#678/#679 (session "Pages: all v2 screens onto current kit", plan PR #742). The kit session owns `apps/web/src/ui/**` (+ #701's i18n/Account files); the pages session owns `apps/web/src/screens/v2/**`.
-- Combined-kit ADR takes 0042 or the next free number (0041 is `gujarati-switch-per-phone`). The combined ticket covers 685, 687, 688, 689, 692, 695, 696, 700, 701, 704, 705, 732.
-- **Nimish decided (25 Nov, "No, keep bubble"):** the dashboard keeps its bubble chart (press-a-dot-to-open and zoom); every other kit change goes into batch A.
-- Nimish wants `/ship` used on each PR once it is up; only he can type it (the skill can't be started by an agent), and it never merges.
-- Rounds 3–6 sessions are archived. Builders: dontAsk mode denies heredocs, redirects, `( )`, `{a,b}`, `$?`: Write/Edit plus one simple command per call.
-
-## Older notes (round 6)
 ## State
 
-- **Merged:** PR #740 (loop-guard accepts `Screens: none (kit only)` / `none` when every changed file is under `apps/web/src/ui/`, `changes/`, `docs/loop/handoff/`; ADR 0040, Plan wrote and merged it). After `gh pr update-branch` + green CI, #736 (#697), #737 (#691), #738 (#699) merged (merger.sh did it; each had an earlier reviewer PASS). I did NOT edit any PR body to name S01-dashboard (the last handoff said that needs Nimish's own yes).
-- **Also merged:** PR #741 (#694 ranked bars; merger.sh merged it before the reviewer finished, reviewer then said PASS). Plan follow-ups from that review: `ranked-bars.css` seed has raw px (8px, 999px, 560px) → switch to `--space-v2-*` tokens; `key="half"` could clash with a row key; a share under 0.5% prints "0%" (maybe "<1%").
-- **#692:** built (code 56a750ad). `loop finish 692` failed only on `prettier --check docs/loop/handoff/692.md`. I ran `loop prep 692` (attempts_so_far 1). Next: `loop build 692 --bg`, `loop wait 692`, `loop finish 692`. Tell the builder to run `pnpm exec prettier --write docs/loop/handoff/692.md` and leave `## Blocked` empty of text (the old Blocked text must be removed).
-- **#685 (PR #739, reviewer FAIL):** Plan fixed the seed `plan/t685` (2.2/2 band-edge test, aria-label unit test; issue rules updated). Next: `loop prep 685 --fresh`, `loop build 685 --bg`, `loop finish 685`, review.
-- **#700:** cause found: the guard reads `.loop.json` from the MAIN checkout, which was sitting on `plan/t701` (old `.loop.json` from before ADR 0039 locked `entity-chip.tsx`). Plan merged main into `plan/t700`. Next: `loop prep 700 --fresh`, build, finish.
-- **#701 (PR #731):** `plan/t701` is fixed (363bf300; ADR renamed `0041-gujarati-switch-per-phone`). Its `Screens:` line cannot be `none`: it changes `apps/web/src/i18n/index.ts` and `AccountSheet.tsx`, outside ADR 0040's folders. Needs a real approved screen id in the PR body (the S01-dashboard workaround, which needs Nimish's yes) or Plan extending ADR 0040. Then `loop prep 701 --fresh`.
-- Not touched yet: 704, 695, 696 (build one or two at a time, load under ~10; load was 2–4).
+- Combined kit ticket DROPPED (Nimish, 25 Nov). Plan PR #743 (ADR 0042, branch `plan/adr-0041`) and seed `plan/kit-combined` are now unused; close #743 unless Nimish says otherwise. No issues or PRs were closed by it.
+- Building the existing tickets from their own seeds, two at a time. Running now: #692 (haiku) and #685 (sonnet), both `loop prep --fresh`, `loop build --bg`.
+- Order after: 700, 704, 695, 696, 688, 689, 705, 732, 701 (PR #731), 687 (PR #726).
+
+## Tests
+
+- None run by this session yet; builders running.
+
+## Blocked
+
+- Nothing yet.
 
 ## Next step
 
-1. `loop clean 697 691 699 694` (all merged). 2. Check `gh pr list` for anything open and green. 3. Rebuild 692, 685, 700 (max two at once), then 704, 695, 696. 4. Ask Nimish one question: how #701's `Screens:` line should be handled. 5. Final 5-line report to Nimish (merged, what he can click on staging, what needs him, screens done — 52 v2 screen folders exist, NOT checked each is routed and live).
-
-## Blocked (stop rule: no further attempt without Nimish's word)
-
-- #687 (PR #726): ticket rule 1 vs hidden test `compare/holdout/tables-edges.test.ts`; Plan must change one. #643 (PR #707): merge `plan/t643-e2e` (a6521bc) into its build branch, delete the spares note line at `machine/View.tsx:149`, set PR body `Plan-base: a6521bc6b7e24790b6ff1dfdb5000bc542a26995`, `loop ci 707`. #701: see above.
-
-## Follow-ups for Plan (not blocking)
-
-- #686 TileSet: `Math.max(0, NaN)` folds every tile; "All 1 are zero" wording; `<details>` grid in older browsers. #691: raw px values, no `:focus-visible`, count not formatted, unique keys. #699: non-integer count; chips read run together. #698: amber watch tone never shows; `count <= 0` lets NaN through.
+1. `loop wait 692` / `loop wait 685` → `loop finish` → reviewer → merge on PASS; message the coordinator each PR number.
+2. Then the next two in the order above.
 
 ## Don't repeat
 
-- KEEP THE MAIN CHECKOUT ON `main` while builders run: the guard reads `.loop.json` from it. Plan jobs leave it on a plan branch sometimes; check `git branch --show-current`.
-- After any seed change, `loop prep N --fresh`. Plain `loop prep N` keeps the old seed (692 and 694 first builds were blocked this way). Plain prep is right only after a CI/review failure.
-- Builders forget `pnpm exec prettier --write docs/loop/handoff/<N>.md`; a `## Blocked` section with any text makes `loop finish` refuse.
-- merger.sh merges green PRs before the reviewer reports. The hook blocks commands that name a build folder path. Commit handoffs from a detached worktree and `git push origin HEAD:plan/handoff`. Start commands with `cd /Users/nimishshah/argus &&`. Never dump attempt notes; use `sed 's/\x1b\[[0-9;]*m//g'`.
+- Main checkout is on `plan/adr-0041` because a coordinator planner (sweep #706 batches) runs in it; the guard reads `.loop.json` from it. Put it back on `main` when that planner ends.
+- #687's hidden test `compare/holdout/tables-edges.test.ts` contradicts rule 1; its fix lives only on `plan/kit-combined`.
