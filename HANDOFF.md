@@ -2,28 +2,32 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-25 · **By:** Plan · **Model:** Opus 5.5
-**Milestone:** M2b screens lane · **Branch:** plan/v2-floor-desk (stopped at context budget)
+**Updated:** 2026-11-26 · **By:** Plan (Opus 5.5) · **Model:** Opus 5.5
 
 ## State
 
-- Plan PR #764 (this branch). Nimish's S27-S30 approvals (25 Nov) are NOT in it: the loop guard blocks Plan from staging the approvals file; it is still uncommitted in the main checkout.
-- Coverage tables written from the v1 code + e2e specs: `docs/design/v2/scope/{floor,desk,ticket,board}.md` (0 MISSING rows that drop v1 scope; each lists "Unbuilt from the wireframe" items needing Nimish's written yes, and "Selectors the e2e specs rely on").
-- ADR 0045 decides the split: 6 tickets (S27-A, S27-B, S28-A, S28-B, S29, S30), files, kept logic, which v1 tests the seeds retarget, and that locked control-order specs (`e2e/gallery/floor-order-lists.ts`, `desk-order.spec.ts`, `board-settings-order.spec.ts`) win over the wireframe.
-- **No issues and no seed branches created yet.**
+- Main went red after #781 (sweep A) merged with failing browser shards. Fix PR from `plan/e2e-show-detail-folds`: spec-only (ADR 0048). Markup kept per ADR 0041; specs now open nested folds with `apps/web/e2e/show-detail.ts`, accept the R10 all-zero line, and run axe after CSS transitions. Proof: the 3 dashboard specs 64/64 green locally (2 runs × repeat-each 2), gallery dashboard spec 5/5.
+- Flakes on #781 unrelated to it: who-is-acting.spec.ts:60 (ERR_ABORTED), desk-lists.spec.ts:11 phone (409 Already reported). detail-downtime.spec.ts:7 passed on #781.
+- Unchanged from last handoff: open PRs #782 Monthly, #783 sweep B, #796 S26-1; builds #767/#769 in other sessions; S26 tickets from ADR 0047; not started #765, #752, #753.
+- #783 (sweep B) adds 3 more copies of the bad `.all()` fold loop: `e2e/analytics-breakdowns.spec.ts`, `e2e/gallery/analytics-breakdown-pages.spec.ts`, `e2e/gallery/v2-bd-pm.spec.ts`. Switch them to `openShowDetail` on its seed before it merges. Not verified: the full e2e suite locally (CI runs it on the PR).
 
-## Next
+## Next step
 
-1. `loop ci 764`, merge when green. Get the approvals committed by an allowed route (Nimish runs `loop approve`).
-2. New Plan session: create the 6 issues from ADR 0045 "Tickets" (loop-ticket format; builder notes: dontAsk, no heredocs/redirects/subshells/brace lists; handoff `## Blocked` reads exactly `None.`), then seed `plan/t<N>` each: skeleton `model.ts`/`View.tsx`, visible `view.test.ts` + `insight.test.ts`, hidden `screens/v2/holdout/<screen>-*.test.ts`, and the test retargets ADR 0045 names (T3: `TasksList.test.ts`; T4: `team-waiting.test.ts`, `fetch-guard.test.ts:17`). Prove red, lint, push.
-3. Coordinator: ask Nimish for written yes/no on each scope file's "Unbuilt from the wireframe" rows.
+1. Merge the fix PR when green; then `gh pr update-branch` #782, #783, #796 and re-read `loop ci` for each before merging (LESSONS 2026-11-26).
+2. Then the previous plan: `loop finish 767`/`769`, S26-1, #765, #752, #753.
 
-## Blocked
+## Blocked / open questions
 
-None.
+- Nimish: the Dashboard nests "Show detail" inside "Show detail" (ADR 0041 as written). Keep, or one fold per group? (ADR 0048 "Not done".)
+- `design/approved.json` still has uncommitted S27–S30 approvals in the main checkout; commit on a plan branch.
 
 ## Don't repeat
 
-- Builders cannot modify or delete existing tests (`.github/loop/check_pr.py`): every e2e/unit test edit goes on the seed.
-- v1 floor has no offline send queue and no lockout (ADR 0045 §6); the server already serves `GET /api/v1/tickets/:id/pdf`.
-- The inventory seed notes were in this session's scratchpad only; the facts needed are in ADR 0045 and the scope files.
+- `loop build N` reads the issue BODY, not comments: put fix notes in the body (`gh issue edit`) before `loop prep`. `loop finish` commits leftover builder work itself.
+- NEVER run `loop finish N` twice without a code change. `loop prep N` on a finished ticket needs `gh issue reopen N` first. `loop finish` removes `.loop/wt/N`.
+- Re-running `/loop:init` overwrites `.github/loop/check_pr.py` with the stock file (drops ADR 0035/0038/0040 carve-outs) and writes machine paths into `.claude/settings.json`: `git checkout` both. Branch protection on main was NOT enabled.
+- Hooks block `git -C .loop/wt/N` for the coordinator and holdout paths for builders. New v2 page needs a `PAGE_KEYS` entry in figure-content.ts; v2 page title is the screen's own name. Builders cannot run prettier: use builder-small.
+
+## Files touched this session
+
+`apps/web/e2e/{show-detail.ts, analytics.spec.ts, analytics-dashboard.spec.ts, v2-dashboard-live.spec.ts, gallery/v2-dashboard-live.spec.ts}`, `docs/adr/0048-dashboard-e2e-after-sweep-a.md`, LESSONS.md, HANDOFF.md.

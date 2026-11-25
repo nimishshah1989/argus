@@ -5,14 +5,14 @@ import { CheckRow } from '../../../ui/v2/domain/check-row.js';
 import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
 import { DrillAction } from '../../../ui/v2/drill-action.js';
 import { EntityChip, EntityOpenContext } from '../../../ui/v2/entity-chip.js';
-import { KpiCard } from '../../../ui/v2/kpi-card.js';
 import { Panel } from '../../../ui/v2/panel.js';
 import { Points } from '../../../ui/v2/points.js';
-import { Row } from '../../../ui/v2/row.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
 import { Takeaway, type TakeawayData } from '../../../ui/v2/takeaway.js';
+import { TileSet } from '../../../ui/v2/tile-set.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
 import { EntityShell } from '../entity/EntityShell.js';
+import { numberIn } from '../figures/read.js';
 import type {
   CheckGroup,
   DataChecklistActions,
@@ -109,11 +109,7 @@ function Body({ model, act }: { model: DataChecklistModel; act: Acts }) {
     <>
       <Verdict verdict={model.verdict} whyLabel={words.why} />
       {model.drill ? <DrillAction drill={model.drill} /> : null}
-      <Row cols={4}>
-        {model.kpis.map((k) => (
-          <KpiCard key={k.id} kpi={k} />
-        ))}
-      </Row>
+      <TileSet items={model.kpis.map((kpi) => ({ kpi, n: numberIn(kpi.value) ?? Number.NaN }))} />
       {model.groups.length === 0 ? (
         <Panel title={words.passingTitle}>
           <p className="v2-sub">{words.allClear}</p>
