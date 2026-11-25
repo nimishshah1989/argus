@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { expect, test } from './test.js';
 import { MACHINES, apiFetch, apiLogin, signIn } from './fixtures.js';
+import { openShowDetail } from './show-detail.js';
 
 /**
  * The v2 Dashboard is live at `/analytics/today` on the real server, with the engine's real figures. The one stub is
@@ -56,6 +57,8 @@ test('the Dashboard opens at its v1 address with the engine’s figures; a machi
     (figure) => figure.screen === 'dashboard' && typeof figure.value === 'number',
   );
   expect(numbers.length).toBeGreaterThan(5);
+  // Figures past the fourth fold sit under "Show detail" (ADR 0041).
+  await openShowDetail(page);
   await expect(page.getByRole('region', { name: 'Total machines', exact: true })).toBeVisible();
   await expect(page.getByRole('region', { name: 'What needs you now' })).toBeVisible();
   await expect(page.getByRole('alert')).toHaveCount(0);

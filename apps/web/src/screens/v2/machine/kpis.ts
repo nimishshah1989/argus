@@ -1,12 +1,43 @@
 import type { IconName } from '../../../ui/v2/icons.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
-import { ageOf, type MachineRecord } from '../../analytics/machine-record.js';
+import { ageOf, machineRecord, type MachineRecord } from '../../analytics/machine-record.js';
+import { bag } from '../../analytics/read-value.js';
 import { dayText, type Translate } from '../figures/read.js';
 import { drillOf, number } from './format.js';
 
 const FLAT = { text: '', up: false, good: true, flat: true } as const;
 
-type Spec = { id: string; icon: IconName; label: string; value: string; meaning: string };
+type Spec = {
+  id: string;
+  icon: IconName;
+  label: string;
+  value: string;
+  meaning: string;
+  yardstick?: string;
+};
+
+/** The machine's rank in the plant for one figure, as the tile's yardstick; undefined when the machine has no value. */
+type Rank = (value: (record: MachineRecord) => number | null | undefined) => string | undefined;
+
+/** Every machine's record in the engine's `machine-page` figure (just this one when the figure holds no map). */
+function plantOf(page: unknown, record: MachineRecord): MachineRecord[] {
+  const root = bag(page);
+  const map = bag(root?.byMachine) ?? bag(root?.machines);
+  return map ? Object.keys(map).flatMap((id) => machineRecord(page, id) ?? []) : [record];
+}
+
+/** Competition rank (ties share it), highest first, among the machines that have the value. */
+const rankIn =
+  (plant: MachineRecord[], record: MachineRecord, t: Translate): Rank =>
+  (value) => {
+    const mine = value(record);
+    if (mine == null) return undefined;
+    const all = plant.flatMap((r) => value(r) ?? []);
+    return t('analytics.machine.rank', {
+      rank: 1 + all.filter((v) => v > mine).length,
+      n: all.length,
+    });
+  };
 
 const card = (spec: Spec, drill?: KpiData['drill']): KpiData => ({
   ...spec,
@@ -21,7 +52,7 @@ const shown = (n: number | null | undefined, digits: number, unit?: string): str
   n == null ? '—' : `${number(n, digits)}${unit ? ` ${unit}` : ''}`;
 
 /** Age with its basis (or "no purchase date"), the floor area and the two loads: what the machine is. */
-function identityCards(record: MachineRecord, asOf: string, t: Translate): KpiData[] {
+function identityCards(record: MachineRecord, asOf: string, rank: Rank, t: Translate): KpiData[] {
   const none = t('analytics.machine.notAvailable');
   const age = ageOf(record.machine, asOf, record.ageYears, record.ageEstimated);
   const basis = age?.estimated
@@ -41,6 +72,7 @@ function identityCards(record: MachineRecord, asOf: string, t: Translate): KpiDa
       label: t('analytics.machine.age'),
       value: shown(age?.years, 0, t('analytics.machine.unit.years')),
       meaning: age === null ? t('analytics.machine.noPurchase') : basis,
+      yardstick: rank((r) => ageOf(r.machine, asOf, r.ageYears, r.ageEstimated)?.years),
     }),
     card({
       id: 'floor-area',
@@ -51,6 +83,7 @@ function identityCards(record: MachineRecord, asOf: string, t: Translate): KpiDa
         record.floorAreaM2 === null
           ? t('analytics.machine.noSize')
           : t('analytics.machine.floorAreaBasis'),
+      yardstick: rank((r) => r.floorAreaM2),
     }),
     card({
       id: 'connected-load',
@@ -58,6 +91,7 @@ function identityCards(record: MachineRecord, asOf: string, t: Translate): KpiDa
       label: t('analytics.machine.connectedLoad'),
       value: shown(record.connectedKva, 2, kva),
       meaning: record.connectedKva === null ? none : '',
+      yardstick: rank((r) => r.connectedKva),
     }),
     card({
       id: 'running-load',
@@ -65,14 +99,14 @@ function identityCards(record: MachineRecord, asOf: string, t: Translate): KpiDa
       label: t('analytics.machine.runningLoad'),
       value: shown(record.runningKva, 2, kva),
       meaning: record.runningKva === null ? none : factor,
+      yardstick: rank((r) => r.runningKva),
     }),
   ];
 }
 
 /** Breakdowns, their hours and repair time, and PM hours: what the machine has cost, each opening its rows. */
-function workCards(record: MachineRecord, machineId: string, t: Translate): KpiData[] {
+function workCards(record: MachineRecord, machineId: string, rank: Rank, t: Translate): KpiData[] {
   const none = t('analytics.machine.notAvailable');
-  const bd = record.breakdowns;
   const hours = t('analytics.machine.unit.hours');
   const tickets = (label: string) =>
     drillOf({ machineId, part: 'breakdowns', ids: record.drills.breakdowns }, label, t);
@@ -80,26 +114,34 @@ function workCards(record: MachineRecord, machineId: string, t: Translate): KpiD
     id: string,
     icon: IconName,
     label: string,
-    value: { n: number | null | undefined; unit?: string },
-  ) =>
-    card(
+    value: { of: (r: MachineRecord) => number | null | undefined; unit?: string },
+  ) => {
+    const n = value.of(record);
+    return card(
       {
         id,
         icon,
         label,
-        value: shown(value.n, value.unit ? 2 : 0, value.unit),
-        meaning: value.n == null ? none : '',
+        value: shown(n, value.unit ? 2 : 0, value.unit),
+        meaning: n == null ? none : '',
+        yardstick: rank(value.of),
       },
       tickets(label),
     );
+  };
   const pmLabel = t('analytics.machine.pmHours');
   return [
-    spec('breakdowns', 'alert', t('analytics.machine.breakdownCount'), { n: bd?.count }),
+    spec('breakdowns', 'alert', t('analytics.machine.breakdownCount'), {
+      of: (r) => r.breakdowns?.count,
+    }),
     spec('breakdown-hours', 'clock', t('analytics.machine.breakdownHours'), {
-      n: bd?.hours,
+      of: (r) => r.breakdowns?.hours,
       unit: hours,
     }),
-    spec('mttr', 'wrench', t('analytics.machine.mttr'), { n: bd?.mttr, unit: hours }),
+    spec('mttr', 'wrench', t('analytics.machine.mttr'), {
+      of: (r) => r.breakdowns?.mttr,
+      unit: hours,
+    }),
     card(
       {
         id: 'pm-hours',
@@ -107,16 +149,21 @@ function workCards(record: MachineRecord, machineId: string, t: Translate): KpiD
         label: pmLabel,
         value: shown(record.pm?.hours, 2, hours),
         meaning: record.pm?.hours == null ? none : '',
+        yardstick: rank((r) => r.pm?.hours),
       },
       drillOf({ machineId, part: 'pm', ids: record.drills.pm }, pmLabel, t),
     ),
   ];
 }
 
-/** The eight headline figures: what the machine is (age, size, load) and what it has cost. */
-export const kpisOf = (
+/** The eight headline figures: what the machine is (age, size, load) and what it has cost, each ranked in the plant. */
+export function kpisOf(
   record: MachineRecord,
-  asOf: string,
+  at: { page: unknown; asOf: string },
   machineId: string,
   t: Translate,
-): KpiData[] => [...identityCards(record, asOf, t), ...workCards(record, machineId, t)];
+): KpiData[] {
+  const { page, asOf } = at;
+  const rank = rankIn(plantOf(page, record), record, t);
+  return [...identityCards(record, asOf, rank, t), ...workCards(record, machineId, rank, t)];
+}

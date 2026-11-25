@@ -389,12 +389,18 @@ test('a head moves a PM job to a date with the keyboard alone', async ({ page },
   await page.goto('/analytics/pm');
   await expect(page.getByRole('heading', PM_HEADING)).toBeVisible();
   const jobs = jobsOf(page);
-  await jobs.getByRole('searchbox').fill(machine.code);
+  // Under 10 jobs the table has no search box and every job is on its one page (ADR 0036 R13); 10 or more, search.
+  const findJob = async () => {
+    await expect(jobs.getByRole('columnheader').first()).toBeVisible();
+    const search = jobs.getByRole('searchbox');
+    if ((await search.count()) > 0) await search.fill(machine.code);
+  };
+  await findJob();
   const open = jobs.getByRole('button', { name: `Move to date ${machine.code}` });
   // The job sits on today or, when the drag test ran first, on the next working day: that may be next month.
   if (!(await open.isVisible())) {
     await page.getByRole('button', { name: 'Next Month', exact: true }).click();
-    await jobs.getByRole('searchbox').fill(machine.code);
+    await findJob();
     await expect(open).toBeVisible();
   }
   await open.focus();

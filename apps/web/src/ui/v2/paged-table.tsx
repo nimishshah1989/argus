@@ -54,9 +54,11 @@ type Props<R> = {
   sort?: SortState;
   onSort?: (sort: SortState) => void;
   selects?: SelectFilter[];
+  /** something outside the table (a select beside it) has narrowed the list */
+  narrowed?: boolean;
   /**
    * 1-based. `total` known: "1–10 of 1,343". Unknown: only whether another page follows (`hasNext`). A known `total`
-   * under 10 (`isSmall`, ADR 0036 R13) draws no pager.
+   * under 10 (`isSmall`, ADR 0036 R13) draws no pager, unless a filter narrows it (the count then stays).
    */
   page: number;
   total?: number;
@@ -157,6 +159,21 @@ function Selects({ selects }: { selects: SelectFilter[] }) {
   );
 }
 
+/** A search, a chip, a select or an outside narrowing has cut the list: small is then judged on the filtered count, not kept. */
+function filteredOf<R>({ query, chip, selects, narrowed }: Props<R>): boolean {
+  return (
+    (query ?? '').trim() !== '' ||
+    (chip !== '' && chip !== 'all') ||
+    (selects ?? []).some((s) => s.value !== '') ||
+    narrowed === true
+  );
+}
+
+/** A known total under 10 draws no pager, but only while nothing filters it: unfiltered, that total is the whole list. */
+function pagerShown<R>(p: Props<R>): boolean {
+  return !(p.total !== undefined && isSmall(p.total) && !filteredOf(p));
+}
+
 /** What the pager says and how many pages it has: counted when the server counts the list, else only whether one follows. */
 function pagerOf<R>({ rows, page, total, hasNext, words }: Props<R>): {
   pages: number;
@@ -209,9 +226,9 @@ export function PagedTable<R>(props: Props<R>) {
           ) : null}
         </div>
       </div>
-      {props.total !== undefined && isSmall(props.total) ? null : (
+      {pagerShown(props) ? (
         <TablePager showing={showing} page={page} pages={pages} onPage={props.onPage} />
-      )}
+      ) : null}
       {props.foot}
     </section>
   );
