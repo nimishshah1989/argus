@@ -39,7 +39,7 @@ function Entry({ item }: { item: GuideItem }) {
             <li key={link.figure}>
               <Link to={link.href} className="v2-link">
                 {t('analytics.guide.openFigure')} —{' '}
-                {t(FIGURE_LABELS[link.figure] ?? 'analytics.figure.unknown')}
+                <span>{t(FIGURE_LABELS[link.figure] ?? 'analytics.figure.unknown')}</span>
               </Link>
             </li>
           ))}
