@@ -17,7 +17,7 @@ export function periodFrom(search: string): Period {
 }
 
 /**
- * The period choice as one kit toggle (ADR 0036 R4, #693): returns
+ * The period choice as one kit toggle (ADR 0036 R4): returns
  * `<Segmented label={t('insight.period.label')} options={[{ key: 'sofar', label: t('insight.period.sofar') },
  * { key: 'full', label: t('insight.period.full') }]} value={value} onChange={onChange} />`, in that option order.
  * Words via `useTranslation()` as in `table-parts.tsx`. No CSS of its own (`Segmented` brings `.v2-segmented`).

@@ -1,1 +1,1 @@
-- KIT-10 (#693): a page's period choice is one kit toggle, Days so far | Full year, kept in the URL (`?period=full`), so every figure on the page uses one period (ADR 0036 R4).
+KIT-10: the period choice (Days so far | Full year) is one kit toggle kept in the URL (`?period=full`), with `periodFrom` reading it back (ADR 0036 R4).
