@@ -69,3 +69,13 @@ No row is MISSING or DROPPED. Some rows are `moved`; no heading is drawn per pri
 | Slipping commitments: acknowledged nudges past their due day      | ack `due` against the as-of day             | Data stored, one comparison | later                |
 | Raise the inspection from a nudge                                 | `POST nudges/:key/ticket` (`canRaise` only) | Yes, route exists           | later                |
 | Money at stake, head roles only                                   | cost per hour in settings                   | Engine has none per nudge   | later                |
+
+## ADR 0036 kit rules (ticket #750, sweep #706 batch A)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25. Rows from the builder's `docs/loop/handoff/750.md` and ticket #750.
+
+| Item                                            | v2      | Where in v2                                                                                                                                   |
+| ----------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| The four count tiles (ADR 0036 R1)              | changed | the four counts go through TileSet (all four shown); when all are zero, the kit prints one line saying so                                     |
+| Download Excel of the nudge table (ADR 0036 R6) | better  | Download Excel above the nudge table (file `action-center`), one sheet per table as shown, exact numbers; no doc reference (not in `DOC_REF`) |
+| The reason a machine is at risk (ADR 0036 R17)  | better  | the risk table's why column is a row of reason chips; the sort still runs on the engine's text                                                |
