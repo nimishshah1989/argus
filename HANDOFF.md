@@ -3,32 +3,21 @@
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-25 · **By:** Plan · **Model:** Opus 5.5
-**Milestone:** M2b screens lane · **Branch:** plan/kit-carve-out-0036
+**Milestone:** M2b screens lane · **Branch:** plan/kit-css-seeds
 
 ## State
 
-- **Kit carve-out (ADR 0039, Nimish yes 25 Nov):** PR on `plan/kit-carve-out-0036` opens 13 kit files to builders (685 686 691 692 694 695 696 697 699 700 704). Every kit ticket 684–704 checked against the new list with loop-guard's `matches()`: none needs another locked file. Ends when 684–704 merge: restore `apps/web/src/ui/**` (also closes ADR 0028 §4, which was never restored after #620).
-- origin/main is at 6835d813. Merged tonight: #702 #709 #710 #712 #713, CI gates cut (#708 ADR 0037, #714 ADR 0038). Open PRs: #711 (658) and #707 (643); #300 is a parked docs PR.
-- #711: only `browser (2/5)` (`escalation-history.spec.ts:179`) and `browser (3/5)` (`who-is-acting.spec.ts`, `page.goto ERR_ABORTED`) failed. I ran `gh run rerun 45459761692 --failed`; at 00:35 IST the run was in progress, result not seen. `merger.sh` merges it when all checks finish clean.
-- Pattern: `escalation-history.spec.ts:179` failed on #713 and on #711, both inside 23:55–00:03 IST (18:25–18:33 UTC). Looks like an IST-midnight date rollover; not proven. If it fails again after midnight, it is a real bug: file a ticket.
-- #707 (643) is DIRTY (conflict in `insight-coverage.test.ts`, keep both sides). The hook blocks the coordinator from `.loop/wt/643`: `loop prep 643`, then the builder.
-- Load average was 55: `pool.sh` x6, `merger.sh`, several `loop build/finish` at once. The two engine-scale tests time out under that load, so finishes fail for a reason that is not the ticket.
+- Kit stylesheets seeded by Plan (tokens only, ADR 0036) and pushed; `sheets.ts` auto-loads every `ui/v2/*.css`, so no imports were needed. Typecheck clean on all nine; visible tests red only on `not implemented` / undrawn `data-status`/`data-seg`.
+  685 `11530921` kpi-tone.css status edge+badge, unit, basis · 686 `7fb74175` cards.css tile-set, zero-line, show-detail · 691 `66fc63ec` action-strip.css (+ `.v2-strip-link` named in skeleton) · 692 `2cab2f72` severity-row.css · 694 `0362f993` ranked-bars.css (+ row classes, `data-half`/`data-rest` in skeleton) · 697 `1766556d` quadrant.css (+ classes in skeleton) · 699 `2e4159cd` reason-chip.css · 700 `6b2bda83` v2.css `[data-seg]` + entity-chip.css edge · 704 `9b29a06b` status-chip.css (FigureTile edge comes from 685's `.v2-kpi[data-status]`).
+- No new tokens: status (`--color-v2-good|watch|bad|neutral-*`) and segment tokens are already on main. #704's body says `--color-v2-status-*`; those do not exist, the CSS uses the real ones.
+- Issue bodies of all nine: the CSS line now says "already written in the seed by Plan; do not edit". #692 and #697 were blanked by a failed `gh` read (TLS error) and restored by hand, keeping the coordinator's "Builder shell rules" note. Re-check the nine bodies once; the last full check timed out (GitHub TLS flaky).
 
 ## Next step
 
-1. Check #711 merged (`gh pr view 711`), then #707 as above.
-2. Merge the ADR 0039 carve-out PR when green, then restart the kit pool jobs (685 686 691 692 694–697 699 700 704).
-3. Run `loop finish` one at a time on a quiet machine: 657, 664, 665, 666, 667, 668. Do not start new builds while the load is above ~10.
-4. Kit tickets that can build now (no protected file): 684, 687, 688, 689, 690, 693, 698, 701, 703. Not started: 640, 644, 669–679.
-
-## Blocked / open questions
-
-- 666 and 667: builders reported BLOCKED because `pnpm typecheck` was denied in the background session. `loop finish` runs the gate itself.
-- Still open from before: Robots colour (#706, #700); #705 which 3 figures; S22 "vs the 320 days before" (#679); #651; S27–S30 wireframes wait for Nimish.
+1. Build branches for 685 and 692 (and 694 if started) must take their seed: merge `plan/t<N>` into the build branch, repoint `Plan-base`, then re-run the builder (tsx only).
+2. Start 686 691 697 699 700 704 from the updated seeds.
 
 ## Don't repeat
 
-- Check `.loop.json` `protected` against a ticket's "Files to change" before building a pool: outside a carve-out, a CSS file under `apps/web/src/ui/` is protected.
-- `loop finish` under heavy load fails on `engine-scale.test.ts`; that is load, not the ticket. One at a time.
-- `git add` named files only; commit from a temp worktree (the main checkout has a dirty `docs/loop/metrics.jsonl`, not committed here).
-- zsh does not word-split `$var`: use `${r%%:*}`.
+- Never `gh issue edit --body-file` from a read that may have failed: check the file is non-empty first.
+- A seed must carry every plan-owned file in its ticket's "Files to change" (LESSONS 25 Nov).
