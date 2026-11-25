@@ -13,3 +13,4 @@ One page per irreversible or expensive-to-reverse decision. Each records the con
 - `0009-fullcalendar.md` — FullCalendar 7.1.5 (MIT), lazily loaded, for the PM calendar; the prototype and the no-dependency fallback
 - `0010-adopt-the-loop.md` — the build process moves from pstack to the loop; the repo's own design system stays
 - `0011-adoption-blueprint.md` — PROJECT.md written from the code as built; milestones M1–M5; built screens snapshotted as wireframes
+- `0040-kit-only-prs-need-no-screen.md` — `Screens: none (kit only)` passes loop-guard when every changed file is kit, changelog or handoff

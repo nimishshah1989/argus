@@ -1,6 +1,7 @@
 import type { CorrectDateWords } from '../../../ui/v2/domain/correct-date.js';
 import type { TableModel } from '../../../ui/v2/domain/engine-table.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
 
 /** What a correction needs of one move: which machine it belongs to, and the day it stands at now (`YYYY-MM-DD`). */
@@ -34,6 +35,8 @@ export type CellLogWords = {
 /** Every recorded cell and location move, newest first, with the controlled-document export and the head's correction. */
 export type CellLogModel = {
   verdict: VerdictData;
+  /** ADR 0035: `moves`, over every move by the cell it went to. */
+  takeaways?: Takeaways;
   kpis: KpiData[];
   table: TableModel;
   moves: MoveFacts[];

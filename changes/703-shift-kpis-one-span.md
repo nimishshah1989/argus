@@ -1,0 +1,1 @@
+- Shift KPIs now counts failures and PM hours over the same span as its working hours (the named period, else the year to date), so MTBF, availability, BD % and PM % no longer divide several years of failures by one year of hours; the workbook column is unchanged.
