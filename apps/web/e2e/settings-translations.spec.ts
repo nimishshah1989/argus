@@ -24,6 +24,9 @@ async function clearOverrides(): Promise<void> {
   expect(res.status).toBe(200);
 }
 
+// Gujarati is hidden by default (ADR 0036 R25); this check proves the overrides still work with it switched on.
+test.use({ gujaratiOn: true });
+
 test('admin types Gujarati for a missing key; it shows at once and after a reload', async ({
   page,
 }, testInfo) => {
