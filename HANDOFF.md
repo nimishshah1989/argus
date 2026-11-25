@@ -23,7 +23,10 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 - #679 merge still needs Nimish's written yes on the unbuilt "+8% vs 320 days" row.
 - #752 turns the problem-analysis scatter into a Quadrant (ADR 0041); Nimish's "keep the bubble" was about the dashboard. Confirm before merging #752.
 
+- loop-guard reads `#706`-style issue numbers as hex colours. Removed the `#` from seed comments: `plan/t750`, `plan/t751`, `plan/t753` (latest commits). #752 and #679 seeds had none. Builds 750–753 add none.
+
 ## Next (coordinator)
 
+0. PR #756 (this): CI was red only on loop-guard (fixed, re-pushed) and the expected browser shards; merge when loop-guard is green.
 1. Merge `origin/main` (after this PR) and the updated seed into each build branch: #679 ← `plan/t679`; #750–#753 ← `plan/t750..t753`. Then one handoff-only re-finish per ticket (Blocked must read exactly "None.").
 2. Whether that re-finish counts as a new attempt is still the coordinator's call (unchanged).
