@@ -1,6 +1,7 @@
+import i18n from 'i18next';
 import type { Config, Me, Ticket } from '../../../api.js';
 import { openOnMachines, type FloorData } from '../../../faces/floor/use-floor.js';
-import type { ReportInput } from './adapter.js';
+import { reportModel, type ReportInput } from './adapter.js';
 import type { ReportModel } from './model.js';
 
 /**
@@ -136,6 +137,5 @@ export function reportInput(over: Partial<ReportInput> = {}): ReportInput {
 
 /** The gallery's frozen floor: Step 1 of `reportModel` for Ravi (maintenance) or Omi, in English. */
 export function floorFixture(maintenance: boolean | undefined): ReportModel {
-  void maintenance;
-  throw new Error('not implemented');
+  return reportModel(maintenance ? FLOOR_TECH : FLOOR_OPERATOR, reportInput(), i18n.t.bind(i18n));
 }

@@ -170,60 +170,53 @@ export type FloorWaiting = 'loading' | 'error' | 'offline';
 
 /** The tabs a login gets: Report and My complaints; PM jobs only when `maintenance` is true (not while loading). */
 export function floorTabKeys(maintenance: boolean | undefined): FloorTabKey[] {
-  void maintenance;
-  throw new Error('not implemented');
+  return maintenance === true ? ['report', 'mine', 'pm'] : ['report', 'mine'];
 }
 
 /** The tab a path lights: `/floor/mine` → mine, `/floor/pm` → pm, anything else (Other work too) → report. */
 export function currentTab(pathname: string): FloorTabKey {
-  void pathname;
-  throw new Error('not implemented');
+  return pathname === '/floor/mine' ? 'mine' : pathname === '/floor/pm' ? 'pm' : 'report';
 }
 
 /** A tap on a machine: an open breakdown (not a support ticket) opens its sheet; else Step 2. */
 export function rowOpens(ticket: Ticket | undefined): 'sheet' | 'situation' {
-  void ticket;
-  throw new Error('not implemented');
+  return ticket && ticket.kind !== 'support' ? 'sheet' : 'situation';
 }
 
 /** The step the flow opens on: Step 2 (1) when the deep link found a machine. */
 export function startStep(machine: Machine | null): 0 | 1 {
-  void machine;
-  throw new Error('not implemented');
+  return machine ? 1 : 0;
 }
 
 /** What a ticket is about on the floor: its machine's code, else the place for other work, else ''. */
 export function ticketPlace(data: FloorData, ticket: Ticket): string {
-  void [data, ticket];
-  throw new Error('not implemented');
+  return data.config.machines.find((m) => m.id === ticket.machineId)?.code ?? ticket.location ?? '';
 }
 
 /** "Name (Title)" (or "Name") of the person who reported it; '' when the plant does not list them. */
 export function reporterName(data: FloorData, ticket: Ticket): string {
-  void [data, ticket];
-  throw new Error('not implemented');
+  const person = data.config.people.find((x) => x.id === ticket.reportedByPersonId);
+  if (!person) return '';
+  return person.title ? `${person.name} (${person.title})` : person.name;
 }
 
 /** Send may be pressed on Step 3: an upgrade, or a problem that is not blank once trimmed. */
 export function sendReady(upgrade: boolean, problem: string): boolean {
-  void [upgrade, problem];
-  throw new Error('not implemented');
+  return upgrade || problem.trim().length > 0;
 }
 
 /** The place an Other work request is sent for: the typed place (trimmed) wins over the picked cell. */
 export function otherWorkLocation(form: OtherWorkForm): string {
-  void form;
-  throw new Error('not implemented');
+  return form.typed.trim() || form.place;
 }
 
 /** Send work request may be pressed: a place, a type of work and a need (trimmed). */
 export function otherWorkReady(form: OtherWorkForm): boolean {
-  void form;
-  throw new Error('not implemented');
+  return Boolean(otherWorkLocation(form) && form.workType && form.needed.trim());
 }
 
 /** Before the data is in: still loading until there is an error; a failed load reads offline when the phone is. */
 export function floorWaiting(error: unknown, online: boolean): FloorWaiting {
-  void [error, online];
-  throw new Error('not implemented');
+  if (!error) return 'loading';
+  return online ? 'error' : 'offline';
 }
