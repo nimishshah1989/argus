@@ -7,7 +7,7 @@ _Overwritten at the end of every session. Facts only._
 ## State
 
 - **Merged:** PR #740 (loop-guard accepts `Screens: none (kit only)` / `none` when every changed file is under `apps/web/src/ui/`, `changes/`, `docs/loop/handoff/`; ADR 0040, Plan wrote and merged it). After `gh pr update-branch` + green CI, #736 (#697), #737 (#691), #738 (#699) merged (merger.sh did it; each had an earlier reviewer PASS). I did NOT edit any PR body to name S01-dashboard (the last handoff said that needs Nimish's own yes).
-- **Open, green:** PR #741 (#694 ranked bars). Reviewer subagent was started on it and had not reported; check `gh pr view 741` (merger.sh may merge it first). If still open: re-run the reviewer, then merge on PASS.
+- **Also merged:** PR #741 (#694 ranked bars; merger.sh merged it before the reviewer finished, reviewer then said PASS). Plan follow-ups from that review: `ranked-bars.css` seed has raw px (8px, 999px, 560px) → switch to `--space-v2-*` tokens; `key="half"` could clash with a row key; a share under 0.5% prints "0%" (maybe "<1%").
 - **#692:** built (code 56a750ad). `loop finish 692` failed only on `prettier --check docs/loop/handoff/692.md`. I ran `loop prep 692` (attempts_so_far 1). Next: `loop build 692 --bg`, `loop wait 692`, `loop finish 692`. Tell the builder to run `pnpm exec prettier --write docs/loop/handoff/692.md` and leave `## Blocked` empty of text (the old Blocked text must be removed).
 - **#685 (PR #739, reviewer FAIL):** Plan fixed the seed `plan/t685` (2.2/2 band-edge test, aria-label unit test; issue rules updated). Next: `loop prep 685 --fresh`, `loop build 685 --bg`, `loop finish 685`, review.
 - **#700:** cause found: the guard reads `.loop.json` from the MAIN checkout, which was sitting on `plan/t701` (old `.loop.json` from before ADR 0039 locked `entity-chip.tsx`). Plan merged main into `plan/t700`. Next: `loop prep 700 --fresh`, build, finish.
@@ -16,7 +16,7 @@ _Overwritten at the end of every session. Facts only._
 
 ## Next step
 
-1. `gh pr view 741`; merge #694 on reviewer PASS. 2. `loop clean 697 691 699 694` after merges. 3. Rebuild 692, 685, 700 (max two at once), then 704, 695, 696. 4. Ask Nimish one question: how #701's `Screens:` line should be handled. 5. Final 5-line report to Nimish (merged, what he can click on staging, what needs him, screens done — 52 v2 screen folders exist, NOT checked each is routed and live).
+1. `loop clean 697 691 699 694` (all merged). 2. Check `gh pr list` for anything open and green. 3. Rebuild 692, 685, 700 (max two at once), then 704, 695, 696. 4. Ask Nimish one question: how #701's `Screens:` line should be handled. 5. Final 5-line report to Nimish (merged, what he can click on staging, what needs him, screens done — 52 v2 screen folders exist, NOT checked each is routed and live).
 
 ## Blocked (stop rule: no further attempt without Nimish's word)
 
