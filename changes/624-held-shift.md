@@ -1,0 +1,1 @@
+The legacy converter keeps a shift only when it plainly names A (`1`, `1ST`, `1STG`, `1TS`) or B (`2`, `2ND`, `2D`); every other shift is held to the review tray with reason `held_shift` and the shift as written, and the row is not loaded.

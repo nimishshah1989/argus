@@ -2,11 +2,13 @@ import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SWITCHES } from '../apps/server/src/seed/legacy-classify.js';
+import { DEFAULT_SWITCHES, classifyLegacy } from '../apps/server/src/seed/legacy-classify.js';
 import { convertLegacy } from '../apps/server/src/seed/legacy-export.js';
+import { KNOWN, fixtureRows } from '../apps/server/src/seed/legacy-fixture.js';
 import {
   assertOutsideRepo,
   findWorkbooks,
+  formatReport,
   loadPlant,
   parseArgs,
   parseSwitches,
@@ -110,4 +112,12 @@ describe('import:legacy command', () => {
     },
     300_000,
   );
+
+  it('reports held shifts by that name and counts them in the identity line (ticket 624)', () => {
+    const [report] = classifyLegacy(fixtureRows(), KNOWN, DEFAULT_SWITCHES).reports;
+    const lines = formatReport({ ...report!, heldShift: 3 }, []).join('\n');
+    expect(lines).toContain('held shift 3 |');
+    expect(lines).not.toContain('stray shift');
+    expect(lines).toMatch(/identity read = .*\+ held shift.*: /);
+  });
 });
