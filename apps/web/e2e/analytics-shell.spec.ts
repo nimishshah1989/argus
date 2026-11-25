@@ -47,7 +47,8 @@ test('a head sees the six sections and the Guide, tabs inside a section, and a p
   );
   await tabs.getByRole('button', { name: 'Money Matters', exact: true }).click();
   await expect(page).toHaveURL(/\/analytics\/cost$/);
-  await expect(page.getByRole('heading', { name: 'People & money', exact: true })).toBeVisible();
+  // Money Matters is a v2 page (ticket 679): its own title, in the v2 shell.
+  await expect(page.getByRole('heading', { level: 1, name: 'Money Matters' })).toBeVisible();
 });
 
 test('Ctrl K opens a search over the real routes and Enter goes there', async ({ page }, info) => {

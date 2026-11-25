@@ -44,16 +44,16 @@ database id, as the server does.
 
 ## ADR 0036 kit rules (ticket #752, sweep #706 batch C)
 
-One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25.
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25. Rows from the builder's `docs/loop/handoff/752.md` and ticket #752.
 
-| Rule                          | Status         | Where, or why not                                                                                                        |
-| ----------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| R1 / R10 TileSet + ShowDetail | done           | `View.tsx`: the two KPIs are a `TileSet` (2 tiles, nothing folds; with no moves they collapse to the all-zero line, R10) |
-| R2 ActionStrips               | not applicable | dashboard only; no other page has counts with a way in (ADR 0041)                                                        |
-| R4 PeriodToggle               | not applicable | the engine serves one period only (`figuresReplySchema`); a toggle would compute figures it did not print (ADR 0041)     |
-| R5 ReviewMarker               | not applicable | no model carries a held-for-review count and there is no review-tray route (ADR 0041)                                    |
-| R6 Download Excel             | not applicable | the CSV stays: it already carries CE-MTN-F-01 (ADR 0041)                                                                 |
-| R11 readable / rupees / exact | not applicable | the page formats no lakh-scale number or money itself; engine-printed strings are never re-rounded (ADR 0041)            |
-| R17 ReasonChips               | not applicable | only the Action Center risk table carries reasons; other repeat columns are engine-printed counts (ADR 0041)             |
-| R20 RankedBars                | not applicable | no Pareto or ranked bar on this page in ADR 0043's map                                                                   |
-| R21 Quadrant                  | not applicable | no bubble chart on this page (ADR 0041)                                                                                  |
+| Rule                          | Status         | Where, or why not                                          |
+| ----------------------------- | -------------- | ---------------------------------------------------------- |
+| R1 / R10 TileSet + ShowDetail | done           | 2 tiles, nothing folds; no moves → the all-zero line (R10) |
+| R20 RankedBars                | not applicable | ADR 0041                                                   |
+| R21 Quadrant                  | not applicable | ADR 0041                                                   |
+| R6 Download Excel             | not applicable | the CSV stays; it carries CE-MTN-F-01 (ADR 0041)           |
+| R11 readable / rupees / exact | not applicable | ADR 0041                                                   |
+| R2 ActionStrips               | not applicable | ADR 0041                                                   |
+| R17 ReasonChips               | not applicable | ADR 0041                                                   |
+| R4 PeriodToggle               | not applicable | ADR 0041                                                   |
+| R5 ReviewMarker               | not applicable | ADR 0041                                                   |

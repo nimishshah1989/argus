@@ -258,8 +258,9 @@ async function openA4(page: Page): Promise<void> {
   const manpower = page.getByRole('region', { name: 'Manpower Table', exact: true });
   await expect(manpower.getByRole('cell', { name: '469.40', exact: true })).toBeVisible();
   await expect(manpower.getByRole('cell', { name: '15.40%', exact: true })).toBeVisible();
-  // Every row of the key is in the table: three people, three rows.
-  await expect(manpower.getByText(/^1–3 of 3$/)).toBeVisible();
+  // Every row of the key is in the table: three people, three rows under the header (under 10 rows there is no pager,
+  // ADR 0036 R13).
+  await expect(manpower.getByRole('row')).toHaveCount(4);
   const charts = page.locator('[data-chart-state]');
   await expect(charts).toHaveCount(1);
   await expect(charts).toHaveAttribute('data-chart-state', 'ready');

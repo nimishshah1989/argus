@@ -2,26 +2,23 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-25 · **By:** Coordinator (kit remaining) · **Model:** Opus 5.5
-**Milestone:** M2b kit lane · **Branch:** kit/remaining-adr-0036
+**Updated:** 2026-11-26 · **By:** Coordinator (Sonnet 5.5) · **Goal (Nimish):** all screens live on the newest kit · **Branch:** plan/handoff-s26b
 
 ## State
 
-- ONE PR for the remaining ADR 0036 kit tickets, each built from its own seed, merged into `kit/remaining-adr-0036`.
-- In: #685 #687 #688 #692 #696 #700 #701 #704. Hidden compare test edit (#687, R13: no search under 10 rows) taken from plan PR #743.
-- Seeds #695 #696 #701 #704 had main merged in (conflicts: old #694 skeleton of `ranked-bars.tsx` → main's; HANDOFF → main's; ADR index keeps both 0041 lines).
-- Out: #695 (old `v2.test.ts` running-total test contradicts rule 1), #689 (bd-pm, manpower, mttr-mtbf screen tests assert the total as a body row), #705 and #732 (no seed branch).
+- MERGED: #783 sweep B (#751; reviewed PASS, CI green) and #782 Monthly Report (#763; merged by a parallel run/Nimish's account during a planner job — no reviewer pass in this session, UNVERIFIED; check its deploy and the deploy run on main).
+- Earlier: #796 S26-1 Settings shell + Jobs, #797 main repair, #781 sweep A.
+- Open: #799 (old handoff, superseded by this one — close it).
+- Not started: #765 S24 Annual, sweeps #752/#753, S26 tickets #789–#795 (any order; seeds `plan/t789`..`t795`). S27–S30 builds #767/#769 may sit in other sessions' `.loop/wt/`.
 
-## Tests
+## Follow-ups (plan job needed)
 
-- Merged branch: fast suite 402 files / 3367 passed; `pnpm typecheck` 0; `pnpm lint` 0 errors (7 warnings); `pnpm format:check` clean.
-- Full suite (Docker) and e2e: not run locally; CI runs them.
+- #751 comment lists 4: Excel button empty workbook when figures cache empty (breakdown-log/Page.tsx:36); stale comment + unused `words.export` (View.tsx:158); figures 5+ render below tables via `after` slot (bd-pm, category-cell); export filename uses UTC date.
+- S26-1 follow-ups issue.
 
-## Blocked
+## Don't repeat
 
-- #695, #689: need `loop plan` to change the contradicting tests. #705, #732: need seeds.
-
-## Next step
-
-1. CI green + reviewer PASS → merge.
-2. Plan: fix #695/#689 tests, seed #705/#732. Two ADRs numbered 0041 (Gujarati switch, sweep #706 map): renumber one. Close or merge plan PR #743.
+- A builder that edits an existing test fails loop-guard. Fix = `loop plan` puts the corrected test on the seed `plan/t<N>`, then merge main + seed into the PR branch from a throwaway worktree OUTSIDE `.loop/wt` (builders and coordinator are hook-blocked from merging there), hooks ON, then close/reopen the PR so loop-guard rereads `Plan-base:`.
+- `loop finish` says "CI GREEN" even when the PR is CONFLICTING and no CI ran. Check `gh pr view --json mergeStateStatus` before review.
+- `loop plan` jobs that merge + run CI can exceed 10 min; run them in background with a long timeout and check `gh pr list` before rerunning.
+- Never merge with red browser shards.

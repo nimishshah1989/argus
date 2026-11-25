@@ -134,3 +134,15 @@ for Today (targets, a value per decision and job data are not collected), none w
 Coverage re-checked for ticket #551 (file renames only, no scope change): 2026-11-23.
 
 Coverage re-checked for ticket #554 (the chart gains its "Show the numbers" table; nothing removed): 2026-11-23.
+
+## ADR 0036 kit rules (ticket #750, sweep #706 batch A)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25. Rows from the builder's `docs/loop/handoff/750.md` and ticket #750.
+
+| Item                                                                | v2                                           | Where in v2                                                                                                                                                                                                   |
+| ------------------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| KPI cards in a tile set, later sections folded (ADR 0036 R1)        | changed                                      | the lead section goes through TileSet (4 shown, the rest in its own Show detail); every later section sits inside one Show detail below "What needs you now"; all 17 cards kept, the lead card still the hero |
+| Action Center and Team Focus banners as action strips (ADR 0036 R2) | changed                                      | one strip each with its count and link under "What needs you now"; a strip with a count of 0 is not drawn, at most 3; nothing is drawn when all are 0                                                         |
+| Costliest machines as ranked bars (ADR 0036 R20)                    | better                                       | the same machines and figures (hours, breakdowns) as ranked bars; the drill and the "View Problem Analysis" link are kept                                                                                     |
+| Large hours read in lakh (ADR 0036 R11)                             | changed                                      | an hours value of 1,00,000 or more prints through `readable`; under 1 lakh keeps its text; nothing changes on the answer key                                                                                  |
+| Bubble chart as a Quadrant (ADR 0036 R21)                           | not applied: Nimish kept the bubble (25 Nov) | the bubble chart, its filters and "press a dot to open the machine" stay as they are                                                                                                                          |

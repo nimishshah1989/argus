@@ -11,6 +11,7 @@ import { GROUPS, NO_VALUE, changeOfCard, dash, drillOf, kpiOf, valueOf } from '.
 import { changeOf } from '../../analytics/today-change.js';
 import type { ChartModel, DashboardFacts, DashboardModel, PlantMachine } from './model.js';
 import { bubbleOf } from './bubble.js';
+import { dashboardStrips } from './sweep.js';
 import { teamFocusOf } from './banners.js';
 import { bubblePoints, costliestOf, machinesTable, needsOf, warningOf } from './tables.js';
 import { needsNow } from './needs.js';
@@ -159,6 +160,7 @@ export function dashboardModel(facts: DashboardFacts, translate: Translate): Das
     needs,
     actionCenter: actionCenterOf(board, t),
     teamFocus: teamFocusOf(reply, t),
+    strips: dashboardStrips(facts.board, facts.reply, t),
     sections: sections.filter((s) => s.kpis.length > 0),
     costliest: costliest
       ? costliestOf(
