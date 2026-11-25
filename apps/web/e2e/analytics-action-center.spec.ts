@@ -192,11 +192,14 @@ async function openScreen(page: Page): Promise<void> {
   await page.setViewportSize({ width: 1440, height: 900 });
   await stubBoard(page);
   await signIn(page, 'head');
-  // The Today banner reads the same board and opens the screen.
-  await expect(
-    page.getByText('2 high-priority and 1 medium nudges need attention', { exact: true }),
-  ).toBeVisible();
-  await page.getByRole('link', { name: /Open Action Center/ }).click();
+  // The Today banner (action strips since sweep #706) reads the same board and opens the screen.
+  await expect(page.locator('.v2-banner-text, .v2-strip').first()).toContainText(
+    /^2 high-priority/,
+  );
+  await page
+    .getByRole('link', { name: /Open Action Center/ })
+    .first()
+    .click();
   await expect(page).toHaveURL(/\/analytics\/today\/action-center$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Action Center' })).toBeVisible();
   await expect(
