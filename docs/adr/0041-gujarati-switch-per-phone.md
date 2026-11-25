@@ -1,4 +1,4 @@
-# ADR 0038: Gujarati's switch is read on the phone, once at load
+# ADR 0041: Gujarati's switch is read on the phone, once at load
 
 Date: 25 Nov 2026 · Decided by: Plan (unattended; assumption for Nimish to confirm or reverse)
 

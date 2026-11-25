@@ -1,9 +1,7 @@
 import type { AnalyticsProfile } from '@uptimo/shared';
 import type { ShiftWindow } from '../business-hours.js';
 import { formatInr } from './format.js';
-import { isProduction } from './machine-facts.js';
-import { isPm, sourcedReports } from './rows.js';
-import { failureEvents, shiftKey, standardTotals, type KpiTotals } from './standard-kpis.js';
+import { eventsAt, pmRowsAt, shiftKey, standardTotals, type KpiTotals } from './standard-kpis.js';
 import { shiftCalendar, workingHoursPlant, workingMinutesPerDay } from './working-hours.js';
 import type { Computer, EngineData, FigureValue } from './types.js';
 
@@ -41,26 +39,6 @@ function shiftLabel(windows: readonly ShiftWindow[], code: string): string {
   return window === undefined
     ? `${name} (no window)`
     : `${name} (${clock(window.startMinute)}–${clock(window.endMinute)})`;
-}
-
-/** The failure rows at or before the run date, on the production fleet the comparison reads. */
-function eventsAt(data: EngineData, asOf: string) {
-  const production = new Set(data.machines.filter(isProduction).map((machine) => machine.id));
-  return failureEvents(data).filter(
-    (event) => event.report.date <= asOf && production.has(event.report.machineId),
-  );
-}
-
-/** The closed PM rows the comparison counts, so the split's PM cells sum to its PM total. */
-function pmRowsAt(data: EngineData, asOf: string) {
-  const production = new Set(data.machines.filter(isProduction).map((machine) => machine.id));
-  return sourcedReports(data).filter(
-    (row) =>
-      isPm(row) &&
-      row.ticket.status === 'closed' &&
-      row.report.date <= asOf &&
-      production.has(row.report.machineId),
-  );
 }
 
 interface ShiftParts {

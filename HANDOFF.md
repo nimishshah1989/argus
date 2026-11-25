@@ -1,7 +1,5 @@
 # HANDOFF
 
-> **24 Nov 23:00 — ADR 0037 (Nimish yes):** PR paperwork checks (parity, size, quality fields, changelog) warn instead of block.
-
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-25 · **By:** Plan · **Model:** Opus 5.5
@@ -9,27 +7,24 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 ## State
 
-- 25 Nov: seed `plan/t701` fixed (c8509f4c). PR #731's browser shards were red because the Gujarati specs could not switch Gujarati on. ADR 0038: `GUJARATI_ON` = `localStorage['uptimo.gujarati'] === 'on'`, read once at load; e2e option `gujaratiOn` (test.ts) sets it for the `gujarati` project, account language choice and translations spec; account.spec keeps a hidden-by-default check. New visible test `gujarati-switch.test.ts` (red on the seed). Proven locally with the one-line flag read on the build branch: vitest i18n 19/19, e2e account+translations+floor+i18n 57/57. Issue #701 has rule 0; #731 body `Screens:` → `S01-dashboard` (loop-guard rejected `none (kit only)`).
-- ADR 0036 is the one v2 kit rulebook (R1–R25). Nimish: English only (Gujarati hidden, #701); two shift windows as configured, no shift calendar.
-- Every kit ticket is seeded (`plan/t<N>`, red for the real reason, root `tsc --noEmit` 0 errors, critical tests only per ADR 0034): #684–#701. t686 got return types today (it did not typecheck).
-- Bases: kit seeds on this branch (#683); #688/#689 on `plan/t687`; #695/#696 on `plan/t694`; #703 on main.
-- Remaining 1–4 written: **#703** Shift KPIs one span (engine bug, seeded; answer-key fixture is 2026-only so no expected number moves) · **#704** verdict status chip + FigureTile status (size:small, seeded) · **#705** drawers ≤3 figures + full-page link (blocked by #666, not seeded) · **#706** sweep tracker (one ticket per screen, cut as each batch-2 ticket merges).
+- 25 Nov, three seed fixes. **#685** (`plan/t685` 23ea52f4): visible tests add `statusOf({value:2.2,target:2,better:'lower'})` → `watch` (band edge, compare with a small tolerance) and the drill button's `aria-label` naming `kpi.unit`; issue rules 1, 3 and Done-when say so. **#700** (`plan/t700` 0bdce5f7): seed, test and issue were consistent; both builders were blocked by the loop guard on `entity-chip.tsx` because the guard reads `.loop.json` from the **main checkout**, which was on `plan/t701` (pre-ADR 0039, file still locked). Seed re-merged with main; issue notes it. **#701** (`plan/t701`): its ADR renumbered 0038 → **0041** (`0041-gujarati-switch-per-phone.md`; main took 0038–0040), references fixed, README lists it; merged with main.
+- #701 seed (ADR 0041): `GUJARATI_ON` = `localStorage['uptimo.gujarati'] === 'on'`, read once at load; e2e option `gujaratiOn` (test.ts). Visible `gujarati-switch.test.ts` red on the seed. Issue #701 `Screens:` left as is: the ticket changes `apps/web/src/i18n/index.ts` and `apps/web/src/components/AccountSheet.tsx` (and its PR carries the seed's e2e specs), all outside ADR 0040's paths.
+- ADR 0036 is the one v2 kit rulebook (R1–R25). Kit stylesheets seeded by Plan on nine seeds (tokens only). ADR 0039 opens 13 named kit files to builders until #684–#704 close.
 
 ## Next step
 
-#701: builder merges `origin/plan/t701`, changes the `GUJARATI_ON` line per rule 0, re-runs; `loop ci 731`; reviewer. Other `Screens: none (kit only)` tickets (#689, #693, …) will hit the same loop-guard error — use an approved screen id. Coordinator: merge #683 when green (kit seeds need its tokens/words/Status). Build in parallel: #684–#687 #690–#694 #697–#701 #703 #704. After #687: #688 #689. After #694: #695 #696. Plan: seed #705 after #666 merges; cut per-screen sweep tickets (#706) as batch-2 tickets merge.
+1. Keep the main checkout on `main` while builders run (the guard reads its `.loop.json`). Then `loop prep 700 --fresh` → `loop build 700` → `loop finish 700`.
+2. #685: builder merges `origin/plan/t685` into its build branch (or `loop prep 685 --fresh`), re-runs.
+3. #701: builder merges `origin/plan/t701`, changes the `GUJARATI_ON` line per rule 0; `loop ci 731`; reviewer.
 
 ## Blocked / open questions
 
 - Robots are not a segment in the data (a CNC-segment `category === 'Robot'`); `segmentKey` never yields `robot`. Nimish to say whether category wins for colour (#706, #700).
-- #705: which 3 figures per drawer — assumption: first 3 in each model's order.
-- #696: `HeatCell` has no number; the ranked-list fallback parses `text` for totals (tests check rows, not order).
-- Untested by design (reviewer checks): #701 AccountSheet hides the language choice (Radix portal); #688 Reset shows only when chosen; #690 the click that saves the file.
-- Still open from before: S22 "vs the 320 days before" yes (#679); #651 yes/no.
+- #705: which 3 figures per drawer — assumption: first 3 in each model's order. #704's body says `--color-v2-status-*`; those tokens do not exist, the CSS uses `--color-v2-good|watch|bad|neutral-*`.
+- Still open: S22 "vs the 320 days before" yes (#679); #651 yes/no. ADR 0041 is an unattended assumption for Nimish to confirm.
 
 ## Don't repeat
 
-- Flakes seen on #731, not Gujarati: pm-plans.spec:94 and who-is-acting.spec:60 (both passed on retry); who-is-acting.spec:219 also failed once, retry not confirmed.
-- Seed worktrees with symlinked node_modules resolve `@uptimo/shared` to the main checkout: words only on a plan branch read as missing. Use `pnpm install --frozen-lockfile --offline` in the worktree.
+- A plan session that leaves the main checkout on a seed branch changes what the guard protects for every build folder. Seed work goes in a temp worktree.
+- Never `gh issue edit --body-file` from a read that may have failed: check the file is non-empty first.
 - A throwing skeleton component needs an explicit `ReactElement` return type, or `createElement` in tests fails tsc.
-- `git add` named files only; the main checkout is shared, commit from a temp worktree.

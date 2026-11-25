@@ -29,7 +29,7 @@ async function seedWorkerTenant(language: 'en' | 'gu'): Promise<void> {
 
 export type Translate = (key: MessageKey, vars?: Record<string, string | number>) => string;
 
-/** The phone switch the app reads once at load for `GUJARATI_ON` (apps/web/src/i18n/index.ts, ADR 0038). */
+/** The phone switch the app reads once at load for `GUJARATI_ON` (apps/web/src/i18n/index.ts, ADR 0041). */
 const GUJARATI_SWITCH = 'uptimo.gujarati';
 
 export const test = base.extend<

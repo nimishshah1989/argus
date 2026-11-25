@@ -6,7 +6,7 @@ vi.mock('../api.js', () => ({
   getConfig: () => Promise.resolve({ language: 'gu', i18nOverrides: {} }),
 }));
 
-/** Gujarati behind its switch (ADR 0038): `uptimo.gujarati` = `on` on this phone, read once at load. */
+/** Gujarati behind its switch (ADR 0041): `uptimo.gujarati` = `on` on this phone, read once at load. */
 async function loadWith(value: string | null) {
   vi.resetModules();
   vi.stubGlobal('localStorage', {

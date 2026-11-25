@@ -9,6 +9,7 @@ import { Panel } from '../../../ui/v2/panel.js';
 import { Row } from '../../../ui/v2/row.js';
 import { SavedCopyNotice } from '../../../ui/v2/screen-states.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
+import { Takeaway } from '../../../ui/v2/takeaway.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
 import { fill } from '../../../i18n/fill.js';
 import { EntityShell } from '../entity/EntityShell.js';
@@ -145,7 +146,10 @@ export function CellLogView({
           <p className="v2-sub">{words.empty}</p>
         </Panel>
       ) : (
-        <EngineTable table={model.table} onAction={setCorrecting} />
+        <>
+          {model.takeaways?.moves ? <Takeaway data={model.takeaways.moves} /> : null}
+          <EngineTable table={model.table} onAction={setCorrecting} />
+        </>
       )}
       <SourceLine text={model.source} />
     </EntityShell>
