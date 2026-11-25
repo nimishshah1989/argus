@@ -84,7 +84,7 @@ describe('Problem Analysis sweep: Download Excel', () => {
   });
 });
 
-describe('Problem Analysis sweep: the bars share all hours, not only the top 16 (#752 review)', () => {
+describe('Problem Analysis sweep: the bars share all hours, not only the top 16 (ticket 752 review)', () => {
   const hoursHeader: [string, boolean][] = [
     ['Problem group', false],
     ['Hours', true],

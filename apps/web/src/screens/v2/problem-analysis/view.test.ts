@@ -10,7 +10,7 @@ import { problemAnalysisModel } from './adapter.js';
 import type { ProblemAnalysisModel } from './model.js';
 import { ProblemAnalysisView } from './View.js';
 
-/** #752 review: the what-if fold is named by its own words and is absent when the engine sent no what-if. */
+/** ticket 752 review: the what-if fold is named by its own words and is absent when the engine sent no what-if. */
 const model = problemAnalysisModel(answerKey('a10-problems', 'a10-problems', 41), testT)!;
 const draw = (m: ProblemAnalysisModel) =>
   renderToStaticMarkup(
@@ -27,7 +27,7 @@ const draw = (m: ProblemAnalysisModel) =>
 const esc = (text: string) =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-describe('Problem Analysis view: the what-if fold (#752 review)', () => {
+describe('Problem Analysis view: the what-if fold (ticket 752 review)', () => {
   it('folds the four what-if tiles under a Show detail named with the what-if words, said once', () => {
     const html = draw(model);
     const whatIf = esc(model.words.whatIf);
