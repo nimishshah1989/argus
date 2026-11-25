@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { expect, test } from './test.js';
+import { openShowDetail } from './show-detail.js';
 import { MACHINES, signIn } from './fixtures.js';
 
 /**
@@ -90,8 +91,10 @@ async function openA9(page: Page): Promise<void> {
   ).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('heading', { level: 1, name: A9.title })).toBeVisible();
   expect(A9.kpis).toHaveLength(14);
-  for (const s of await page.locator('details.v2-show-detail:not([open]) > summary').all())
-    await s.click();
+  await openShowDetail(
+    page,
+    page.getByRole('region', { name: A9.kpis[0]!.label, exact: true }).first(),
+  );
   // Each figure is a region named by its label; the same words also sit in the answer's Why list and in table filters.
   for (const kpi of A9.kpis) {
     const tile = page.getByRole('region', { name: kpi.label, exact: true }).first();

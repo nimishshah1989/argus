@@ -41,9 +41,9 @@ Live at `/analytics/forecast-scorecard` and `?screen=a9-bottleneck-forecast` (th
 
 One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25. Rows from the builder's `docs/loop/handoff/752.md` and ticket #752.
 
-| Rule                                 | Status         | Where, or why not                    |
-| ------------------------------------ | -------------- | ------------------------------------ |
-| R1 / R10 TileSet + ShowDetail        | done           | 4 shown, 10 folded under Show detail |
-| R6 Download Excel                    | done           | Download Excel on the page's tables  |
-| R21 Quadrant                         | not applicable | the lane scatter stays ECharts       |
-| R20 RankedBars, R11, R2, R4, R5, R17 | not applicable | ADR 0041                             |
+| Rule                                 | Status         | Where, or why not                                                                 |
+| ------------------------------------ | -------------- | --------------------------------------------------------------------------------- |
+| R1 / R10 TileSet + ShowDetail        | done           | 4 shown, 10 folded under Show detail right below them (PageBody `fold`, ADR 0049) |
+| R6 Download Excel                    | done           | Download Excel on the page's tables                                               |
+| R21 Quadrant                         | not applicable | the lane scatter stays ECharts                                                    |
+| R20 RankedBars, R11, R2, R4, R5, R17 | not applicable | ADR 0041                                                                          |
