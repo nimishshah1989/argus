@@ -5,7 +5,6 @@ import { GroupPage } from './GroupPage.js';
 import { GuidePage } from './GuidePage.js';
 import { MachinePage } from '../v2/machine/Page.js';
 import { LiveFrame } from '../v2/live-frame.js';
-import { MoneyPage } from './MoneyPage.js';
 import { ReportsPage } from './ReportsPage.js';
 import { AnalyticsShell } from './shell/AnalyticsShell.js';
 import { liveScreen } from '../v2/live.js';
@@ -52,8 +51,6 @@ export function AnalyticsFace() {
     <AnalyticsShell>
       {found.id === 'guide' ? (
         <GuidePage />
-      ) : found.id === 'cost' ? (
-        <MoneyPage group={found} />
       ) : found.id === 'reports' ? (
         <ReportsPage group={found} />
       ) : (
