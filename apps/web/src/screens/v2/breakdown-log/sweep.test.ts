@@ -8,7 +8,7 @@ import { workbookLog } from './source.js';
 import { logSheets } from './sweep.js';
 import { logWords } from './words.js';
 
-/** Sweep #706 (ADR 0041): the log's Excel download carries what the CSV did. Critical tests only (ADR 0034). */
+/** Sweep 706 (ADR 0041): the log's Excel download carries what the CSV did. Critical tests only (ADR 0034). */
 const words = logWords(realT);
 
 describe('the Breakdown Log Excel sheet', () => {

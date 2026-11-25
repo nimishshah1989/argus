@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { openShowDetail } from '../show-detail.js';
 import { mockPlant } from './plant-mock.js';
 
 /**
@@ -115,9 +116,8 @@ test('BD % and PM split: its tab is pressed, the six figures, five tables and tw
   ).toHaveAttribute('aria-pressed', 'true');
   const first = A1;
   await expect(page.getByRole('heading', { level: 1, name: 'BD % and PM split' })).toBeVisible();
-  // Figures past the fourth fold under "Show detail" (sweep #706); a no-op before the fold lands.
-  for (const s of await page.locator('details.v2-show-detail:not([open]) > summary').all())
-    await s.click();
+  // Figures past the fourth fold under "Show detail" (sweep 706); a no-op before the fold lands.
+  await openShowDetail(page, region(page, first.kpis[0]!.label).first());
   for (const kpi of first.kpis) {
     const tile = region(page, kpi.label).first();
     await expect(tile).toBeVisible();

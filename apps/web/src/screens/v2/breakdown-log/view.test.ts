@@ -11,7 +11,7 @@ import { EMPTY_QUERY, type LogQuery } from './model.js';
 import { workbookLog } from './source.js';
 import { BreakdownLogView } from './View.js';
 
-/** The old export prop and the sweep's sheets (#706) together, so this draws before and after the Excel swap. */
+/** The old export prop and the sweep's sheets (706) together, so this draws before and after the Excel swap. */
 const exportProps = { onExport: () => Promise.resolve(), sheets: [] };
 const draw = (shown: NonNullable<ReturnType<typeof logFromFigures>>) =>
   renderToStaticMarkup(
