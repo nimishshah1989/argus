@@ -9,12 +9,23 @@ export type SettingsAccess = 'allowed' | 'refused' | 'waiting';
 export type JobsTakeaway = { failed: number; kind: string; attempts: number; failedAt: string };
 
 export function settingsAccess(role: string | undefined): SettingsAccess {
-  void role;
-  throw new Error('not implemented');
+  if (role === undefined) return 'waiting';
+  return role === 'admin' || role === 'head' ? 'allowed' : 'refused';
 }
 
 /** Null when nothing failed. */
 export function jobsTakeaway(items: readonly FailedJob[]): JobsTakeaway | null {
-  void items;
-  throw new Error('not implemented');
+  const when = (job: FailedJob) => job.failedAt ?? job.createdAt;
+  const oldest = items.reduce<FailedJob | undefined>(
+    (best, job) =>
+      best === undefined || Date.parse(when(job)) < Date.parse(when(best)) ? job : best,
+    undefined,
+  );
+  if (!oldest) return null;
+  return {
+    failed: items.length,
+    kind: oldest.queue,
+    attempts: oldest.attempts,
+    failedAt: when(oldest),
+  };
 }
