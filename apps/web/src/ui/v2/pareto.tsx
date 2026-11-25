@@ -5,8 +5,12 @@ import { Segs, type Point } from './points.js';
 import { WhyToggle } from './why-toggle.js';
 
 export type ParetoData = {
-  /** Biggest first, the rest in a last bar; `shown` is the engine's figure, `hours` places the bar. */
-  bars: { label: string; hours: number; shown: string; drill?: Drill }[];
+  /**
+   * Biggest first, the rest in a last bar (`rest: true`); `shown` is the engine's figure, `hours` places the bar.
+   * ADR 0036 R20: the first `halfBars(hours, rest)` bars are `data-status="bad"` and one `data-half` marker follows
+   * the last of them; no running-total line; a rest bar is never bad.
+   */
+  bars: { label: string; hours: number; shown: string; drill?: Drill; rest?: boolean }[];
   /** How many of the first bars are the ones to fix; a line marks the split. */
   top: number;
   /** All the hours the bars share out: the bars must add up to it (`paretoMismatch`). */
