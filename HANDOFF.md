@@ -2,26 +2,28 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-25 · **By:** Coordinator (kit remaining) · **Model:** Opus 5.5
-**Milestone:** M2b kit lane · **Branch:** kit/remaining-adr-0036
+**Updated:** 2026-11-25 · **By:** Plan · **Model:** Opus 5.5
+**Milestone:** M2b screens lane · **Branch:** plan/sweep-fixes
 
 ## State
 
-- ONE PR for the remaining ADR 0036 kit tickets, each built from its own seed, merged into `kit/remaining-adr-0036`.
-- In: #685 #687 #688 #692 #696 #700 #701 #704. Hidden compare test edit (#687, R13: no search under 10 rows) taken from plan PR #743.
-- Seeds #695 #696 #701 #704 had main merged in (conflicts: old #694 skeleton of `ranked-bars.tsx` → main's; HANDOFF → main's; ADR index keeps both 0041 lines).
-- Out: #695 (old `v2.test.ts` running-total test contradicts rule 1), #689 (bd-pm, manpower, mttr-mtbf screen tests assert the total as a body row), #705 and #732 (no seed branch).
+- Scope coverage rows (one row per ADR 0036 kit rule) pushed on the seeds: `plan/t750` a8e08445 (5 pages), `plan/t751` 4363970b (6), `plan/t752` 08b4d16e (6, verdicts from the build handoff), `plan/t753` b43e5381 (6). Each "done" row checked against the build branch code.
+- `refused-login.test.ts` passes the export props through a spread (`onExport` + `sheets: []`), like the seed's `view.test.ts`: on `plan/t751` and on this PR.
+- `analytics-compare.spec.ts` Money Matters: the table is the region with no chart (the chart card shares "Where the money was lost"); charts counted by `[data-chart-state]` (v2 card has no `chart` test id). On `plan/t679` bc7453e1 and on this PR.
+- This PR also carries `scope/why-why.md` (all rows not applicable), because #752 changes no why-why code, so loop-guard would refuse that file on the build branch.
 
 ## Tests
 
-- Merged branch: fast suite 402 files / 3367 passed; `pnpm typecheck` 0; `pnpm lint` 0 errors (7 warnings); `pnpm format:check` clean.
-- Full suite (Docker) and e2e: not run locally; CI runs them.
+- e2e `analytics-compare.spec.ts` on PR #755's code + the fix: 2 passed (chromium, phone).
+- #751 build + fix: `pnpm typecheck` 0; `refused-login.test.ts` 4/4. Main + fix: typecheck 0, 4/4.
+- Expected red on main after this PR: the Money Matters e2e (v1 page) until #755 merges, like #754.
 
 ## Blocked
 
-- #695, #689: need `loop plan` to change the contradicting tests. #705, #732: need seeds.
+- #679 merge still needs Nimish's written yes on the unbuilt "+8% vs 320 days" row.
+- #752 turns the problem-analysis scatter into a Quadrant (ADR 0041); Nimish's "keep the bubble" was about the dashboard. Confirm before merging #752.
 
-## Next step
+## Next (coordinator)
 
-1. CI green + reviewer PASS → merge.
-2. Plan: fix #695/#689 tests, seed #705/#732. Two ADRs numbered 0041 (Gujarati switch, sweep #706 map): renumber one. Close or merge plan PR #743.
+1. Merge `origin/main` (after this PR) and the updated seed into each build branch: #679 ← `plan/t679`; #750–#753 ← `plan/t750..t753`. Then one handoff-only re-finish per ticket (Blocked must read exactly "None.").
+2. Whether that re-finish counts as a new attempt is still the coordinator's call (unchanged).
