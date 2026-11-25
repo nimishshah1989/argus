@@ -3,9 +3,11 @@ import type { MessageKey } from '@uptimo/shared/i18n';
 import { MACHINE_FIELD_LABELS, type MachineRecord } from '../../analytics/machine-record.js';
 import { dayKey } from '../../analytics/machine-values.js';
 import { readMachineTasks, type MachineTaskRow } from '../../analytics/pm-calendar-view.js';
+import type { Meaning, TakeawayData, Takeaways } from '../../../ui/v2/takeaway.js';
 import { dayText, type Translate } from '../figures/read.js';
 import { engineTable } from '../figures/table.js';
 import { commonWords, tableWords } from '../figures/words.js';
+import { printedTakeaway, tagOf } from '../insight.js';
 import { drillOf, number } from './format.js';
 import type { Fact, MachinePageModel, TaskRow } from './model.js';
 
@@ -76,6 +78,45 @@ export function tasksBlock(
       empty: t('pm.tasks.pmEmpty'),
       rows: (tasks?.pm ?? []).map((row) => taskOf(row, t)),
     },
+  };
+}
+
+/** The spares table's measure (ADR 0031 §5): its Downtime h column, where more hours is worse and the hours add up. */
+export const SPARES_MEANING: Meaning & { column: number } = {
+  column: 2,
+  worse: 'high',
+  additive: true,
+};
+
+/** The lines the spares and tasks sections open with: the table's own takeaway, and what is open and overdue. */
+export function takeawaysOf(
+  spares: MachinePageModel['spares'],
+  tasks: MachinePageModel['tasks'],
+  t: Translate,
+): Takeaways {
+  const neutral = (text: string): TakeawayData => ({
+    text,
+    tone: 'neutral',
+    tag: tagOf('neutral', t),
+  });
+  const rows = [...tasks.open.rows, ...tasks.pm.rows];
+  return {
+    'machine.spares':
+      (spares.table && printedTakeaway(spares.table, t)) ||
+      neutral(spares.note ?? t('insight.none')),
+    'machine.tasks':
+      tasks.unavailable !== null
+        ? neutral(tasks.unavailable)
+        : rows.length === 0
+          ? neutral(tasks.open.empty)
+          : {
+              text: t('analytics.machine.tasksLine', {
+                open: rows.length,
+                overdue: rows.filter((row) => row.overdue !== null).length,
+              }),
+              tone: 'risk',
+              tag: tagOf('risk', t),
+            },
   };
 }
 
