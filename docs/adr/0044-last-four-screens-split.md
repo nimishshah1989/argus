@@ -2,7 +2,13 @@
 
 Date: 2026-11-25 · Decided by: Plan (unattended; coordinator's planning job). Kit rules are ADR 0036 and are not re-planned here.
 
-Status: **split decided, no issues or seeds yet** (the planning session hit its context budget after the inventories).
+Status: **issues #760 (S26-0 kit), #761 (S19), #762 (S25), #763 (S23) created; seeds pushed for #760, #761, #762.** #763 has no seed yet; S24 has no issue yet.
+
+Added 2026-11-25 (second session, unattended): S23/S24 are built on the printed-page pattern with a computed takeaway per
+section; the wireframes' calendar/ranked-bar redraw, worst-first sorting and collapsed tails are Nimish's open
+questions, so they are MISSING rows in the coverage tables and not built. S25's chip groups come from the wireframe
+(`GROUP_OF` in `screens/v2/guide/model.ts` on `plan/t762`). S26-0 reuses v1's `CrudSpec` and `crud-actions` hooks;
+the kit copies `useCrud`/`useLookups` because a `Screens: none` PR may touch only `apps/web/src/ui/` (ADR 0040).
 The next Plan session writes the issues and seeds from this file without re-reading the v1 code.
 
 ## Decisions (assumptions, unattended)

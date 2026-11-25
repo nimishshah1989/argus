@@ -7,24 +7,24 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 ## State
 
-- Job: plan S19 Login, S23 Monthly, S24 Annual, S25 Guide, S26 Settings onto the v2 kit (ADR 0036 rules).
-- Done: v1 inventories of all five + wireframe reads; the ticket split and every assumption are in
-  `docs/adr/0044-last-four-screens-split.md` (12 tickets: S19, S23, S24, S25, S26-0 kit … S26-8).
-- NOT done: no GitHub issues, no seed branches, no coverage tables yet.
+- Issues + seeds (pushed, red tests proven, lint/typecheck clean):
+  - #760 S26-0 kit CRUD page + form sheet → `plan/t760` (Screens: none)
+  - #761 S19 sign-in → `plan/t761`
+  - #762 S25 Guide → `plan/t762`
+- #763 S23 Monthly Report: issue written (full spec), **no seed branch yet**.
+- Not done: S24 issue + seed; coverage tables `docs/design/v2/scope/{sign-in,guide,monthly-report,annual-report}.md`;
+  the PR for this branch.
 
 ## Next
 
-1. Next Plan session: from ADR 0044 alone, create the issues (Budget:/Screens: lines), seeds `plan/t<N>` with
-   skeleton + visible + a few hidden tests (ADR 0034), coverage tables in `docs/design/v2/scope/<folder>.md`.
-2. Build order: S26-0 kit first (CRUD pages need it); S19, S23, S25, S26-1 in parallel; then S24 (after S23) and
-   S26-2…8 (after S26-0 and S26-1).
+1. Plan: seed `plan/t763` (model.ts + adapter.ts skeleton, tests from `fixtures/answer-key/monthly-report.json`: busiest
+   day 24 Oct 27.7 h; worst month Jun 26 660.4 h; VC-16 CVM1160 25.9 h; longest VC-22 16.0 h = 1.5× next; Person 11
+   27.0%); add `monthly-report` to `insight-coverage.test.ts` SECTIONS/MODELS after the shift-kpis line.
+2. Plan: S24 issue (depends on #763; deletes ReportsPage.tsx, report-view.ts and their tests ON THE SEED since build
+   branches can't delete tests; put `annual-report` at the TOP of SECTIONS/MODELS to avoid a merge conflict with S23).
+3. Plan: coverage tables (MISSING rows at top: report calendar/ranked bars/tails), then open this branch's PR.
+4. Coordinator: #760, #761, #762 can build now (#760 first for S26-2…8; #761/#762 are independent).
 
 ## Blocked
 
-- Nothing blocked. Open questions for Nimish (wireframe "Questions" sections; not built until he answers):
-  Settings attention badges beyond failed jobs; Reports PDF full rows; Guide groups.
-
-## Don't repeat
-
-- `design/approved.json` shows as modified in the working tree; not by Plan. Never commit it.
-- Don't re-inventory v1: ADR 0044 has the file:line facts.
+- Nothing blocked. Open questions for Nimish are in the S23/S24 wireframes' "Questions" sections.
