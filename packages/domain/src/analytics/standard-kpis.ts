@@ -1,5 +1,5 @@
 import type { AnalyticsProfile } from '@uptimo/shared';
-import { hoursIn, yearToDate } from './availability.js';
+import { hoursIn, spanOf, yearToDate } from './availability.js';
 import { formatInr } from './format.js';
 import { isProduction } from './machine-facts.js';
 import {
@@ -147,11 +147,31 @@ export function legacyTotals(data: EngineData, profile: AnalyticsProfile, asOf: 
   });
 }
 
-/** The events at or before the run date, on the production fleet the figure reads. */
-function eventsAt(data: EngineData, asOf: string): FailureEvent[] {
+/** The events inside the run's span (`from ≤ date ≤ min(to, asOf)`), on the production fleet the figure reads. */
+export function eventsAt(data: EngineData, asOf: string): FailureEvent[] {
   const production = new Set(data.machines.filter(isProduction).map((machine) => machine.id));
+  const { from, to } = spanOf(data, asOf);
+  const last = to < asOf ? to : asOf;
   return failureEvents(data).filter(
-    (event) => event.report.date <= asOf && production.has(event.report.machineId),
+    (event) =>
+      event.report.date >= from &&
+      event.report.date <= last &&
+      production.has(event.report.machineId),
+  );
+}
+
+/** The closed PM rows inside the same span and fleet, so PM hours and failures share one denominator. */
+export function pmRowsAt(data: EngineData, asOf: string) {
+  const production = new Set(data.machines.filter(isProduction).map((machine) => machine.id));
+  const { from, to } = spanOf(data, asOf);
+  const last = to < asOf ? to : asOf;
+  return sourcedReports(data).filter(
+    (row) =>
+      isPm(row) &&
+      row.ticket.status === 'closed' &&
+      row.report.date >= from &&
+      row.report.date <= last &&
+      production.has(row.report.machineId),
   );
 }
 
@@ -169,13 +189,7 @@ export function standardTotals(
   const plant = workingHoursPlant(data, profile, asOf);
   const ids = new Set(plant.machines.map((machine) => machine.id));
   const events = eventsAt(data, asOf);
-  const pmRows = sourcedReports(data).filter(
-    (row) =>
-      isPm(row) &&
-      row.ticket.status === 'closed' &&
-      row.report.date <= asOf &&
-      ids.has(row.report.machineId),
-  );
+  const pmRows = pmRowsAt(data, asOf).filter((row) => ids.has(row.report.machineId));
   const failed = new Set(events.map((event) => event.report.machineId));
   return totalsOf({
     workingHours: plant.hours,
