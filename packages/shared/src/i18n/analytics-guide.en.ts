@@ -6,6 +6,18 @@
  */
 export const analyticsGuideEn = {
   'analytics.guide.heading': 'The rule behind every figure',
+  'analytics.guide.all': 'All',
+  'analytics.guide.unbuilt': 'Not built yet',
+  'analytics.guide.group.basics': 'Basics',
+  'analytics.guide.group.overview': 'Overview',
+  'analytics.guide.group.reliability': 'Reliability',
+  'analytics.guide.group.problems': 'Problems',
+  'analytics.guide.group.machines': 'Machines',
+  'analytics.guide.group.people-money': 'People and money',
+  'analytics.guide.group.reports-data': 'Reports and data',
+  'analytics.guide.group.planning': 'Planning',
+  'analytics.guide.takeaway':
+    '{{group}} has the most ({{n}} of {{total}}). {{unbuilt}} are marked "Not built yet".',
   'analytics.guide.contents': 'Contents',
   'analytics.guide.openFigure': 'Open this figure',
   'analytics.guide.notBuilt':

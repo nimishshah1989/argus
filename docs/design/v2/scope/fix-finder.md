@@ -30,3 +30,12 @@ frozen engine answer `fixtures/answer-key/fix-finder.json`.
 | Filter the list to full matches, search it                         | the 15 rows       | yes                              | built                                        |
 | "What fixed it on other machines" ranked by how often it held      | breakdown reports | partly (the 15 rows)             | later: the share of fixes that held, per fix |
 | Ranking for the machine the reader is on                           | machine page      | no (the engine ranks plant-wide) | later: the query with a machine id           |
+
+## ADR 0036 kit rules (ticket #752, sweep #706 batch C)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25. Rows from the builder's `docs/loop/handoff/752.md` and ticket #752.
+
+| Rule                               | Status         | Where, or why not                  |
+| ---------------------------------- | -------------- | ---------------------------------- |
+| R1 / R10 TileSet + ShowDetail      | done           | the engine prints 4, nothing folds |
+| R6, R11, R20, R21, R2, R4, R5, R17 | not applicable | ADR 0041                           |

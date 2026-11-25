@@ -39,3 +39,16 @@ the frozen engine answer `fixtures/answer-key/a10-problems.json`.
 | "Failing faster" early warning for a problem group                                       | reliability trend                          | no                            | later: a trend per group                      |
 
 Coverage re-checked for ticket #555 (charts gain their "Show the numbers" tables; nothing removed): 2026-11-23.
+
+## ADR 0036 kit rules (ticket #752, sweep #706 batch C)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25. Rows from the builder's `docs/loop/handoff/752.md` and ticket #752.
+
+| Rule                          | Status         | Where, or why not                                                                                    |
+| ----------------------------- | -------------- | ---------------------------------------------------------------------------------------------------- |
+| R1 / R10 TileSet + ShowDetail | done           | the what-if figures under Show detail                                                                |
+| R20 RankedBars                | changed        | ranked bars; the trailing "(N%)" is stripped from the bar label; the groups table keeps "% of hours" |
+| R21 Quadrant                  | done           | often-and-long named                                                                                 |
+| R6 Download Excel             | done           | 6 table sheets, no DOC. NO.                                                                          |
+| R11 readable / rupees / exact | done           | `exact` for the bar values                                                                           |
+| R2 ActionStrips, R4, R5, R17  | not applicable | ADR 0041                                                                                             |

@@ -47,3 +47,13 @@ Bhavin's A1 is `renderA1` in the 11 Nov file (B11); the three A pages are identi
 | Note under BD Hours by Cell: each cell's share of the year's total                                                 | B11:3228      | better                                                                               | matches without the year's total figure, which the table prints in its own Total column | the line under the table's title               |
 | "Days so far / Full year" switch                                                                                   | B11:944       | needs server: the engine has one window (year to date); full year needs a second run | not built                                                                               | queued                                         |
 | Year selector                                                                                                      | B11:3200      | needs server: the route takes only the as-of day                                     | not built                                                                               | queued                                         |
+
+## ADR 0036 kit rules (ticket #751, sweep #706 batch B)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25. Rows from the builder's `docs/loop/handoff/751.md` and ticket #751.
+
+| Item                          | v2                                                     | Where in v2                                                                                                                                                       |
+| ----------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1 TileSet + ShowDetail       | changed                                                | the first four figure tiles stay in the row; PM Downtime and Fleet Availability fold under Show detail (the verdict still names both); no figure dropped          |
+| R6 Download Excel             | not applicable: not one of Bhavin's exports (ADR 0041) | none                                                                                                                                                              |
+| R11 readable / rupees / exact | better                                                 | a total of 1 lakh or more reads "7.50 lakh" (was "7,50,000"); a total under 1 lakh (3,819.4 hours) keeps its text; shares and engine-printed text stay as printed |

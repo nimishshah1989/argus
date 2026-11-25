@@ -2,7 +2,6 @@ import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { ACTION_CENTER_PATH, groupFor } from './groups.js';
 import { ActionCenterPage } from '../v2/action-center/Page.js';
 import { GroupPage } from './GroupPage.js';
-import { GuidePage } from './GuidePage.js';
 import { MachinePage } from '../v2/machine/Page.js';
 import { LiveFrame } from '../v2/live-frame.js';
 import { ReportsPage } from './ReportsPage.js';
@@ -49,13 +48,7 @@ export function AnalyticsFace() {
   if (live) return live;
   return (
     <AnalyticsShell>
-      {found.id === 'guide' ? (
-        <GuidePage />
-      ) : found.id === 'reports' ? (
-        <ReportsPage group={found} />
-      ) : (
-        <GroupPage group={found} />
-      )}
+      {found.id === 'reports' ? <ReportsPage group={found} /> : <GroupPage group={found} />}
     </AnalyticsShell>
   );
 }

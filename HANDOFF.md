@@ -2,28 +2,25 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-25 · **By:** Plan · **Model:** Opus 5.5
-**Milestone:** M2b screens lane · **Branch:** plan/v2-floor-desk (stopped at context budget)
+**Updated:** 2026-11-25 · **By:** Plan (loop plan: sweep A–D coverage rows) · **Model:** Opus 5.5
+**Milestone:** M2 last old-design screens · **Branch:** plan/sweep-a-d-coverage
 
 ## State
 
-- Plan PR #764 (this branch). Nimish's S27-S30 approvals (25 Nov) are NOT in it: the loop guard blocks Plan from staging the approvals file; it is still uncommitted in the main checkout.
-- Coverage tables written from the v1 code + e2e specs: `docs/design/v2/scope/{floor,desk,ticket,board}.md` (0 MISSING rows that drop v1 scope; each lists "Unbuilt from the wireframe" items needing Nimish's written yes, and "Selectors the e2e specs rely on").
-- ADR 0045 decides the split: 6 tickets (S27-A, S27-B, S28-A, S28-B, S29, S30), files, kept logic, which v1 tests the seeds retarget, and that locked control-order specs (`e2e/gallery/floor-order-lists.ts`, `desk-order.spec.ts`, `board-settings-order.spec.ts`) win over the wireframe.
-- **No issues and no seed branches created yet.**
-
-## Next
-
-1. `loop ci 764`, merge when green. Get the approvals committed by an allowed route (Nimish runs `loop approve`).
-2. New Plan session: create the 6 issues from ADR 0045 "Tickets" (loop-ticket format; builder notes: dontAsk, no heredocs/redirects/subshells/brace lists; handoff `## Blocked` reads exactly `None.`), then seed `plan/t<N>` each: skeleton `model.ts`/`View.tsx`, visible `view.test.ts` + `insight.test.ts`, hidden `screens/v2/holdout/<screen>-*.test.ts`, and the test retargets ADR 0045 names (T3: `TasksList.test.ts`; T4: `team-waiting.test.ts`, `fetch-guard.test.ts:17`). Prove red, lint, push.
-3. Coordinator: ask Nimish for written yes/no on each scope file's "Unbuilt from the wireframe" rows.
-
-## Blocked
-
-None.
+- Sweep A–D coverage rows (#750–#753) are in `docs/design/v2/scope/<page>.md` (plan PR on `plan/sweep-a-d-coverage`): one "ADR 0036 kit rules (ticket #N)" section per page; why-why was already done; breakdown-log CSV wording now says Download Excel. Next: the four sweep PRs can `loop finish` / re-run CI with Q16 met; their handoffs still say the scope docs are pending.
+- Merged on main: #760 kit (PR #776), #761 sign-in (PR #775), #777 heading fix (PR #778).
+- #762 S25 Guide: PR #779 CONFLICTS with main (live.tsx, Analytics.tsx; real content conflicts, `gh pr update-branch` fails, builders and the coordinator are barred from `git merge`). Fix in progress: old work saved as local branch `backup-t762-old`; `loop prep 762 --fresh` done on current main; builder subagent re-applied the old files from `backup-t762-old` and hand-merged live.tsx/Analytics.tsx: DONE, commit 870c8de8 in `.loop/wt/762`, not pushed (it reports guide/live/insight-coverage tests 41 pass, typecheck 0, lint 0 errors; e2e and hidden tests not run, CI does). Next: check `git -C .loop/wt/762 log` for its commit, `loop finish 762` (must force the PR branch; if finish cannot update PR #779, close #779 and let finish open a new PR), `loop ci`, reviewer, merge, `loop clean 762`.
+- #763 S23 Monthly: ROOT CAUSE of the red tests found: `'monthly-report'` was missing from `PAGE_KEYS` in `apps/web/src/screens/analytics/figure-content.ts` (not in the ticket's file list), plus the Gujarati keys in `analytics-report.gu.ts`. Ticket bodies #763 and #765 EDITED to list both (and the i18n lines split into two bullet lines, because `ticket_files` only parses `- path — ...` lines: "a.en.ts + `.gu.ts` —" was silently ignored). Attempts used 3 of 3 (I wasted one by re-running `loop finish 763` unchanged). A rescuer (agent a2dd03f1ccb1b9582, Fable) is adding PAGE_KEYS + gu keys in `.loop/wt/763`, commit no push. Next: check its result, `loop finish 763 --rescue` (main merge already in the branch as 9dfd027f; main has moved since: if CI says conflicts, same fix as #762), `loop ci`, reviewer, merge, `loop clean 763`.
+- #765 S24 Annual: `loop prep 765` done (fresh, brief includes the PAGE_KEYS line). Not built. Start only after #763 merges (its live.tsx entry goes after monthly's) and `uptime` load < ~10 (was 11.6 at 21:20): `loop build 765 --bg`, `loop wait 765`, prettier on `docs/loop/handoff/765.md` via builder-small, `loop finish 765`.
+- S26-1..8: not planned. `plan/s26-a` has ADR 0046 only. Next: ONE `loop plan "Plan the Settings sub-pages S26-1..S26-8 on the shared CRUD kit from #776 and ADR 0036, tickets plus light seeds (ADR 0034) following how #760 and the sign-in/guide tickets were done, no new decisions"` (Bash timeout 600000; on timeout check `gh pr list` first).
+- Coordinator was never messaged about PR opens (none opened this session).
 
 ## Don't repeat
 
-- Builders cannot modify or delete existing tests (`.github/loop/check_pr.py`): every e2e/unit test edit goes on the seed.
-- v1 floor has no offline send queue and no lockout (ADR 0045 §6); the server already serves `GET /api/v1/tickets/:id/pdf`.
-- The inventory seed notes were in this session's scratchpad only; the facts needed are in ADR 0045 and the scope files.
+- NEVER run `loop finish N` twice without a code change: each run burns an attempt.
+- Ticket "Files to change" lines must be one path per line as `- path — text`; anything else is ignored and the file's edits are dropped from the commit ("ignored files outside the ticket").
+- New v2 report/page screens need the figure key in `PAGE_KEYS` (figure-content.ts) or `pageOf` is null.
+- Every v2 screen PR touches live.tsx (+ Analytics.tsx): merge the PRs one at a time, `loop prep N --fresh` + re-apply when main moved; builders cannot `git merge`.
+- zsh: write `${T}:path`, not `$T:path` (`:a` modifier).
+- Builders cannot run prettier: use a `loop:builder-small` subagent for `pnpm exec prettier --write docs/loop/handoff/<N>.md` before `loop finish`.
+- Builders can lose Bash mid-run; check `loop wait` text for BLOCKED.
