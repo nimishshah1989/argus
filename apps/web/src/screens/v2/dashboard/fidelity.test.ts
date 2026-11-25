@@ -323,7 +323,7 @@ describe('the page', () => {
     );
 
   it('draws the lead card large, the meaning colours as data, and the tiles as one target each', () => {
-    // Before and after sweep #706: the Action Center banner (now a strip) is left out of the tone count, and the hero
+    // Before and after sweep 706: the Action Center banner (now a strip) is left out of the tone count, and the hero
     // grid became a tile set (sweep.test.ts checks the tile sets).
     const out = render(model({ board: board(2, 1) }));
     const cards = out.replace(/<section class="v2-card v2-banner"[\s\S]*?<\/section>/g, '');
@@ -340,7 +340,7 @@ describe('the page', () => {
   it('puts the headline figures before what needs you, so they show without scrolling', () => {
     const out = render(model());
     const at = (label: string) => out.indexOf(`aria-label="${label}"`);
-    // The Team Focus banner or strip, by its way in (sweep #706 made the banner a strip).
+    // The Team Focus banner or strip, by its way in (sweep 706 made the banner a strip).
     const teamFocus = out.indexOf('href="/analytics/today?screen=team-focus"');
     expect(teamFocus).toBeGreaterThan(0);
     expect(teamFocus).toBeLessThan(at('Fleet availability'));

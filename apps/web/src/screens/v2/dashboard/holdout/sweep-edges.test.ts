@@ -9,7 +9,7 @@ import { realReply } from '../../figures/real-reply.js';
 import type { CostliestModel } from '../model.js';
 import { costliestRows, dashboardStrips } from '../sweep.js';
 
-/** The edges of the Dashboard's sweep helpers (#706 batch A): empty, held, singular, non-finite, never re-rounded. */
+/** The edges of the Dashboard's sweep helpers (706 batch A): empty, held, singular, non-finite, never re-rounded. */
 const t: Translate = (key, values = {}) =>
   ((en as Record<string, string>)[key] ?? key).replace(/\{\{?(\w+)\}?\}/g, (whole, name: string) =>
     Object.hasOwn(values, name) ? String(values[name]) : whole,

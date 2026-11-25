@@ -8,7 +8,7 @@ import { teamFocusFixture as model } from './fixture.js';
 import { teamFocusSheets } from './sweep.js';
 import { TeamFocusView } from './View.js';
 
-/** Sweep #706 batch A on Team Focus (ADR 0041): its two tables for Excel, and the tiles as a tile set. */
+/** Sweep 706 batch A on Team Focus (ADR 0041): its two tables for Excel, and the tiles as a tile set. */
 describe('teamFocusSheets', () => {
   const sheets = () => teamFocusSheets(model);
 

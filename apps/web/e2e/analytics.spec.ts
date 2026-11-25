@@ -313,7 +313,7 @@ async function expectChecklist(page: Page, reply: FiguresReply) {
     checklist !== undefined && typeof checklist.value === 'object' && checklist.value !== null
       ? (checklist.value as { items: { plain: string }[] }).items
       : [];
-  // Four zero tiles fold into one line saying so (sweep #706, TileSet); the card itself before that.
+  // Four zero tiles fold into one line saying so (sweep 706, TileSet); the card itself before that.
   await expect(
     page.locator('.v2-kpi, .v2-zero-line').filter({ hasText: 'Records to fix' }),
   ).toContainText(items.length === 0 ? /0|zero/ : items.length.toLocaleString('en-IN'));
@@ -353,7 +353,7 @@ test('a head lands on Today with the live figures, a drill and the data checklis
   const dashboard = reply.figures.filter((figure) => figure.screen === 'dashboard');
   const ready = dashboard.filter((figure) => figure.status === 'ready');
   expect(ready.length).toBeGreaterThan(0);
-  // Figures past the fourth fold under "Show detail" (sweep #706); a no-op before the fold lands.
+  // Figures past the fourth fold under "Show detail" (sweep 706); a no-op before the fold lands.
   for (const s of await page.locator('details.v2-show-detail:not([open]) > summary').all())
     await s.click();
   for (const figure of dashboard) await expect(tile(page, figure.key)).toBeVisible();
@@ -433,7 +433,7 @@ test('a ready figure opens the rows behind it', async ({ page }, testInfo) => {
   await expect(
     page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true }),
   ).toBeVisible();
-  // Figures past the fourth fold under "Show detail" (sweep #706); a no-op before the fold lands.
+  // Figures past the fourth fold under "Show detail" (sweep 706); a no-op before the fold lands.
   for (const s of await page.locator('details.v2-show-detail:not([open]) > summary').all())
     await s.click();
 

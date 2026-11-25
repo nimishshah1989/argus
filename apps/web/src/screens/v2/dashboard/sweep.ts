@@ -4,7 +4,7 @@ import type { RankedRow } from '../../../ui/v2/ranked-bars.js';
 import type { Translate } from '../figures/read.js';
 import type { CostliestModel, DashboardFacts } from './model.js';
 
-/** Sweep #706, batch A (ADR 0041, 0043): the pure helpers the Dashboard's kit pieces are fed from. */
+/** Sweep 706, batch A (ADR 0041, 0043): the pure helpers the Dashboard's kit pieces are fed from. */
 
 /**
  * The Dashboard's action strips (ADR 0036 R2, ADR 0043), always exactly these three, in this order; strips with a

@@ -15,7 +15,7 @@ import type { DashboardModel, PlantMachine } from './model.js';
 import { costliestRows, dashboardStrips } from './sweep.js';
 import { DashboardView } from './View.js';
 
-/** Sweep #706 batch A on the Dashboard (ADR 0041, 0043): tiles, strips and ranked bars; the bubble stays. */
+/** Sweep 706 batch A on the Dashboard (ADR 0041, 0043): tiles, strips and ranked bars; the bubble stays. */
 const t: Translate = (key, values = {}) =>
   ((en as Record<string, string>)[key] ?? key).replace(/\{\{?(\w+)\}?\}/g, (whole, name: string) =>
     Object.hasOwn(values, name) ? String(values[name]) : whole,

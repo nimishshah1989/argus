@@ -7,7 +7,7 @@ import { actionCenterModel } from '../adapter.js';
 import { actionCenterSheets, riskReasons } from '../sweep.js';
 import { PEOPLE, recordedBoard } from '../test-board.js';
 
-/** The edges of the Action Center's sweep helpers (#706 batch A). */
+/** The edges of the Action Center's sweep helpers (706 batch A). */
 const t = (key: string, values?: Record<string, string | number>) =>
   i18n.t(key, { ...values }) as string;
 const LABELS = ['Long breakdown', 'Slow repairs', 'Recurring fault', 'Frequent breakdowns'];

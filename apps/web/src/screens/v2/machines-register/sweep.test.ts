@@ -12,7 +12,7 @@ import { registersModel } from './adapter.js';
 import { registerSheets } from './sweep.js';
 import { RegistersView } from './View.js';
 
-/** Sweep #706 batch A on the Machines register (ADR 0041): the register in view for Excel, the tiles as a tile set. */
+/** Sweep 706 batch A on the Machines register (ADR 0041): the register in view for Excel, the tiles as a tile set. */
 const t: Translate = (key, values) =>
   fill((en as Record<string, string>)[key] ?? key, values ?? {});
 const model = registersModel(realReply(), t)!;

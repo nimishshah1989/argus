@@ -2,7 +2,7 @@ import type { Sheet } from '@uptimo/shared/xlsx';
 import type { Reason } from '../../../ui/v2/reason-chip.js';
 import type { ActionCenterModel } from './model.js';
 
-/** Sweep #706, batch A (ADR 0041): the Action Center's risk reasons as chips, and its two tables for Excel. */
+/** Sweep 706, batch A (ADR 0041): the Action Center's risk reasons as chips, and its two tables for Excel. */
 
 /**
  * The engine's risk `why` as reason chips (ADR 0036 R17). The engine writes it as the rule labels it counted, in the

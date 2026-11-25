@@ -192,7 +192,7 @@ async function openScreen(page: Page): Promise<void> {
   await page.setViewportSize({ width: 1440, height: 900 });
   await stubBoard(page);
   await signIn(page, 'head');
-  // The Today banner (action strips since sweep #706) reads the same board and opens the screen.
+  // The Today banner (action strips since sweep 706) reads the same board and opens the screen.
   await expect(page.locator('.v2-banner-text, .v2-strip').first()).toContainText(
     /^2 high-priority/,
   );
