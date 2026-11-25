@@ -34,7 +34,8 @@
   font-family: var(--font-v2-mono);
   font-weight: 400;
 }
-.v2-code[data-cat] {
+.v2-code[data-cat],
+.v2-code[data-seg] {
   border-left: 3px solid var(--v2-cat);
 }
 .v2-entity:hover {
