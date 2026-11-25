@@ -23,6 +23,7 @@ import { FixFinderView } from './fix-finder/View.js';
 import { ForecastLabView } from './forecast-lab/View.js';
 import { FootprintView } from './footprint/View.js';
 import { ManpowerView } from './manpower/View.js';
+import { MoneyMattersView } from './money-matters/View.js';
 import { RegistersView } from './machines-register/View.js';
 import { PmCalendarPage } from './pm-calendar/Page.js';
 import { ProblemAnalysisView } from './problem-analysis/View.js';
@@ -352,6 +353,20 @@ const LIVE: readonly Live[] = [
       />
     ),
   },
+  {
+    group: 'cost',
+    section: 'people',
+    screen: 'money-matters',
+    page: () => (
+      <ModelPage
+        entry={screenOf('cost', 'people', 'money-matters')}
+        screen="money-matters"
+        empty="analytics.notComputed"
+        title="analytics.screen.money-matters"
+        draw={(model, shell) => <MoneyMattersView model={model} {...shell} />}
+      />
+    ),
+  },
 ];
 
 /**
@@ -386,9 +401,10 @@ const FIRST: Record<string, string> = {
   today: 'dashboard',
   breakdowns: 'breakdown-log',
   pm: 'pm-calendar',
+  cost: 'money-matters',
 };
 /** Groups that are v2 whole: an unknown `?screen=` opens their first screen. */
-const WHOLE: ReadonlySet<string> = new Set([FORECAST, 'today', 'pm', 'breakdowns']);
+const WHOLE: ReadonlySet<string> = new Set([FORECAST, 'today', 'pm', 'breakdowns', 'cost']);
 
 function knownMachinesScreen(id: string): boolean {
   return (groupFor('machines')?.screens ?? []).some(

@@ -4,7 +4,7 @@ import type { TFunction } from 'i18next';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { en, gu, type MessageKey } from '@uptimo/shared/i18n';
 import { contentKind, contentOf } from './figure-content.js';
-import { mayReadMoney } from './MoneyPage.js';
+import { mayReadMoney } from '../v2/figures/read.js';
 import { focusActions, focusLaneGroups, focusStatusKey } from './team-focus-actions.js';
 
 /** The four frozen 11 November keys, read as data: every cell, series and action is pinned against them. */

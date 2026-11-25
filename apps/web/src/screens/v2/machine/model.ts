@@ -1,6 +1,7 @@
 import type { Drill } from '../../../ui/v2/drill.js';
 import type { EntityChipProps } from '../../../ui/v2/entity-chip.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
 import type { TableModel } from '../figures/table.js';
 
@@ -66,6 +67,8 @@ export type MachinePageModel = {
   nameplate: Block & { facts: Fact[]; none: string };
   pm: Block & { facts: Fact[] };
   completeness: Block & { fact: Fact };
+  /** One line each for `machine.spares` and `machine.tasks` (ADR 0031 §5). */
+  takeaways: Takeaways;
   source: string;
   words: { why: string; seeRows: string };
 };

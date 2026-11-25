@@ -133,6 +133,13 @@ export const analyticsMachinesEn = {
   'analytics.machine.field.cell': 'Cell',
   'analytics.machine.field.location': 'Location',
   'analytics.figure.reliability': 'Reliability and critical spares',
+  'analytics.machine.rank': '{{rank}} of {{n}} machines, highest first',
+  'analytics.machine.tasksLine': '{{open}} open · {{overdue}} overdue',
+  'v2t.mp.headline':
+    '{code} has had {count} breakdowns, {hours} down in all, {mttr} to repair one.',
+  'v2t.mp.headlineNone': '{code} has no breakdown record to summarise yet.',
+  'v2t.mp.why1': 'Hours down are the time the machine stood stopped, added up over its breakdowns.',
+  'v2t.mp.why2': 'Repair time is the average time one breakdown took to fix.',
   'analytics.excludedMachines': '{{count}} machines not counted in production data',
   'analytics.excludedMachines_one': '1 machine not counted in production data',
   'analytics.excludedMachines_other': '{{count}} machines not counted in production data',
