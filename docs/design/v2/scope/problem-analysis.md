@@ -39,3 +39,19 @@ the frozen engine answer `fixtures/answer-key/a10-problems.json`.
 | "Failing faster" early warning for a problem group                                       | reliability trend                          | no                            | later: a trend per group                      |
 
 Coverage re-checked for ticket #555 (charts gain their "Show the numbers" tables; nothing removed): 2026-11-23.
+
+## ADR 0036 kit rules (ticket #752, sweep #706 batch C)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25.
+
+| Rule                          | Status         | Where, or why not                                                                                                                                                                            |
+| ----------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1 / R10 TileSet + ShowDetail | done           | the first row of 4 stays; the what-if panel sits in one `ShowDetail` below it                                                                                                                |
+| R2 ActionStrips               | not applicable | dashboard only; no other page has counts with a way in (ADR 0041)                                                                                                                            |
+| R4 PeriodToggle               | not applicable | the engine serves one period only (`figuresReplySchema`); a toggle would compute figures it did not print (ADR 0041)                                                                         |
+| R5 ReviewMarker               | not applicable | no model carries a held-for-review count and there is no review-tray route (ADR 0041)                                                                                                        |
+| R6 Download Excel             | done           | `DownloadExcel` above the tables, one sheet per table (`problemSheets`); no DOC. NO.: `DOC_REF` has none for this page                                                                       |
+| R11 readable / rupees / exact | done           | bar values print through `exact`                                                                                                                                                             |
+| R17 ReasonChips               | not applicable | only the Action Center risk table carries reasons; other repeat columns are engine-printed counts (ADR 0041)                                                                                 |
+| R20 RankedBars                | done (changed) | "Which problems cost the most?" is a `RankedBars` list; the bar label drops the engine's trailing "(N%)" so one row never shows two shares; the groups table keeps the engine's "% of hours" |
+| R21 Quadrant                  | done           | "Often, or long?" is a `Quadrant` (split at the mean of x and y; often-and-long named)                                                                                                       |
