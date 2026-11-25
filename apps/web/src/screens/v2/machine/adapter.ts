@@ -6,7 +6,14 @@ import { reliabilityOf } from '../../analytics/reliability-values.js';
 import { sentence } from '../figures/point.js';
 import { dayText, machineChip, sourceLine, type Translate } from '../figures/read.js';
 import { commonWords } from '../figures/words.js';
-import { movesBlock, nameplateFacts, recordBlocks, tasksBlock } from './blocks.js';
+import {
+  movesBlock,
+  nameplateFacts,
+  recordBlocks,
+  SPARES_MEANING,
+  takeawaysOf,
+  tasksBlock,
+} from './blocks.js';
 import { drillOf, number } from './format.js';
 import { kpisOf } from './kpis.js';
 import { reliabilityBlock, sparesBlock } from './reliability.js';
@@ -126,14 +133,20 @@ export function machinePageModel(
   const nameplate = t('analytics.machine.nameplate');
   const words = commonWords(t);
   const who = whoOf(record, machine);
+  const listed = sparesBlock(view, note, machineId, t);
+  const spares = {
+    ...listed,
+    table: listed.table && { ...listed.table, meaning: SPARES_MEANING },
+  };
+  const tasks = tasksBlock(facts.tickets, { asOf: reply.asOf, timeZone: facts.timeZone }, t);
   return {
     machine: { id: machineId, ...who.machine },
     verdict: verdictOf(record, contextOf(reply.asOf, who, t), t),
-    kpis: kpisOf(record, reply.asOf, machineId, t),
+    kpis: kpisOf(record, { page: page?.value, asOf: reply.asOf }, machineId, t),
     breakdowns: breakdownsBlock(record, machineId, t),
     reliability: reliabilityBlock(view, note, machineId, t),
-    spares: sparesBlock(view, note, machineId, t),
-    tasks: tasksBlock(facts.tickets, { asOf: reply.asOf, timeZone: facts.timeZone }, t),
+    spares,
+    tasks,
     moves: movesBlock(record, machineId, t),
     nameplate: {
       title: nameplate,
@@ -142,6 +155,7 @@ export function machinePageModel(
       drill: drillOf({ machineId, part: 'machine', ids: [machineId] }, nameplate, t),
     },
     ...recordBlocks(record, machineId, t),
+    takeaways: takeawaysOf(spares, tasks, t),
     source: sourceLine(words.source, reply.asOf),
     words: { why: words.why, seeRows: t('analytics.machine.seeRows') },
   };
