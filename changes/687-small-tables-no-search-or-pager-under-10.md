@@ -1,0 +1,1 @@
+- Small tables (under 10 rows) lose their search box and pager, a table's total is drawn as its footer, and a cell can wear its status (ADR 0036; kit only, no screen uses it yet).
