@@ -7,7 +7,7 @@ import {
   groupFor,
   type GroupId,
 } from '../groups.js';
-import { mayReadMoney } from '../MoneyPage.js';
+import { mayReadMoney } from '../../v2/figures/read.js';
 
 /**
  * The approved navigation map (ticket 80v) laid on the real analytics routes (86a). A section is one menu entry;
