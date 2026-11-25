@@ -1,0 +1,71 @@
+/* A ranked list (ranked-bars.tsx, ADR 0036 R20, R12): worst first, each row a label, an inline bar and
+   value · share · count (₹ at stake after it), and one marker after the rows that make up half. The bars inside the
+   half are the bad ones; the rest stay quiet. Tokens only. */
+
+.v2-ranked {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.v2-ranked-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  align-items: center;
+  gap: 4px var(--space-v2-inner);
+  font-size: var(--text-v2-secondary);
+}
+.v2-ranked-label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-v2-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.v2-ranked-track {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-v2-track);
+}
+.v2-ranked-track > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-v2-mark);
+}
+.v2-ranked-row[data-half] .v2-ranked-track > span {
+  background: var(--color-v2-bad-fill);
+}
+.v2-ranked-row[data-rest] .v2-ranked-track > span {
+  background: var(--color-v2-neutral-fill);
+}
+.v2-ranked-text {
+  grid-column: 2;
+  color: var(--color-v2-ink-2);
+  font-family: var(--font-v2-num);
+  font-size: var(--text-v2-label);
+  font-variant-numeric: tabular-nums;
+}
+.v2-ranked-money {
+  margin-left: 8px;
+  color: var(--color-v2-ink);
+  font-weight: 500;
+}
+/* Half the total sits above this line. */
+.v2-half {
+  height: 0;
+  margin: 2px 0;
+  border-top: 1px dashed var(--color-v2-bad-fill);
+}
+@media (max-width: 560px) {
+  .v2-ranked-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .v2-ranked-text {
+    grid-column: 1;
+  }
+}

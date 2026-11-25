@@ -5,6 +5,8 @@ import { cellLogCsv, cellMoves, dayKey, type CellMove } from '../../analytics/ma
 import { kpiCard, sentence, verdictOf } from '../figures/point.js';
 import { dayText, machineChip, sourceLine, type Translate } from '../figures/read.js';
 import { commonWords, tableWords, type CommonWords } from '../figures/words.js';
+import { tagOf, takeawayFor, type Item } from '../insight.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { CellLogModel, CellLogWords } from './model.js';
 
 export type CellLogReader = {
@@ -137,23 +139,64 @@ function verdictFor(moves: CellMove[], code: (move: CellMove) => string | null, 
   return verdictOf(headline, t('analytics.cellLog.intro'), [t('analytics.cellLog.intro')]);
 }
 
-function kpisOf(moves: CellMove[], ctx: Ctx) {
+/** The calendar month before the as-of month: its `YYYY-MM` key and its name ("October 2026"). */
+function priorMonthOf(asOf: string) {
+  const first = new Date(`${asOf.slice(0, 7)}-01T00:00:00Z`);
+  const before = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() - 1, 1));
+  const period = new Intl.DateTimeFormat('en-GB', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+  return { key: before.toISOString().slice(0, 7), period: period.format(before) };
+}
+
+/** Both cards name the month before as their yardstick (ADR 0035): the moves and the machines that moved in it. */
+function kpisOf(moves: CellMove[], ctx: Ctx, prior: ReturnType<typeof priorMonthOf>) {
   const { t, source } = ctx;
   const machines = new Set(moves.map((move) => move.machineId)).size;
+  const then = moves.filter((move) => dayKey(move.date).startsWith(prior.key));
+  const yardstick = (value: number) =>
+    fill(t('insight.yardstick.prior'), { period: prior.period, value: String(value) });
   return [
-    kpiCard(
-      'moves',
-      'cell',
-      { label: t('v2m.log.kMoves'), value: String(moves.length), sub: t('v2m.log.kMovesSub') },
-      source,
-    ),
-    kpiCard(
-      'machines',
-      'machines',
-      { label: t('v2m.log.kMachines'), value: String(machines), sub: t('v2m.log.kMachinesSub') },
-      source,
-    ),
+    {
+      ...kpiCard(
+        'moves',
+        'cell',
+        { label: t('v2m.log.kMoves'), value: String(moves.length), sub: t('v2m.log.kMovesSub') },
+        source,
+      ),
+      yardstick: yardstick(then.length),
+    },
+    {
+      ...kpiCard(
+        'machines',
+        'machines',
+        { label: t('v2m.log.kMachines'), value: String(machines), sub: t('v2m.log.kMachinesSub') },
+        source,
+      ),
+      yardstick: yardstick(new Set(then.map((move) => move.machineId)).size),
+    },
   ];
+}
+
+/** Moves counted by the cell they went to; a move with no destination cell is left out. `name` is the table's cell text. */
+function movesByCell(moves: CellMove[], t: Translate): Item[] {
+  const counts = new Map<string, number>();
+  for (const move of moves) {
+    if (move.toCell !== null) counts.set(move.toCell, (counts.get(move.toCell) ?? 0) + 1);
+  }
+  return [...counts].map(([cell, count]) => ({
+    name: cellChip(cell, t).label,
+    value: count,
+    shown: String(count),
+  }));
+}
+
+/** One computed line over every move (ADR 0035, ticket 663). A move is not a loss, so the line is neutral. */
+function takeawaysOf(moves: CellMove[], t: Translate): Takeaways {
+  const line = takeawayFor(movesByCell(moves, t), { worse: 'high', additive: true }, t);
+  return { moves: { ...line, tone: 'neutral', tag: tagOf('neutral', t) } };
 }
 
 /** The log screen from the engine's `cell-change-log` figure; null while the engine has not computed it. */
@@ -171,7 +214,8 @@ export function cellLogModel(
   const canCorrect = ROLE_THAT_CORRECTS.has(reader.role ?? '');
   return {
     verdict: verdictFor(moves, code, t),
-    kpis: kpisOf(moves, ctx),
+    takeaways: takeawaysOf(moves, t),
+    kpis: kpisOf(moves, ctx, priorMonthOf(reply.asOf)),
     table: tableOf(moves, code, canCorrect, ctx),
     moves: moves.map((move) => ({
       id: move.id,
