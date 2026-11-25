@@ -1,4 +1,6 @@
 import type { MessageKey } from '@uptimo/shared/i18n';
+import { ApiError } from '../../../api.js';
+import { landingPath } from '../../../roles.js';
 
 /** Who signed in, as far as where they go next is concerned. */
 export type SignedIn = { role: string; shared: boolean; actingPersonId?: string | null };
@@ -9,14 +11,16 @@ export type SignedIn = { role: string; shared: boolean; actingPersonId?: string 
  * `login.failed` (a wrong username or password). Moved unchanged from v1 `faces/signin/parts.tsx`.
  */
 export function signInError(error: unknown): MessageKey {
-  void error;
-  throw new Error('not implemented');
+  if (!(error instanceof ApiError)) return 'signin.unreachable';
+  if (error.code === 'rate_limited') return 'signin.tooMany';
+  if (error.code === 'not_found') return 'signin.unknownCompany';
+  if (error.code === 'internal') return 'signin.serverProblem';
+  return 'login.failed';
 }
 
 /** Sign in may be pressed: a username that is not blank once trimmed, and any password (passwords are never trimmed). */
 export function readyToSignIn(username: string, password: string): boolean {
-  void [username, password];
-  throw new Error('not implemented');
+  return Boolean(username.trim() && password);
 }
 
 /**
@@ -25,6 +29,6 @@ export function readyToSignIn(username: string, password: string): boolean {
  * else goes to their role's landing page (`landingPath` in `roles.ts`).
  */
 export function nextPath(user: SignedIn, mustChangePassword: boolean): string | null {
-  void [user, mustChangePassword];
-  throw new Error('not implemented');
+  if (!user.shared || user.actingPersonId) return landingPath(user.role);
+  return mustChangePassword ? null : '/who';
 }
