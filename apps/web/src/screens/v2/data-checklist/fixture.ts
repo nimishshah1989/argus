@@ -1,7 +1,10 @@
+import i18n from '../../../i18n/index.js';
+import { fill } from '../../../i18n/fill.js';
 import type { CheckData } from '../../../ui/v2/domain/check-row.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
 import { PEOPLE } from './fixture-people.js';
 import { pt, pts } from '../dashboard/fixture-text.js';
+import { checklistTakeaways } from './adapter.js';
 import type { CheckGroup, DataChecklistModel, RecordRow } from './model.js';
 import {
   AREAS,
@@ -40,12 +43,18 @@ const change = (now: number, before: number, text: (n: number) => string, goodWh
   good: now >= before === goodWhenUp,
 });
 
+const t = (key: string, values?: Record<string, unknown>) => i18n.t(key, { ...values }) as string;
+const yard = (kind: string, values: Record<string, string | number>) =>
+  fill(t(`insight.yardstick.${kind}`), values);
+const average = Math.round(records.reduce((sum, r) => sum + r.open.value, 0) / records.length);
+
 const kpis: KpiData[] = [
   {
     id: 'passing',
     label: 'Checks passing',
     icon: 'check',
     value: `${percent}%`,
+    yardstick: yard('target', { value: '100%' }),
     delta: change(percent, LAST_WEEK.percent, (n) => `${n} pts`, true),
     period: 'vs last week',
     meaning: `${passing.length} of ${CHECKS.length} data checks pass`,
@@ -57,6 +66,10 @@ const kpis: KpiData[] = [
     label: 'Gaps changing figures',
     icon: 'alert',
     value: String(gaps.length),
+    yardstick: yard('share', {
+      pct: Math.round((gaps.length / CHECKS.length) * 100),
+      total: CHECKS.length,
+    }),
     delta: change(gaps.length, LAST_WEEK.gaps, String, false),
     period: 'vs last week',
     meaning: 'Gaps that change a figure on your screens',
@@ -68,6 +81,7 @@ const kpis: KpiData[] = [
     label: 'Records to fix',
     icon: 'list',
     value: String(records.length),
+    yardstick: yard('target', { value: 0 }),
     delta: change(records.length, LAST_WEEK.records, String, false),
     period: 'vs last week',
     meaning: 'Rows behind the gaps and the checks',
@@ -78,6 +92,7 @@ const kpis: KpiData[] = [
     label: 'Oldest gap',
     icon: 'clock',
     value: `${oldest} days`,
+    yardstick: yard('average', { value: `${average} days` }),
     delta: change(oldest, LAST_WEEK.oldest, (n) => `${n} days`, false),
     period: 'vs last week',
     meaning: 'How long the longest-open gap has waited',
@@ -130,6 +145,9 @@ const heaviest = (Object.keys(AREAS) as Area[])
   .map((a) => ({ owner: AREAS[a].owner, n: records.filter((r) => r.area.key === a).length }))
   .sort((a, b) => b.n - a.n)[0]!;
 
+const words = dataChecklistWords(records.length, passing.length);
+const checkGroups = groups();
+
 export const dataChecklistFixture: DataChecklistModel = {
   verdict: {
     context: 'Friday 20-Nov-2026 · whole plant',
@@ -143,10 +161,11 @@ export const dataChecklistFixture: DataChecklistModel = {
     ),
   },
   kpis,
-  groups: groups(),
+  groups: checkGroups,
   records,
   passing: passing.map((c) => pt(c.passes!)),
   source:
     'Figures as of 20-Nov-2026 09:30 IST · source: the Argus breakdown log and machine records',
-  words: dataChecklistWords(records.length, passing.length),
+  words,
+  takeaways: checklistTakeaways({ groups: checkGroups, records, words }, i18n.t),
 };
