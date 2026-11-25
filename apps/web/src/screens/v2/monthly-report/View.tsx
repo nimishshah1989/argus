@@ -115,6 +115,14 @@ function Section({
   );
 }
 
+/** The short weekday names, Monday first, in the reader's language. */
+const weekdaysIn = (language: string): string[] =>
+  Array.from({ length: WEEK }, (_, at) =>
+    new Intl.DateTimeFormat(language, { weekday: 'short', timeZone: 'UTC' }).format(
+      new Date(Date.UTC(2026, 0, 5 + at)),
+    ),
+  );
+
 /**
  * The Monthly Report on the printed-page pattern (S23): the verdict, the period and the two downloads, the day-by-day
  * chart as a calendar of heat cells and the months as ranked bars (each with its numbers), then every table the engine
@@ -132,13 +140,8 @@ export function MonthlyReportView({
   const { i18n, t } = useTranslation();
   const { current } = useEntityParam();
   const selected = current?.kind === 'machine' ? current.id : undefined;
-  const weekdays = Array.from({ length: WEEK }, (_, at) =>
-    new Intl.DateTimeFormat(i18n.language, { weekday: 'short', timeZone: 'UTC' }).format(
-      new Date(Date.UTC(2026, 0, 5 + at)),
-    ),
-  );
   const [daily, ...rest] = model.charts;
-  const calendar = daily ? calendarOf(daily, weekdays) : null;
+  const calendar = daily ? calendarOf(daily, weekdaysIn(i18n.language)) : null;
   return (
     <EntityShell nav={nav} title={title}>
       <Verdict verdict={model.verdict} whyLabel={model.words.why} />
