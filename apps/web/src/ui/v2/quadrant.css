@@ -1,0 +1,42 @@
+/* The four-quadrant chart (quadrant.tsx, ADR 0036 R21, R19): two dashed split lines, a quiet name in each quadrant,
+   grey dots, the top offenders in the bad colour with their label beside the dot. No legend. Tokens only. */
+
+.v2-quad {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  font-family: var(--font-v2-text);
+}
+.v2-quad-axis {
+  stroke: var(--color-v2-line);
+  stroke-width: 1;
+}
+.v2-quad-title {
+  fill: var(--color-v2-ink-3);
+  font-size: var(--text-v2-label);
+}
+.v2-quad-split {
+  stroke: var(--color-v2-control-line);
+  stroke-dasharray: 4 4;
+  stroke-width: 1;
+}
+.v2-quad-name {
+  fill: var(--color-v2-ink-3);
+  font-size: var(--text-v2-label);
+  font-weight: 600;
+}
+.v2-quad-dot {
+  fill: var(--color-v2-track);
+  stroke: var(--color-v2-mark);
+  stroke-width: 1.5;
+}
+.v2-quad-dot[data-offender] {
+  fill: var(--color-v2-bad-tint);
+  stroke: var(--color-v2-bad-fill);
+}
+.v2-quad-label {
+  fill: var(--color-v2-ink);
+  font-size: var(--text-v2-label);
+  font-weight: 500;
+}

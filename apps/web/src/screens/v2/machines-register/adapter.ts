@@ -2,9 +2,12 @@ import type { FiguresReply } from '@uptimo/shared/analytics';
 import { fill } from '../../../i18n/fill.js';
 import type { IconName } from '../../../ui/v2/icons.js';
 import { REGISTER_TABS } from '../../analytics/machine-values.js';
+import type { Meaning, Takeaways } from '../../../ui/v2/takeaway.js';
 import { kpiCard, sentence, verdictOf } from '../figures/point.js';
+import { takeawayFor, type Item } from '../insight.js';
 import {
   machineChip,
+  numberIn,
   pagesOf,
   sourceLine,
   type RegisterKpi,
@@ -139,6 +142,98 @@ function pageModel(page: RegisterPage, label: string, ctx: Ctx): RegisterPageMod
   };
 }
 
+type Rows = string[][];
+
+/** Rows as takeaway items: named by one cell, valued by the number in another and shown as printed; a cell with no number leaves the row out. */
+const itemsOf = (rows: Rows, name: number, at: number): Item[] =>
+  rows.flatMap((row) => {
+    const shown = row[at] ?? '';
+    const value = numberIn(shown);
+    return value === null
+      ? []
+      : [{ name: (row[name] ?? '').replace(NOT_IN_PRODUCTION, ''), value, shown }];
+  });
+
+/** One line per split, per by-category table (machines add up) and per machine list (ages don't), keyed `<page>-<table id>` (ticket 655). */
+function takeawaysOf(page: RegisterPage, t: Translate): Takeaways {
+  const { controllers, makes } = splitKpis(page);
+  const out: Takeaways = {};
+  const say = (id: string, rows: Rows, columns: [number, number], meaning: Meaning) => {
+    out[`${page.id}-${id}`] = takeawayFor(itemsOf(rows, ...columns), meaning, t);
+  };
+  const adds: Meaning = { worse: 'high', additive: true };
+  for (const [id, kpis] of [
+    ['controllers', controllers],
+    ['makes', makes],
+  ] as const)
+    if (kpis.length > 0)
+      say(
+        id,
+        kpis.map((kpi) => [kpi.label, kpi.value]),
+        [0, 1],
+        adds,
+      );
+  page.tables.forEach((table, at) => {
+    const { header } = table;
+    const id = header.includes('DG ID') ? 'DG ID' : 'Machine ID';
+    if (header.includes(id))
+      say('list', table.rows, [header.indexOf(id), header.indexOf('Age')], { worse: 'high' });
+    else if (header[1] === 'Machines') say(`table-${at}`, table.rows, [0, 1], adds);
+  });
+  return out;
+}
+
+const LOADS = ['Connected Load', 'Listed Power'];
+
+/**
+ * Each summary card's yardstick, by card id: the count as a share of every page's count, the average age as a rank,
+ * a KVA load as a share of the KVA the pages print, the DG's largest set as a share of its capacity. A figure in
+ * another unit or with no number gets `v2m.none`.
+ * shortcut: no comparable figure in the register reply, upgrade when the engine sends a prior period or peer.
+ */
+function yardsticksOf(pages: RegisterPage[], t: Translate): Record<string, string> {
+  const cards = pages.flatMap((page) =>
+    splitKpis(page).summary.map((kpi, i) => ({
+      ...kpi,
+      at: i,
+      page: page.id,
+      n: numberIn(kpi.value),
+    })),
+  );
+  const sum = (some: typeof cards) => some.reduce((total, card) => total + (card.n ?? 0), 0);
+  const kva = (card: (typeof cards)[number]) => card.n !== null && card.value.endsWith(' KVA');
+  const counted = cards.filter((card) => card.at === 0);
+  const count = sum(counted);
+  const ages = cards.filter((card) => card.label === 'Avg Age' && card.n !== null);
+  const load = sum(cards.filter((card) => LOADS.includes(card.label) && kva(card)));
+  const loadShown = `${load.toLocaleString('en-US', { maximumFractionDigits: 1 })} KVA`;
+  const share = (n: number, total: number, shown: string) =>
+    total > 0
+      ? fill(t('insight.yardstick.share'), { pct: Math.round((n / total) * 100), total: shown })
+      : null;
+  const of = (card: (typeof cards)[number]): string | null => {
+    const { n } = card;
+    if (n === null) return null;
+    if (card.at === 0) return share(n, count, String(count));
+    if (card.label === 'Avg Age')
+      return fill(t('insight.yardstick.rank'), {
+        rank: 1 + ages.filter((age) => (age.n ?? 0) > n).length,
+        n: ages.length,
+      });
+    if (!kva(card)) return null;
+    if (card.label === 'Largest Set') {
+      const capacity = cards.find((c) => c.page === card.page && c.label === 'Generating Capacity');
+      return capacity?.n ? share(n, capacity.n, capacity.value) : null;
+    }
+    return LOADS.includes(card.label) || card.label === 'Generating Capacity'
+      ? share(n, load, loadShown)
+      : null;
+  };
+  return Object.fromEntries(
+    cards.map((card) => [`${card.page}-${card.at}`, of(card) ?? t('v2m.none')]),
+  );
+}
+
 const splitHead = (t: Translate): string[] => [
   t('v2m.reg.count'),
   t('v2m.reg.share'),
@@ -160,8 +255,16 @@ export function registersModel(reply: FiguresReply, t: Translate): RegistersMode
     const tab = REGISTER_TABS.find((candidate) => candidate.id === id);
     return tab ? t(tab.labelKey) : id;
   };
+  const yardstick = yardsticksOf(found, t);
   return {
-    pages: found.map((page) => pageModel(page, label(page.id), { c, t, source })),
+    pages: found.map((page) => {
+      const model = pageModel(page, label(page.id), { c, t, source });
+      return {
+        ...model,
+        kpis: model.kpis.map((kpi) => ({ ...kpi, yardstick: yardstick[kpi.id] })),
+      };
+    }),
+    takeaways: Object.assign({}, ...found.map((page) => takeawaysOf(page, t))),
     ...drillOf(reply, t),
     source,
     words: { tabs: t('analytics.registers.tabs'), why: c.why },
