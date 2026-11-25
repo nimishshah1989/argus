@@ -58,3 +58,9 @@
 .v2-strip[data-severity='low'] {
   border-left-color: var(--color-v2-neutral-fill);
 }
+@media (prefers-reduced-motion: reduce) {
+  .v2-strip {
+    transition: none;
+    animation: none;
+  }
+}
