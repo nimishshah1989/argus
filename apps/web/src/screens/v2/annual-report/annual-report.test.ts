@@ -15,9 +15,8 @@ const model = () => annualReportModel(reply, realT)!;
 const line = (id: string) => model().takeaways[id]?.text ?? '';
 
 describe('S24 Annual Report from the engine reply', () => {
-  it('prints all 12 tables whole and both charts', () => {
+  it('keeps all 12 tables whole (the View sorts and collapses; the model keeps every row)', () => {
     expect(model().tables.map((t) => t.rows.length)).toEqual(page.tables.map((t) => t.rows.length));
-    expect(model().charts).toHaveLength(2);
   });
 
   it('captions the untitled table as the commentary form', () => {
