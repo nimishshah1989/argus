@@ -25,7 +25,9 @@ DEFAULT_TESTS = ["tests/**", "test/**", "**/__tests__/**", "**/test_*.py", "**/*
 DEFAULT_FRONTEND = ["app/**/*.tsx", "src/app/**", "src/components/**", "src/pages/**", "apps/web/**",
                     "components/**", "**/*.tsx", "**/*.jsx", "**/*.vue", "**/*.svelte", "**/*.css"]
 DEFAULT_BRAND = ["--accent", "--accent-2", "--accent-soft", "--accent-rule", "--wash-1", "--wash-2", "--wash-3", "--font-serif", "--font-sans"]
-KIT_ONLY = ("apps/web/src/ui/", "changes/", "docs/loop/handoff/")  # ADR 0040; kit tests live in apps/web/src/ui/
+KIT_ONLY = ("apps/web/src/ui/", "changes/", "docs/loop/handoff/",  # ADR 0040; kit tests live in apps/web/src/ui/
+            "packages/shared/src/xlsx.ts", "apps/web/src/i18n/", "apps/web/src/components/AccountSheet.tsx",
+            "apps/web/e2e/", "playwright.config.ts")  # ADR 0042: #732 export, #701 Gujarati switch and its browser specs
 LOCKED = ["PROJECT.md", "db/schema.sql", "prisma/schema.prisma", "**/schema.prisma"]
 RAW_STYLE = re.compile(r"""(?:[:"'\s(=]#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?(?:[0-9a-fA-F]{2})?\b|\brgba?\(|\bhsla?\(|-\[#|-\[\d+(?:px|rem)\])""")
 

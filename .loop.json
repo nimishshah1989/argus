@@ -140,22 +140,17 @@
     "apps/web/src/ui/v2/domain/ack-form.tsx",
     "apps/web/src/ui/v2/domain/calendar-events.test.ts",
     "apps/web/src/ui/v2/domain/calendar-events.ts",
-    "apps/web/src/ui/v2/domain/cell-detail.tsx",
     "apps/web/src/ui/v2/domain/check-row.tsx",
     "apps/web/src/ui/v2/domain/compare-box.tsx",
     "apps/web/src/ui/v2/domain/correct-date.tsx",
-    "apps/web/src/ui/v2/domain/decision-detail.tsx",
     "apps/web/src/ui/v2/domain/decision-list.tsx",
     "apps/web/src/ui/v2/domain/decision-row.tsx",
-    "apps/web/src/ui/v2/domain/detail-parts.tsx",
     "apps/web/src/ui/v2/domain/fact-list.tsx",
     "apps/web/src/ui/v2/domain/heat-tiles.tsx",
     "apps/web/src/ui/v2/domain/heat.test.ts",
-    "apps/web/src/ui/v2/domain/machine-detail.tsx",
     "apps/web/src/ui/v2/domain/machine-table.tsx",
     "apps/web/src/ui/v2/domain/month-calendar.tsx",
     "apps/web/src/ui/v2/domain/month-skin.css",
-    "apps/web/src/ui/v2/domain/person-detail.tsx",
     "apps/web/src/ui/v2/domain/plant-map.tsx",
     "apps/web/src/ui/v2/domain/plant.ts",
     "apps/web/src/ui/v2/domain/rows-behind-adapter.ts",
@@ -266,5 +261,5 @@
     "prod_smoke": "",
     "require_go": true
   },
-  "_kit_carve_out": "ADR 0039, Nimish yes 25 Nov 2026: 13 named kit files open to builders until #684-#704 merge (the ADR 0028 §4 carve-out also still open); then restore the single glob apps/web/src/ui/** and drop this key"
+  "_kit_carve_out": "ADR 0039, Nimish yes 25 Nov 2026: 13 named kit files open to builders until #684-#704 merge, plus the 5 drawer files for #705 (ADR 0042) (the ADR 0028 §4 carve-out also still open); then restore the single glob apps/web/src/ui/** and drop this key"
 }

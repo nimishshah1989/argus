@@ -14,3 +14,5 @@ One page per irreversible or expensive-to-reverse decision. Each records the con
 - `0010-adopt-the-loop.md` — the build process moves from pstack to the loop; the repo's own design system stays
 - `0011-adoption-blueprint.md` — PROJECT.md written from the code as built; milestones M1–M5; built screens snapshotted as wireframes
 - `0040-kit-only-prs-need-no-screen.md` — `Screens: none (kit only)` passes loop-guard when every changed file is kit, changelog or handoff
+- `0041-gujarati-switch-per-phone.md` — Gujarati's `GUJARATI_ON` switch is `localStorage["uptimo.gujarati"] === "on"`, read once at load (e2e option `gujaratiOn`)
+- `0042-kit-tickets-folded-into-one.md` — the remaining ADR 0036 kit tickets (incl. #685, #701) are one ticket, one PR; kit-only carve-out widened
