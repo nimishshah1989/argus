@@ -1,0 +1,1 @@
+- The Machine page's Critical spares and Open tasks sections open with a one-line takeaway (the worst part against the others, what is open and overdue), and every headline tile says where the machine ranks in the plant.
