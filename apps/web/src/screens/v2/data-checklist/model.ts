@@ -4,6 +4,7 @@ import type { TableWords } from '../../../ui/v2/data-table.js';
 import type { EntityChipProps } from '../../../ui/v2/entity-chip.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
 import type { Point } from '../../../ui/v2/points.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
 
 /** The checks of one part of the data, with the person who fixes what fails there. */
@@ -38,6 +39,8 @@ export type RecordRow = {
  */
 export type DataChecklistModel = {
   verdict: VerdictData;
+  /** ADR 0035: `groups` (every failing check), `records` (all records, not the filtered rows), `passing`. */
+  takeaways?: Takeaways;
   /**
    * v1's "See the rows": the page's own control for the tickets behind the breakdown and Why-Why gaps (engine
    * `drillIds`). Only when the engine named any; never on a card, since no card counts exactly those tickets (ADR 0019).

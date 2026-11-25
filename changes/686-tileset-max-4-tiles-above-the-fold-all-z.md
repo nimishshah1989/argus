@@ -1,0 +1,1 @@
+- A page now shows at most 4 tiles up top with the rest under "Show detail", and a set of all-zero tiles collapses to one line.

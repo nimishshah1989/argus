@@ -1,0 +1,1 @@
+- A ranked list now draws each row as an inline bar with value · share · count (and ₹ at stake when given), worst first, with a marker after the rows that make up half the total.

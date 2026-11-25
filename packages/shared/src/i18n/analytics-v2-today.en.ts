@@ -96,6 +96,18 @@ export const analyticsV2TodayEn = {
   'v2d.tf.text.month.one': '1 action open for {month}.',
   'v2d.tf.top': 'Top: {title}',
   'v2d.tf.open': 'Open Team Focus',
+  // ADR 0041/0043: the Action Center and Team Focus banners as action strips (count in bold, then these words, then the link).
+  'v2d.strip.high': 'high-priority decisions need attention',
+  'v2d.strip.high.one': 'high-priority decision needs attention',
+  'v2d.strip.medium': 'decisions to watch',
+  'v2d.strip.medium.one': 'decision to watch',
+  'v2d.strip.tf': 'Team Focus actions open',
+  'v2d.strip.tf.one': 'Team Focus action open',
+  'v2d.strip.ac.open': 'Open Action Center',
+  'v2d.quad.sub':
+    'Each dot is a machine: downtime hours across, breakdowns up. The lines are the averages; the five worst are named. Every record to date.',
+  'v2d.quad.aria':
+    'Every machine by downtime hours across and number of breakdowns up, split at the averages into four groups.',
   'v2d.link.register': 'Open register',
   'v2d.fig.no-downtime-hours.entries': 'Entries: {n}',
   'v2d.costliest.link': 'View Problem Analysis',
