@@ -31,3 +31,14 @@ Live at `/analytics/forecast-scorecard?screen=forecast-lab`. v1's page is delete
 | The track record: months the plant stayed inside the model in use's 80% range              | method table | yes, built (the engine's own "4 of 7")           |
 | Mark each month where the actual fell outside a method's range                             | month table  | later: needs server, a flag per month and method |
 | The frozen monthly forecasts and the published scorecard (ticket 53)                       | none yet     | later: ticket 53                                 |
+
+## ADR 0036 kit rules (ticket #753, sweep #706 batch D)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25. Rows from the builder's `docs/loop/handoff/753.md` and ticket #753.
+
+| Rule                          | Status         | Where, or why not                                                                                |
+| ----------------------------- | -------------- | ------------------------------------------------------------------------------------------------ |
+| R1 TileSet + ShowDetail       | done           | first 4 figures to `PageBody`, the rest under Show detail                                        |
+| R6 Download Excel             | done           | one Download Excel below the tables (file `forecast-lab`), each table as shown; no doc reference |
+| R11 readable / rupees / exact | not applicable | the page formats no lakh-scale number or money itself (ADR 0041)                                 |
+| R20 RankedBars                | not applicable | no Pareto or ranked bar on this page in ADR 0043's map                                           |
