@@ -23,6 +23,7 @@ import { FixFinderView } from './fix-finder/View.js';
 import { ForecastLabView } from './forecast-lab/View.js';
 import { FootprintView } from './footprint/View.js';
 import { ManpowerView } from './manpower/View.js';
+import { MonthlyReportView } from './monthly-report/View.js';
 import { MoneyMattersView } from './money-matters/View.js';
 import { RegistersView } from './machines-register/View.js';
 import { PmCalendarPage } from './pm-calendar/Page.js';
@@ -354,6 +355,20 @@ const LIVE: readonly Live[] = [
     ),
   },
   {
+    group: 'reports',
+    section: 'reports',
+    screen: 'monthly-report',
+    page: () => (
+      <ModelPage
+        entry={screenOf('reports', 'reports', 'monthly-report')}
+        screen="monthly-report"
+        empty="analytics.notComputed"
+        title="analytics.screen.monthly-report"
+        draw={(model, shell) => <MonthlyReportView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
     group: 'cost',
     section: 'people',
     screen: 'money-matters',
@@ -401,6 +416,7 @@ const FIRST: Record<string, string> = {
   today: 'dashboard',
   breakdowns: 'breakdown-log',
   pm: 'pm-calendar',
+  reports: 'monthly-report',
   cost: 'money-matters',
 };
 /** Groups that are v2 whole: an unknown `?screen=` opens their first screen. */
