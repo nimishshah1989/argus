@@ -26,8 +26,8 @@ export function topStrips(strips: Strip[]): Strip[] {
 
 /**
  * Up to 3 strips at the page top (ADR 0036 R2), from `topStrips(strips)`: inside `<div class="v2-strips">`, each an
- * `<a class="v2-strip" data-severity={severity} href={href}>` holding `<strong>{count}</strong> {what}` then `{link}`
- * (pattern: `Banner` in `banner.tsx`). Edge colour from `[data-severity]` in `action-strip.css` (status tokens only).
+ * `<a class="v2-strip" data-severity={severity} href={href}>` holding `<strong>{count}</strong> {what}` then
+ * `<span class="v2-strip-link">{link}</span>` (pattern: `Banner` in `banner.tsx`). Edge colour from `[data-severity]` in `action-strip.css` (status tokens only).
  * Nothing left → `null`.
  */
 export function ActionStrips({ strips }: { strips: Strip[] }): ReactElement | null {

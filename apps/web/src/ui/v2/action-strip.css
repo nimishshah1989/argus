@@ -1,0 +1,60 @@
+/* Action strips (action-strip.tsx, ADR 0036 R2): up to 3 one-line strips at the page top, count + what + the way in,
+   the edge toned by severity (high bad, medium watch, low neutral). Tokens only. */
+
+.v2-strips {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.v2-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px var(--space-v2-inner);
+  min-height: 44px;
+  padding: 8px var(--space-v2-pad);
+  border: 1px solid var(--color-v2-line);
+  border-left: 4px solid var(--color-v2-neutral-fill);
+  border-radius: 10px;
+  background: var(--color-v2-panel);
+  color: var(--color-v2-ink);
+  font-size: var(--text-v2-body);
+  text-decoration: none;
+  transition: box-shadow var(--motion-v2-fast) var(--ease-v2);
+}
+.v2-strip:hover {
+  box-shadow: var(--shadow-v2-raised);
+}
+.v2-strip > strong {
+  font-family: var(--font-v2-num);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.v2-strip-link {
+  margin-left: auto;
+  color: var(--color-v2-ink-2);
+  font-size: var(--text-v2-label);
+  font-weight: 600;
+}
+.v2-strip:hover > .v2-strip-link {
+  color: var(--color-v2-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.v2-strip[data-severity='high'] {
+  border-left-color: var(--color-v2-bad-fill);
+  background: var(--color-v2-bad-tint);
+}
+.v2-strip[data-severity='high'] > strong {
+  color: var(--color-v2-bad);
+}
+.v2-strip[data-severity='medium'] {
+  border-left-color: var(--color-v2-watch-fill);
+  background: var(--color-v2-watch-tint);
+}
+.v2-strip[data-severity='medium'] > strong {
+  color: var(--color-v2-watch);
+}
+.v2-strip[data-severity='low'] {
+  border-left-color: var(--color-v2-neutral-fill);
+}
