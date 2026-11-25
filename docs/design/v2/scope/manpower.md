@@ -33,3 +33,19 @@ Built from `screens/analytics/ManpowerPage.tsx` (deleted in the PR that made thi
 | Who handled the most breakdowns, with their share, and who put in the most hours | Manpower table            | yes (pick in the adapter) | built                                                                 |
 | Spend per person's hours                                                         | hours times cost per hour | no                        | later: rupees per person, head, plant head, admin only (needs server) |
 | Who covers each machine category (single point of failure)                       | Specialization            | the matrix, not the risk  | later: full category names and a coverage flag (needs server)         |
+
+## ADR 0036 kit rules (ticket #753, sweep #706 batch D)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25.
+
+| Rule                          | Status         | Where, or why not                                                                                                    |
+| ----------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------- |
+| R1 / R10 TileSet + ShowDetail | done           | `View.tsx`: the first 4 figures go to `PageBody`, the rest in `ShowDetail` through `after` (3 today, nothing folds)  |
+| R2 ActionStrips               | not applicable | dashboard only; no other page has counts with a way in (ADR 0041)                                                    |
+| R4 PeriodToggle               | not applicable | the engine serves one period only (`figuresReplySchema`); a toggle would compute figures it did not print (ADR 0041) |
+| R5 ReviewMarker               | not applicable | no model carries a held-for-review count and there is no review-tray route (ADR 0041)                                |
+| R6 Download Excel             | not applicable | not one of Bhavin's exports (ADR 0041)                                                                               |
+| R11 readable / rupees / exact | done           | `adapter.ts`: the sums print through `sumText`; under 1 lakh the text is unchanged                                   |
+| R17 ReasonChips               | not applicable | only the Action Center risk table carries reasons; other repeat columns are engine-printed counts (ADR 0041)         |
+| R20 RankedBars                | not applicable | no Pareto or ranked bar on this page in ADR 0043's map                                                               |
+| R21 Quadrant                  | not applicable | no bubble chart on this page (ADR 0041)                                                                              |

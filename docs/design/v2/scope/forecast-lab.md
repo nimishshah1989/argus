@@ -31,3 +31,19 @@ Live at `/analytics/forecast-scorecard?screen=forecast-lab`. v1's page is delete
 | The track record: months the plant stayed inside the model in use's 80% range              | method table | yes, built (the engine's own "4 of 7")           |
 | Mark each month where the actual fell outside a method's range                             | month table  | later: needs server, a flag per month and method |
 | The frozen monthly forecasts and the published scorecard (ticket 53)                       | none yet     | later: ticket 53                                 |
+
+## ADR 0036 kit rules (ticket #753, sweep #706 batch D)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25.
+
+| Rule                          | Status         | Where, or why not                                                                                                    |
+| ----------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------- |
+| R1 / R10 TileSet + ShowDetail | done           | `View.tsx`: the first 4 figures go to `PageBody`, the rest in `ShowDetail` through `after`                           |
+| R2 ActionStrips               | not applicable | dashboard only; no other page has counts with a way in (ADR 0041)                                                    |
+| R4 PeriodToggle               | not applicable | the engine serves one period only (`figuresReplySchema`); a toggle would compute figures it did not print (ADR 0041) |
+| R5 ReviewMarker               | not applicable | no model carries a held-for-review count and there is no review-tray route (ADR 0041)                                |
+| R6 Download Excel             | done           | one `DownloadExcel` `forecast-lab` below the tables in `after` (`labSheets`); no DOC. NO.: not a controlled form     |
+| R11 readable / rupees / exact | not applicable | the page formats no lakh-scale number or money itself; engine-printed strings are never re-rounded (ADR 0041)        |
+| R17 ReasonChips               | not applicable | only the Action Center risk table carries reasons; other repeat columns are engine-printed counts (ADR 0041)         |
+| R20 RankedBars                | not applicable | no Pareto or ranked bar on this page in ADR 0043's map                                                               |
+| R21 Quadrant                  | not applicable | no bubble chart on this page (ADR 0041)                                                                              |
