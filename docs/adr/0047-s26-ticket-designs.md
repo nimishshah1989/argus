@@ -38,8 +38,8 @@ Every takeaway takes `now`/`today` as an argument. All takeaways count `active` 
    Only v1's failed-jobs badge (ADR 0046). Edits `App.tsx` routes, `Plant.tsx` (export `Body`; drop shell, `Home`,
    `NoAccess`), `Jobs.tsx` (drop `JobsScreen`). e2e `settings-plant.spec.ts`, `settings-jobs.spec.ts`.
 2. **S26-2 machines, groups, shifts** (`settings-plant/`, per ADR 0046 d5). `machinesTakeaway(rows) → {total, unset
-   (criticality null), excluded (excludedFromProduction)}`; `groupsTakeaway(groups, machines) → biggest by
-   `machine.groupId` {groupId, n, total, hidden}`; `shiftsTakeaway(shifts, prodHrsPerDay|null) → {count, totalHours}`
+(criticality null), excluded (excludedFromProduction)}`; `groupsTakeaway(groups, machines) → biggest by
+`machine.groupId` {groupId, n, total, hidden}`; `shiftsTakeaway(shifts, prodHrsPerDay|null) → {count, totalHours}`
    (midnight wrap). Move `plant-specs.test.ts`; delete `plant-specs.tsx`, `machine-production.tsx`.
    e2e `settings-plant`, `settings-production-data`.
 3. **S26-3 PM plans, registers, roster, ladder** (`settings-upkeep/`, ~files<=12 lines<=900).
@@ -50,14 +50,14 @@ Every takeaway takes `now`/`today` as an argument. All takeaways count `active` 
    roster/ladder people lookups read admin-only `/api/v1/people`. e2e `pm-plans`, `settings-registers`,
    `settings-roster`, `escalation-history:260`.
 4. **S26-4 people, logins** (`settings-people/`). Admin only (v1 `People.tsx`). `peopleTakeaway(rows) → {total,
-   noPhone}`; `loginsTakeaway(rows) → {total, shared}`. Move `people-specs.test.ts`; delete `People.tsx`,
+noPhone}`; `loginsTakeaway(rows) → {total, shared}`. Move `people-specs.test.ts`; delete `People.tsx`,
    `people-specs.tsx`. e2e `settings-people`.
 5. **S26-5 audit** (`settings-audit/`). `auditTakeaway(rows, hasMore, now)` over the last 7 days: `{count, area,
-   areaCount, by}` (area = `entity`, most rows, tie → newest; `by` = most rows within that area); **null when
+areaCount, by}` (area = `entity`, most rows, tie → newest; `by` = most rows within that area); **null when
    `hasMore` and the oldest loaded row is inside the window** (never a partial count). `mayExport(role)` = admin.
    Newest first kept. Delete `Audit.tsx`. e2e `settings-audit`.
 6. **S26-6 lists hub, glossary, analytics profile** (`settings-lists/`). `listsTakeaway(counts) → longest {page, n,
-   total}`; hub tiles per list (link `?list=<page>`) and a read-only "All" table across the six lists (rows link to
+total}`; hub tiles per list (link `?list=<page>`) and a read-only "All" table across the six lists (rows link to
    their list); a list page is the kit `CrudPage`. `glossaryTakeaway(terms) → {total, gu, guLatn, en}` from
    `direction`. `profileTakeaway(row) → {notSet: keys whose value is null, total: keys present}` (money keys absent
    for logins without money rights: never counted). Move `lists-specs.test.ts`, `analytics-profile-spec.test.ts`;
@@ -67,7 +67,7 @@ Every takeaway takes `now`/`today` as an argument. All takeaways count `active` 
    `company-spec.test.ts`, `translations-spec.test.ts`; delete `Company.tsx`, `Translations.tsx`.
    e2e `settings-company`, `settings-translations`.
 8. **S26-8 desk settings** (`screens/v2/desk-settings/`, `/desk/settings`). `criticalityTakeaway(machines) → {total,
-   unset, A, B, C}`; `highCells(matrix)`; `slaRows(policies)`; `pausingReasons(waitReasons) → {pausing[], total}`.
+unset, A, B, C}`; `highCells(matrix)`; `slaRows(policies)`; `pausingReasons(waitReasons) → {pausing[], total}`.
    Restore clock pauses is read-only with a link to `/settings/lists?list=wait_reason` (one write path; noted in
    coverage as a question). All states kept (forbidden + SLA note, load failed, offline read-only, saved, failed).
    Deletes `screens/Settings.tsx`, `SettingsSections.tsx`, `SlaSettingsSections.tsx`. e2e `settings-severity`,
