@@ -11,6 +11,7 @@ import { Panel } from '../../../ui/v2/panel.js';
 import { Points } from '../../../ui/v2/points.js';
 import { Row } from '../../../ui/v2/row.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
+import { Takeaway, type TakeawayData } from '../../../ui/v2/takeaway.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
 import { EntityShell } from '../entity/EntityShell.js';
 import { useEntityParam } from '../entity/url.js';
@@ -19,6 +20,17 @@ import type { TeamFocusActions, TeamFocusModel } from './model.js';
 import { ActionTable, PeopleTable } from './tables.js';
 
 const ignore = () => {};
+
+const Kpis = ({ kpis }: { kpis: TeamFocusModel['kpis'] }) => (
+  <Row cols={4}>
+    {kpis.map((k) => (
+      <KpiCard key={k.id} kpi={k} />
+    ))}
+  </Row>
+);
+
+/** A section's takeaway, drawn at its top; nothing when the section has none. */
+const Line = ({ data }: { data?: TakeawayData | null }) => (data ? <Takeaway data={data} /> : null);
 
 /** The engine's proposal for whoever is over the line, ending in the one action that takes it. */
 function RebalanceCard({ model, act }: { model: TeamFocusModel; act: Acts }) {
@@ -73,12 +85,9 @@ function Body({
   return (
     <>
       <Verdict verdict={model.verdict} whyLabel={words.why} />
-      <Row cols={4}>
-        {model.kpis.map((k) => (
-          <KpiCard key={k.id} kpi={k} />
-        ))}
-      </Row>
+      <Kpis kpis={model.kpis} />
       {assignFailed ? <AssignFailed /> : null}
+      <Line data={model.takeaways?.start} />
       {model.start.length > 0 ? (
         <DecisionList
           decisions={model.start}
@@ -93,6 +102,7 @@ function Body({
           <p className="v2-sub">{words.allOwned}</p>
         </Panel>
       )}
+      <Line data={model.takeaways?.people} />
       {model.rebalance ? (
         <Row wide>
           <PeopleTable people={model.people} words={words.people} {...person} />
@@ -101,6 +111,7 @@ function Body({
       ) : (
         <PeopleTable people={model.people} words={words.people} {...person} />
       )}
+      <Line data={model.takeaways?.actions} />
       <ActionTable actions={model.actions} words={words.actions} {...machine} />
       {model.drill ? (
         <div>

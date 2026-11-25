@@ -4,7 +4,10 @@ import type { CheckData } from '../../../ui/v2/domain/check-row.js';
 import type { EntityChipProps } from '../../../ui/v2/entity-chip.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
 import type { Point } from '../../../ui/v2/points.js';
-import { shortDate } from '../printed-page/printed.js';
+import { fill } from '../../../i18n/fill.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
+import { takeawayFor, tagOf, type Item } from '../insight.js';
+import { numberValue, shortDate } from '../printed-page/printed.js';
 import type { CheckGroup, DataChecklistModel, RecordRow } from './model.js';
 
 /**
@@ -109,14 +112,40 @@ export function checklistModel(
     .sort((a, b) => b.row.open.value - a.row.open.value);
   const records = paired.map((p) => p.row);
   const failing = GROUPS.filter((g) => items.some((i) => i.group === g));
+  const groups = groupsOf(failing, paired, t);
+  const words = wordsOf(records.length, GROUPS.length - failing.length, t);
   return {
     verdict: verdictOf(failing, records, asOf, t),
     kpis: kpisOf(records, t),
-    groups: groupsOf(failing, paired, t),
+    groups,
     records,
     passing: GROUPS.filter((g) => !failing.includes(g)).map((g) => [{ text: t(`v2dc.pass.${g}`) }]),
     source: t('v2dc.source', { date: shortDate(asOf) }),
-    words: wordsOf(records.length, GROUPS.length - failing.length, t),
+    words,
+    takeaways: checklistTakeaways({ groups, records, words }, t),
+  };
+}
+
+/**
+ * The three section lines (ADR 0035): the failing checks by their records, the records by the entity they name (all of
+ * them, whatever a filter shows), and the passing list in the screen's own words.
+ */
+export function checklistTakeaways(
+  model: Pick<DataChecklistModel, 'groups' | 'records' | 'words'>,
+  t: TFunction,
+): Takeaways {
+  const say = (key: string) => t(key) as string;
+  const meaning = { worse: 'high', additive: true } as const;
+  const checks: Item[] = model.groups.flatMap((g) =>
+    g.checks.map((c) => ({ name: c.title, value: numberValue(c.records), shown: c.records })),
+  );
+  const named = new Map<string, number>();
+  for (const r of model.records) named.set(r.entity.label, (named.get(r.entity.label) ?? 0) + 1);
+  const entities: Item[] = [...named].map(([name, n]) => ({ name, value: n, shown: String(n) }));
+  return {
+    groups: takeawayFor(checks, meaning, say),
+    records: takeawayFor(entities, meaning, say),
+    passing: { text: model.words.passingSub, tone: 'neutral', tag: tagOf('neutral', say) },
   };
 }
 
@@ -180,12 +209,18 @@ function groupsOf(failing: readonly GroupKey[], paired: Paired, t: TFunction): C
 
 function kpisOf(records: readonly RecordRow[], t: TFunction): KpiData[] {
   const count = (s: Section) => records.filter((r) => r.area.key === s).length;
+  const share = (n: number) =>
+    fill(t('insight.yardstick.share'), {
+      pct: Math.round((n / records.length) * 100),
+      total: records.length.toLocaleString('en-IN'),
+    });
   const kpi = (id: string, label: string, n: number, icon: KpiData['icon']): KpiData => ({
     id,
     label,
     icon,
     value: n.toLocaleString('en-IN'),
     delta: { text: '', up: false, good: false },
+    yardstick: id === 'records' ? fill(t('insight.yardstick.target'), { value: 0 }) : share(n),
     period: '',
     meaning: t(`v2dc.kpi.${id}.meaning`),
     more: t(`v2dc.kpi.${id}.more`),
