@@ -3,6 +3,7 @@ import type { TableWords } from '../../../ui/v2/data-table.js';
 import type { PrintedTable } from '../../../ui/v2/domain/printed-table.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
 import type { Point } from '../../../ui/v2/points.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { TrendData } from '../../../ui/v2/trend-chart.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
 
@@ -16,6 +17,8 @@ export type CompareParams = { a: string; b: string };
  */
 export type CompareModel = {
   verdict: VerdictData;
+  /** ADR 0035: `differences` (the worse machine's hours by cause) and `trend` (the pair's 12-week hours). */
+  takeaways?: Takeaways;
   /** The two chosen, and every machine that can be chosen. */
   pick: { a: string; b: string; options: { key: string; label: string }[] };
   /** Two to four key figures: how far apart the pair is. */
