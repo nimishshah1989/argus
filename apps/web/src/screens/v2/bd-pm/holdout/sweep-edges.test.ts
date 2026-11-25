@@ -3,7 +3,7 @@ import type { FiguresPart } from '../../printed-page/printed.js';
 import { answerKey, testT } from '../../printed-page/test-support.js';
 import { bdPmModel } from '../adapter.js';
 
-/** Hidden edges of the bd-pm yardstick totals (sweep #706). Critical tests only (ADR 0034): figures, not wording. */
+/** Hidden edges of the bd-pm yardstick totals (sweep 706). Critical tests only (ADR 0034): figures, not wording. */
 const key = answerKey('a1-bd-pm', 'a1-bd-pm', 40);
 
 function withKpis(

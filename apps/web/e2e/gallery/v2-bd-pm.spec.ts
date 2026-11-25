@@ -35,7 +35,7 @@ test('BD % and PM split: six figures, two charts and the five tables are up; a c
   page,
 }) => {
   await open(page);
-  // Figures past the fourth fold under "Show detail" (sweep #706); a no-op before the fold lands.
+  // Figures past the fourth fold under "Show detail" (sweep 706); a no-op before the fold lands.
   for (const s of await page.locator('details.v2-show-detail:not([open]) > summary').all())
     await s.click();
   for (const label of [

@@ -135,7 +135,7 @@ describe('the Breakdown Log on a plant whose machine ids are UUIDs, as the serve
     );
     const everything = everyMatchOf(keyed, EMPTY_QUERY, realT);
     expect(everything.rows.length).toBe(model.count);
-    // The export sheet's id check moved to sweep.test.ts (sweep #706: Excel replaces the CSV).
+    // The export sheet's id check moved to sweep.test.ts (sweep 706: Excel replaces the CSV).
   });
 
   it('still filters by a printed code', () => {

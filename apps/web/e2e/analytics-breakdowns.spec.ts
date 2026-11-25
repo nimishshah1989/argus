@@ -282,7 +282,7 @@ async function filterLog(page: Page): Promise<void> {
   await expect(page.getByText(/The log holds 1,343 entries/)).toBeVisible();
 }
 
-/** The Excel download (sweep #706, replaces the CSV): the whole narrowed log, one sheet row per log row, DOC. NO. first. */
+/** The Excel download (sweep 706, replaces the CSV): the whole narrowed log, one sheet row per log row, DOC. NO. first. */
 async function exportLog(page: Page): Promise<void> {
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download Excel', exact: true }).click();
@@ -349,7 +349,7 @@ async function openA1(page: Page): Promise<void> {
   ).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('heading', { level: 1, name: 'BD % and PM split' })).toBeVisible();
   expect(A1.kpis).toHaveLength(6);
-  // Figures past the fourth fold under "Show detail" (sweep #706); a no-op before the fold lands.
+  // Figures past the fourth fold under "Show detail" (sweep 706); a no-op before the fold lands.
   for (const s of await page.locator('details.v2-show-detail:not([open]) > summary').all())
     await s.click();
   for (const kpi of A1.kpis) {

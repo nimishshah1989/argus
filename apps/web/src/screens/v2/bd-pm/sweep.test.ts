@@ -4,7 +4,7 @@ import { answerKey, testT } from '../printed-page/test-support.js';
 import { bdPmModel } from './adapter.js';
 
 /**
- * Sweep #706 (ADR 0041 #684): the yardstick totals the adapter formats itself read as `readable` from 1 lakh up; a
+ * Sweep 706 (ADR 0041 684): the yardstick totals the adapter formats itself read as `readable` from 1 lakh up; a
  * total under 1 lakh keeps its current text; percentages and engine-printed text never change. Critical tests only
  * (ADR 0034): the figures in the line, not its wording.
  */
@@ -24,7 +24,7 @@ function withKpis(
 const yardstick = (reply: FiguresPart, label: string) =>
   bdPmModel(reply, testT)!.figures.find((figure) => figure.label === label)?.yardstick ?? '';
 
-describe('BD % and PM split yardstick totals (sweep #706)', () => {
+describe('BD % and PM split yardstick totals (sweep 706)', () => {
   it('reads the plant available-hours total in lakh: 6,000 a year × 125 machines', () => {
     const line = yardstick(key, 'Total Available Hrs');
     expect(line).toContain('7.50 lakh');

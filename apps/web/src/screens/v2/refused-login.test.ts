@@ -28,7 +28,7 @@ const page = (role: string, frame: ReactElement, state: LoadState): string => {
 };
 
 const loaded = (state: LoadState) => ({ state, retry: () => {} });
-/** The old export prop and the sweep's sheets (#706) together, so this draws before and after the Excel swap. */
+/** The old export prop and the sweep's sheets (sweep 706) together, so this draws before and after the Excel swap. */
 const exportProps = { onExport: () => Promise.resolve(), sheets: [] };
 const log = (state: LoadState) =>
   h(BreakdownLogFrame, {

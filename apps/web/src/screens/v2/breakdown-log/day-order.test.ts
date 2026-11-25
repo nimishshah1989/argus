@@ -9,4 +9,4 @@ describe('the platform day sorts as a date', () => {
   });
 });
 
-// The export-file test moved to sweep.test.ts (sweep #706: Excel replaces the CSV).
+// The export-file test moved to sweep.test.ts (sweep 706: Excel replaces the CSV).
