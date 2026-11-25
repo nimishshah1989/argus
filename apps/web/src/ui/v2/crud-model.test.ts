@@ -62,7 +62,10 @@ describe('v2 CRUD kit: switching a row', () => {
   });
 
   it('asks the switchOn field before switching an off row on', () => {
-    const on = { ...spec, switchOn: { field: 'password', labelKey: 'f.newpw' } } as CrudSpec<Row>;
+    const on = {
+      ...spec,
+      switchOn: { field: 'password', labelKey: 'f.newpw' },
+    } as unknown as CrudSpec<Row>;
     expect(switchFields(on, { ...row, active: false }, t)).toEqual([
       { name: 'password', label: 'T:f.newpw', required: true },
     ]);
