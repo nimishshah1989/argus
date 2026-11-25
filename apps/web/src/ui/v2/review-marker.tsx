@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { fill } from '../../i18n/fill.js';
 
 /**
- * The data-trust marker (ADR 0036 R5, #698): a page whose figures skip held rows says how many, linking to the
+ * The data-trust marker (ADR 0036 R5): a page whose figures skip held rows says how many, linking to the
  * review tray. `count` = rows held for review; `href` = the review tray's URL, used exactly as given.
  * - `count <= 0` → `null` (nothing rendered at all).
  * - `count === 1` → text `t('insight.review.row')`.
