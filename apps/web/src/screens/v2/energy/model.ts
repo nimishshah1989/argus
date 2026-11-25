@@ -3,6 +3,7 @@ import type { Drill } from '../../../ui/v2/drill.js';
 import type { HeatWords } from '../../../ui/v2/domain/heat-matrix.js';
 import type { HeatScale, HeatTileData } from '../../../ui/v2/domain/heat-tiles.js';
 import type { FigureData } from '../../../ui/v2/figure-tile.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
 
 /** One of the three maps: the plant's load by cell, by location, or the average per machine in each cell. */
@@ -24,6 +25,8 @@ export type EnergyGridModel = {
  */
 export type EnergyModel = {
   verdict: VerdictData;
+  /** ADR 0035: `cell`, `location`, `machine`, one per map, over every tile of that map that holds machines. */
+  takeaways?: Takeaways;
   figures: FigureData[];
   grids: EnergyGridModel[];
   /** The machines behind the whole figure, opened from a page action (v1 linked them below the maps). */
