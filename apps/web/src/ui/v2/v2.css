@@ -50,6 +50,26 @@
 [data-cat='5'] {
   --v2-cat: var(--color-v2-cat-5);
 }
+/* Machine segments (ADR 0036 R23): one fixed colour per segment, the same slot as a machine type's (`--v2-cat`), so
+   every chip, edge and series that reads `--v2-cat` follows the segment. Never good or bad. */
+[data-seg='cnc'] {
+  --v2-cat: var(--color-v2-seg-cnc);
+}
+[data-seg='conv'] {
+  --v2-cat: var(--color-v2-seg-conv);
+}
+[data-seg='process'] {
+  --v2-cat: var(--color-v2-seg-process);
+}
+[data-seg='robot'] {
+  --v2-cat: var(--color-v2-seg-robot);
+}
+[data-seg='util'] {
+  --v2-cat: var(--color-v2-seg-util);
+}
+[data-seg='dg'] {
+  --v2-cat: var(--color-v2-seg-dg);
+}
 .v2-block {
   display: block;
 }
