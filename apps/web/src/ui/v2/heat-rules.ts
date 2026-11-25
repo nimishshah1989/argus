@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars -- skeleton: the builder fills the bodies and deletes this line */
-
 /** A heat cell that holds nothing: `null` or `undefined` (a 0 is a value, not empty). `HeatMatrix` maps a dash cell (`level: null`) to `null`. */
 export type MaybeCell<T> = T | null | undefined;
+
+const empty = (cell: unknown): boolean => cell === null || cell === undefined;
 
 /**
  * ADR 0036 R22: drop every column whose cell is empty in every row, from `columns` and from each row, keeping the
@@ -11,7 +11,11 @@ export function dropEmptyColumns<T>(
   columns: readonly string[],
   rows: readonly (readonly MaybeCell<T>[])[],
 ): { columns: string[]; rows: MaybeCell<T>[][] } {
-  throw new Error('not implemented');
+  const keep = columns.flatMap((_, at) => (rows.every((row) => empty(row[at])) ? [] : [at]));
+  return {
+    columns: keep.map((at) => columns[at] as string),
+    rows: rows.map((row) => keep.map((at) => row[at])),
+  };
 }
 
 /**
@@ -19,5 +23,7 @@ export function dropEmptyColumns<T>(
  * `HeatMatrix` then draws `RankedBars` of each row's total (the sum of its non-empty cells) instead of the grid.
  */
 export function mostlyEmpty(rows: readonly (readonly unknown[])[]): boolean {
-  throw new Error('not implemented');
+  const all = rows.reduce((n, row) => n + row.length, 0);
+  const blank = rows.reduce((n, row) => n + row.filter(empty).length, 0);
+  return blank * 2 > all;
 }
