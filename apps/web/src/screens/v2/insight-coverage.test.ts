@@ -6,7 +6,6 @@ import type { Takeaways } from '../../ui/v2/takeaway.js';
 import { realReply } from './figures/real-reply.js';
 import { answerKey, realT } from './printed-page/test-support.js';
 import { shiftKpisModel } from './shift-kpis/adapter.js';
-import { answerKey } from './printed-page/test-support.js';
 import { monthlyReportModel } from './monthly-report/adapter.js';
 
 /**
