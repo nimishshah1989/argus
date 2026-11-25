@@ -3,21 +3,33 @@
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-25 · **By:** Plan · **Model:** Opus 5.5
-**Milestone:** M2b screens lane · **Branch:** plan/sweep-706
+**Milestone:** M2b screens lane · **Branch:** plan/sweep-706-batches
 
 ## State
 
-- Money Matters #644, #678, #679 are ready to build: seeds `plan/t644|t678|t679` had main merged in (39 behind), typecheck clean, visible tests red only on "not built yet" / the missing route; pushed. Issue bodies carry the builder notes (dontAsk shell rules, no `## Blocked` unless blocked).
-- Sweep #706: the page map and assumptions are decided in **ADR 0041** (this branch). The four batch tickets are **not cut yet**.
-- PR #707 (#643 machine) fails only loop-guard: its build branch edits `analytics-machine-reliability.spec.ts`; `plan/t643` already has that edit. Coordinator: merge `plan/t643` into the build branch, repoint `Plan-base`.
+- ADR 0043 (coordinator, 25 Nov) amends ADR 0041: machine page out of batch A (no Blocked-by #707); `RankedBars` on dashboard (A), problem-analysis (C), shift-kpis (D); the dashboard bubble → Quadrant swap is A's last, separate commit and A merges only with Nimish's written yes. Numbered 0043: 0042 is taken by the unmerged ADR on `plan/adr-0041`.
+- Words on this branch: `insight.quad.*` (insight.en.ts), `v2d.strip.*`, `v2d.quad.sub|aria` (analytics-v2-today.en.ts).
+- Sweep #706 batch tickets A–D: SEE "Tickets" below (filled in when cut).
 
-## Next step (next Plan session)
+## Tickets
 
-1. On main via this kind of plan PR: add `insight.quad.often-long|often-short|rare-long|rare-short` to `packages/shared/src/i18n/insight.en.ts` (gu falls back) and the dashboard strip words in `analytics-v2-today.en.ts`.
-2. Cut 4 issues (A–D) per ADR 0041, budget about files<=24 lines<=700 each, Blocked-by #707 on A. Seeds `plan/t<N>` light (ADR 0034): per page a `sweep.ts` pure helper where a figure is involved (Excel sheets, quadrant points/split, strip counts, reason parse) with red tests; e2e fixes per ADR 0041 last bullet. Every brief carries the builder notes in `/private/tmp/.../scratchpad/builder-notes.md` (copy from issue #679's tail).
-3. Coverage rows per screen in `docs/design/v2/scope/<screen>.md` are the builder's job (ADR 0035).
+- **No issue cut yet; no `plan/t<N>` pushed.** Context ran out (150k) while 4 seed agents were still running. Each one works in a scratch worktree `/private/tmp/claude-501/-Users-nimishshah-argus/478ac98d-b58a-4b9a-96fc-caa4fa1971a7/scratchpad/wt-{A,B,C,D}` on a local branch `seed/{A,B,C,D}` (from this branch) and writes its issue body to `.../scratchpad/issues/{A,B,C,D}.md` (`<N>` placeholders). Brief: `.../scratchpad/issues/seed-brief.md`; shared rules: `common-rules.md` (pasted into every body, with the builder notes from #679).
+- Next Plan session: for each batch, check that the commit exists on `seed/X` (if not, re-seed from the brief) and that its tests are red only on `not implemented`. Then `gh issue create` with the body (label M2b, no size:small), replace `<N>`, and `git push origin seed/X:refs/heads/plan/t<N>`. Close nothing; #706 stays the tracker.
+
+## Tests
+
+- `pnpm exec vitest run packages/shared` → 11 files / 244 passed.
+
+## Blocked
+
+- Nothing blocked.
+
+## Next
+
+1. Coordinator: ask Nimish for his written yes on the dashboard bubble → Quadrant swap (batch A merges only with it).
+2. Coordinator: run the batch tickets (disjoint folders; any order).
 
 ## Don't repeat
 
-- Never `gh issue edit --body-file` from a read that may have failed: check the file is non-empty first.
-- printed-page/PageBody is shared by B, C, D: no batch may edit it.
+- printed-page/PageBody is shared by B, C, D: no batch may edit it (its Pareto charts wait for a PageBody ticket).
+- Two ADRs numbered 0041 exist (main: sweep map; `plan/adr-0041` uncommitted: Gujarati switch, plus kit-folded as 0042). That session must renumber before merging.
