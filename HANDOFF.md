@@ -2,26 +2,31 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-25 · **By:** Coordinator (kit remaining) · **Model:** Opus 5.5
-**Milestone:** M2b kit lane · **Branch:** kit/remaining-adr-0036
+**Updated:** 2026-11-25 · **By:** Plan · **Model:** Opus 5.5
+**Milestone:** M2b screens lane · **Branch:** plan/e2e-sweep-749 (stopped at context budget)
 
 ## State
 
-- ONE PR for the remaining ADR 0036 kit tickets, each built from its own seed, merged into `kit/remaining-adr-0036`.
-- In: #685 #687 #688 #692 #696 #700 #701 #704. Hidden compare test edit (#687, R13: no search under 10 rows) taken from plan PR #743.
-- Seeds #695 #696 #701 #704 had main merged in (conflicts: old #694 skeleton of `ranked-bars.tsx` → main's; HANDOFF → main's; ADR index keeps both 0041 lines).
-- Out: #695 (old `v2.test.ts` running-total test contradicts rule 1), #689 (bd-pm, manpower, mttr-mtbf screen tests assert the total as a body row), #705 and #732 (no seed branch).
+- **#757** (size:small): PagedTable keeps its count line + pager while query/chip/select filters it (ADR 0036 R13). Seed `plan/t757` ebb4c0cf: visible `apps/web/src/ui/v2/paged-table.test.ts` (3 red), hidden `holdout/paged-table-edges.test.ts` (1 red). Proved satisfiable: the one-condition fix makes all 207 ui/v2 tests green. Callers: breakdown-log View (S06), action-center Nudges (S02).
+- This branch fixes stale e2e (not run in a browser): forecast Lab method/months tables and manpower table assert row count (header + rows) instead of "1–N of N"; pm-calendar keyboard move searches only when a search box exists; shift-kpis expects 3 heat grids + the "By cell" ranked list (its stub is 18/33 dashes, R22) and clicks Cell 7 there to its drawer.
+- Item 4 (machine spares "4.0 Loss"/"13.3 Loss") is NOT stale and NOT #749: #754 put ticket #643's expectation on main ahead of the product; #643 is OPEN and its build PR #707 is CLOSED. Red until #643 is rebuilt and merged. Spec left untouched.
 
 ## Tests
 
-- Merged branch: fast suite 402 files / 3367 passed; `pnpm typecheck` 0; `pnpm lint` 0 errors (7 warnings); `pnpm format:check` clean.
-- Full suite (Docker) and e2e: not run locally; CI runs them.
+- `pnpm exec vitest run apps/web/src/ui/v2/` on plan/t757: 4 red (intended); with the fix applied: 207 passed.
+- eslint + prettier on the 4 edited e2e specs: pass (1 max-lines warning). Browser suite not run locally.
+
+## Next
+
+1. Item 6, not done: desk / desk-lists phone flake = `POST /tickets 409 Already reported`: both specs (and closes, tasks, detail-downtime, coded-close) raise on `machineFor('desk', project)`, the same machine. Fix: a dedicated machine for desk-lists (pattern: `fixtures-pm.ts` per-spec machines). pm-plans "Start work" resolved to 2–3 buttons on `/desk/<id>` (list pane repeats buttons): scope `openPmClose` click with `ticketView(page)` from `fixtures.ts:390`.
+2. Open the PR for this branch (if not open), `loop ci <pr>`; browser shards red for named reasons: analytics-compare (#755), machine-reliability (#643), analytics-breakdowns (#757).
+3. `loop run-ticket 757`.
 
 ## Blocked
 
-- #695, #689: need `loop plan` to change the contradicting tests. #705, #732: need seeds.
+- machine-reliability e2e waits on #643 being rebuilt (#707 closed).
 
-## Next step
+## Don't repeat
 
-1. CI green + reviewer PASS → merge.
-2. Plan: fix #695/#689 tests, seed #705/#732. Two ADRs numbered 0041 (Gujarati switch, sweep #706 map): renumber one. Close or merge plan PR #743.
+- shift-kpis spec is at 408 lines (max-lines warning, not error).
+- Never merge red browser shards without Nimish's word for the named check.
