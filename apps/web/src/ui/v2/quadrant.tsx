@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unused-vars -- skeleton: the builder fills the bodies and deletes this line */
 import type { ReactElement } from 'react';
+import { fullView } from './bubble-math.js';
 
 /** One point on the chart: `key` is unique and breaks ties, `label` is the text printed beside an offender's dot. */
 export type QPoint = { key: string; label: string; x: number; y: number };
@@ -16,7 +16,7 @@ export type QuadKey = 'hh' | 'hl' | 'lh' | 'll';
  * (3, 9) → 'lh', (3, 1) → 'll'.
  */
 export function quadrantOf(p: { x: number; y: number }, s: Split): QuadKey {
-  throw new Error('not implemented');
+  return `${p.x >= s.x ? 'h' : 'l'}${p.y >= s.y ? 'h' : 'l'}` as QuadKey;
 }
 
 /**
@@ -26,8 +26,16 @@ export function quadrantOf(p: { x: number; y: number }, s: Split): QuadKey {
  * `points`.
  */
 export function offenders(points: readonly QPoint[], split: Split, n = 5): QPoint[] {
-  throw new Error('not implemented');
+  const score = (p: QPoint) => p.x / split.x + p.y / split.y;
+  return points
+    .filter((p) => !Number.isNaN(p.x) && !Number.isNaN(p.y) && quadrantOf(p, split) === 'hh')
+    .sort((a, b) => score(b) - score(a) || a.key.localeCompare(b.key))
+    .slice(0, n);
 }
+
+const W = 400;
+const H = 300;
+const PAD = { l: 40, r: 12, t: 16, b: 36 };
 
 /**
  * A four-quadrant chart (ADR 0036 R21, R19), replacing bubble charts. One inline `<svg role="img" aria-label={aria}>`:
@@ -58,5 +66,61 @@ export function Quadrant({
   axis: { x: string; y: string };
   aria: string;
 }): ReactElement {
-  throw new Error('not implemented');
+  const drawn = points.filter((p) => !Number.isNaN(p.x) && !Number.isNaN(p.y));
+  const view = fullView([...drawn, split]);
+  const [left, right, top, bottom] = [PAD.l, W - PAD.r, PAD.t, H - PAD.b];
+  const sx = (v: number) => left + (v / view.x1) * (right - left);
+  const sy = (v: number) => bottom - (v / view.y1) * (bottom - top);
+  const worst = new Set(offenders(points, split).map((p) => p.key));
+  return (
+    <svg className="v2-quad" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={aria}>
+      <path className="v2-quad-axis" d={`M${left} ${top}V${bottom}H${right}`} fill="none" />
+      <text className="v2-quad-title" x={right} y={H - 8} textAnchor="end">
+        {axis.x}
+      </text>
+      <text className="v2-quad-title" x={left} y={top - 4}>
+        {axis.y}
+      </text>
+      <path
+        className="v2-quad-split"
+        d={`M${sx(split.x)} ${top}V${bottom}M${left} ${sy(split.y)}H${right}`}
+        fill="none"
+      />
+      {(Object.keys(names) as QuadKey[]).map((q) => (
+        <text
+          key={q}
+          className="v2-quad-name"
+          x={q[0] === 'h' ? right - 4 : left + 4}
+          y={q[1] === 'h' ? top + 14 : bottom - 6}
+          textAnchor={q[0] === 'h' ? 'end' : 'start'}
+        >
+          {names[q]}
+        </text>
+      ))}
+      {drawn.map((p) => (
+        <Dot key={p.key} p={p} cx={sx(p.x)} cy={sy(p.y)} offender={worst.has(p.key)} />
+      ))}
+    </svg>
+  );
+}
+
+function Dot({ p, cx, cy, offender }: { p: QPoint; cx: number; cy: number; offender: boolean }) {
+  return (
+    <g>
+      <circle
+        className="v2-quad-dot"
+        data-offender={offender ? '' : undefined}
+        cx={cx}
+        cy={cy}
+        r={5}
+      >
+        <title>{p.label}</title>
+      </circle>
+      {offender && (
+        <text className="v2-quad-label" x={cx + 8} y={cy + 4}>
+          {p.label}
+        </text>
+      )}
+    </g>
+  );
 }
