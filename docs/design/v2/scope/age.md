@@ -26,3 +26,13 @@ engine over the frozen answer key.
 | The bands in one sortable table                                                                                                  | `a8-age` KPIs                               | yes, built                                                 |
 | "Loses 2.6x what a machine its age loses" per machine                                                                            | `compare` figure, age-adjusted health score | later: serve the age expectation per band with this figure |
 | Change against last month per band                                                                                               | none stored                                 | later: daily snapshots (kpi_snapshot)                      |
+
+## ADR 0036 kit rules (ticket #751, sweep #706 batch B)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25. Rows from the builder's `docs/loop/handoff/751.md` and ticket #751.
+
+| Item                          | v2                                                                                                                            | Where in v2                                                                                              |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| R1 TileSet + ShowDetail       | changed                                                                                                                       | the five band cards go through `TileSet`: four shown, 20+ yrs folds under Show detail; no figure dropped |
+| R6 Download Excel             | not applicable: not one of Bhavin's exports (ADR 0041)                                                                        | none                                                                                                     |
+| R11 readable / rupees / exact | not applicable: the page formats no lakh-scale number or money itself; engine-printed strings are never re-rounded (ADR 0041) | none                                                                                                     |
