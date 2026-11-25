@@ -151,13 +151,14 @@ async function openLab(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { level: 1, name: FL.title })).toBeVisible();
   const method = page.getByRole('region', { name: METHOD.title, exact: true });
   await expect(method).toBeVisible();
-  await expect(method.getByText(range(METHOD.rows.length))).toBeVisible();
+  // Under 10 rows a table has no pager (ADR 0036 R13): every row of the key is drawn, under its one header row.
+  await expect(method.getByRole('row')).toHaveCount(METHOD.rows.length + 1);
   for (const heading of METHOD.header.filter((label) => label !== ''))
     await expect(method.getByRole('columnheader', { name: heading, exact: true })).toBeVisible();
   await expect(method.getByText('1.85', { exact: true }).first()).toBeVisible();
   const months = page.getByRole('region', { name: MONTHS.title, exact: true });
   await expect(months).toBeVisible();
-  await expect(months.getByText(range(MONTHS.rows.length))).toBeVisible();
+  await expect(months.getByRole('row')).toHaveCount(MONTHS.rows.length + 1);
   await expect(months.getByRole('cell', { name: '194.4', exact: true })).toBeVisible();
   const charts = page.locator('[data-chart-state]');
   await expect(charts).toHaveCount(1);
