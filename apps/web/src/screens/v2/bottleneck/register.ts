@@ -1,9 +1,9 @@
 import type { ScreenEntry } from '../data.js';
-import type { PrintedPageModel } from '../printed-page/page-model.js';
+import type { BottleneckModel } from './model.js';
 
 declare module '../data.js' {
   interface Screens {
-    bottleneck: { params: Record<string, never>; model: PrintedPageModel };
+    bottleneck: { params: Record<string, never>; model: BottleneckModel };
   }
 }
 
