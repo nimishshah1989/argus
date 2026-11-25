@@ -2,11 +2,15 @@
 
 Date: 2026-11-25 · Decided by: Plan (unattended; coordinator's planning job). Kit rules are ADR 0036 and are not re-planned here.
 
-Status: **issues #760 (S26-0 kit), #761 (S19), #762 (S25), #763 (S23) created; seeds pushed for #760, #761, #762.** #763 has no seed yet; S24 has no issue yet.
+Status: **issues #760 (S26-0 kit), #761 (S19), #762 (S25), #763 (S23), #765 (S24) created; seeds pushed for all five** (`plan/t760`, `plan/t761`, `plan/t762`, `plan/t763`, `plan/t765`). Coverage tables in `docs/design/v2/scope/{sign-in,guide,monthly-report,annual-report}.md`.
 
 Added 2026-11-25 (second session, unattended): S23/S24 are built on the printed-page pattern with a computed takeaway per
-section; the wireframes' calendar/ranked-bar redraw, worst-first sorting and collapsed tails are Nimish's open
-questions, so they are MISSING rows in the coverage tables and not built. S25's chip groups come from the wireframe
+section. ~~The wireframes' redraw is MISSING and not built.~~ **Superseded (third session, coordinator's instruction):
+the approved wireframes are built as drawn** (S23 calendar heat cells + ranked bars; S24 ranked bars, pareto tail, age
+and PM as bars, added-machines strip; worst first, five default columns, collapsed tails, "Show the numbers"). Leaving
+them out would be "not built" without Nimish's written yes. The wireframes' Questions are recorded as notes in each
+coverage table with the default built meanwhile, and block no ticket. The model keeps every row; sorting and collapsing
+are the View's. #763/#765 budgets raised for it (800 / 1100 lines). S25's chip groups come from the wireframe
 (`GROUP_OF` in `screens/v2/guide/model.ts` on `plan/t762`). S26-0 reuses v1's `CrudSpec` and `crud-actions` hooks;
 the kit copies `useCrud`/`useLookups` because a `Screens: none` PR may touch only `apps/web/src/ui/` (ADR 0040).
 The next Plan session writes the issues and seeds from this file without re-reading the v1 code.
@@ -48,7 +52,7 @@ The next Plan session writes the issues and seeds from this file without re-read
    - **S26-6** lists hub + 6 lists, glossary, analytics profile.
    - **S26-7** company (fields, features, logo, one PUT per changed key) + translations.
    - **S26-8** `/desk/settings`: criticality, severity matrix, SLA policies, restore-clock pauses, all states.
-   S26-2…8 each depend on S26-0 and S26-1 only, and are independent of each other.
+     S26-2…8 each depend on S26-0 and S26-1 only, and are independent of each other.
 5. **Shared files, by one-line edits only:** `App.tsx` (route), `screens/v2/live.tsx` (`LIVE` entry, `FIRST`),
    `live-frame.tsx` (`ModelKey` union), `Analytics.tsx` (drop one import + one branch: Guide and S24 both do this;
    the second to merge takes main's file and removes its own two lines), `insight-coverage.test.ts` (`SECTIONS`, plan
