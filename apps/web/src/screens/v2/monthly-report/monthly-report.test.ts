@@ -6,7 +6,7 @@ import { FIGURE, monthlyReportModel } from './adapter.js';
 import { SECTIONS } from './model.js';
 
 /**
- * S23 Monthly Report (#763). Critical tests only (ADR 0034): the figures each line carries, measured on the frozen
+ * S23 Monthly Report (ticket 763). Critical tests only (ADR 0034): the figures each line carries, measured on the frozen
  * answer key (the 11 November plant, so the report is October 2026), never the wording.
  */
 const reply = answerKey('monthly-report', FIGURE, 42);
