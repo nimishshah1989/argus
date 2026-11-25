@@ -150,10 +150,15 @@ async function openMoney(page: Page): Promise<void> {
     await expect(page.getByText(kpi.label, { exact: true }).first()).toBeVisible();
     await expect(page.getByText(kpi.value, { exact: true }).first()).toBeVisible();
   }
+  // The chart card shares its title with a table ("Where the money was lost"): the table is the region with no chart.
   for (const table of MM.tables)
-    await expect(page.getByRole('region', { name: table.title, exact: true })).toBeVisible();
+    await expect(
+      page
+        .getByRole('region', { name: table.title, exact: true })
+        .filter({ hasNot: page.locator('[data-chart-state]') }),
+    ).toBeVisible();
   await expect(page.getByRole('cell', { name: '₹ 38.23 lakh', exact: true })).toBeVisible();
-  const charts = page.getByTestId('chart');
+  const charts = page.locator('[data-chart-state]');
   await expect(charts).toHaveCount(1);
   await expect(charts.first()).toHaveAttribute('data-chart-state', 'ready');
   await page.getByRole('button', { name: /Show the rows behind Money Matters/ }).click();
