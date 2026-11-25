@@ -161,6 +161,7 @@ export function NudgeTable({
         onSort={(sort) => change({ sort })}
         page={view.page}
         total={view.total}
+        narrowed={ask.type !== ''}
         onPage={(page) => setAsk((was) => ({ ...was, page }))}
         loading={false}
         words={{

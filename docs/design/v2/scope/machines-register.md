@@ -42,3 +42,12 @@ Built 20-Nov-2026 from `apps/web/src/screens/analytics/Registers.tsx`, `machine-
 | Structured controller and make groups                                                                              | none: the adapter tells a controller from a make by the word "series" in the engine's line | later: a typed `controllers` and `makes` list in `registers`                    |
 | Breakdown hours and last breakdown per machine on the list                                                         | machine page figures                                                                       | later: add them to the register list rows                                       |
 | Machines missing a purchase date or power, one click to fix                                                        | data checklist `mc_age`, `mc_pw`                                                           | later: carry the ids with the register's own "N of M have a purchase date" line |
+
+## ADR 0036 kit rules (ticket #750, sweep #706 batch A)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25. Rows from the builder's `docs/loop/handoff/750.md` and ticket #750.
+
+| Item                                         | v2      | Where in v2                                                                                                                                                    |
+| -------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The key figures (ADR 0036 R1)                | changed | the figures go through TileSet (4 shown, the rest in its own Show detail)                                                                                      |
+| Download Excel of the register (ADR 0036 R6) | better  | Download Excel above the first register table (file `machines-register-<date>`), one sheet per table as shown, exact numbers; doc reference `DOC_REF.machines` |

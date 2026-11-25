@@ -28,3 +28,13 @@ figure `oem-analytics` the screen shows it with no change. Until then the screen
 | The verdict says how many hours on young machines look like the maker's or commissioning | `oem-analytics` KPIs    | needs server: the figure                                          |
 | The amount to claim from the maker                                                       | `oem-analytics` KPI 4   | needs server: the figure, and Bhavin's ruling on the claim figure |
 | Which models repeat the same fault (a claim for the whole model)                         | `oem-analytics` table 3 | needs server: the figure                                          |
+
+## ADR 0036 kit rules (ticket #751, sweep #706 batch B)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25. Rows from the builder's `docs/loop/handoff/751.md` and ticket #751.
+
+| Item                          | v2                                                                                                                                | Where in v2                                                                                                            |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| R1 TileSet + ShowDetail       | changed                                                                                                                           | the six cards go through `TileSet`: four shown, Our side and Inside warranty fold under Show detail; no figure dropped |
+| R6 Download Excel             | not applicable: not one of Bhavin's exports (ADR 0041)                                                                            | none                                                                                                                   |
+| R11 readable / rupees / exact | not applicable: the engine prints the rupee line ("to claim"); the page formats no money itself and never re-rounds it (ADR 0041) | none                                                                                                                   |

@@ -40,3 +40,12 @@ Built from `screens/analytics/TeamFocusPage.tsx` and `TodayRest.tsx` (both delet
 | Who carries what                     | each owner's open actions, hours at stake and closed | saved notes + the figure | yes (adapter sums) |
 | Biggest unowned first                | "Needs an owner", biggest stake first                | the figure's stakes      | yes                |
 | Overdue Why-Why ageing (batch1 idea) | "Why-Why on the 11-hour stop: due 12 days ago"       | lane F                   | yes; not shown yet |
+
+## ADR 0036 kit rules (ticket #750, sweep #706 batch A)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25. Rows from the builder's `docs/loop/handoff/750.md` and ticket #750.
+
+| Item                                              | v2      | Where in v2                                                                                                                                     |
+| ------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| The four key figures (ADR 0036 R1)                | changed | the four figures go through TileSet (all four shown)                                                                                            |
+| Download Excel of the people tables (ADR 0036 R6) | better  | Download Excel in the people section, above the people table (file `team-focus`), one sheet per table as shown, exact numbers; no doc reference |
