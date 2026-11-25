@@ -37,3 +37,14 @@ Shipped 24 Nov 2026 by ticket 588's PR, which deletes v1 `MachinesPage.tsx`.
 | Money only for head roles                                                    | PARITY.md                  | same    | the server sends no rate and no spares rows to other roles (ADR 0021 §4)                                        |
 | Add the fix to Team Focus                                                    | not in v1 (wireframe)      | changed | "Open Team Focus" link: nothing stores an added action (ADR 0021 §5; open question to Nimish)                   |
 | Loading, error, not computed, offline                                        | key screen states          | same    | the v2 screen states                                                                                            |
+
+## ADR 0036 kit rules (ticket #753, sweep #706 batch D)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25. Rows from the builder's `docs/loop/handoff/753.md` and ticket #753.
+
+| Rule                          | Status         | Where, or why not                                                                                                                                                      |
+| ----------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1 TileSet + ShowDetail       | done           | the three gap tiles go through `TileSet` (gaps, so the all-zero line never replaces them); nothing folds                                                               |
+| R6 Download Excel             | not applicable | not one of Bhavin's exports (ADR 0041)                                                                                                                                 |
+| R11 readable / rupees / exact | done           | money of 1 lakh or more via `moneyText` / `rupees`: "₹ 38.23 lakh" keeps its digits; 1 crore and above reads "₹ 1.20 cr" (was "₹ 120.00 lakh"); under 1 lakh unchanged |
+| R20 RankedBars                | not applicable | no Pareto or ranked bar on this page in ADR 0043's map                                                                                                                 |

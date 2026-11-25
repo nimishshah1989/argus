@@ -49,3 +49,12 @@ with the figures and keeps the page on screen while a refresh loads or fails. Th
 New in v2: an owner per part of the data (a role, ADR 0017 (a)), how long each record has been open, which figure each
 gap changes, and the checks that pass. The fixture's invented checks (end time, machine type, PM readings…) are not on
 the live screen: the engine does not compute them. Change against last week has no earlier run to compare (ADR 0017 (c)).
+
+## ADR 0036 kit rules (ticket #750, sweep #706 batch A)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25. Rows from the builder's `docs/loop/handoff/750.md` and ticket #750.
+
+| Item                                           | v2                                                 | Where in v2                                                                                 |
+| ---------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| The four count tiles (ADR 0036 R1)             | changed                                            | the four counts go through TileSet; when all four are 0 the kit prints one line naming them |
+| Download Excel of the gaps table (ADR 0036 R6) | not applicable: not in Bhavin's exports (ADR 0041) | no Download Excel on this page                                                              |
