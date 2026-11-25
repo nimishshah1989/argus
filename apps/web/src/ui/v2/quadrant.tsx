@@ -41,6 +41,9 @@ export function offenders(points: readonly QPoint[], split: Split, n = 5): QPoin
  * - Only the `offenders(points, split)` (top 5) get their label printed as a `<text>{label}</text>` beside their dot;
  *   every other point's label appears only in its `<title>`.
  * - No legend. All words come in through props; colours from tokens in `quadrant.css` (class prefix `v2-quad`).
+ * - Classes (styles in `quadrant.css`, written by Plan, auto-loaded by `sheets.ts`): the `<svg class="v2-quad">`; axis
+ *   lines `v2-quad-axis`, axis names `v2-quad-title`; split lines `v2-quad-split`; quadrant names `v2-quad-name`; every
+ *   `<circle class="v2-quad-dot">`, an offender's also `data-offender`; its printed label `v2-quad-label`.
  */
 export function Quadrant({
   points,
