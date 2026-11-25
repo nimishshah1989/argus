@@ -39,7 +39,12 @@ test('admin types Gujarati for a missing key; it shows at once and after a reloa
   await page.goto('/settings/translations');
   await expect(page.getByRole('heading', { name: 'Translations', exact: true })).toBeVisible();
   if (testInfo.project.name === 'chromium')
-    await expect(page.getByRole('link', { name: 'Machines', exact: true })).toBeVisible();
+    // Inside the Settings menu: the v2 rail has its own "Machines" link (S26-1).
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Settings' })
+        .getByRole('link', { name: 'Machines', exact: true }),
+    ).toBeVisible();
 
   // The key has no bundled Gujarati, so it is on the list with its English. `#translation-search` because the
   // screen's own search label is itself an untranslated key, so `getByLabel` would also match that row.
