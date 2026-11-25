@@ -3,28 +3,33 @@
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 **Updated:** 2026-11-25 · **By:** Plan · **Model:** Opus 5.5
-**Milestone:** M2b screens lane · **Branch:** plan/t701
+**Milestone:** M2b screens lane · **Branch:** plan/sweep-706-batches
 
 ## State
 
-- 25 Nov, three seed fixes. **#685** (`plan/t685` 23ea52f4): visible tests add `statusOf({value:2.2,target:2,better:'lower'})` → `watch` (band edge, compare with a small tolerance) and the drill button's `aria-label` naming `kpi.unit`; issue rules 1, 3 and Done-when say so. **#700** (`plan/t700` 0bdce5f7): seed, test and issue were consistent; both builders were blocked by the loop guard on `entity-chip.tsx` because the guard reads `.loop.json` from the **main checkout**, which was on `plan/t701` (pre-ADR 0039, file still locked). Seed re-merged with main; issue notes it. **#701** (`plan/t701`): its ADR renumbered 0038 → **0041** (`0041-gujarati-switch-per-phone.md`; main took 0038–0040), references fixed, README lists it; merged with main.
-- #701 seed (ADR 0041): `GUJARATI_ON` = `localStorage['uptimo.gujarati'] === 'on'`, read once at load; e2e option `gujaratiOn` (test.ts). Visible `gujarati-switch.test.ts` red on the seed. Issue #701 `Screens:` left as is: the ticket changes `apps/web/src/i18n/index.ts` and `apps/web/src/components/AccountSheet.tsx` (and its PR carries the seed's e2e specs), all outside ADR 0040's paths.
-- ADR 0036 is the one v2 kit rulebook (R1–R25). Kit stylesheets seeded by Plan on nine seeds (tokens only). ADR 0039 opens 13 named kit files to builders until #684–#704 close.
+- ADR 0043 (coordinator, 25 Nov) amends ADR 0041: machine page out of batch A (no Blocked-by #707); `RankedBars` on dashboard (A), problem-analysis (C), shift-kpis (D); the dashboard bubble → Quadrant swap is A's last, separate commit and A merges only with Nimish's written yes. Numbered 0043: 0042 is taken by the unmerged ADR on `plan/adr-0041`.
+- Words on this branch: `insight.quad.*` (insight.en.ts), `v2d.strip.*`, `v2d.quad.sub|aria` (analytics-v2-today.en.ts).
+- Sweep #706 batch tickets A–D: SEE "Tickets" below (filled in when cut).
 
-## Next step
+## Tickets
 
-1. Keep the main checkout on `main` while builders run (the guard reads its `.loop.json`). Then `loop prep 700 --fresh` → `loop build 700` → `loop finish 700`.
-2. #685: builder merges `origin/plan/t685` into its build branch (or `loop prep 685 --fresh`), re-runs.
-3. #701: builder merges `origin/plan/t701`, changes the `GUJARATI_ON` line per rule 0; `loop ci 731`; reviewer.
+- **No issue cut yet; no `plan/t<N>` pushed.** Context ran out (150k) while 4 seed agents were still running. Each one works in a scratch worktree `/private/tmp/claude-501/-Users-nimishshah-argus/478ac98d-b58a-4b9a-96fc-caa4fa1971a7/scratchpad/wt-{A,B,C,D}` on a local branch `seed/{A,B,C,D}` (from this branch) and writes its issue body to `.../scratchpad/issues/{A,B,C,D}.md` (`<N>` placeholders). Brief: `.../scratchpad/issues/seed-brief.md`; shared rules: `common-rules.md` (pasted into every body, with the builder notes from #679).
+- Next Plan session: for each batch, check that the commit exists on `seed/X` (if not, re-seed from the brief) and that its tests are red only on `not implemented`. Then `gh issue create` with the body (label M2b, no size:small), replace `<N>`, and `git push origin seed/X:refs/heads/plan/t<N>`. Close nothing; #706 stays the tracker.
 
-## Blocked / open questions
+## Tests
 
-- Robots are not a segment in the data (a CNC-segment `category === 'Robot'`); `segmentKey` never yields `robot`. Nimish to say whether category wins for colour (#706, #700).
-- #705: which 3 figures per drawer — assumption: first 3 in each model's order. #704's body says `--color-v2-status-*`; those tokens do not exist, the CSS uses `--color-v2-good|watch|bad|neutral-*`.
-- Still open: S22 "vs the 320 days before" yes (#679); #651 yes/no. ADR 0041 is an unattended assumption for Nimish to confirm.
+- `pnpm exec vitest run packages/shared` → 11 files / 244 passed.
+
+## Blocked
+
+- Nothing blocked.
+
+## Next
+
+1. Coordinator: ask Nimish for his written yes on the dashboard bubble → Quadrant swap (batch A merges only with it).
+2. Coordinator: run the batch tickets (disjoint folders; any order).
 
 ## Don't repeat
 
-- A plan session that leaves the main checkout on a seed branch changes what the guard protects for every build folder. Seed work goes in a temp worktree.
-- Never `gh issue edit --body-file` from a read that may have failed: check the file is non-empty first.
-- A throwing skeleton component needs an explicit `ReactElement` return type, or `createElement` in tests fails tsc.
+- printed-page/PageBody is shared by B, C, D: no batch may edit it (its Pareto charts wait for a PageBody ticket).
+- Two ADRs numbered 0041 exist (main: sweep map; `plan/adr-0041` uncommitted: Gujarati switch, plus kit-folded as 0042). That session must renumber before merging.
