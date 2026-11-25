@@ -4,6 +4,7 @@ import { fill } from '../../i18n/fill.js';
 import type { Column, FilterChip, TableWords } from './data-table.js';
 import { Takeaway, type TakeawayData } from './takeaway.js';
 import { Icon } from './icons.js';
+import { isSmall } from './table-rules.js';
 import {
   ExpandButton,
   MeasureCell,
@@ -93,7 +94,11 @@ function PageRows<R>({ t }: { t: Props<R> }) {
           <Fragment key={key}>
             <tr data-selected={key === t.selected} onClick={() => t.onOpen(row)}>
               {t.columns.map((c) => (
-                <td key={c.key} className={c.numeric ? 'v2-num-cell' : undefined}>
+                <td
+                  key={c.key}
+                  className={c.numeric ? 'v2-num-cell' : undefined}
+                  data-status={c.status?.(row)}
+                >
                   {c.meaning ? <MeasureCell column={c} row={row} largest={largest} /> : c.cell(row)}
                 </td>
               ))}
@@ -204,7 +209,9 @@ export function PagedTable<R>(props: Props<R>) {
           ) : null}
         </div>
       </div>
-      <TablePager showing={showing} page={page} pages={pages} onPage={props.onPage} />
+      {props.total !== undefined && isSmall(props.total) ? null : (
+        <TablePager showing={showing} page={page} pages={pages} onPage={props.onPage} />
+      )}
       {props.foot}
     </section>
   );
