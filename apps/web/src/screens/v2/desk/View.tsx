@@ -20,10 +20,18 @@ import { SegmentedBar } from '../../../ui/segmented-bar.js';
 import { StatusPill } from '../../../ui/status/status-pill.js';
 import { TicketCard as Card } from '../../../ui/ticket-card.js';
 import { KeyPill } from '../../../ui/v2/key-pill.js';
-import { Takeaway } from '../../../ui/v2/takeaway.js';
+import { Takeaway, type TakeawayData } from '../../../ui/v2/takeaway.js';
 import type { ChipFilter } from '../../desk/openLists.js';
 import { ListHeading, rowClass } from '../../desk/parts.js';
-import type { CardBlock, CountTile, OpenCard, OpenModel, Segment } from './model.js';
+import type {
+  CardBlock,
+  CountTile,
+  OpenCard,
+  OpenModel,
+  ReportCard,
+  Segment,
+  TaskCard,
+} from './model.js';
 
 export type OpenViewProps = {
   model: OpenModel;
@@ -65,143 +73,170 @@ function Hinted<C>({
       <EmptyState title={block.empty} />
     ) : (
       <>
-        <p className="text-footnote text-neutral-600">{block.hint}</p>
-        <p className="text-body text-neutral-600">{block.empty}</p>
+        <p className="v2-sub">{block.hint}</p>
+        <p className="v2-sub">{block.empty}</p>
       </>
     );
   return (
     <div data-testid={testId} className="flex flex-col gap-2">
-      <p className="text-footnote text-neutral-600">{block.hint}</p>
+      <p className="v2-sub">{block.hint}</p>
       <ul className="flex flex-col gap-3">{block.cards.map(card)}</ul>
     </div>
   );
 }
 
-/** The Open screen's body, in v1's control order (`e2e/gallery/desk-order.spec.ts` OPEN). */
-export function OpenView({
+/** A breakdown or work card; "Longest" sits after the card, so the card link's first 12 characters stay v1's. */
+function OpenCardItem({
+  c,
   model,
   pending,
-  onFilter,
-  onSegment,
   onQuick,
-  signoff,
-  pane,
-}: OpenViewProps): ReactNode {
-  const { words, takeaways } = model;
-  const { now, names } = model;
-  const openCard = (c: OpenCard) => (
-    <li key={c.ticket.id}>
+}: { c: OpenCard } & Pick<OpenViewProps, 'model' | 'pending' | 'onQuick'>) {
+  return (
+    <li>
       <TicketCard
         ticket={c.ticket}
-        now={now}
+        now={model.now}
         machineCode={c.machine}
-        names={names}
+        names={model.names}
         quick={c.quick}
         pending={pending}
         onQuick={onQuick}
       />
-      {c.longest ? <KeyPill text={words.longest} tone="loss" /> : null}
+      {c.longest ? <KeyPill text={model.words.longest} tone="loss" /> : null}
     </li>
   );
-  const takeaway = (id: 'desk.breakdowns' | 'desk.tasks') => {
-    const line = takeaways[id];
-    return line ? <Takeaway data={line} /> : null;
-  };
-  const lists: Record<Segment, ReactNode> = {
-    breakdowns: (
+}
+
+function TaskItem({ c }: { c: TaskCard }) {
+  return (
+    <li>
+      <Card
+        to={`/desk/${c.ticket.id}`}
+        title={c.machine}
+        refLabel={c.ticket.ref}
+        status={<StatusPill group="task" id={c.state} />}
+        kind={{
+          text: c.line,
+          tone: c.overdue ? 'danger' : 'info',
+          icon: c.overdue ? AlarmClock : Clock,
+        }}
+        problem={c.ticket.problem}
+        meta={c.meta}
+      />
+    </li>
+  );
+}
+
+function ReportItem({ c, fill }: { c: ReportCard; fill: string }) {
+  return (
+    <li>
+      <Card
+        to={`/desk/${c.ticket.id}`}
+        title={c.machine}
+        refLabel={c.ticket.ref}
+        status={<StatusPill group="report" id="needs_report" />}
+        problem={c.ticket.problem}
+        meta={c.meta}
+      >
+        <Link to={`/desk/${c.ticket.id}`} className="v2-btn v2-btn-ghost">
+          {fill}
+        </Link>
+      </Card>
+    </li>
+  );
+}
+
+const takeaway = (line: TakeawayData | null | undefined) =>
+  line ? <Takeaway data={line} /> : null;
+
+/** The chosen list under its takeaway; Breakdowns also carries the paused "Waiting" section. */
+function ChosenList(props: OpenViewProps) {
+  const { model } = props;
+  const item = (c: OpenCard) => <OpenCardItem key={c.ticket.id} c={c} {...props} />;
+  if (model.segment === 'tasks')
+    return (
       <>
-        {takeaway('desk.breakdowns')}
-        <Hinted block={model.breakdowns} card={openCard} />
-        {model.breakdowns.paused ? (
-          <section aria-label={words.waiting} className="flex flex-col gap-2">
-            <ListHeading>{model.breakdowns.paused.heading}</ListHeading>
-            <ul className="flex flex-col gap-3">{model.breakdowns.paused.cards.map(openCard)}</ul>
-          </section>
-        ) : null}
-      </>
-    ),
-    tasks: (
-      <>
-        {takeaway('desk.tasks')}
+        {takeaway(model.takeaways['desk.tasks'])}
         <Hinted
           block={model.tasks}
           testId="tasks-tab"
           emptyState
-          card={(c) => (
-            <li key={c.ticket.id}>
-              <Card
-                to={`/desk/${c.ticket.id}`}
-                title={c.machine}
-                refLabel={c.ticket.ref}
-                status={<StatusPill group="task" id={c.state} />}
-                kind={{
-                  text: c.line,
-                  tone: c.overdue ? 'danger' : 'info',
-                  icon: c.overdue ? AlarmClock : Clock,
-                }}
-                problem={c.ticket.problem}
-                meta={c.meta}
-              />
-            </li>
-          )}
+          card={(c) => <TaskItem key={c.ticket.id} c={c} />}
         />
       </>
-    ),
-    work: <Hinted block={model.work} card={openCard} />,
-  };
-  const list = (
+    );
+  if (model.segment === 'work') return <Hinted block={model.work} card={item} />;
+  const { paused } = model.breakdowns;
+  return (
+    <>
+      {takeaway(model.takeaways['desk.breakdowns'])}
+      <Hinted block={model.breakdowns} card={item} />
+      {paused ? (
+        <section aria-label={model.words.waiting} className="flex flex-col gap-2">
+          <ListHeading>{paused.heading}</ListHeading>
+          <ul className="flex flex-col gap-3">{paused.cards.map(item)}</ul>
+        </section>
+      ) : null}
+    </>
+  );
+}
+
+function NeedsReport({ model }: Pick<OpenViewProps, 'model'>) {
+  const block = model.needsReport;
+  if (!block) return null;
+  return (
+    <section aria-label={model.words.needsReport} className="flex flex-col gap-2">
+      <ListHeading>{block.heading}</ListHeading>
+      <p className="v2-sub">{block.hint}</p>
+      <ul className="flex flex-col gap-3">
+        {block.cards.map((c) => (
+          <ReportItem key={c.ticket.id} c={c} fill={model.words.fillReport} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** The counts strip, filter line, sign-off feed, Team now link and segment bar. */
+function Controls({ model, onFilter, onSegment, signoff }: OpenViewProps) {
+  return (
     <>
       <CountsStrip
-        label={words.chips}
+        label={model.words.chips}
         selected={model.counts.find((c) => c.pressed)?.id ?? ''}
         onSelect={(id) => onFilter(id as ChipFilter)}
         items={model.counts.map((c) => ({ ...c, icon: TILE_ICON[c.id] }))}
       />
       {model.showing ? (
-        <p role="status" className="text-footnote font-semibold text-neutral-900">
+        <p role="status" className="v2-lede">
           {model.showing}
         </p>
       ) : null}
       {signoff}
-      <Link to="/desk/team" className={`${rowClass} text-body`}>
+      <Link to="/desk/team" className={rowClass}>
         <Users aria-hidden size={20} />
         <span className="flex-1">{model.teamNow}</span>
-        <ChevronRight aria-hidden size={20} className="text-neutral-600" />
+        <ChevronRight aria-hidden size={20} />
       </Link>
       <SegmentedBar
-        label={words.segments}
+        label={model.words.segments}
         selected={model.segment}
         onSelect={(id) => onSegment(id as Segment)}
         items={model.segments}
       />
-      {lists[model.segment]}
-      {model.needsReport ? (
-        <section aria-label={words.needsReport} className="flex flex-col gap-2">
-          <ListHeading>{model.needsReport.heading}</ListHeading>
-          <p className="text-footnote text-neutral-600">{model.needsReport.hint}</p>
-          <ul className="flex flex-col gap-3">
-            {model.needsReport.cards.map((c) => (
-              <li key={c.ticket.id}>
-                <Card
-                  to={`/desk/${c.ticket.id}`}
-                  title={c.machine}
-                  refLabel={c.ticket.ref}
-                  status={<StatusPill group="report" id="needs_report" />}
-                  problem={c.ticket.problem}
-                  meta={c.meta}
-                >
-                  <Link
-                    to={`/desk/${c.ticket.id}`}
-                    className="flex min-h-target items-center justify-center rounded-xl bg-accent-tint px-4 text-body font-semibold text-accent-text"
-                  >
-                    {words.fillReport}
-                  </Link>
-                </Card>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+    </>
+  );
+}
+
+/** The Open screen's body, in v1's control order (the gallery's desk-order lock, OPEN). */
+export function OpenView(props: OpenViewProps): ReactNode {
+  const { model, pane } = props;
+  const list = (
+    <>
+      <Controls {...props} />
+      <ChosenList {...props} />
+      <NeedsReport model={model} />
     </>
   );
   if (pane === undefined) return list;
@@ -209,10 +244,10 @@ export function OpenView({
     <div className="grid grid-cols-[minmax(0,28.75rem)_minmax(0,1fr)] items-start gap-4">
       <div className="flex flex-col gap-4">{list}</div>
       <section
-        aria-label={words.ticketPane}
+        aria-label={model.words.ticketPane}
         className="sticky top-20 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl bg-surface shadow-card"
       >
-        {pane ?? <p className="p-6 text-body text-neutral-600">{words.pickTicket}</p>}
+        {pane ?? <p className="v2-sub">{model.words.pickTicket}</p>}
       </section>
     </div>
   );

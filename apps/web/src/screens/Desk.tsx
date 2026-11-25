@@ -18,7 +18,6 @@ import { useCommand } from '../data/index.js';
 import { Drafts } from '../components/Drafts.js';
 import { OfflineBanner } from '../components/OfflineBanner.js';
 import { Banner } from '../ui/banner.js';
-import { Loading, Skeleton } from '../ui/loading.js';
 import { MinePanel, type CardContext } from './desk/MinePanel.js';
 import { breakdownCount } from './desk/openLists.js';
 import { DeskFrame, NotAvailable, mayOpen, type DeskView } from './desk/Shell.js';
@@ -88,8 +87,6 @@ export function Desk({ view }: { view: DeskView }) {
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
   const me = useQuery({ queryKey: ['me'], queryFn: getMe });
   const { run, error, pending } = useCommand();
-  const { id } = useParams();
-  const wide = useWide();
   const user = me.data?.user;
   if (user && !mayOpen(view, user.role))
     return <NotAvailable roleLabel={roleLabel(user.role, t)} />;
@@ -112,7 +109,7 @@ export function Desk({ view }: { view: DeskView }) {
       <OfflineBanner />
       <Drafts />
       {error ? <Banner tone="error" title={error} /> : null}
-      {view === 'open' && wide ? <TwoPane list={body} ticketId={id} /> : body}
+      {body}
     </DeskFrame>
   );
 }
