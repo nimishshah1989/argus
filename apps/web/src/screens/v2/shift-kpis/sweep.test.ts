@@ -6,7 +6,7 @@ import { realT } from '../printed-page/test-support.js';
 import { shiftKpisModel } from './adapter.js';
 import { paretoRows } from './sweep.js';
 
-/** Sweep #706 (ADR 0043 §2), batch D: every Pareto on Shift-calendar KPIs as ranked-bar rows. */
+/** Sweep 706 (ADR 0043 §2), batch D: every Pareto on Shift-calendar KPIs as ranked-bar rows. */
 
 const mixed: ChartSpec = {
   kind: 'mixed',

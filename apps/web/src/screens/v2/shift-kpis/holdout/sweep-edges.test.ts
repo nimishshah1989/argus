@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { ChartSpec } from '../../../../ui/chart/chart-spec.js';
 import { paretoRows } from '../sweep.js';
 
-/** Sweep #706, batch D, hidden: Pareto rows at the edges. */
+/** Sweep 706, batch D, hidden: Pareto rows at the edges. */
 
 const mixed = (categories: string[], values: (number | undefined)[]): ChartSpec => ({
   kind: 'mixed',

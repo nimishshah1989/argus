@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { kvaText } from '../sweep.js';
 
-/** Sweep #706, batch D, hidden: Energy's KVA text at the edges. */
+/** Sweep 706, batch D, hidden: Energy's KVA text at the edges. */
 
 describe('kvaText at the edges', () => {
   it('prints a dash for a value that is not finite', () => {

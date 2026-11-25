@@ -385,7 +385,7 @@ async function readMap(page: Page): Promise<void> {
   await expect(
     machines.getByRole('cell', { name: 'TMC-2, Mar: no hours', exact: true }),
   ).not.toHaveAttribute('data-level', /.+/);
-  // Sweep #706 (ADR 0043): the four Paretos are ranked bar lists now, each under its own title; no chart is left.
+  // Sweep 706 (ADR 0043): the four Paretos are ranked bar lists now, each under its own title; no chart is left.
   await expect(page.locator('[data-chart-state]')).toHaveCount(0);
   await expect(page.locator('ol.v2-ranked')).toHaveCount(4);
   await expect(

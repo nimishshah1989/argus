@@ -2,7 +2,7 @@ import type { Sheet } from '@uptimo/shared/xlsx';
 import type { ForecastLabModel } from './model.js';
 
 /**
- * Sweep #706 (ADR 0041 #690): the Forecast Lab's tables for "Download Excel", one sheet per table, in the page's order.
+ * Sweep 706 (ADR 0041 690): the Forecast Lab's tables for "Download Excel", one sheet per table, in the page's order.
  *
  * Each sheet: `name` = the table's title; `rows` = the header labels first, then one row per table row in the model's
  * order (not re-sorted), one value per header column. A cell is a number only when its column is `numeric` and its

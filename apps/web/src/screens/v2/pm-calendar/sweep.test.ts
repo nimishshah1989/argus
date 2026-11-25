@@ -5,7 +5,7 @@ import type { PmJob } from './model.js';
 import { pmSheets } from './sweep.js';
 import { pmCalendarWords } from './words.js';
 
-/** Sweep #706 (#690), batch D: the PM calendar's two tables as Excel sheets, as shown. */
+/** Sweep 706 (690), batch D: the PM calendar's two tables as Excel sheets, as shown. */
 
 const t = ((key: string, values: Record<string, unknown> = {}) =>
   ((en as Record<string, string>)[key] ?? key).replace(/\{\{(\w+)\}\}/g, (_, name: string) =>

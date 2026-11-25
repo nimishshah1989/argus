@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { PrintedTable } from '../../../../ui/v2/domain/printed-table.js';
 import { labSheets } from '../sweep.js';
 
-/** Sweep #706 (#690), batch D, hidden: the Lab's sheets at the edges. */
+/** Sweep 706 (690), batch D, hidden: the Lab's sheets at the edges. */
 
 const cell = (text: string) => ({ text, sort: text, chips: [] });
 const table = (title: string, rows: string[][]): PrintedTable => ({

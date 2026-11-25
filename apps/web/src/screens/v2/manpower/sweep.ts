@@ -1,5 +1,5 @@
 /**
- * Sweep #706 (ADR 0041, batch D): Manpower's own sums in the kit's readable form (ADR 0036 R11). In
+ * Sweep 706 (ADR 0041, batch D): Manpower's own sums in the kit's readable form (ADR 0036 R11). In
  * `manpower/adapter.ts`: `whole` (~57) → `(n) => sumText(n, 0)` and `oneDecimal` (~58) → `(n) => sumText(n, 1)`, so
  * the three `sumItems` calls (~96–98) and the team share's `total` (~129) print through `sumText`.
  */

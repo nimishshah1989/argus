@@ -1,5 +1,5 @@
 /**
- * Sweep #706 (ADR 0041, batch D): Compare's money in the kit's readable form (ADR 0036 R11).
+ * Sweep 706 (ADR 0041, batch D): Compare's money in the kit's readable form (ADR 0036 R11).
  * Pure; the adapter's `lakh` calls (`metrics` money row and `KPI.money.show`) become `moneyText`.
  */
 

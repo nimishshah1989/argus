@@ -5,7 +5,7 @@ import { answerKey, realT } from '../printed-page/test-support.js';
 import { liveCompare } from './live.js';
 import { moneyText } from './sweep.js';
 
-/** Sweep #706, batch D: Compare's money keeps its text under a lakh and reads as the kit's from a lakh up. */
+/** Sweep 706, batch D: Compare's money keeps its text under a lakh and reads as the kit's from a lakh up. */
 
 const plain = (s: string) => s.replace(/\s/g, ' ');
 const FIGURE = answerKey('compare', 'compare', 43).figures[0]!;
