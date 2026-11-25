@@ -2,8 +2,17 @@
 
 _Overwritten at the end of every session. Facts only._
 
-**Updated:** 2026-11-25 · **By:** Coordinator (Sonnet), 7th session in the chain · ended on the context budget.
+**Updated:** 2026-11-25 (afternoon) · **By:** Coordinator (Opus 5.5), top session of the chain.
 
+## Now (supersedes the older notes below)
+
+- **Nimish decided (25 Nov):** all remaining ADR 0036 kit pieces are built as ONE ticket / ONE PR (session "Kit: all remaining pieces, one PR"); in parallel the 24 v2 pages adopt the kit pieces already on main in 4 batches + Money Matters #644/#678/#679 (session "Pages: all v2 screens onto current kit", plan PR #742). The kit session owns `apps/web/src/ui/**` (+ #701's i18n/Account files); the pages session owns `apps/web/src/screens/v2/**`.
+- Combined-kit ADR takes 0042 or the next free number (0041 is `gujarati-switch-per-phone`). The combined ticket covers 685, 687, 688, 689, 692, 695, 696, 700, 701, 704, 705, 732.
+- **Waiting on Nimish:** the dashboard's bubble chart becomes the quadrant chart and loses press-a-dot-to-open and zoom. Yes = accept the loss; No = keep the bubble on the dashboard for now. Only batch A's merge waits.
+- Nimish wants `/ship` used on each PR once it is up; only he can type it (the skill can't be started by an agent), and it never merges.
+- Rounds 3–6 sessions are archived. Builders: dontAsk mode denies heredocs, redirects, `( )`, `{a,b}`, `$?`: Write/Edit plus one simple command per call.
+
+## Older notes (round 6)
 ## State
 
 - **Merged:** PR #740 (loop-guard accepts `Screens: none (kit only)` / `none` when every changed file is under `apps/web/src/ui/`, `changes/`, `docs/loop/handoff/`; ADR 0040, Plan wrote and merged it). After `gh pr update-branch` + green CI, #736 (#697), #737 (#691), #738 (#699) merged (merger.sh did it; each had an earlier reviewer PASS). I did NOT edit any PR body to name S01-dashboard (the last handoff said that needs Nimish's own yes).
