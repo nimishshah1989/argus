@@ -48,6 +48,51 @@ describe('costRows, hidden edges', () => {
   });
 });
 
+describe('costRows with the groups table, hidden edges (#752 review)', () => {
+  const groups = (header: string[], hours: string[]) =>
+    table(
+      'All problem groups',
+      header.map((h) => [h, h !== 'Problem group'] as [string, boolean]),
+      hours.map((h, at) => (header.length === 2 ? [`G${at}`, h] : [`G${at}`])),
+    );
+
+  it('adds no rest row without a groups table or without an "Hours" column', () => {
+    const spec = bar(['A (50%)'], [5]);
+    expect(costRows(spec, null, 'Rest')).toHaveLength(1);
+    expect(costRows(spec, undefined, 'Rest')).toHaveLength(1);
+    expect(costRows(spec, groups(['Problem group'], ['5', '5']), 'Rest')).toHaveLength(1);
+    expect(
+      costRows(spec, groups(['Problem group', 'Breakdowns'], ['5', '5']), 'Rest'),
+    ).toHaveLength(1);
+  });
+
+  it('reads Indian grouping, counts a non-number cell as 0 and prints the rest exactly', () => {
+    const rows = costRows(
+      bar(['A (90%)'], [100000]),
+      groups(['Problem group', 'Hours'], ['1,00,000', '1,23,456.5', '—']),
+      'Rest',
+    );
+    expect(rows.at(-1)).toEqual({
+      key: '__rest',
+      label: 'Rest',
+      value: 123456.5,
+      valueText: '1,23,456.5',
+      rest: true,
+    });
+  });
+
+  it('adds no rest row when the shown bars already hold every hour, despite float noise', () => {
+    const rows = costRows(
+      bar(['A', 'B'], [0.1, 0.2]),
+      groups(['Problem group', 'Hours'], ['0.1', '0.2']),
+      'Rest',
+    );
+    expect(rows.some((r) => r.rest)).toBe(false);
+    const more = costRows(bar(['A'], [10]), groups(['Problem group', 'Hours'], ['4']), 'Rest');
+    expect(more.some((r) => r.rest)).toBe(false);
+  });
+});
+
 describe('quadPoints and meanSplit, hidden edges', () => {
   const p = (label: string, x: number, y: number, code?: string) => ({
     label,
