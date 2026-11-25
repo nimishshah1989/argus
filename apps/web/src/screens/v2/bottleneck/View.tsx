@@ -40,21 +40,21 @@ export function BottleneckView({
           drawn
         );
       }}
+      fold={
+        folded.length > 0 ? (
+          <ShowDetail>
+            <Row cols={4}>
+              {folded.map((figure) => (
+                <FigureTile key={figure.id} figure={figure} />
+              ))}
+            </Row>
+          </ShowDetail>
+        ) : undefined
+      }
       after={
-        <>
-          {folded.length > 0 ? (
-            <ShowDetail>
-              <Row cols={4}>
-                {folded.map((figure) => (
-                  <FigureTile key={figure.id} figure={figure} />
-                ))}
-              </Row>
-            </ShowDetail>
-          ) : null}
-          <div>
-            <DownloadExcel file="bottleneck-forecast" sheets={bottleneckSheets(model)} />
-          </div>
-        </>
+        <div>
+          <DownloadExcel file="bottleneck-forecast" sheets={bottleneckSheets(model)} />
+        </div>
       }
     />
   );

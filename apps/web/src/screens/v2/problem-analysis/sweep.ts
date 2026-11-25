@@ -20,12 +20,14 @@ const NAME_LIMIT = 31;
  * - `label` = the category with one trailing engine share removed (`/\s*\(\d+(?:\.\d+)?%\)$/`, e.g.
  *   "Coolant leakage  (8%)" → "Coolant leakage"), because `RankedBars` prints its own share; nothing else in the
  *   label changes;
+ * - with `groups` (the printed groups table) and an `Hours` column: all hours = the sum of that column; if what the bars
+ *   leave out (rounded to 0.1) is above 0 a trailing `rest` row `__rest` carries it;
  * - `value` = the engine's number; `valueText` = `exact(value)` (`ui/v2/format.ts`); no `countText`, `moneyText` or
  *   `rest`.
  */
-export function costRows(spec: BarSpec): RankedRow[] {
+export function costRows(spec: BarSpec, groups?: PrintedTable | null, restLabel = ''): RankedRow[] {
   const values = spec.series[0]?.values ?? [];
-  return spec.categories.flatMap((category, at) => {
+  const rows = spec.categories.flatMap((category, at) => {
     const value = values[at];
     if (typeof value !== 'number' || !Number.isFinite(value)) return [];
     return [
@@ -37,6 +39,19 @@ export function costRows(spec: BarSpec): RankedRow[] {
       },
     ];
   });
+  const col = groups?.header.findIndex((h) => h.label === 'Hours') ?? -1;
+  if (!groups || col < 0) return rows;
+  const all = groups.rows.reduce((sum, row) => {
+    const text = row[col]?.text ?? '';
+    return PLAIN_NUMBER.test(text) ? sum + Number(text.replace(/,/g, '')) : sum;
+  }, 0);
+  const rest = Math.round((all - rows.reduce((sum, r) => sum + r.value, 0)) * 10) / 10;
+  return rest > 0
+    ? [
+        ...rows,
+        { key: '__rest', label: restLabel, value: rest, valueText: exact(rest), rest: true },
+      ]
+    : rows;
 }
 
 /**

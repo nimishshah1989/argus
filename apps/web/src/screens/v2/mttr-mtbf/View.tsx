@@ -21,7 +21,7 @@ export function MttrMtbfView({
       model={{ ...model, figures: model.figures.slice(0, 4) }}
       nav={nav}
       title={title}
-      after={
+      fold={
         folded.length > 0 ? (
           <ShowDetail>
             <Row cols={4}>

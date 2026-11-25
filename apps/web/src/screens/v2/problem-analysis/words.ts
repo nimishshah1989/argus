@@ -11,6 +11,7 @@ export function problemAnalysisWords(t: TFunction): ProblemAnalysisWords {
     editorTitle: t('analytics.problems.editorTitle'),
     context: t('v2p.pa.context'),
     whatIf: t('v2p.pa.whatIf'),
+    rest: t('v2p.pa.rest'),
     charts: {
       bar: { sub: t('v2p.pa.barSub'), aria: t('v2p.pa.barAria') },
       scatter: { sub: t('v2p.pa.scatterSub'), aria: t('v2p.pa.scatterAria') },

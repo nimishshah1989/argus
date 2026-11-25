@@ -45,7 +45,7 @@ function Tables({ model }: { model: ProblemAnalysisModel }) {
  * One engine chart as a kit card: ranked bars for the bar, a quadrant for the scatter. The card keeps the engine's
  * title as its `aria-label` and its own "Show the numbers" (the numbers tests find the card by that label).
  */
-function ChartPiece({ chart }: { chart: ProblemChart }) {
+function ChartPiece({ chart, model }: { chart: ProblemChart; model: ProblemAnalysisModel }) {
   const { t } = useTranslation();
   const say: Translate = (key, values) => t(key, { ...values }) as string;
   const { spec } = chart;
@@ -58,7 +58,9 @@ function ChartPiece({ chart }: { chart: ProblemChart }) {
           <p className="v2-sub">{chart.sub}</p>
         </div>
       </div>
-      {spec.kind === 'bar' ? <RankedBars rows={costRows(spec)} label={chart.aria} /> : null}
+      {spec.kind === 'bar' ? (
+        <RankedBars rows={costRows(spec, model.groups, model.words.rest)} label={chart.aria} />
+      ) : null}
       {spec.kind === 'scatter' ? (
         <Quadrant
           points={points}
@@ -95,18 +97,18 @@ export function ProblemAnalysisView({
           <FigureTile key={figure.id} figure={figure} />
         ))}
       </Row>
-      <ShowDetail>
-        <Panel title={model.words.whatIf}>
+      {model.whatIf.length > 0 ? (
+        <ShowDetail label={model.words.whatIf}>
           <Row cols={4}>
             {model.whatIf.map((figure) => (
               <FigureTile key={figure.id} figure={figure} />
             ))}
           </Row>
-        </Panel>
-      </ShowDetail>
+        </ShowDetail>
+      ) : null}
       <Row cols={2}>
         {model.charts.map((chart) => (
-          <ChartPiece key={chart.id} chart={chart} />
+          <ChartPiece key={chart.id} chart={chart} model={model} />
         ))}
       </Row>
       <div>
