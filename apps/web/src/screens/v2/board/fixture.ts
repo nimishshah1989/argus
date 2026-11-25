@@ -8,6 +8,8 @@ import type {
   State,
   Ticket,
 } from '../../../api.js';
+import i18n from 'i18next';
+import { boardModel } from './adapter.js';
 import type { BoardModel } from './model.js';
 
 /**
@@ -156,6 +158,8 @@ export const fixtureToday: BoardToday = {
 
 /** The gallery's frozen board: `boardModel` over the replies above, in English. */
 export function boardFixture(tv: boolean): BoardModel {
-  void tv;
-  throw new Error('not implemented');
+  return boardModel(
+    { state: fixtureState, config: fixtureConfig, today: fixtureToday, tv },
+    i18n.t.bind(i18n),
+  );
 }

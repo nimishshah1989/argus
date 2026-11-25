@@ -1,5 +1,6 @@
 import type { TFunction } from 'i18next';
 import type { TakeawayData, Takeaways } from '../../../ui/v2/takeaway.js';
+import { formatMinutes } from '../../../components/format.js';
 import type { AgeBuckets, Column, LiveBoard } from '../../board/data.js';
 
 export type { Column } from '../../board/data.js';
@@ -111,37 +112,58 @@ export interface BoardModel {
 
 /** The nav links: none on the TV; Report (/floor), Desk (/desk), Open TV view (wide only) elsewhere. */
 export function linksFor(tv: boolean, t: TFunction): BoardLink[] {
-  void tv;
-  void t;
-  throw new Error('not implemented');
+  if (tv) return [];
+  return [
+    { to: '/floor', label: t('nav.report') },
+    { to: '/desk', label: t('nav.desk') },
+    { to: KIOSK_URL, label: t('live.openTv'), wideOnly: true },
+  ];
 }
 
 /** The rows a column shows: the TV_ROWS oldest on the TV, all of them elsewhere. */
 export function shownRows<T>(stops: T[], tv: boolean): T[] {
-  void stops;
-  void tv;
-  throw new Error('not implemented');
+  return tv ? stops.slice(0, TV_ROWS) : stops;
 }
+
+const AGE_TONE: Record<Column, AgeTone> = { notStarted: 'danger', repairing: null, waiting: 'hold' };
 
 /** The age colour of a column: red where nobody has started, amber (hold) while waiting, plain while repaired. */
 export function ageToneOf(column: Column): AgeTone {
-  void column;
-  throw new Error('not implemented');
+  return AGE_TONE[column];
 }
+
+const overDayLine = (count: number, t: TFunction): string =>
+  count > 0 ? t('live.take.overDay', { count }) : t('live.take.noneOverDay');
 
 /**
  * The top verdict: "PR-02 has waited longest: 5 h 10 min with nobody started; 1 breakdown is over a day old."
  * tone loss, tag "Longest", `outlier` = that machine's id. Null when nobody waits unstarted.
  */
 export function stopsTakeaway(board: LiveBoard, t: TFunction): TakeawayData | null {
-  void board;
-  void t;
-  throw new Error('not implemented');
+  const oldest = board.columns.notStarted[0];
+  if (!oldest) return null;
+  const first = t('live.take.stops', {
+    code: oldest.machine.code,
+    age: formatMinutes(oldest.ageMin),
+  });
+  const over = board.ages.overDay > 0 ? `; ${overDayLine(board.ages.overDay, t)}` : '';
+  return {
+    text: `${first}${over}.`,
+    tone: 'loss',
+    tag: t('live.longest'),
+    outlier: oldest.machine.id,
+  };
 }
 
 /** The ages line: "1 breakdown is over a day old; 2 of 8 are under 1 h." Null when nothing is stopped. */
 export function agesTakeaway(ages: AgeBuckets, t: TFunction): TakeawayData | null {
-  void ages;
-  void t;
-  throw new Error('not implemented');
+  const total = ages.underHour + ages.oneToFour + ages.fourToDay + ages.overDay;
+  if (total === 0) return null;
+  const tone = ages.overDay > 0 ? 'loss' : 'neutral';
+  const over = overDayLine(ages.overDay, t);
+  return {
+    text: `${t('live.take.ages', { over, under: ages.underHour, total })}.`,
+    tone,
+    tag: t(`insight.tag.${tone}`),
+  };
 }
