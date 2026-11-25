@@ -134,3 +134,19 @@ for Today (targets, a value per decision and job data are not collected), none w
 Coverage re-checked for ticket #551 (file renames only, no scope change): 2026-11-23.
 
 Coverage re-checked for ticket #554 (the chart gains its "Show the numbers" table; nothing removed): 2026-11-23.
+
+## ADR 0036 kit rules (ticket #750, sweep #706 batch A)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25.
+
+| Rule                          | Status         | Where, or why not                                                                                                                    |
+| ----------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| R1 / R10 TileSet + ShowDetail | done           | `View.tsx`: the headline tiles, then the rest in one `ShowDetail`                                                                    |
+| R2 ActionStrips               | done           | `View.tsx` + `sweep.ts`: the Action Center and Team Focus banners become `ActionStrips` (`v2d.strip.*`)                              |
+| R4 PeriodToggle               | not applicable | the engine serves one period only (`figuresReplySchema`); a toggle would compute figures it did not print (ADR 0041)                 |
+| R5 ReviewMarker               | not applicable | no model carries a held-for-review count and there is no review-tray route (ADR 0041)                                                |
+| R6 Download Excel             | not applicable | not one of Bhavin's exports (ADR 0041)                                                                                               |
+| R11 readable / rupees / exact | done           | `tables.ts`, `bubble.ts`: hours of 1 lakh or more print through `readable`; under 1 lakh the text is unchanged                       |
+| R17 ReasonChips               | not applicable | only the Action Center risk table carries reasons; other repeat columns are engine-printed counts (ADR 0041)                         |
+| R20 RankedBars                | done           | "Problems costing the most downtime" is a `RankedBars` list (problem, hours, share); the drill and "View Problem Analysis" link stay |
+| R21 Quadrant                  | not applied    | Nimish kept the bubble (25 Nov); its filters and "press a dot to open the machine" stay                                              |

@@ -49,3 +49,19 @@ with the figures and keeps the page on screen while a refresh loads or fails. Th
 New in v2: an owner per part of the data (a role, ADR 0017 (a)), how long each record has been open, which figure each
 gap changes, and the checks that pass. The fixture's invented checks (end time, machine type, PM readings…) are not on
 the live screen: the engine does not compute them. Change against last week has no earlier run to compare (ADR 0017 (c)).
+
+## ADR 0036 kit rules (ticket #750, sweep #706 batch A)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25.
+
+| Rule                          | Status         | Where, or why not                                                                                                    |
+| ----------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------- |
+| R1 / R10 TileSet + ShowDetail | done           | `View.tsx`: the KPI row is a `TileSet`                                                                               |
+| R2 ActionStrips               | not applicable | dashboard only; no other page has counts with a way in (ADR 0041)                                                    |
+| R4 PeriodToggle               | not applicable | the engine serves one period only (`figuresReplySchema`); a toggle would compute figures it did not print (ADR 0041) |
+| R5 ReviewMarker               | not applicable | no model carries a held-for-review count and there is no review-tray route (ADR 0041)                                |
+| R6 Download Excel             | not applicable | not one of Bhavin's exports (ADR 0041)                                                                               |
+| R11 readable / rupees / exact | not applicable | the page formats no lakh-scale number or money itself; engine-printed strings are never re-rounded (ADR 0041)        |
+| R17 ReasonChips               | not applicable | only the Action Center risk table carries reasons; other repeat columns are engine-printed counts (ADR 0041)         |
+| R20 RankedBars                | not applicable | no Pareto or ranked bar on this page in ADR 0043's map                                                               |
+| R21 Quadrant                  | not applicable | no bubble chart on this page (ADR 0041)                                                                              |
