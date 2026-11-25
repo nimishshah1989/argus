@@ -8,6 +8,7 @@ _Overwritten at the end of every session. Facts only._
 
 - Merged in the kit lane: #718 (#684), #720 (#661), #727, #728 (#690 xlsx), #733 (#703 Shift KPIs one span). ADR 0039 carve-out (#717) is in.
 - Open PRs: #729 (#693, `#693` removed from a comment, `loop finish 693` was re-running), #730 (#698, same fix, `loop finish 698` was re-running), #731 (#701, RED, see Blocked), #726 (#687, Blocked), #707 (#643, Blocked), #300 parked.
+- UPDATE (end of session): #729 CI is GREEN (needs reviewer then merge). #730: `loop finish 698` failed to push (network, 'could not resolve github.com'); rerun `loop finish 698` (the fix is committed in .loop/wt/698, a090d597). The next-session start_session call was DENIED by the auto-mode classifier, so Nimish must type /loop:run (or start a session) himself.
 - A `loop plan` job to fix the seed on `plan/t701` was started in the background. Check `git log origin/plan/t701` and issue 701 for its result before touching 701.
 - Follow-up issue #732 (KIT-7b): the reviewer FAILED #728 after the merger had merged it (xlsx sheet names, empty workbook, DOS date, button test). No screen uses `DownloadExcel` yet, but #732 must be seeded (`loop plan`) and built BEFORE the ADR 0036 sweep adopts it.
 - Screens done: count the v2 screens that are routed and live (`ls apps/web/src/screens/v2`, check each is routed, not a stub). Nimish asked for this number; report it.
