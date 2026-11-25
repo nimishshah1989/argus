@@ -33,6 +33,18 @@ export function pickLanguage(saved: string | null, company: string | undefined):
   return known(saved) ?? known(company) ?? 'en';
 }
 
+/** Gujarati is off until Nimish turns it on (ADR 0036 R25): no page shows it and no language choice is offered. */
+export const GUJARATI_ON = false;
+
+/**
+ * The language a page is shown in: `pickLanguage(saved, company)` while `GUJARATI_ON`, otherwise always `en`
+ * (a saved `gu` on this phone, a `gu` company or an unknown value all show English). `applyConfigLanguage` sets this.
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- skeleton: the builder fills the body and deletes this line
+export function shownLanguage(saved: string | null, company: string | undefined): Language {
+  throw new Error('not implemented');
+}
+
 function savedLanguage(): string | null {
   try {
     return localStorage.getItem(LANGUAGE_KEY);

@@ -37,20 +37,35 @@ test('Sign out asks first; Go back keeps the person signed in', async ({ page })
   await expect(page).toHaveURL(/\/login/);
 });
 
-test('language is a choice kept for this phone', async ({ page }) => {
+test('Gujarati is hidden by default: no language choice, and a saved gu still shows English', async ({
+  page,
+}) => {
   await signIn(page, 'asha');
-  await openAccount(page);
-  const english = account(page).getByRole('button', { name: 'English' });
-  const gujarati = account(page).getByRole('button', { name: 'ગુજરાતી' });
-  await expect(english).toHaveAttribute('aria-pressed', 'true');
-  await gujarati.click();
-  await expect(gujarati).toHaveAttribute('aria-pressed', 'true');
+  await page.evaluate(() => localStorage.setItem('uptimo.language', 'gu'));
   await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await openAccount(page);
-  await expect(account(page).getByRole('button', { name: 'ગુજરાતી' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
+  await expect(account(page).getByRole('button', { name: 'ગુજરાતી' })).toHaveCount(0);
+  await expect(account(page).getByRole('button', { name: 'English' })).toHaveCount(0);
+});
+
+test.describe('Gujarati switched on', () => {
+  test.use({ gujaratiOn: true });
+  test('language is a choice kept for this phone', async ({ page }) => {
+    await signIn(page, 'asha');
+    await openAccount(page);
+    const english = account(page).getByRole('button', { name: 'English' });
+    const gujarati = account(page).getByRole('button', { name: 'ગુજરાતી' });
+    await expect(english).toHaveAttribute('aria-pressed', 'true');
+    await gujarati.click();
+    await expect(gujarati).toHaveAttribute('aria-pressed', 'true');
+    await page.reload();
+    await openAccount(page);
+    await expect(account(page).getByRole('button', { name: 'ગુજરાતી' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
 });
 
 test('a shared phone shows who is acting and Change person opens the picker', async ({ page }) => {
