@@ -2,34 +2,26 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-25 · **By:** Plan · **Model:** Opus 5.5
-**Milestone:** M2b screens lane · **Branch:** plan/sweep-706-batches
+**Updated:** 2026-11-25 · **By:** Coordinator (kit remaining) · **Model:** Opus 5.5
+**Milestone:** M2b kit lane · **Branch:** kit/remaining-adr-0036
 
 ## State
 
-- ADR 0043 (coordinator, 25 Nov) amends ADR 0041: machine page out of batch A (no Blocked-by #707); `RankedBars` on dashboard (A), problem-analysis (C), shift-kpis (D); the dashboard bubble → Quadrant swap is A's last, separate commit and A merges only with Nimish's written yes. Numbered 0043: 0042 is taken by the unmerged ADR on `plan/adr-0041`.
-- Words on this branch: `insight.quad.*` (insight.en.ts), `v2d.strip.*`, `v2d.quad.sub|aria` (analytics-v2-today.en.ts).
-- Sweep #706 batch tickets A–D: SEE "Tickets" below (filled in when cut).
-
-## Tickets
-
-- **No issue cut yet; no `plan/t<N>` pushed.** Context ran out (150k) while 4 seed agents were still running. Each one works in a scratch worktree `/private/tmp/claude-501/-Users-nimishshah-argus/478ac98d-b58a-4b9a-96fc-caa4fa1971a7/scratchpad/wt-{A,B,C,D}` on a local branch `seed/{A,B,C,D}` (from this branch) and writes its issue body to `.../scratchpad/issues/{A,B,C,D}.md` (`<N>` placeholders). Brief: `.../scratchpad/issues/seed-brief.md`; shared rules: `common-rules.md` (pasted into every body, with the builder notes from #679).
-- Next Plan session: for each batch, check that the commit exists on `seed/X` (if not, re-seed from the brief) and that its tests are red only on `not implemented`. Then `gh issue create` with the body (label M2b, no size:small), replace `<N>`, and `git push origin seed/X:refs/heads/plan/t<N>`. Close nothing; #706 stays the tracker.
+- ONE PR for the remaining ADR 0036 kit tickets, each built from its own seed, merged into `kit/remaining-adr-0036`.
+- In: #685 #687 #688 #692 #696 #700 #701 #704. Hidden compare test edit (#687, R13: no search under 10 rows) taken from plan PR #743.
+- Seeds #695 #696 #701 #704 had main merged in (conflicts: old #694 skeleton of `ranked-bars.tsx` → main's; HANDOFF → main's; ADR index keeps both 0041 lines).
+- Out: #695 (old `v2.test.ts` running-total test contradicts rule 1), #689 (bd-pm, manpower, mttr-mtbf screen tests assert the total as a body row), #705 and #732 (no seed branch).
 
 ## Tests
 
-- `pnpm exec vitest run packages/shared` → 11 files / 244 passed.
+- Merged branch: fast suite 402 files / 3367 passed; `pnpm typecheck` 0; `pnpm lint` 0 errors (7 warnings); `pnpm format:check` clean.
+- Full suite (Docker) and e2e: not run locally; CI runs them.
 
 ## Blocked
 
-- Nothing blocked.
+- #695, #689: need `loop plan` to change the contradicting tests. #705, #732: need seeds.
 
-## Next
+## Next step
 
-1. Coordinator: ask Nimish for his written yes on the dashboard bubble → Quadrant swap (batch A merges only with it).
-2. Coordinator: run the batch tickets (disjoint folders; any order).
-
-## Don't repeat
-
-- printed-page/PageBody is shared by B, C, D: no batch may edit it (its Pareto charts wait for a PageBody ticket).
-- Two ADRs numbered 0041 exist (main: sweep map; `plan/adr-0041` uncommitted: Gujarati switch, plus kit-folded as 0042). That session must renumber before merging.
+1. CI green + reviewer PASS → merge.
+2. Plan: fix #695/#689 tests, seed #705/#732. Two ADRs numbered 0041 (Gujarati switch, sweep #706 map): renumber one. Close or merge plan PR #743.
