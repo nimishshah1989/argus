@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unused-vars -- skeleton: the builder fills the body and deletes this line */
 import type { ReactElement, ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * What a section keeps below the fold (ADR 0036 R1): a native, closed
@@ -12,5 +12,11 @@ export function ShowDetail({
   children: ReactNode;
   label?: string;
 }): ReactElement {
-  throw new Error('not implemented');
+  const { t } = useTranslation();
+  return (
+    <details className="v2-show-detail">
+      <summary>{label ?? t('insight.detail.show')}</summary>
+      {children}
+    </details>
+  );
 }
