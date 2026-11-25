@@ -1,8 +1,10 @@
-/* eslint-disable @typescript-eslint/no-unused-vars -- skeleton: the builder fills the body and deletes this line */
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 /** How many issues a page ranks at each severity (ADR 0036 R3). Whole numbers; 0 is a real count. */
 export type SeverityCounts = { high: number; medium: number; low: number; good: number };
+
+const SEVERITIES = ['high', 'medium', 'low', 'good'] as const;
 
 /**
  * One row of four counts on a page that ranks issues (ADR 0036 R3, #692). Wrapper `<div class="v2-severity-row">`;
@@ -13,5 +15,14 @@ export type SeverityCounts = { high: number; medium: number; low: number; good: 
  * high → `--color-v2-bad-*`, medium → `-watch-*`, low → `-neutral-*`, good → `-good-*` (written by Plan).
  */
 export function SeverityRow({ counts }: { counts: SeverityCounts }): ReactNode {
-  throw new Error('not implemented');
+  const { t } = useTranslation();
+  return (
+    <div className="v2-severity-row">
+      {SEVERITIES.map((key) => (
+        <div key={key} data-severity={key}>
+          <strong>{counts[key]}</strong> {t(`insight.severity.${key}`)}
+        </div>
+      ))}
+    </div>
+  );
 }
