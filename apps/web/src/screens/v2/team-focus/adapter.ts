@@ -1,4 +1,5 @@
 import type { TFunction } from 'i18next';
+import { fill } from '../../../i18n/fill.js';
 import type { FocusNote, FocusStatus } from '@uptimo/shared/team-focus-notes';
 import type { DecisionData, DecisionKind } from '../../../ui/v2/domain/decision-row.js';
 import type { EntityChipProps } from '../../../ui/v2/entity-chip.js';
@@ -12,6 +13,7 @@ import {
   type FocusAction,
   type FocusLane,
 } from '../../analytics/team-focus-actions.js';
+import { takeawayFor, type Item } from '../insight.js';
 import { shortDate } from '../printed-page/printed.js';
 import type { ActionRow, ActionStatus, PersonLoad, TeamFocusModel } from './model.js';
 import { teamFocusWords } from './words.js';
@@ -230,6 +232,56 @@ function verdictOf(
   };
 }
 
+const roundHours = (n: number) => Math.round(n * 100) / 100;
+
+/**
+ * The three takeaways (start, people, actions) and each KPI's yardstick, computed from the model so the live page and
+ * the gallery say the same (ADR 0035). Figures never change; `delta.text` stays empty.
+ */
+export function withInsight(model: TeamFocusModel, t: TFunction): TeamFocusModel {
+  const say = (key: string) => t(key);
+  const open = model.actions.filter((row) => row.status === 'todo' || row.status === 'doing');
+  const unowned = open.filter((row) => row.owner === null);
+  const lanes = new Map<string, number>();
+  for (const row of open)
+    lanes.set(row.kindLabel, (lanes.get(row.kindLabel) ?? 0) + row.hours.value);
+  const share = (part: number, total: number) =>
+    fill(say('insight.yardstick.share'), {
+      pct: total === 0 ? 0 : pct(part, total),
+      total: count(total),
+    });
+  const openHours = open.reduce((n, row) => n + row.hours.value, 0);
+  const yardsticks: Record<string, string> = {
+    open: share(open.length, model.actions.length),
+    stake: fill(say('insight.yardstick.average'), {
+      value: hoursOf(t, open.length === 0 ? 0 : roundHours(openHours / open.length)),
+    }),
+    unowned: share(unowned.length, open.length),
+    progress: fill(say('insight.yardstick.target'), { value: '100%' }),
+  };
+  const meaning = { worse: 'high', additive: true } as const;
+  const lineOf = (items: Item[]) => takeawayFor(items, meaning, say);
+  return {
+    ...model,
+    takeaways: {
+      start: lineOf(
+        unowned.map((row) => ({ name: row.title, value: row.hours.value, shown: row.hours.shown })),
+      ),
+      people: lineOf(
+        model.people.map((p) => ({
+          name: p.chip.label,
+          value: p.hours.value,
+          shown: p.hours.shown,
+        })),
+      ),
+      actions: lineOf(
+        [...lanes].map(([name, value]) => ({ name, value, shown: hoursOf(t, roundHours(value)) })),
+      ),
+    },
+    kpis: model.kpis.map((k) => ({ ...k, yardstick: yardsticks[k.id] })),
+  };
+}
+
 /** The v2 model for the month's actions (notes already laid over), as of the figures' `asOf` (`YYYY-MM-DD`). */
 export function teamFocusModel(
   actions: readonly FocusAction[],
@@ -239,14 +291,17 @@ export function teamFocusModel(
   const rows = actions.map((action) => rowOf(action, t));
   const start = startOf(actions, rows, t);
   const people = peopleOf(actions, t);
-  return {
-    verdict: verdictOf(actions, start.length, asOf, t),
-    kpis: kpisOf(actions, start, t),
-    start,
-    people,
-    rebalance: null,
-    actions: rows,
-    source: t('v2tf.source', { date: shortDate(asOf) }),
-    words: teamFocusWords(t, rows.length, people.length),
-  };
+  return withInsight(
+    {
+      verdict: verdictOf(actions, start.length, asOf, t),
+      kpis: kpisOf(actions, start, t),
+      start,
+      people,
+      rebalance: null,
+      actions: rows,
+      source: t('v2tf.source', { date: shortDate(asOf) }),
+      words: teamFocusWords(t, rows.length, people.length),
+    },
+    t,
+  );
 }

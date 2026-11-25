@@ -6,6 +6,7 @@ import type { Drill } from '../../../ui/v2/drill.js';
 import type { EntityChipProps } from '../../../ui/v2/entity-chip.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
 import type { Point } from '../../../ui/v2/points.js';
+import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
 
 export type ActionStatus = 'todo' | 'doing' | 'done' | 'skip';
@@ -57,6 +58,8 @@ export type Rebalance = {
  */
 export type TeamFocusModel = {
   verdict: VerdictData;
+  /** ADR 0035: `start` (open actions with no owner), `people`, `actions` (every open action by lane, not the filtered rows). */
+  takeaways?: Takeaways;
   /** Two to four key figures. */
   kpis: KpiData[];
   /** Open actions nobody owns, biggest first, each ending in the owner the engine suggests. */

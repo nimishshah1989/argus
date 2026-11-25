@@ -1,4 +1,6 @@
+import { Fragment } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Takeaway } from '../../../ui/v2/takeaway.js';
 import { EngineTable } from '../../../ui/v2/domain/engine-table.js';
 import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
 import { DrillAction } from '../../../ui/v2/drill-action.js';
@@ -55,7 +57,12 @@ export function RegistersView({
             ))}
           </Row>
           {page.tables.map((table) => (
-            <EngineTable key={`${page.id}-${table.id}`} table={table} />
+            <Fragment key={`${page.id}-${table.id}`}>
+              {model.takeaways?.[`${page.id}-${table.id}`] ? (
+                <Takeaway data={model.takeaways[`${page.id}-${table.id}`]!} />
+              ) : null}
+              <EngineTable table={table} />
+            </Fragment>
           ))}
           <SourceLine text={model.source} />
         </>
