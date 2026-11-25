@@ -24,3 +24,5 @@
 {"issue": 619, "size": "standard", "model": "sonnet", "attempts": 2, "result": "pr", "ts": "2026-11-24T15:46:28"}
 {"issue": 620, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-24T16:36:22"}
 {"issue": 642, "size": "small", "model": "haiku", "attempts": 2, "result": "pr", "ts": "2026-11-24T16:36:22"}
+{"issue": 788, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-25T23:55:20"}
+{"issue": 788, "size": "standard", "model": "sonnet", "attempts": 2, "result": "pr", "ts": "2026-11-26T01:14:52"}
