@@ -8,7 +8,7 @@ _Overwritten at the end of every session. Facts only._
 
 - **Nimish decided (25 Nov):** all remaining ADR 0036 kit pieces are built as ONE ticket / ONE PR (session "Kit: all remaining pieces, one PR"); in parallel the 24 v2 pages adopt the kit pieces already on main in 4 batches + Money Matters #644/#678/#679 (session "Pages: all v2 screens onto current kit", plan PR #742). The kit session owns `apps/web/src/ui/**` (+ #701's i18n/Account files); the pages session owns `apps/web/src/screens/v2/**`.
 - Combined-kit ADR takes 0042 or the next free number (0041 is `gujarati-switch-per-phone`). The combined ticket covers 685, 687, 688, 689, 692, 695, 696, 700, 701, 704, 705, 732.
-- **Waiting on Nimish:** the dashboard's bubble chart becomes the quadrant chart and loses press-a-dot-to-open and zoom. Yes = accept the loss; No = keep the bubble on the dashboard for now. Only batch A's merge waits.
+- **Nimish decided (25 Nov, "No, keep bubble"):** the dashboard keeps its bubble chart (press-a-dot-to-open and zoom); every other kit change goes into batch A.
 - Nimish wants `/ship` used on each PR once it is up; only he can type it (the skill can't be started by an agent), and it never merges.
 - Rounds 3–6 sessions are archived. Builders: dontAsk mode denies heredocs, redirects, `( )`, `{a,b}`, `$?`: Write/Edit plus one simple command per call.
 
