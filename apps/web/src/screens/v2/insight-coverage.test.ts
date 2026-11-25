@@ -6,6 +6,8 @@ import type { Takeaways } from '../../ui/v2/takeaway.js';
 import { realReply } from './figures/real-reply.js';
 import { answerKey, realT } from './printed-page/test-support.js';
 import { shiftKpisModel } from './shift-kpis/adapter.js';
+import { answerKey } from './printed-page/test-support.js';
+import { monthlyReportModel } from './monthly-report/adapter.js';
 
 /**
  * ADR 0023, UX rules 60 and 67: every live v2 screen's model gives each of its sections a computed takeaway, in
@@ -58,6 +60,17 @@ const SECTIONS: Record<string, string[]> = {
   ],
   // ADR 0033: shift-kpis.compare opens with the verdict, not a takeaway that would repeat it.
   'shift-kpis': ['shift-kpis.shift-split', 'shift-kpis.backlog', 'shift-kpis.breakdown-map'],
+  'monthly-report': [
+    'daily',
+    'months',
+    'machine',
+    'cell',
+    'category',
+    'code',
+    'longest',
+    'team',
+    'added',
+  ],
 };
 
 type Said = { text: string }[];
@@ -71,6 +84,8 @@ const MODELS: Record<string, () => Promise<WithTakeaways>> = {
   'annual-report': async () =>
     annualReportModel(answerKey('annual-report', 'annual-report', 42), realT),
   'shift-kpis': async () => shiftKpisModel(realReply(), realT),
+  'monthly-report': async () =>
+    monthlyReportModel(answerKey('monthly-report', 'monthly-report', 42), realT),
 };
 
 describe('insight coverage (M2b)', () => {

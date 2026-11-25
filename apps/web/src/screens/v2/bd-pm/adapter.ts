@@ -1,4 +1,5 @@
 import type { TFunction } from 'i18next';
+import { readable } from '../../../ui/v2/format.js';
 import type { Point } from '../../../ui/v2/points.js';
 import type { PrintedTable } from '../../../ui/v2/domain/printed-table.js';
 import type { Meaning, Takeaways } from '../../../ui/v2/takeaway.js';
@@ -77,12 +78,18 @@ function valueOf(page: Page, label: string): number | undefined {
 const shareLine = (t: TFunction, part: number, whole: number, shown: string): string =>
   fill(t('insight.yardstick.share'), { pct: Math.round((part / whole) * 100), total: shown });
 
+/** A whole-hours total: lakh-scale reads "7.50 lakh" (R11), anything under a lakh keeps its Indian grouping. */
+const wholeText = (n: number): string => (n >= 1e5 ? readable(n) : n.toLocaleString('en-IN'));
+
 /** BD and PM hours as a share of their sum, the sum printed to one place. */
 function hoursYardsticks(page: Page, t: TFunction): Record<string, string> {
   const [bd, pm] = [valueOf(page, 'Actual Breakdown'), valueOf(page, 'PM Downtime')];
   if (bd === undefined || pm === undefined) return {};
   const sum = bd + pm;
-  const total = sum.toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const total =
+    sum >= 1e5
+      ? readable(sum)
+      : sum.toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   return {
     'Actual Breakdown': shareLine(t, bd, sum, total),
     'PM Downtime': shareLine(t, pm, sum, total),
@@ -104,7 +111,7 @@ function availableYardsticks(page: Page, t: TFunction): Record<string, string> {
     found['Avg Available Hrs / Machine'] = shareLine(t, perMachine, hours, annual?.[1] ?? '');
   if (hours !== null && machines !== undefined && plant !== undefined) {
     const whole = hours * machines;
-    found['Total Available Hrs'] = shareLine(t, plant, whole, whole.toLocaleString('en-IN'));
+    found['Total Available Hrs'] = shareLine(t, plant, whole, wholeText(whole));
   }
   return found;
 }
