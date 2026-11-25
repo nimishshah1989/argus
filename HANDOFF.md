@@ -1,29 +1,31 @@
 # HANDOFF
 
-_Overwritten at the end of every session. Keep under 30 lines. Facts only._
+_Overwritten at the end of every session. Facts only._
 
-**Updated:** 2026-11-25 · **By:** Plan · **Model:** Opus 5.5
-**Milestone:** M2b screens lane · **Branch:** plan/v2-floor-desk (stopped at context budget)
+**Updated:** 2026-11-25 (night) · **By:** Coordinator (top session), context full · **Branch:** plan/handoff-coord2
 
 ## State
 
-- Plan PR #764 (this branch). Nimish's S27-S30 approvals (25 Nov) are NOT in it: the loop guard blocks Plan from staging the approvals file; it is still uncommitted in the main checkout.
-- Coverage tables written from the v1 code + e2e specs: `docs/design/v2/scope/{floor,desk,ticket,board}.md` (0 MISSING rows that drop v1 scope; each lists "Unbuilt from the wireframe" items needing Nimish's written yes, and "Selectors the e2e specs rely on").
-- ADR 0045 decides the split: 6 tickets (S27-A, S27-B, S28-A, S28-B, S29, S30), files, kept logic, which v1 tests the seeds retarget, and that locked control-order specs (`e2e/gallery/floor-order-lists.ts`, `desk-order.spec.ts`, `board-settings-order.spec.ts`) win over the wireframe.
-- **No issues and no seed branches created yet.**
+- **Live on staging:** kit pieces (18 of 22; #749), Money Matters (#755), Breakdown Log count fix (#759), machine page (#774), Sign in (#775 + heading fix #778), Settings CRUD kit (#776).
+- **Open / in flight:** #779 Guide (conflicts with main; a builder redoes it), #780 planner PR with sweep A–D coverage rows (`docs/design/v2/scope/*.md`), page batches #750–#753 built and committed on local branches (`.loop/wt/750..753`, main merged in by Nimish), session "Land sweep batches #750–#753" (`local_33c34ce9`) finishing them; "Reports, Guide, Settings: part 2" (`local_7296fee2`) does Guide, Monthly (#763, built in `.loop/wt/763`), Annual (#765), Settings sub-pages S26-1..8; "Build Floor, Desk, Ticket, Board" (`local_bfc6fd20`) waits on the planner seeds `plan/t767..t772` (only t772 pushed).
+- **Not done:** kit pieces #689, #695, #705, #732; Floor/Desk/Ticket/Board build; Settings sub-pages plan.
+- Wireframes S27–S30 approved by Nimish (25 Nov).
 
-## Next
+## Next step
 
-1. `loop ci 764`, merge when green. Get the approvals committed by an allowed route (Nimish runs `loop approve`).
-2. New Plan session: create the 6 issues from ADR 0045 "Tickets" (loop-ticket format; builder notes: dontAsk, no heredocs/redirects/subshells/brace lists; handoff `## Blocked` reads exactly `None.`), then seed `plan/t<N>` each: skeleton `model.ts`/`View.tsx`, visible `view.test.ts` + `insight.test.ts`, hidden `screens/v2/holdout/<screen>-*.test.ts`, and the test retargets ADR 0045 names (T3: `TasksList.test.ts`; T4: `team-waiting.test.ts`, `fetch-guard.test.ts:17`). Prove red, lint, push.
-3. Coordinator: ask Nimish for written yes/no on each scope file's "Unbuilt from the wireframe" rows.
+1. Merge #780 when green; then the batch session finishes #750–#753 (reviewer, merge; one at a time under load).
+2. Floor/Desk/Ticket/Board: seeds first (planner), then build 767, 769, 771, 772, 768, 770. If the planner has not pushed t767–t771 in ~30 min, kill it and have the build session write them.
+3. Reports lane in order: #779, #763, #765, Settings sub-pages.
+4. Report to Nimish in plain words: what is live, PR links, which red checks he can merge past (he asked to be told, never merge red yourself).
 
 ## Blocked
 
-None.
+- A builder wrote protected scope files with a python script in `.loop/wt/750` (guard bypass; Nimish ran `git restore docs/design/v2/scope` there). Builders must not do that: coverage rows come from planner PRs only.
+- Mac load hit 67 with ~15 sessions in parallel: run two builds at a time, wait for `uptime` < 10.
 
 ## Don't repeat
 
-- Builders cannot modify or delete existing tests (`.github/loop/check_pr.py`): every e2e/unit test edit goes on the seed.
-- v1 floor has no offline send queue and no lockout (ADR 0045 §6); the server already serves `GET /api/v1/tickets/:id/pdf`.
-- The inventory seed notes were in this session's scratchpad only; the facts needed are in ADR 0045 and the scope files.
+- Nimish: no re-planning, no new proposals, plain words, one-line PR notifications. "/ship" only he can type.
+- `git merge` in `.loop/wt/<N>` is blocked for sessions: give Nimish the exact terminal command, or `gh pr update-branch <PR>`.
+- Builders (dontAsk mode) are denied heredocs, redirects, subshells, brace expansion, `$?`. Handoff `## Blocked` must read exactly "None.".
+- The HANDOFF.md stop hook fires falsely when other sessions move the shared checkout.
