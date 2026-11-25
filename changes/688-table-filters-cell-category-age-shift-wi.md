@@ -1,0 +1,1 @@
+- Tables take `selects`: dropdown filters (cell, category, age band, shift) combined with AND and one "Reset filters" button; the default order stays the screen's (ADR 0036 h).
