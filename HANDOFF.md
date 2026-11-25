@@ -2,21 +2,21 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-25 · **By:** Plan · **Model:** Opus 5.5
-**Milestone:** M2b screens lane · **Branch:** plan/v2-floor-desk (stopped at context budget)
+**Updated:** 2026-11-25 · **By:** Coordinator (last-screens session) · **Model:** Sonnet 5.5
+**Milestone:** M2b screens lane, S19/S23-S26 onto v2 · **Branch:** plan/handoff-last-screens-2 (context budget)
 
 ## State
 
-- Plan PR #764 (this branch). Nimish's S27-S30 approvals (25 Nov) are NOT in it: the loop guard blocks Plan from staging the approvals file; it is still uncommitted in the main checkout.
-- Coverage tables written from the v1 code + e2e specs: `docs/design/v2/scope/{floor,desk,ticket,board}.md` (0 MISSING rows that drop v1 scope; each lists "Unbuilt from the wireframe" items needing Nimish's written yes, and "Selectors the e2e specs rely on").
-- ADR 0045 decides the split: 6 tickets (S27-A, S27-B, S28-A, S28-B, S29, S30), files, kept logic, which v1 tests the seeds retarget, and that locked control-order specs (`e2e/gallery/floor-order-lists.ts`, `desk-order.spec.ts`, `board-settings-order.spec.ts`) win over the wireframe.
-- **No issues and no seed branches created yet.**
+- Plan branch `plan/v2-last-screens` pushed (ADR 0044, coverage tables for S19/S23/S24/S25, no PR opened yet: open it, merge when green).
+- Tickets: #760 Settings kit CRUD (seed plan/t760), #761 S19 sign-in (plan/t761), #762 S25 Guide (plan/t762), #763 S23 Monthly (plan/t763), #765 S24 Annual (plan/t765, after #763; deletes ReportsPage).
+- Build state: #760 built, `loop finish 760` and `loop finish 761` ran in background (task output in scratchpad; check `gh pr list`). #761 handoff prettier fixed (f9d02a64). #762 builder running in the background (`loop wait 762`). #763, #765 not prepped.
+- Not planned yet: S26-1..8 (Settings sub-pages: ADR 0044 decision 4). One `loop plan` job needed: it must read ADR 0044 first and write issues + seeds one ticket at a time. Build after #760 merges.
+- Plan branch `plan/t763` had Nimish's S27-S30 approvals + metrics committed by mistake; reverted in 0d45c0f6. Patch saved in the shared notes folder (`approvals-S27-S30.patch`). Nimish's main checkout may need `loop approve` for S27-S30 again.
 
-## Next
+## Next step
 
-1. `loop ci 764`, merge when green. Get the approvals committed by an allowed route (Nimish runs `loop approve`).
-2. New Plan session: create the 6 issues from ADR 0045 "Tickets" (loop-ticket format; builder notes: dontAsk, no heredocs/redirects/subshells/brace lists; handoff `## Blocked` reads exactly `None.`), then seed `plan/t<N>` each: skeleton `model.ts`/`View.tsx`, visible `view.test.ts` + `insight.test.ts`, hidden `screens/v2/holdout/<screen>-*.test.ts`, and the test retargets ADR 0045 names (T3: `TasksList.test.ts`; T4: `team-waiting.test.ts`, `fetch-guard.test.ts:17`). Prove red, lint, push.
-3. Coordinator: ask Nimish for written yes/no on each scope file's "Unbuilt from the wireframe" rows.
+1. `gh pr list`; for #760/#761/#762: `loop ci <pr>`, reviewer subagent on green, merge on PASS (never with red browser checks; message coordinator `local_8ef44b35-772d-4933-ac27-9643e49a7356`, now archived: tell Nimish instead).
+2. `loop prep 763` then build; then #765. Then plan and build S26-1..8.
 
 ## Blocked
 
@@ -24,6 +24,7 @@ None.
 
 ## Don't repeat
 
-- Builders cannot modify or delete existing tests (`.github/loop/check_pr.py`): every e2e/unit test edit goes on the seed.
-- v1 floor has no offline send queue and no lockout (ADR 0045 §6); the server already serves `GET /api/v1/tickets/:id/pdf`.
-- The inventory seed notes were in this session's scratchpad only; the facts needed are in ADR 0045 and the scope files.
+- Builders cannot run prettier: their handoff file fails `format:check`. After `loop build`, have a `loop:builder-small` subagent run `pnpm exec prettier --write docs/loop/handoff/<N>.md` and commit, before `loop finish`.
+- The loop hook stops the coordinator editing `.loop/wt/<N>/` and anything naming `design/approved.json`.
+- `loop plan` runs out of context after about 3 tickets: ask for 2 to 3 tickets per job.
+- Machine load hit 25 with other sessions building; check `uptime` before starting builds.
