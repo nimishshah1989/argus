@@ -2,28 +2,22 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-25 · **By:** Plan · **Model:** Opus 5.5
-**Milestone:** M2b screens lane · **Branch:** plan/v2-floor-desk (stopped at context budget)
+**Updated:** 2026-11-25 · **By:** coordinator (S27-S30 floor/desk/ticket/board) · **Model:** Sonnet 5.5
+**Milestone:** M2 last old-design screens · **Branch:** plan/s27-s30-handoff (stopped at context budget)
 
 ## State
 
-- Plan PR #764 (this branch). Nimish's S27-S30 approvals (25 Nov) are NOT in it: the loop guard blocks Plan from staging the approvals file; it is still uncommitted in the main checkout.
-- Coverage tables written from the v1 code + e2e specs: `docs/design/v2/scope/{floor,desk,ticket,board}.md` (0 MISSING rows that drop v1 scope; each lists "Unbuilt from the wireframe" items needing Nimish's written yes, and "Selectors the e2e specs rely on").
-- ADR 0045 decides the split: 6 tickets (S27-A, S27-B, S28-A, S28-B, S29, S30), files, kept logic, which v1 tests the seeds retarget, and that locked control-order specs (`e2e/gallery/floor-order-lists.ts`, `desk-order.spec.ts`, `board-settings-order.spec.ts`) win over the wireframe.
-- **No issues and no seed branches created yet.**
-
-## Next
-
-1. `loop ci 764`, merge when green. Get the approvals committed by an allowed route (Nimish runs `loop approve`).
-2. New Plan session: create the 6 issues from ADR 0045 "Tickets" (loop-ticket format; builder notes: dontAsk, no heredocs/redirects/subshells/brace lists; handoff `## Blocked` reads exactly `None.`), then seed `plan/t<N>` each: skeleton `model.ts`/`View.tsx`, visible `view.test.ts` + `insight.test.ts`, hidden `screens/v2/holdout/<screen>-*.test.ts`, and the test retargets ADR 0045 names (T3: `TasksList.test.ts`; T4: `team-waiting.test.ts`, `fetch-guard.test.ts:17`). Prove red, lint, push.
-3. Coordinator: ask Nimish for written yes/no on each scope file's "Unbuilt from the wireframe" rows.
+- Plan PR #766 merged (ADR 0045, scope files `docs/design/v2/scope/{floor,desk,ticket,board}.md`). Issues #767 S27-A, #768 S27-B, #769 S28-A, #770 S28-B, #771 S29, #772 S30; seeds `plan/t767`..`plan/t772` pushed. Build order T1..T6 (ADR 0045 Tickets); #772 is independent; #768 needs #767; #770 and #771 need #769.
+- #767 and #769: `loop build --bg` builders wrote code but ended (Bash denied in dontAsk mode on #767; context full on #769), nothing verified. Two `loop:builder` subagents were started to finish them in `.loop/wt/767` and `.loop/wt/769` (ids aebaaaa8401b8a177 for 767, a21abcc686e53f6be for 769); their reports were pending. Next: read their results, `loop finish <N>`, `loop ci`, reviewer, merge.
+- The orchestrator may not edit inside `.loop/wt/<N>` (hook); use the `loop:builder` subagent, not `loop build`, when Bash gets denied.
+- Nothing else started: #768, #770, #771, #772.
 
 ## Blocked
 
-None.
+- Approvals for S27-floor, S28-desk, S29-ticket, S30-board were uncommitted in the main checkout and have vanished (`loop status` shows "waiting for Nimish"). Nimish must re-run `loop approve` for each and get it committed to main before any S27-S30 PR can pass loop-guard.
+- The coordinator session local_8ef44b35 is archived; PR/merge one-liners cannot be sent to it.
 
 ## Don't repeat
 
-- Builders cannot modify or delete existing tests (`.github/loop/check_pr.py`): every e2e/unit test edit goes on the seed.
-- v1 floor has no offline send queue and no lockout (ADR 0045 §6); the server already serves `GET /api/v1/tickets/:id/pdf`.
-- The inventory seed notes were in this session's scratchpad only; the facts needed are in ADR 0045 and the scope files.
+- Do not run `loop plan` on the shared main checkout: it may sit on another session's branch (the first run committed onto plan/t763, the S23 seed; PR #764 closed).
+- Wireframe items that clash with locked control-order specs are listed under "Unbuilt from the wireframe" in each scope file: Nimish's written yes needed before those PRs merge.

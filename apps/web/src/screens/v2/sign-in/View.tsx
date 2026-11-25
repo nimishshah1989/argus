@@ -98,7 +98,8 @@ export function SignInView(): ReactElement {
 
   return (
     <main className="v2-card v2-pad">
-      <SectionHead title={company} sub={t('signin.desk')} />
+      <SectionHead title={t('login.signIn')} sub={company} />
+      <p>{t('signin.desk')}</p>
       <Notice error={error} signedOut={params.has(SIGNED_OUT_PARAM) && !error} />
       <form
         onKeyDown={(e) => {

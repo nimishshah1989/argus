@@ -35,3 +35,14 @@ Live at `/analytics/breakdowns?screen=shift-kpis`. v1's branch and the multi-fig
 | The answer first: MTBF, MTTR and availability on working hours against the platform basis              | compare table        | yes, built (the engine's printed figures) |
 | How many breakdowns are open and how long the oldest has waited; how few machines cause half the hours | backlog and map KPIs | yes, built                                |
 | A month or machine whose hours broke away from its own pattern                                         | heat grids           | later: needs server, a trend-break flag   |
+
+## ADR 0036 kit rules (ticket #753, sweep #706 batch D)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25. Rows from the builder's `docs/loop/handoff/753.md` and ticket #753.
+
+| Rule                          | Status         | Where, or why not                                                                                                                                                                                      |
+| ----------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| R1 TileSet + ShowDetail       | done           | first 4 figures of a section in its row, the rest under Show detail                                                                                                                                    |
+| R6 Download Excel             | not applicable | not one of Bhavin's exports (ADR 0041)                                                                                                                                                                 |
+| R11 readable / rupees / exact | not applicable | the page formats no lakh-scale number or money itself (ADR 0041)                                                                                                                                       |
+| R20 RankedBars                | done           | the four breakdown-map Paretos (machine, cell, code, shift; sent as `mixed` specs) are ranked lists in a `Panel`, bars kept, running-total line dropped; each keeps its title and the section takeaway |
