@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { expect, test } from './test.js';
 import { signIn } from './fixtures.js';
+import { openShowDetail } from './show-detail.js';
 
 /** A fake id: the figure drills to it and the drill reply names the same machine row. */
 const MACHINE_ID = '10000000-0000-4000-8000-000000000001';
@@ -108,6 +109,19 @@ const LABEL: Record<string, string> = {
   'dashboard.avg-bd-hours-per-day': 'Average breakdown hours per day',
   'dashboard.avg-bd-hours-per-machine': 'Average breakdown hours per machine',
 };
+
+/** The labels every all-zero line names ("All 6 are zero: PM hours, Plant events (…)."). */
+async function zeroLabels(page: Page): Promise<Set<string>> {
+  const lines = await page.locator('.v2-zero-line').allInnerTexts();
+  return new Set(
+    lines.flatMap((line) =>
+      line
+        .slice(line.indexOf(': ') + 2)
+        .replace(/\.$/, '')
+        .split(', '),
+    ),
+  );
+}
 
 /** One Dashboard figure's card, found by its label. */
 const tile = (page: Page, key: string) =>
@@ -353,11 +367,14 @@ test('a head lands on Today with the live figures, a drill and the data checklis
   const dashboard = reply.figures.filter((figure) => figure.screen === 'dashboard');
   const ready = dashboard.filter((figure) => figure.status === 'ready');
   expect(ready.length).toBeGreaterThan(0);
-  // Figures past the fourth fold under "Show detail" (sweep 706); a no-op before the fold lands.
-  for (const s of await page.locator('details.v2-show-detail:not([open]) > summary').all())
-    await s.click();
-  for (const figure of dashboard) await expect(tile(page, figure.key)).toBeVisible();
-  for (const figure of ready) await expectReadyFigure(page, figure);
+  // Figures past the fourth fold sit under "Show detail" (ADR 0041).
+  await openShowDetail(page);
+  // A group whose figures are all 0 is one line naming each, not cards (ADR 0036 R10).
+  const zero = await zeroLabels(page);
+  const onZeroLine = (figure: Figure) => figure.value === 0 && zero.has(LABEL[figure.key] ?? '');
+  for (const figure of dashboard)
+    if (!onZeroLine(figure)) await expect(tile(page, figure.key)).toBeVisible();
+  for (const figure of ready) if (!onZeroLine(figure)) await expectReadyFigure(page, figure);
   await expect(page.getByText('Ready', { exact: true })).toHaveCount(0);
 
   // The table above the cards is built from the existing /state, with no new endpoint.
@@ -433,9 +450,8 @@ test('a ready figure opens the rows behind it', async ({ page }, testInfo) => {
   await expect(
     page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true }),
   ).toBeVisible();
-  // Figures past the fourth fold under "Show detail" (sweep 706); a no-op before the fold lands.
-  for (const s of await page.locator('details.v2-show-detail:not([open]) > summary').all())
-    await s.click();
+  // Figures past the fourth fold sit under "Show detail" (ADR 0041).
+  await openShowDetail(page);
 
   // A ready figure prints its value and offers the rows it came from.
   await expect(tile(page, 'dashboard.total-machines')).toContainText('Total machines');

@@ -2,27 +2,24 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-25 · **By:** Plan (Opus 5.5) · **Model:** Opus 5.5
+**Updated:** 2026-11-26 · **By:** Plan (Opus 5.5) · **Model:** Opus 5.5
 
 ## State
 
-- LIVE on main: #762 S25 Guide (PR #779 + fix #784; reviewer PASS on #784, CI green, `loop clean 762` done). Late fix cause: the e2e needs the Guide's figure label as its own `<span>` text node (v1 had it, commit 88c957cf). Reviewer notes, not done: add a unit test for `withDesk` / the label span in `apps/web/src/screens/v2/guide`; if another screen needs the Desk link, move `withDesk` into LiveFrame; `docs/loop/handoff/762.md` omits the span/h1/Desk fixes.
-- S27–S30 wireframes ALL APPROVED. Builds in other sessions' `.loop/wt/`: #767 (commit 8c70eae3, session local_bfc6fd20) and #769 (commit 0614a320, session local_77555ba6); no PRs yet, hidden tests and e2e never run.
-- Open PRs, rebased with `gh pr update-branch` onto the new main, CI not yet re-read: #781 sweep A (#750), #782 Monthly (#763), #783 sweep B (#751). Known cause before rebase: loop-guard flags `#<n>` / "(#763)" text in code comments as raw colour/size.
-- S26-1..S26-8 Settings: designed, NOT ticketed (context budget). ADR 0047 in PR #786 (docs only; also brings ADR 0044 + 0046 to main) holds all eight designs. Next: merge #786 when green, then ONE `loop plan "Write the S26-1..S26-8 issues and light seeds from ADR 0047; no new decisions"`. S26-1 first; S26-2..8 after it merges.
-- Tests: none run by me this session beyond CI on #784 (all green). `.loop.json` commands (setup/test/typecheck/lint) were NOT re-verified.
-- Not started: #765 S24 Annual, sweeps #752/#753.
-- Flakes seen: who-is-acting.spec.ts:219, detail-downtime.spec.ts:7, desk lifecycle 409, desk-lists.spec.ts:11 (phone).
+- Main went red after #781 (sweep A) merged with failing browser shards. Fix PR from `plan/e2e-show-detail-folds`: spec-only (ADR 0048). Markup kept per ADR 0041; specs now open nested folds with `apps/web/e2e/show-detail.ts`, accept the R10 all-zero line, and run axe after CSS transitions. Proof: the 3 dashboard specs 64/64 green locally (2 runs × repeat-each 2), gallery dashboard spec 5/5.
+- Flakes on #781 unrelated to it: who-is-acting.spec.ts:60 (ERR_ABORTED), desk-lists.spec.ts:11 phone (409 Already reported). detail-downtime.spec.ts:7 passed on #781.
+- Unchanged from last handoff: open PRs #782 Monthly, #783 sweep B, #796 S26-1; builds #767/#769 in other sessions; S26 tickets from ADR 0047; not started #765, #752, #753.
+- #783 (sweep B) adds 3 more copies of the bad `.all()` fold loop: `e2e/analytics-breakdowns.spec.ts`, `e2e/gallery/analytics-breakdown-pages.spec.ts`, `e2e/gallery/v2-bd-pm.spec.ts`. Switch them to `openShowDetail` on its seed before it merges. Not verified: the full e2e suite locally (CI runs it on the PR).
 
 ## Next step
 
-1. `loop ci 781`, `loop ci 782`, `loop ci 783`. For loop-guard reds: rewrite the `#<n>` comments (do NOT loosen `.github/loop/check_pr.py`). Merge one PR at a time (all touch live.tsx/Analytics.tsx), `gh pr update-branch` the rest after each.
-2. `loop finish 767`, `loop finish 769` etc. in the sessions' folders, one at a time, then reviewer and merge.
-3. Merge PR #786, run the S26 seed plan job (line above), build S26-1 then S26-2..8; then #765 S24, #752, #753.
+1. Merge the fix PR when green; then `gh pr update-branch` #782, #783, #796 and re-read `loop ci` for each before merging (LESSONS 2026-11-26).
+2. Then the previous plan: `loop finish 767`/`769`, S26-1, #765, #752, #753.
 
 ## Blocked / open questions
 
-None. Nimish: `design/approved.json` has uncommitted S27–S30 approvals in this checkout; commit on a plan branch.
+- Nimish: the Dashboard nests "Show detail" inside "Show detail" (ADR 0041 as written). Keep, or one fold per group? (ADR 0048 "Not done".)
+- `design/approved.json` still has uncommitted S27–S30 approvals in the main checkout; commit on a plan branch.
 
 ## Don't repeat
 
@@ -33,4 +30,4 @@ None. Nimish: `design/approved.json` has uncommitted S27–S30 approvals in this
 
 ## Files touched this session
 
-HANDOFF.md only (committed). `docs/loop/metrics.jsonl` modified by the loop, uncommitted.
+`apps/web/e2e/{show-detail.ts, analytics.spec.ts, analytics-dashboard.spec.ts, v2-dashboard-live.spec.ts, gallery/v2-dashboard-live.spec.ts}`, `docs/adr/0048-dashboard-e2e-after-sweep-a.md`, LESSONS.md, HANDOFF.md.
