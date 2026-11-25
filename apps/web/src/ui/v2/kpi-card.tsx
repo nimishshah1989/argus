@@ -50,10 +50,12 @@ function Value({ kpi }: { kpi: KpiData }) {
   const value = useTick(kpi.value);
   const open = useContext(DrillOpenContext);
   const { drill } = kpi;
+  const unit = kpi.unit ? <span className="v2-kpi-unit">{kpi.unit}</span> : null;
   if (!drill)
     return (
-      <div key={value.n} className="v2-kpi-value" data-flash={value.flash}>
+      <div key={value.n} className="v2-kpi-value" data-flash={value.flash} title={kpi.exact}>
         {value.text}
+        {unit}
       </div>
     );
   return (
@@ -63,9 +65,11 @@ function Value({ kpi }: { kpi: KpiData }) {
       className="v2-kpi-value v2-drill-value"
       data-flash={value.flash}
       aria-label={`${value.text}. ${drill.label}`}
+      title={kpi.exact}
       onClick={() => open(drill)}
     >
       {value.text}
+      {unit}
       <Icon name="list" size={14} />
     </button>
   );
@@ -94,6 +98,7 @@ export function KpiCard({ kpi }: { kpi: KpiData }) {
     <section
       className={kpi.hero ? 'v2-card v2-kpi v2-kpi-hero' : 'v2-card v2-kpi'}
       data-tone={kpi.tone}
+      data-status={kpi.status}
       data-open={stretch ? '' : undefined}
       data-stretch={stretch}
       tabIndex={0}
@@ -112,6 +117,7 @@ export function KpiCard({ kpi }: { kpi: KpiData }) {
         </div>
         {kpi.trend ? <Sparkline values={kpi.trend} tone={tone} draw /> : null}
       </div>
+      {kpi.basis ? <p className="v2-kpi-basis">{kpi.basis}</p> : null}
       {kpi.meter === undefined ? null : (
         <div className="v2-kpi-meter" aria-hidden="true">
           <span style={{ width: `${Math.min(100, Math.max(0, kpi.meter * 100)).toFixed(1)}%` }} />

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars -- skeleton: the builder fills statusOf and deletes this line */
 /**
  * How a figure is doing against its yardstick or target (ADR 0036): good, watch, bad, or neutral when there is
  * nothing to judge it by. It owns the colour of a tile's edge and badge, a table cell and the verdict chip; red is
@@ -17,5 +16,9 @@ export function statusOf(figure: {
   better: 'higher' | 'lower';
   band?: number;
 }): Status {
-  throw new Error('not implemented');
+  const { value, target, better, band = 0.1 } = figure;
+  if (target === undefined || !Number.isFinite(value) || !Number.isFinite(target)) return 'neutral';
+  const worse = better === 'higher' ? target - value : value - target;
+  if (worse <= 0) return 'good';
+  return worse <= band * Math.abs(target) ? 'watch' : 'bad';
 }
