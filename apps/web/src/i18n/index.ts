@@ -33,16 +33,24 @@ export function pickLanguage(saved: string | null, company: string | undefined):
   return known(saved) ?? known(company) ?? 'en';
 }
 
-/** Gujarati is off until Nimish turns it on (ADR 0036 R25): no page shows it and no language choice is offered. */
-export const GUJARATI_ON = false;
+/**
+ * Gujarati is off until Nimish turns it on (ADR 0036 R25, switch ADR 0038): `uptimo.gujarati` = `on` on this phone,
+ * read once at load. No page shows it and no language choice is offered while it is off.
+ */
+export const GUJARATI_ON = (() => {
+  try {
+    return localStorage.getItem('uptimo.gujarati') === 'on';
+  } catch {
+    return false;
+  }
+})();
 
 /**
  * The language a page is shown in: `pickLanguage(saved, company)` while `GUJARATI_ON`, otherwise always `en`
  * (a saved `gu` on this phone, a `gu` company or an unknown value all show English). `applyConfigLanguage` sets this.
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- skeleton: the builder fills the body and deletes this line
 export function shownLanguage(saved: string | null, company: string | undefined): Language {
-  throw new Error('not implemented');
+  return GUJARATI_ON ? pickLanguage(saved, company) : 'en';
 }
 
 function savedLanguage(): string | null {
@@ -79,7 +87,7 @@ export function applyConfigLanguage(): void {
   getConfig()
     .then((config) => {
       applyOverrides(config.i18nOverrides ?? {});
-      return setLanguage(pickLanguage(savedLanguage(), config.language));
+      return setLanguage(shownLanguage(savedLanguage(), config.language));
     })
     .catch(() => undefined);
 }

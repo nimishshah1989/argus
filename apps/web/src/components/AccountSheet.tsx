@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { askWhoIsActing, clearToken, getBrand, getMe, signOut, type Me } from '../api.js';
-import { chooseLanguage, type Language } from '../i18n/index.js';
+import { chooseLanguage, GUJARATI_ON, type Language } from '../i18n/index.js';
 import { mayOpenDesk } from '../roles.js';
 import { disablePush } from '../push.js';
 import { Button } from '../ui/button.js';
@@ -184,7 +184,7 @@ function Body({ user, onSignOut }: { user: Me; onSignOut: () => void }) {
       {!onDesk && mayOpenDesk(user.role) ? (
         <NavRow to="/desk" icon={Menu} label={t('account.desk')} />
       ) : null}
-      <LanguageChoice />
+      {GUJARATI_ON ? <LanguageChoice /> : null}
       <AlertsCard personId={user.actingPersonId || undefined} />
       {grant ? null : <NavRow to="/password" icon={KeyRound} label={t('account.changePassword')} />}
       <button
