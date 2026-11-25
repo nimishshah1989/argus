@@ -2,26 +2,28 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-25 · **By:** Coordinator (kit remaining) · **Model:** Opus 5.5
-**Milestone:** M2b kit lane · **Branch:** kit/remaining-adr-0036
+**Updated:** 2026-11-25 · **By:** Plan · **Model:** Opus 5.5
+**Milestone:** M2b screens lane · **Branch:** plan/v2-floor-desk (stopped at context budget)
 
 ## State
 
-- ONE PR for the remaining ADR 0036 kit tickets, each built from its own seed, merged into `kit/remaining-adr-0036`.
-- In: #685 #687 #688 #692 #696 #700 #701 #704. Hidden compare test edit (#687, R13: no search under 10 rows) taken from plan PR #743.
-- Seeds #695 #696 #701 #704 had main merged in (conflicts: old #694 skeleton of `ranked-bars.tsx` → main's; HANDOFF → main's; ADR index keeps both 0041 lines).
-- Out: #695 (old `v2.test.ts` running-total test contradicts rule 1), #689 (bd-pm, manpower, mttr-mtbf screen tests assert the total as a body row), #705 and #732 (no seed branch).
+- Plan PR #764 (this branch). Nimish's S27-S30 approvals (25 Nov) are NOT in it: the loop guard blocks Plan from staging the approvals file; it is still uncommitted in the main checkout.
+- Coverage tables written from the v1 code + e2e specs: `docs/design/v2/scope/{floor,desk,ticket,board}.md` (0 MISSING rows that drop v1 scope; each lists "Unbuilt from the wireframe" items needing Nimish's written yes, and "Selectors the e2e specs rely on").
+- ADR 0045 decides the split: 6 tickets (S27-A, S27-B, S28-A, S28-B, S29, S30), files, kept logic, which v1 tests the seeds retarget, and that locked control-order specs (`e2e/gallery/floor-order-lists.ts`, `desk-order.spec.ts`, `board-settings-order.spec.ts`) win over the wireframe.
+- **No issues and no seed branches created yet.**
 
-## Tests
+## Next
 
-- Merged branch: fast suite 402 files / 3367 passed; `pnpm typecheck` 0; `pnpm lint` 0 errors (7 warnings); `pnpm format:check` clean.
-- Full suite (Docker) and e2e: not run locally; CI runs them.
+1. `loop ci 764`, merge when green. Get the approvals committed by an allowed route (Nimish runs `loop approve`).
+2. New Plan session: create the 6 issues from ADR 0045 "Tickets" (loop-ticket format; builder notes: dontAsk, no heredocs/redirects/subshells/brace lists; handoff `## Blocked` reads exactly `None.`), then seed `plan/t<N>` each: skeleton `model.ts`/`View.tsx`, visible `view.test.ts` + `insight.test.ts`, hidden `screens/v2/holdout/<screen>-*.test.ts`, and the test retargets ADR 0045 names (T3: `TasksList.test.ts`; T4: `team-waiting.test.ts`, `fetch-guard.test.ts:17`). Prove red, lint, push.
+3. Coordinator: ask Nimish for written yes/no on each scope file's "Unbuilt from the wireframe" rows.
 
 ## Blocked
 
-- #695, #689: need `loop plan` to change the contradicting tests. #705, #732: need seeds.
+None.
 
-## Next step
+## Don't repeat
 
-1. CI green + reviewer PASS → merge.
-2. Plan: fix #695/#689 tests, seed #705/#732. Two ADRs numbered 0041 (Gujarati switch, sweep #706 map): renumber one. Close or merge plan PR #743.
+- Builders cannot modify or delete existing tests (`.github/loop/check_pr.py`): every e2e/unit test edit goes on the seed.
+- v1 floor has no offline send queue and no lockout (ADR 0045 §6); the server already serves `GET /api/v1/tickets/:id/pdf`.
+- The inventory seed notes were in this session's scratchpad only; the facts needed are in ADR 0045 and the scope files.
