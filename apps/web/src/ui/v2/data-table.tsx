@@ -16,6 +16,7 @@ import {
 import { foldAt, missesTarget, tablePage, worstFirst } from './table-model.js';
 import { Takeaway, type Meaning, type TakeawayData } from './takeaway.js';
 import type { Status } from './status.js';
+import type { TableSelect } from './table-filters.js';
 
 export type Column<R> = {
   key: string;
@@ -74,6 +75,12 @@ type TableProps<R> = {
    * sorted, ranked or folded. Under 10 rows (`isSmall(rows.length)`, all rows) the table has no search and no pager.
    */
   total?: ReactNode[];
+  /**
+   * Dropdown filters (ADR 0036 R16): one `SelectField` per select (first option `insight.filter.all` with {label},
+   * options `optionsOf(rows, select)`), then a "Reset filters" button (`insight.filter.reset`) that clears them all,
+   * shown only when something is chosen. Rows go through `applyFilters` before search and sort.
+   */
+  selects?: TableSelect<R>[];
 };
 
 const rankedBy = <R,>(rows: R[], measure: Column<R>['meaning']) =>
