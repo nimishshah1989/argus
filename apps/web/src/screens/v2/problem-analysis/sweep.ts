@@ -1,10 +1,15 @@
 import type { Sheet } from '@uptimo/shared/xlsx';
-import type { BarSpec, ScatterSpec } from '../../../ui/chart/chart-spec.js';
+import { pointName, type BarSpec, type ScatterSpec } from '../../../ui/chart/chart-spec.js';
 import type { PrintedTable } from '../../../ui/v2/domain/printed-table.js';
+import { exact } from '../../../ui/v2/format.js';
 import type { QPoint, QuadKey, Split } from '../../../ui/v2/quadrant.js';
 import type { RankedRow } from '../../../ui/v2/ranked-bars.js';
 import type { Translate } from '../figures/read.js';
 import type { ProblemAnalysisModel } from './model.js';
+
+const TRAILING_SHARE = /\s*\(\d+(?:\.\d+)?%\)$/;
+const PLAIN_NUMBER = /^-?\d[\d,]*(\.\d+)?$/;
+const NAME_LIMIT = 31;
 
 /**
  * The engine bar "Which problems cost the most?" as `RankedBars` rows (ADR 0043 §2), in the engine's order (the kit
@@ -19,8 +24,19 @@ import type { ProblemAnalysisModel } from './model.js';
  *   `rest`.
  */
 export function costRows(spec: BarSpec): RankedRow[] {
-  void spec;
-  throw new Error('not implemented');
+  const values = spec.series[0]?.values ?? [];
+  return spec.categories.flatMap((category, at) => {
+    const value = values[at];
+    if (typeof value !== 'number' || !Number.isFinite(value)) return [];
+    return [
+      {
+        key: category,
+        label: category.replace(TRAILING_SHARE, ''),
+        value,
+        valueText: exact(value),
+      },
+    ];
+  });
 }
 
 /**
@@ -31,8 +47,14 @@ export function costRows(spec: BarSpec): RankedRow[] {
  * third…), so keys stay unique. Never mutates `spec`.
  */
 export function quadPoints(spec: ScatterSpec): QPoint[] {
-  void spec;
-  throw new Error('not implemented');
+  const seen = new Map<string, number>();
+  return spec.points.flatMap((point) => {
+    if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) return [];
+    const k = (seen.get(point.label) ?? 0) + 1;
+    seen.set(point.label, k);
+    const key = k === 1 ? point.label : `${point.label}#${k}`;
+    return [{ key, label: pointName(point), x: point.x, y: point.y }];
+  });
 }
 
 /**
@@ -40,8 +62,10 @@ export function quadPoints(spec: ScatterSpec): QPoint[] {
  * finite ("more than the average"). No such point → `{ x: 0, y: 0 }`. Never re-rounded.
  */
 export function meanSplit(points: readonly QPoint[]): Split {
-  void points;
-  throw new Error('not implemented');
+  const ok = points.filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y));
+  if (ok.length === 0) return { x: 0, y: 0 };
+  const mean = (pick: (p: QPoint) => number) => ok.reduce((sum, p) => sum + pick(p), 0) / ok.length;
+  return { x: mean((p) => p.x), y: mean((p) => p.y) };
 }
 
 /**
@@ -49,8 +73,24 @@ export function meanSplit(points: readonly QPoint[]): Split {
  * hl → `insight.quad.often-short`, lh → `insight.quad.rare-long`, ll → `insight.quad.rare-short`, each read with `t`.
  */
 export function quadNames(t: Translate): Record<QuadKey, string> {
-  void t;
-  throw new Error('not implemented');
+  return {
+    hh: t('insight.quad.often-long'),
+    hl: t('insight.quad.often-short'),
+    lh: t('insight.quad.rare-long'),
+    ll: t('insight.quad.rare-short'),
+  };
+}
+
+/** A sheet name Excel accepts: no `[]:*?/\`, ≤ 31 characters, unique (case-insensitive) among `used`. */
+function sheetName(title: string, index: number, used: Set<string>): string {
+  const base = title.replace(/[[\]:*?/\\]/g, ' ').trim() || `Sheet${index + 1}`;
+  let name = base.slice(0, NAME_LIMIT).trim();
+  for (let n = 2; used.has(name.toLowerCase()); n += 1) {
+    const suffix = ` (${n})`;
+    name = `${base.slice(0, NAME_LIMIT - suffix.length).trim()}${suffix}`;
+  }
+  used.add(name.toLowerCase());
+  return name;
 }
 
 /**
@@ -66,8 +106,20 @@ export function quadNames(t: Translate): Record<QuadKey, string> {
  *   fit plus ` (2)`, ` (3)`… so it stays ≤ 31 characters and unique.
  */
 export function tableSheets(tables: readonly PrintedTable[]): Sheet[] {
-  void tables;
-  throw new Error('not implemented');
+  const used = new Set<string>();
+  return tables.map((table, index) => ({
+    name: sheetName(table.title, index, used),
+    rows: [
+      table.header.map((h) => h.label),
+      ...table.rows.map((row) =>
+        row.map((cell, at) =>
+          table.header[at]?.numeric && PLAIN_NUMBER.test(cell.text)
+            ? Number(cell.text.replace(/,/g, ''))
+            : cell.text,
+        ),
+      ),
+    ],
+  }));
 }
 
 /**
@@ -75,6 +127,8 @@ export function tableSheets(tables: readonly PrintedTable[]): Sheet[] {
  * ones: groups, families, repeats, unplaced, unrecognised, editor.
  */
 export function problemSheets(model: ProblemAnalysisModel): Sheet[] {
-  void model;
-  throw new Error('not implemented');
+  const { groups, families, repeats, unplaced, unrecognised, editor } = model;
+  return tableSheets(
+    [groups, families, repeats, unplaced, unrecognised, editor].filter((t) => t !== null),
+  );
 }
