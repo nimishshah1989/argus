@@ -1,8 +1,11 @@
-/* eslint-disable @typescript-eslint/no-unused-vars -- skeleton: the builder fills the bodies and deletes this line */
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Segmented } from './segmented.js';
 
 /** The page's one period (ADR 0036 R4): days so far this year, or the full year. Only the divisor changes. */
 export type Period = 'sofar' | 'full';
+
+const PERIODS: readonly Period[] = ['sofar', 'full'];
 
 /**
  * Reads the period from a URL search string such as `location.search` (with or without the leading `?`).
@@ -10,7 +13,7 @@ export type Period = 'sofar' | 'full';
  * an unknown value, a different case such as `FULL`) → `'sofar'`. Every other param is ignored.
  */
 export function periodFrom(search: string): Period {
-  throw new Error('not implemented');
+  return new URLSearchParams(search).get('period') === 'full' ? 'full' : 'sofar';
 }
 
 /**
@@ -27,5 +30,13 @@ export function PeriodToggle({
   value: Period;
   onChange: (period: Period) => void;
 }): ReactNode {
-  throw new Error('not implemented');
+  const { t } = useTranslation();
+  return (
+    <Segmented
+      label={t('insight.period.label')}
+      options={PERIODS.map((key) => ({ key, label: t(`insight.period.${key}`) }))}
+      value={value}
+      onChange={onChange}
+    />
+  );
 }
