@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars -- skeleton: the builder fills the bodies and deletes this line */
 import type { ReactElement } from 'react';
 
 /** One reason in a table cell, already worded by the screen (e.g. "Repeat"); `n` is how many times it happened. */
@@ -18,5 +17,14 @@ export type Reason = { text: string; n?: number };
  *   never a status colour (no good/watch/bad/loss/risk tokens); a gap between chips via `.v2-reasons`.
  */
 export function ReasonChips({ reasons }: { reasons: readonly Reason[] }): ReactElement | null {
-  throw new Error('not implemented');
+  if (reasons.length === 0) return null;
+  return (
+    <span className="v2-reasons">
+      {reasons.map(({ text, n }, i) => (
+        <span className="v2-reason" key={i}>
+          {n !== undefined && n > 1 ? `${text} ×${n}` : text}
+        </span>
+      ))}
+    </span>
+  );
 }
