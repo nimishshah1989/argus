@@ -13,7 +13,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 - #763 S23 Monthly, PR #782: RED. loop-guard: raw-size regex hits two doc comments (`apps/web/src/screens/v2/monthly-report/adapter.ts`, `monthly-report.test.ts`: the "(#763)" style comment line trips the "raw colour/size" check, rewrite those header comments without `#763`/numbers+units). e2e RED (chromium): analytics-guide.spec.ts:10, analytics-reports.spec.ts:101, analytics-shell.spec.ts:19 and :110, analytics.spec.ts:235 (also phone: v2-shell.spec.ts:95). Guide ones are the #762 fixes (not in #782's base). analytics-reports.spec.ts:101 and analytics-shell.spec.ts:19 are probably the Reports page itself: read `s782.log` in scratchpad / re-run `gh run view --job 139339048591 --log-failed`. Attempts used 3/3 + rescue: next step is `loop prep 763 --fresh` after #762 merges (main moved), re-apply, one builder; read the e2e errors first.
 - #765 S24 Annual: prep done earlier, NOT built. Start after #763 merges, load < ~10.
 - S26-1..8: NOT planned. `plan/s26-a` has ADR 0046 only. ONE `loop plan "Plan the Settings sub-pages S26-1..S26-8 on the shared CRUD kit from #776 and ADR 0036, tickets plus light seeds (ADR 0034), following how #760 and the sign-in/guide tickets were done; no new decisions"` (Bash timeout 600000; on timeout check `gh pr list`).
-- Coordinator (local_8ef44b35) is up to date as of this handoff.
+- S27–S30 (#767–#772): session local_bfc6fd20 reports its first plan job seeded only #772; re-ran one plan job for seeds 767–771; #772 building; no PRs yet. Wireframes S27–S30 still wait for Nimish's `loop approve`. Coordinator session local_8ef44b35 is archived; that session reports to whoever runs next.
 
 ## Don't repeat
 

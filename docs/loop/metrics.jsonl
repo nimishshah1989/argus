@@ -32,3 +32,5 @@
 {"issue": 762, "size": "standard", "model": "sonnet", "attempts": 3, "result": "pr", "ts": "2026-11-25T21:38:10"}
 {"issue": 763, "size": "standard", "model": "fable", "attempts": 4, "result": "pr", "ts": "2026-11-25T21:46:01"}
 {"issue": 750, "size": "standard", "model": "sonnet", "attempts": 2, "result": "pr", "ts": "2026-11-25T21:46:24"}
+{"issue": 751, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-25T21:53:49"}
+{"issue": 762, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-25T21:54:22"}
