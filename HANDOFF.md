@@ -10,6 +10,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 - Nimish approved S28-desk, S29-ticket, S30-board (#850 merged).
 - Four agents building in worktrees, one PR each: A `v2/kit-settings-signin` (kit leftovers, Settings Company/Translations = #794, sign-in Notice, App wiring, #846 lists fixes); B `v2/floor-on-kit`; C `v2/desk-ticket-shell` (Desk + Ticket into the v2 Shell); D `v2/board-shell`.
 - A `v2/kit-settings-signin` (PR 855): kit off patterns/*.tsx; Settings Company/Translations on the kit, v1 settings pages deleted; sign-in/who/password on `ui/v2/notice.tsx`; App.tsx on `ui/v2/update-banner.tsx` + `screens/v2/analytics-routes.tsx`; #846 fixes. `components/AccountSheet.tsx`, `patterns/form-sheet.tsx` stay for Floor/Desk.
+- D `v2/board-shell`: /desk/board in the v2 Shell (rail on Desk, Desk tabs, Report a problem, Open TV view); the TV keeps its own frame; Board uses only v2 pieces (new `ui/v2/sync-status.tsx`); `ui/machine-icon.tsx` off OLD_LEFT.
 - #842 (audit trail fixes) builder was running via `loop build 842`; finish with `loop finish 842`. #819 is superseded by the guard.
 
 ## Next steps
