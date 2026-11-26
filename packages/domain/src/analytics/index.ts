@@ -75,3 +75,4 @@ export type {
 export type { PlantEventRow } from './plant-events.js';
 export { comparePair, type ComparePair, type ComparePairResult } from './compare.js';
 export type { PairCause, PairYear } from './compare-year.js';
+export { machineAverageDowntime, type DowntimeReport } from './machine-average.js';

@@ -11,10 +11,10 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 - **plan/remove-old-ui:** every old-design .tsx deleted (shipped or dead), the gallery index is now the v2 kit index, `old-ui-left.test.ts` fails on any old .tsx on disk or any gallery import of one; `docs/design/v2/KIT.md` catalogues the kit; "Open TV view" has its TV icon.
 - Board rows now open their ticket in the side panel (S30, same `EntityShell` drawer as the Desk); the machine chip still opens the machine; TV unchanged.
 - Nimish approved merging PRs whose only red check is loop-guard "existing test modified on a build branch" (26 Nov). Protected files stay plan-only.
+- Branch v2/desk-data (Refs #803): the four S28/S29 items the server lacked are built server + UI: sign-off outcomes of the last 24 h on `/board/signoff`, `GET /state/crew` (crew roles, paused jobs under Working now), `machineAverage` on the ticket detail (engine MTTR in minutes, "no earlier breakdown" when none), `GET /tickets/recent-codes` + searchable code pickers (`CodePicker` in ui/v2/close-kit.tsx). No migration.
 
 ## Not built (server lacks data, or protected file)
 
-- #803 sign-off outcomes list, crew roles and paused jobs under Working, ticket downtime-vs-average line, searchable code lists with last 5 used.
 - Day-score items out per ADR 0050.
 
 ## In flight (26 Nov ~21:00, Nimish: "build the not-built items… all old stuff removed… a proper design language with components and kit")

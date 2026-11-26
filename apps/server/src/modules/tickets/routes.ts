@@ -39,6 +39,7 @@ import { buildRaiseExtras, buildRaised, loadSeverityMatrix, refreshSeverity } fr
 import { registerOemCauseRoutes } from './oem-cause-routes.js';
 import { registerWhyWhyRoutes } from './why-why-routes.js';
 import { registerPmRoutes } from './pm-routes.js';
+import { registerDeskReads } from './desk-reads.js';
 
 type Auth = NonNullable<Awaited<ReturnType<typeof requireAuth>>>;
 type Outcome = tm.Outcome;
@@ -396,4 +397,5 @@ export function registerTickets(app: FastifyInstance, config: AppConfig): void {
   registerWhyWhyRoutes(app, pool);
   registerOemCauseRoutes(app, pool);
   registerPmRoutes(app, pool);
+  registerDeskReads(app, pool);
 }

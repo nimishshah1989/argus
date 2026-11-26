@@ -1,7 +1,8 @@
 /* eslint-disable i18next/no-literal-string -- prop values only; every visible string goes through t() */
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import type { Config } from '../../../../api.js';
-import { ChoiceField, Field } from '../../../../ui/v2/close-kit.js';
+import { getRecentCodes, type Config } from '../../../../api.js';
+import { ChoiceField, CodePicker, Field, type CodeOption } from '../../../../ui/v2/close-kit.js';
 import {
   DONE_SLOTS,
   activePeople,
@@ -135,9 +136,33 @@ export function WhoDidIt({ values, update, config }: SectionProps) {
   );
 }
 
+/** A coded list of the close as a searchable pick with this login's last codes on top. */
+function Coded(props: {
+  id: string;
+  label: string;
+  value: string;
+  options: CodeOption[];
+  recent: readonly string[] | undefined;
+  onChange: (value: string) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <CodePicker
+      {...props}
+      recent={props.recent ?? []}
+      empty={t('closes.form.select')}
+      search={t('closes.form.searchCodes')}
+      recentLabel={t('closes.form.usedLast')}
+      allLabel={t('closes.form.allCodes')}
+    />
+  );
+}
+
 /** The down time (read only), the classification, the spare and the handover. */
 export function Classification({ values, update, config }: SectionProps) {
   const { t } = useTranslation();
+  // An extra: offline or refused, the lists still work, just without the recent codes on top.
+  const recent = useQuery({ queryKey: ['recent-codes'], queryFn: getRecentCodes, retry: false });
   const field = (id: string, label: string, key: 'spareUsed' | 'handoverName', hint: string) => (
     <Field id={id} label={label}>
       <input
@@ -154,19 +179,21 @@ export function Classification({ values, update, config }: SectionProps) {
       <Field id="report-downtime" label={t('closes.form.downtime')}>
         <input id="report-downtime" readOnly value={values.downtimeMin} />
       </Field>
-      <Choice
+      <Coded
         id="report-category"
         label={t('closes.form.category')}
         value={values.breakdownCategory}
         options={categoryOptions(config)}
+        recent={recent.data?.breakdownCategory}
         onChange={(breakdownCategory) => update({ breakdownCategory })}
       />
       {/* R2: the floor keeps the plant's word; only where the options come from changed (ticket 47). */}
-      <Choice
+      <Coded
         id="report-maint"
         label={t('closes.form.maintCode')}
         value={values.failureComponent}
         options={codeOptions(config)}
+        recent={recent.data?.failureComponent}
         onChange={(failureComponent) => update({ failureComponent })}
       />
       {field(

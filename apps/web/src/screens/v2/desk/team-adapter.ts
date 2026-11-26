@@ -15,7 +15,6 @@ import {
   monthlyTotals,
   ticketTime,
   todayDate,
-  workingByPerson,
 } from '../../desk/views.js';
 import { tagOf } from '../insight.js';
 import type {
@@ -28,6 +27,7 @@ import type {
   TicketRowItem,
   WindowBlock,
   WindowRead,
+  WorkingRow,
 } from './team-model.js';
 import { waitingFirst } from './team-model.js';
 
@@ -139,8 +139,69 @@ function monthBlocks(closedRows: Ticket[], who: (personId: string) => string): M
   }));
 }
 
+const ROLE_KEYS = { primary: 'role.primary', support: 'role.support' } as const;
+
 /**
- * `/desk/team` from `/state` and the two windows. Groups and totals come from `views.ts` (`workingByPerson`,
+ * Working now (S28): each person on a working job with their crew role and minutes on it, the job with the most
+ * hands-on time first and its lead first; then the paused jobs, longest wait first, with what they wait for. The lead
+ * is the ticket's own; the others come from `/state/crew`.
+ */
+function workingRows(
+  input: TeamInput,
+  who: (personId: string) => string,
+  t: TFunction,
+): Pick<TeamModel, 'working' | 'paused'> {
+  const { state, crew = [], config } = input;
+  const machines = config?.machines ?? [];
+  const active = state.open
+    .filter((x) => x.status === 'working')
+    .sort((a, b) => (b.figures?.activeMin ?? 0) - (a.figures?.activeMin ?? 0));
+  const rowsOf = (ticket: Ticket, paused: boolean): WorkingRow[] => {
+    const people: { personId: string; role: string }[] = [];
+    if (ticket.leadPersonId) people.push({ personId: ticket.leadPersonId, role: t('role.lead') });
+    for (const member of crew)
+      if (member.ticketId === ticket.id && member.personId !== ticket.leadPersonId)
+        people.push({ personId: member.personId, role: t(ROLE_KEYS[member.role]) });
+    const stateText = paused
+      ? `${t('status.waiting')} · ${waitText(ticket, config)}`
+      : t('status.working');
+    const base = { ticketId: ticket.id, ref: ticket.ref, machine: machineLabel(ticket, machines) };
+    // A paused job nobody holds (handed over, not picked up) still shows, without a person.
+    if (people.length === 0)
+      return paused
+        ? [
+            {
+              ...base,
+              key: ticket.id,
+              name: '—',
+              role: '—',
+              state: stateText,
+              paused,
+              minutes: '—',
+            },
+          ]
+        : [];
+    return people.map(({ personId, role }) => ({
+      ...base,
+      key: `${ticket.id}:${personId}`,
+      name: who(personId),
+      role,
+      state: stateText,
+      paused,
+      minutes: formatMinutes(
+        ticket.figures?.perPerson[personId] ??
+          (personId === ticket.leadPersonId ? ticket.figures?.activeMin : 0),
+      ),
+    }));
+  };
+  return {
+    working: active.flatMap((x) => rowsOf(x, false)),
+    paused: waitingFirst(state.open).flatMap((x) => rowsOf(x, true)),
+  };
+}
+
+/**
+ * `/desk/team` from `/state`, `/state/crew` and the two windows. Totals come from `views.ts` (
  * `cancelledLast24h`, `closedLast30Days`, `monthlyTotals`); the Waiting list from `waitingFirst`; the takeaway
  * is computed here.
  */
@@ -158,16 +219,7 @@ export function teamModel(input: TeamInput, t: TFunction): TeamModel {
   );
   const months = closedBlock.state === 'ready' ? monthBlocks(closedRows, who) : [];
   return {
-    working: workingByPerson(state.open).map((group) => ({
-      personId: group.personId,
-      name: who(group.personId),
-      minutes: formatMinutes(group.minutes),
-      jobs: group.tickets.map((x) => ({
-        id: x.id,
-        ref: x.ref,
-        machine: machineLabel(x, machines),
-      })),
-    })),
+    ...workingRows(input, who, t),
     waiting: waitingFirst(state.open).map((x) =>
       row(x, machines, formatMinutes(x.figures?.waitMin), waitText(x, config)),
     ),

@@ -255,6 +255,8 @@ export const mineFixture: MineInput = { mine: MINE, me: ME, config: CONFIG, now:
 
 export const teamFixture: TeamInput = {
   state: STATE,
+  // Tech A joined Tech B's TKT-0414 as support; the leads are the tickets' own.
+  crew: [{ ticketId: 't6', personId: 'p1', role: 'support', joinedAt: ago(60) }],
   config: CONFIG,
   cancelled: CANCELLED,
   closed: CLOSED,

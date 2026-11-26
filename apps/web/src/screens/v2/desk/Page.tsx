@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
   getConfig,
+  getCrew,
   getMe,
   getState,
   type CommandAction,
@@ -205,9 +206,13 @@ const windowRead = (read: ReturnType<typeof useTicketWindow>): WindowRead => ({
   error: read.error ? errorMessage(read.error) : null,
 });
 
+const CREW_POLL_MS = 15_000;
+
 function TeamBody({ state }: { state: UseQueryResult<State> }): ReactNode {
   const { t } = useTranslation();
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
+  // Read again every 15 s, so a join or a leave shows without a reload.
+  const crew = useQuery({ queryKey: ['crew'], queryFn: getCrew, refetchInterval: CREW_POLL_MS });
   const cancelled = useTicketWindow({ status: ['cancelled'] }, Date.now() - CANCELLED_WINDOW_MS);
   const closed = useTicketWindow({ status: ['closed'] }, Date.now() - CLOSED_WINDOW_MS);
   if (state.isLoading && !state.data) return <Skeleton blocks={2} />;
@@ -215,6 +220,7 @@ function TeamBody({ state }: { state: UseQueryResult<State> }): ReactNode {
   const model = teamModel(
     {
       state: state.data,
+      crew: crew.data?.items,
       config: config.data,
       cancelled: windowRead(cancelled),
       closed: windowRead(closed),

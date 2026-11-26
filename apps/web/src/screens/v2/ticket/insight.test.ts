@@ -48,6 +48,23 @@ describe('ticket figures (Minutes card and facts)', () => {
     expect(model().takeaways['ticket.minutes']!.text).toContain('1 h 18 min');
   });
 
+  it("weighs the downtime against the machine's average, or says it has no history to compare", () => {
+    const withAverage = (machineAverage: { downtimeMin: number; breakdowns: number } | null) => {
+      const input = fixtureInput();
+      return ticketModel({ ...input, detail: { ...input.detail, machineAverage } }, realT)
+        .takeaways['ticket.minutes']!;
+    };
+    const over = withAverage({ downtimeMin: 40, breakdowns: 6 });
+    expect(over.text).toContain('38 min over its 40 min average');
+    expect(over.tone).toBe('loss');
+    const under = withAverage({ downtimeMin: 120, breakdowns: 6 });
+    expect(under.text).toContain('42 min under its 2 h 0 min average');
+    expect(under.tone).toBe('neutral');
+    const none = withAverage(null);
+    expect(none.text).toContain('no earlier breakdown to compare with');
+    expect(none.text).not.toMatch(/average/);
+  });
+
   it('keeps every event in the history, oldest first, and the newest acknowledge as "Acknowledged by"', () => {
     const m = model();
     expect(m.history.rows.map((r) => r.key)).toEqual([1, 2, 3, 4]);

@@ -20,3 +20,20 @@ export async function firedHandbackTickets(
   );
   return new Set(result.rows.map((row) => row.ticket_id as string));
 }
+
+/** Tickets whose sign-off clock ran out between `since` and `now`, with when: the "not answered" outcomes of that window. */
+export async function handbackTimedOutSince(
+  client: Pick<PoolClient, 'query'>,
+  tenantId: string,
+  window: { since: Date; now: Date },
+): Promise<Map<string, string>> {
+  const result = await client.query(
+    `SELECT ticket_id, due_at FROM sla_timer
+     WHERE tenant_id = $1 AND kind = 'handback' AND fired_at IS NOT NULL
+       AND due_at >= $2::timestamptz AND due_at <= $3::timestamptz`,
+    [tenantId, window.since, window.now],
+  );
+  return new Map(
+    result.rows.map((row) => [row.ticket_id as string, (row.due_at as Date).toISOString()]),
+  );
+}

@@ -39,6 +39,8 @@ import type {
 import type {
   CommandReply,
   Config,
+  Crew,
+  RecentCodes,
   State,
   Ticket,
   TicketDetail,
@@ -103,6 +105,11 @@ const whyWhy = defineResource<WhyWhyPayload | null>({
 const signoffFeed = defineResource<SignoffFeed>({
   key: 'signoff-feed',
   path: '/api/v1/board/signoff',
+});
+const crew = defineResource<Crew>({ key: 'crew', path: '/api/v1/state/crew' });
+const recentCodes = defineResource<RecentCodes>({
+  key: 'recent-codes',
+  path: '/api/v1/tickets/recent-codes',
 });
 const me = defineResource<{ user: Me }>({ key: 'me', path: '/api/v1/auth/me' });
 const brand = defineResource<{ company: string; logo: string | null }>({
@@ -221,6 +228,12 @@ export const saveWhyWhy = (ticketId: string, body: WhyWhyWrite): Promise<WhyWhyP
 /** `GET /board/signoff`: closed tickets still waiting for production, the longest wait first. */
 export const getSignoffFeed = (): Promise<SignoffFeed> => signoffFeed.one();
 
+/** `GET /state/crew`: who joined each working or paused ticket and in which crew role (the lead is the ticket's own). */
+export const getCrew = (): Promise<Crew> => crew.one();
+
+/** `GET /tickets/recent-codes`: the codes this login used last on a close, newest first. */
+export const getRecentCodes = (): Promise<RecentCodes> => recentCodes.one();
+
 export const getTicket = (id: string): Promise<TicketDetail> => tickets.one(id);
 
 /** `GET /tickets` (M1a-5c): cursor-paginated; status/kind serialise as comma-separated subsets. */
@@ -279,6 +292,7 @@ export type {
   CloseKind,
   CommandAction,
   Config,
+  Crew,
   Criticality,
   Figures,
   Group,
@@ -287,6 +301,7 @@ export type {
   Person,
   PmReport,
   RaiseTicketBody,
+  RecentCodes,
   Segment,
   Severity,
   SeverityMatrix,

@@ -37,22 +37,27 @@ function Window({ block, children }: { block: WindowBlock; children?: ReactNode 
   );
 }
 
-/** Working now: one row per lead with their hands-on minutes, and the jobs they are on. */
+/** Working now: one row per person on a job, with their crew role, the job's state and their minutes on it. */
 function WorkingNow({ model }: TeamViewProps) {
-  if (model.working.length === 0) return <p className="v2-sub">{model.words.nobody}</p>;
+  const rows = [...model.working, ...model.paused];
+  if (rows.length === 0) return <p className="v2-sub">{model.words.nobody}</p>;
   return (
     <ul className="v2-desk-rows">
-      {model.working.map((lead) =>
-        lead.jobs.map((job, i) => (
-          <PlainRow
-            key={`${lead.personId}:${job.id}`}
-            id={job.id}
-            title={job.ref}
-            lines={[job.machine, lead.name]}
-            time={i === 0 ? lead.minutes : undefined}
-          />
-        )),
-      )}
+      {model.working.length === 0 && <li className="v2-sub">{model.words.nobody}</li>}
+      {rows.map((row) => (
+        <PlainRow
+          key={row.key}
+          id={row.ticketId}
+          title={row.ref}
+          lines={[row.machine, `${row.name} · ${row.role}`]}
+          status={
+            <span className={`v2-pill ${row.paused ? 'v2-pill-risk' : 'v2-pill-plan'}`}>
+              {row.state}
+            </span>
+          }
+          time={row.minutes}
+        />
+      ))}
     </ul>
   );
 }

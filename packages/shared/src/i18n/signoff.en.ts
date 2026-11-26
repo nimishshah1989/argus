@@ -34,6 +34,9 @@ export const signoffEn = {
   'signoff.deskConfirmedSub': '{{who}} at {{time}} · {{after}} after the close',
   'signoff.deskDisputed': 'Disputed, reopened',
   'signoff.deskDisputedSub': '{{who}} at {{time}}: "{{reason}}"',
+  'signoff.deskOutcomes': 'Answered in the last 24 hours',
+  'signoff.deskDisputedCount':
+    '{{count}} sent back in the last 24 hours. Disputes count toward escalation.',
   'signoff.deskTimedOut': 'Not answered',
   'signoff.deskTimedOutSub':
     'No answer in {{limit}}, so it stays closed. The escalation rule decides who is told.',

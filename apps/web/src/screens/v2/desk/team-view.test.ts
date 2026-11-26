@@ -120,9 +120,12 @@ describe('Team keeps v1’s control order', () => {
   it('Working now, Waiting (kept), Not started, Cancelled, Closed with the Monthly totals h3', () => {
     expectOrder(team(), [
       /^h2: Working now$/,
-      /^a: TKT-0414\s*CNC-02/,
+      /^a: TKT-0409\s*LT-08\s*In progress\s*Tech A · Lead/,
+      /^a: TKT-0414\s*CNC-02\s*In progress\s*Tech B · Lead/,
+      /^a: TKT-0414\s*CNC-02\s*In progress\s*Tech A · Support/,
       /^a: TKT-0412\s*VC-03/,
-      /^a: TKT-0409\s*LT-08/,
+      /^a: TKT-0395\s*VC-17\s*Waiting · vendor_visit\s*Tech B · Lead/,
+      /^a: TKT-0390\s*GRD-07\s*Waiting · Spare part/,
       /^h2: Waiting$/,
       /^a: TKT-0395\s*VC-17/,
       /^a: TKT-0390\s*GRD-07/,

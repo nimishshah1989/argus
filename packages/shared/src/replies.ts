@@ -165,6 +165,16 @@ export const ticketDetailSchema = z
     report: storedReportSchema.nullable(),
     /** A PM job's effective plan and checklist (49c); null on every other ticket. */
     pmPlan: pmPlanForJobSchema.nullable(),
+    /**
+     * A breakdown's machine's average downtime per breakdown (the engine's MTTR in minutes) over the year before it was
+     * reported; null when the ticket is not a breakdown on a machine or the machine has no breakdown to average.
+     * Optional so a client that builds a reply by hand may leave it out; the server always sends it.
+     */
+    machineAverage: z
+      .object({ downtimeMin: z.number(), breakdowns: z.number().int() })
+      .strict()
+      .nullable()
+      .optional(),
   })
   .strict();
 /** `/config`: plant's fields, then accountability's `slaPolicies` part, then the fingerprint. */
@@ -172,6 +182,31 @@ export const configReplySchema = plantConfigSchema
   .extend({ slaPolicies: z.array(slaPolicySchema.strict()), fp: z.string() })
   .strict();
 export const configSameSchema = z.object({ same: z.literal(true), fp: z.string() }).strict();
+
+/** `/state/crew`: who is on each working or paused ticket now, in which crew role, earliest joiner first. */
+export const crewReplySchema = z
+  .object({
+    items: z.array(
+      z
+        .object({
+          ticketId: z.string(),
+          personId: z.string(),
+          role: z.enum(['primary', 'support']),
+          joinedAt: isoDateTimeSchema,
+        })
+        .strict(),
+    ),
+  })
+  .strict();
+export type Crew = z.infer<typeof crewReplySchema>;
+/** `/tickets/recent-codes`: the codes this login wrote on its latest reports, newest first, at most 5 of each. */
+export const recentCodesReplySchema = z
+  .object({
+    breakdownCategory: z.array(z.string()).max(5),
+    failureComponent: z.array(z.string()).max(5),
+  })
+  .strict();
+export type RecentCodes = z.infer<typeof recentCodesReplySchema>;
 
 export type Ticket = z.infer<typeof ticketReplySchema>;
 export type State = z.infer<typeof stateReplySchema>;
@@ -263,6 +298,8 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   [`POST ${P}/tickets/past`]: commandReplySchema,
   [`GET ${P}/tickets`]: ticketPageSchema,
   [`GET ${P}/state`]: stateReplySchema,
+  [`GET ${P}/state/crew`]: crewReplySchema,
+  [`GET ${P}/tickets/recent-codes`]: recentCodesReplySchema,
   [`GET ${P}/board/today`]: boardTodayReplySchema,
   [`GET ${P}/board/signoff`]: signoffFeedReplySchema,
   [`GET ${P}/tickets/:id/signoff-qr`]: null,
