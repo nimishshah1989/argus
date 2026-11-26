@@ -7,13 +7,10 @@ import { setLanguage } from '../i18n/index.js';
 import { Button } from '../ui/button.js';
 import { Inline, Page, Stack } from '../ui/layout.js';
 import { BoardSection } from './board-section.js';
-import { ClosesSection } from './closes-section.js';
 import { CrudSection } from './crud-section.js';
 import { DashboardSection } from './dashboard-section.js';
 import { DesktopView } from './desktop-section.js';
 import { ElementsSection } from './elements-section.js';
-import { DeskKitSection } from './desk-kit-section.js';
-import { DetailKitSection } from './detail-kit-section.js';
 import { FloorSection } from './floor-section.js';
 import { FormSection } from './form-section.js';
 import { KitSection } from './kit-section.js';
@@ -218,9 +215,6 @@ function GalleryPage() {
         <BoardSection />
         <DashboardSection />
         <ShellSection />
-        <DeskKitSection />
-        <DetailKitSection />
-        <ClosesSection />
         <ElementsSection />
       </Page>
     </div>

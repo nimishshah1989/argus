@@ -1,57 +1,38 @@
-/* eslint-disable i18next/no-literal-string -- route and tone props, query keys; every visible word goes through t() */
 import { useState, type ReactNode } from 'react';
-import { useParams } from 'react-router-dom';
-import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import { Link, useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getBrand, getConfig, getMe, getTicket, type Config, type Me } from '../../../api.js';
-import { CloseFlow } from '../../../components/CloseFlow.js';
+import { getBrand, getConfig, getMe, getTicket } from '../../../api.js';
 import { errorMessage } from '../../../components/format.js';
-import { OfflineBanner } from '../../../components/OfflineBanner.js';
 import { useCommand } from '../../../data/index.js';
-import { SyncStatus } from '../../../patterns/sync-status.js';
-import { TopBar } from '../../../ui/top-bar.js';
 import { ErrorState, Skeleton } from '../../../ui/v2/screen-states.js';
+import { DeskWho, useDeskNav } from '../desk/Frame.js';
+import { OfflineNotice, SyncStatus } from '../desk/parts.js';
+import { EntityShell } from '../entity/EntityShell.js';
 import { ticketModel } from './adapter.js';
-import { TicketView, type TicketViewProps } from './View.js';
+import { CloseFlow } from './close/CloseFlow.js';
+import type { TicketModel } from './model.js';
+import { TicketView } from './View.js';
 
-type Body = Omit<TicketViewProps, 'model' | 'detail' | 'config' | 'me'> & {
-  detail: UseQueryResult<TicketViewProps['detail']>;
-  config?: Config;
-  me?: Me;
-  brand?: string;
-};
-
-/** The ticket, or what stands in for it: the error with its message and a Try again button, or the loading skeleton. */
-function TicketBody({ detail, config, me, brand, ...rest }: Body): ReactNode {
+/** "← Open tickets" (back to the list it came from) and the sync pill, over the ticket. */
+function BackRow({ to }: { to: string }) {
   const { t } = useTranslation();
-  if (detail.data) {
-    const input = { detail: detail.data, config, me, now: new Date().toISOString(), brand };
-    return (
-      <TicketView
-        {...rest}
-        model={ticketModel(input, t)}
-        detail={detail.data}
-        config={config}
-        me={me}
-      />
-    );
-  }
-  if (!detail.error) return <Skeleton />;
   return (
-    <>
-      <ErrorState onRetry={() => void detail.refetch()} />
-      <p className="v2-sub">{errorMessage(detail.error)}</p>
-    </>
+    <p className="v2-desk-sync">
+      <Link to={to} className="v2-btn v2-btn-ghost">
+        {`← ${t('detail.back')}`}
+      </Link>
+      <SyncStatus />
+    </p>
   );
 }
 
-/**
- * `/desk/:id` (the live wiring, replaces v1 `TicketDetail`): reads `['ticket', id]`, `['config']`, `['me']` and the
- * brand, runs commands through `useCommand`, opens `CloseFlow` full screen, and shows loading, error (with Try again)
- * and not-found. `embedded`: inside the desk's pane, whose frame already shows the sync pill and offline banner.
- */
-export function TicketPage({ embedded = false }: { embedded?: boolean }): ReactNode {
-  const { id = '' } = useParams();
+const heading = (model: TicketModel | undefined): string | undefined =>
+  model ? [model.title, model.ref].filter(Boolean).join(' · ') : undefined;
+
+/** What the ticket page reads, and the model over it once the ticket is here. */
+function useTicketData(id: string) {
+  const { t } = useTranslation();
   const detail = useQuery({
     queryKey: ['ticket', id],
     queryFn: () => getTicket(id),
@@ -65,16 +46,35 @@ export function TicketPage({ embedded = false }: { embedded?: boolean }): ReactN
     staleTime: Infinity,
     retry: false,
   });
+  const user = me.data?.user;
+  const model = detail.data
+    ? ticketModel(
+        {
+          detail: detail.data,
+          config: config.data,
+          me: user,
+          now: new Date().toISOString(),
+          brand: brand.data?.company,
+        },
+        t,
+      )
+    : undefined;
+  return { detail, config: config.data, user, model };
+}
+type TicketData = ReturnType<typeof useTicketData>;
+
+/** The ticket, the close flow in its place, or what stands in for it: loading, or the error with Try again. */
+function TicketBody({ data }: { data: TicketData }): ReactNode {
+  const { detail, config, user, model } = data;
   const { run, error, pending } = useCommand();
   const [flow, setFlow] = useState<'close' | 'late' | null>(null);
-  const personId = me.data?.user.actingPersonId;
-
-  if (flow && detail.data && config.data && personId) {
+  const personId = user?.actingPersonId;
+  if (flow && detail.data && config && personId) {
     const ticketId = detail.data.ticket.id;
     return (
       <CloseFlow
         detail={detail.data}
-        config={config.data}
+        config={config}
         personId={personId}
         mode={flow}
         pending={pending}
@@ -84,47 +84,61 @@ export function TicketPage({ embedded = false }: { embedded?: boolean }): ReactN
       />
     );
   }
-
-  return (
-    <Frame embedded={embedded} loaded={Boolean(detail.data)}>
-      <TicketBody
-        detail={detail}
-        config={config.data}
-        me={me.data?.user}
-        brand={brand.data?.company}
+  if (model && detail.data)
+    return (
+      <TicketView
+        model={model}
+        detail={detail.data}
+        config={config}
+        me={user}
         run={run}
         pending={pending}
         error={error}
         onFlow={setFlow}
       />
-    </Frame>
+    );
+  if (!detail.error) return <Skeleton />;
+  return (
+    <>
+      <ErrorState onRetry={() => void detail.refetch()} />
+      <p className="v2-sub">{errorMessage(detail.error)}</p>
+    </>
   );
 }
 
-/** The page's bar and offline banner; the desk's pane has neither (its frame shows them), and Back clears the pane. */
-function Frame({
-  embedded,
-  loaded,
-  children,
+/**
+ * `/desk/:id` (the live wiring, S29): reads `['ticket', id]`, `['config']`, `['me']` and the brand, runs commands
+ * through `useCommand`, opens the close flow in place, and shows loading and error (with Try again). By link it is
+ * a full page in the v2 Shell; `embedded` is the same page in the desk's side panel beside the list (`from`).
+ */
+export function TicketPage({
+  embedded = false,
+  from = '/desk',
 }: {
-  embedded: boolean;
-  loaded: boolean;
-  children: ReactNode;
-}) {
+  embedded?: boolean;
+  from?: string;
+}): ReactNode {
   const { t } = useTranslation();
+  const { id = '' } = useParams();
+  const data = useTicketData(id);
+  const nav = useDeskNav(data.user?.role);
+  if (embedded)
+    return (
+      <section aria-label={t('deskWide.ticket')} className="v2-desk">
+        <BackRow to={from} />
+        {data.model ? <h2 className="v2-h2">{heading(data.model)}</h2> : null}
+        <TicketBody data={data} />
+      </section>
+    );
   return (
-    <>
-      {/* The loaded view carries its own "Open tickets" link; the bar has it only while there is nothing else to leave by. */}
-      {embedded && loaded ? null : (
-        <TopBar
-          back={loaded ? undefined : { to: '/desk', label: t('detail.back') }}
-          trailing={embedded ? undefined : <SyncStatus />}
-        />
-      )}
-      <main className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 py-4">
-        {embedded ? null : <OfflineBanner />}
-        {children}
-      </main>
-    </>
+    <DeskWho>
+      <EntityShell nav={nav} title={heading(data.model) ?? t('deskWide.ticket')}>
+        <div className="v2-desk">
+          <BackRow to={from} />
+          <OfflineNotice />
+          <TicketBody data={data} />
+        </div>
+      </EntityShell>
+    </DeskWho>
   );
 }

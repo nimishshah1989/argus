@@ -2,27 +2,11 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { CommandAction, Ticket } from '../../../api.js';
-import { TicketCard } from '../../../components/TicketCard.js';
-import { CountsStrip } from '../../../ui/counts-strip.js';
-import { EmptyState } from '../../../ui/elements/states.js';
-import {
-  AlarmClock,
-  ChevronRight,
-  CircleCheck,
-  Clock,
-  Hourglass,
-  LifeBuoy,
-  OctagonX,
-  Users,
-  type IconComponent,
-} from '../../../ui/icon.js';
-import { SegmentedBar } from '../../../ui/segmented-bar.js';
-import { StatusPill } from '../../../ui/status/status-pill.js';
-import { TicketCard as Card } from '../../../ui/ticket-card.js';
-import { KeyPill } from '../../../ui/v2/key-pill.js';
+import { Icon, type IconName } from '../../../ui/v2/icons.js';
+import { Segmented } from '../../../ui/v2/segmented.js';
+import { StatusPill } from '../../../ui/v2/status-pill.js';
 import { Takeaway, type TakeawayData } from '../../../ui/v2/takeaway.js';
 import type { ChipFilter } from '../../desk/openLists.js';
-import { ListHeading, rowClass } from './Frame.js';
 import type {
   CardBlock,
   CountTile,
@@ -32,6 +16,7 @@ import type {
   Segment,
   TaskCard,
 } from './model.js';
+import { ListCard, PlainRow, TicketRow } from './parts.js';
 
 export type OpenViewProps = {
   model: OpenModel;
@@ -40,142 +25,135 @@ export type OpenViewProps = {
   onFilter: (filter: ChipFilter) => void;
   onSegment: (segment: Segment) => void;
   onQuick: (ticket: Ticket, action: CommandAction) => void;
-  /** The sign-off feed (`components/SignoffFeed.tsx`), drawn under the counts; the Page passes it. */
+  /** The production sign-off card, drawn under the counts; the Page passes it. */
   signoff?: ReactNode;
-  /**
-   * Wide (>= 1024 px) only: the right-hand region "Ticket". `undefined` on a phone (no pane); `null` when no ticket
-   * is chosen (the "Pick a ticket" line); otherwise the embedded ticket.
-   */
-  pane?: ReactNode | null;
 };
 
-const TILE_ICON: Record<CountTile['id'], IconComponent> = {
-  down: OctagonX,
-  waiting: Hourglass,
-  support: LifeBuoy,
-  running: CircleCheck,
+const TILE_ICON: Record<CountTile['id'], IconName> = {
+  down: 'stop',
+  waiting: 'pause',
+  support: 'wrench',
+  running: 'check',
+};
+const TILE_TONE: Record<CountTile['tone'], string> = {
+  danger: 'loss',
+  hold: 'decide',
+  warning: 'risk',
+  ok: 'gain',
 };
 
-/** Hint, then the cards or the empty sentence. */
-function Hinted<C>({
-  block,
-  card,
-  testId,
-  emptyState,
-}: {
-  block: CardBlock<C>;
-  card: (c: C) => ReactNode;
-  testId?: string;
-  emptyState?: boolean;
-}) {
-  if (block.cards.length === 0)
-    return emptyState ? (
-      <EmptyState title={block.empty} />
-    ) : (
-      <>
-        <p className="v2-sub">{block.hint}</p>
-        <p className="v2-sub">{block.empty}</p>
-      </>
-    );
+/** The four counts (Down, Waiting, Support, Running OK) as kit tiles; each filters the lists, a second press shows all. */
+function CountTiles({ model, onFilter }: Pick<OpenViewProps, 'model' | 'onFilter'>) {
   return (
-    <div data-testid={testId} className="flex flex-col gap-2">
-      <p className="v2-sub">{block.hint}</p>
-      <ul className="flex flex-col gap-3">{block.cards.map(card)}</ul>
+    <div role="group" aria-label={model.words.chips} className="v2-desk-counts">
+      {model.counts.map((c) => (
+        <button
+          key={c.id}
+          type="button"
+          aria-pressed={c.pressed}
+          className="v2-card v2-desk-count"
+          data-tone={TILE_TONE[c.tone]}
+          onClick={() => onFilter(c.pressed ? '' : c.id)}
+        >
+          <Icon name={TILE_ICON[c.id]} size={16} />
+          <span className="v2-kpi-value">{c.value}</span>
+          <span className="v2-sub">{c.label}</span>
+        </button>
+      ))}
     </div>
-  );
-}
-
-/** A breakdown or work card; "Longest" sits after the card, so the card link's first 12 characters stay v1's. */
-function OpenCardItem({
-  c,
-  model,
-  pending,
-  onQuick,
-}: { c: OpenCard } & Pick<OpenViewProps, 'model' | 'pending' | 'onQuick'>) {
-  return (
-    <li>
-      <TicketCard
-        ticket={c.ticket}
-        now={model.now}
-        machineCode={c.machine}
-        names={model.names}
-        quick={c.quick}
-        pending={pending}
-        onQuick={onQuick}
-      />
-      {c.longest ? <KeyPill text={model.words.longest} tone="loss" /> : null}
-    </li>
-  );
-}
-
-function TaskItem({ c }: { c: TaskCard }) {
-  return (
-    <li>
-      <Card
-        to={`/desk/${c.ticket.id}`}
-        title={c.machine}
-        refLabel={c.ticket.ref}
-        status={<StatusPill group="task" id={c.state} />}
-        kind={{
-          text: c.line,
-          tone: c.overdue ? 'danger' : 'info',
-          icon: c.overdue ? AlarmClock : Clock,
-        }}
-        problem={c.ticket.problem}
-        meta={c.meta}
-      />
-    </li>
-  );
-}
-
-function ReportItem({ c, fill }: { c: ReportCard; fill: string }) {
-  return (
-    <li>
-      <Card
-        to={`/desk/${c.ticket.id}`}
-        title={c.machine}
-        refLabel={c.ticket.ref}
-        status={<StatusPill group="report" id="needs_report" />}
-        problem={c.ticket.problem}
-        meta={c.meta}
-      >
-        <Link to={`/desk/${c.ticket.id}`} className="v2-btn v2-btn-ghost">
-          {fill}
-        </Link>
-      </Card>
-    </li>
   );
 }
 
 const takeaway = (line: TakeawayData | null | undefined) =>
   line ? <Takeaway data={line} /> : null;
 
-/** The chosen list under its takeaway; Breakdowns also carries the paused "Waiting" section. */
+/** The rows of a list, or its empty sentence. */
+function Rows<C>({ block, row }: { block: CardBlock<C>; row: (c: C) => ReactNode }) {
+  if (block.cards.length === 0) return <p className="v2-sub">{block.empty}</p>;
+  return <ul className="v2-desk-rows">{block.cards.map(row)}</ul>;
+}
+
+function OpenRow({
+  c,
+  model,
+  pending,
+  onQuick,
+}: { c: OpenCard } & Pick<OpenViewProps, 'model' | 'pending' | 'onQuick'>) {
+  return (
+    <TicketRow
+      key={c.ticket.id}
+      ticket={c.ticket}
+      now={model.now}
+      machine={c.machine}
+      names={model.names}
+      quick={c.quick}
+      pending={pending}
+      onQuick={onQuick}
+      longest={c.longest ? model.words.longest : undefined}
+    />
+  );
+}
+
+function TaskRow({ c }: { c: TaskCard }) {
+  return (
+    <PlainRow
+      key={c.ticket.id}
+      id={c.ticket.id}
+      title={c.machine}
+      lines={[c.ticket.ref, c.ticket.problem, c.meta]}
+      time={c.line}
+      action={<StatusPill group="task" id={c.state} />}
+    />
+  );
+}
+
+function ReportRow({ c, fill }: { c: ReportCard; fill: string }) {
+  return (
+    <PlainRow
+      key={c.ticket.id}
+      id={c.ticket.id}
+      title={c.machine}
+      lines={[c.ticket.ref, c.ticket.problem, c.meta]}
+      action={
+        <Link to={`/desk/${c.ticket.id}`} className="v2-btn v2-btn-ghost">
+          {fill}
+        </Link>
+      }
+    />
+  );
+}
+
+/** The chosen segment's list under its takeaway; Breakdowns also carries the paused "Waiting" list. */
 function ChosenList(props: OpenViewProps) {
   const { model } = props;
-  const item = (c: OpenCard) => <OpenCardItem key={c.ticket.id} c={c} {...props} />;
+  const row = (c: OpenCard) => <OpenRow key={c.ticket.id} c={c} {...props} />;
+  const title = model.segments.find((s) => s.pressed)?.label ?? '';
   if (model.segment === 'tasks')
     return (
-      <>
+      <ListCard title={title} sub={model.tasks.hint}>
         {takeaway(model.takeaways['desk.tasks'])}
-        <Hinted
-          block={model.tasks}
-          testId="tasks-tab"
-          emptyState
-          card={(c) => <TaskItem key={c.ticket.id} c={c} />}
-        />
-      </>
+        <div data-testid="tasks-tab">
+          <Rows block={model.tasks} row={(c) => <TaskRow key={c.ticket.id} c={c} />} />
+        </div>
+      </ListCard>
     );
-  if (model.segment === 'work') return <Hinted block={model.work} card={item} />;
+  if (model.segment === 'work')
+    return (
+      <ListCard title={title} sub={model.work.hint}>
+        <Rows block={model.work} row={row} />
+      </ListCard>
+    );
   const { paused } = model.breakdowns;
   return (
     <>
-      {takeaway(model.takeaways['desk.breakdowns'])}
-      <Hinted block={model.breakdowns} card={item} />
+      <ListCard title={title} sub={model.breakdowns.hint}>
+        {takeaway(model.takeaways['desk.breakdowns'])}
+        <Rows block={model.breakdowns} row={row} />
+      </ListCard>
       {paused ? (
-        <section aria-label={model.words.waiting} className="flex flex-col gap-2">
-          <ListHeading>{paused.heading}</ListHeading>
-          <ul className="flex flex-col gap-3">{paused.cards.map(item)}</ul>
+        <section aria-label={model.words.waiting} className="v2-card v2-pad v2-stack">
+          <h2 className="v2-h2">{paused.heading}</h2>
+          <ul className="v2-desk-rows">{paused.cards.map(row)}</ul>
         </section>
       ) : null}
     </>
@@ -186,69 +164,46 @@ function NeedsReport({ model }: Pick<OpenViewProps, 'model'>) {
   const block = model.needsReport;
   if (!block) return null;
   return (
-    <section aria-label={model.words.needsReport} className="flex flex-col gap-2">
-      <ListHeading>{block.heading}</ListHeading>
+    <section aria-label={model.words.needsReport} className="v2-card v2-pad v2-stack">
+      <h2 className="v2-h2">{block.heading}</h2>
       <p className="v2-sub">{block.hint}</p>
-      <ul className="flex flex-col gap-3">
+      <ul className="v2-desk-rows">
         {block.cards.map((c) => (
-          <ReportItem key={c.ticket.id} c={c} fill={model.words.fillReport} />
+          <ReportRow key={c.ticket.id} c={c} fill={model.words.fillReport} />
         ))}
       </ul>
     </section>
   );
 }
 
-/** The counts strip, filter line, sign-off feed, Team now link and segment bar. */
-function Controls({ model, onFilter, onSegment, signoff }: OpenViewProps) {
+/**
+ * The Open tab (S28): the counts with their filter line, production sign-off, Team now, the Breakdowns / Tasks /
+ * Work segments with the chosen list (rows with one quick button each), Waiting, and Closed without a report.
+ */
+export function OpenView(props: OpenViewProps): ReactNode {
+  const { model, onSegment, signoff } = props;
   return (
     <>
-      <CountsStrip
-        label={model.words.chips}
-        selected={model.counts.find((c) => c.pressed)?.id ?? ''}
-        onSelect={(id) => onFilter(id as ChipFilter)}
-        items={model.counts.map((c) => ({ ...c, icon: TILE_ICON[c.id] }))}
-      />
+      <CountTiles model={model} onFilter={props.onFilter} />
       {model.showing ? (
         <p role="status" className="v2-lede">
           {model.showing}
         </p>
       ) : null}
       {signoff}
-      <Link to="/desk/team" className={rowClass}>
-        <Users aria-hidden size={20} />
-        <span className="flex-1">{model.teamNow}</span>
-        <ChevronRight aria-hidden size={20} />
+      <Link to="/desk/team" className="v2-card v2-desk-link v2-desk-team">
+        <Icon name="people" size={18} />
+        <span className="v2-desk-main">{model.teamNow}</span>
+        <Icon name="chevronRight" size={16} />
       </Link>
-      <SegmentedBar
+      <Segmented
         label={model.words.segments}
-        selected={model.segment}
-        onSelect={(id) => onSegment(id as Segment)}
-        items={model.segments}
+        options={model.segments.map((s) => ({ key: s.id, label: s.label }))}
+        value={model.segment}
+        onChange={onSegment}
       />
-    </>
-  );
-}
-
-/** The Open screen's body, in v1's control order (the gallery's desk-order lock, OPEN). */
-export function OpenView(props: OpenViewProps): ReactNode {
-  const { model, pane } = props;
-  const list = (
-    <>
-      <Controls {...props} />
       <ChosenList {...props} />
       <NeedsReport model={model} />
     </>
-  );
-  if (pane === undefined) return list;
-  return (
-    <div className="grid grid-cols-[minmax(0,28.75rem)_minmax(0,1fr)] items-start gap-4">
-      <div className="flex flex-col gap-4">{list}</div>
-      <section
-        aria-label={model.words.ticketPane}
-        className="sticky top-20 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl bg-surface shadow-card"
-      >
-        {pane ?? <p className="v2-sub">{model.words.pickTicket}</p>}
-      </section>
-    </div>
   );
 }

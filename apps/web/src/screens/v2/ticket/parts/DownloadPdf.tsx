@@ -1,28 +1,16 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getToken, type Ticket } from '../../../../api.js';
+import type { Ticket } from '../../../../api.js';
 import { Button } from '../../../../ui/v2/button.js';
 import { Notice } from '../../../../ui/v2/notice.js';
+import { downloadPdf } from '../../desk/pdf.js';
 
-/** The ticket's PDF (issue 803) with the sign-in token, saved as a file; false when it could not be fetched. */
-export async function downloadTicketPdf(ticket: Pick<Ticket, 'id' | 'ref'>): Promise<boolean> {
-  const token = getToken();
-  try {
-    const res = await fetch(`/api/v1/tickets/${encodeURIComponent(ticket.id)}/pdf`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    if (!res.ok) return false;
-    const url = URL.createObjectURL(await res.blob());
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${ticket.ref ?? ticket.id}.pdf`;
-    link.click();
-    URL.revokeObjectURL(url);
-    return true;
-  } catch {
-    return false;
-  }
-}
+/** The ticket's PDF (issue 803), saved as `<ref>.pdf`; false when it could not be fetched. */
+export const downloadTicketPdf = (ticket: Pick<Ticket, 'id' | 'ref'>): Promise<boolean> =>
+  downloadPdf(
+    `/api/v1/tickets/${encodeURIComponent(ticket.id)}/pdf`,
+    `${ticket.ref ?? ticket.id}.pdf`,
+  );
 
 /** "Download PDF", a quiet button; a failed download says so under it. */
 export function DownloadPdfButton({ ticket }: { ticket: Pick<Ticket, 'id' | 'ref'> }) {

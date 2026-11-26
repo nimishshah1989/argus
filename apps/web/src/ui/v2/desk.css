@@ -14,3 +14,180 @@
 .v2-sla-pair dd {
   margin: 0;
 }
+
+/* A desk page: its parts one under the other. */
+.v2-desk {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-v2-gap);
+  min-width: 0;
+}
+.v2-desk .v2-stack {
+  gap: 10px;
+}
+/* The section tabs, then "Report a problem", the settings and the account; they wrap on a phone. */
+.v2-desk-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.v2-desk-bar .v2-segmented {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.v2-desk-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.v2-desk-sync {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+/* The four counts: kit tiles that filter the lists. */
+.v2-desk-counts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.v2-desk-count {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 44px;
+  padding: 12px 14px;
+  color: var(--color-v2-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.v2-desk-count[aria-pressed='true'] {
+  outline: 2px solid var(--color-v2-accent);
+  outline-offset: -2px;
+  background: var(--color-v2-selected);
+}
+.v2-desk-count[data-tone='loss'] {
+  color: var(--color-v2-loss);
+}
+.v2-desk-count[data-tone='risk'] {
+  color: var(--color-v2-risk);
+}
+.v2-desk-count[data-tone='decide'] {
+  color: var(--color-v2-decide);
+}
+.v2-desk-count[data-tone='gain'] {
+  color: var(--color-v2-gain);
+}
+.v2-desk-count .v2-sub {
+  color: var(--color-v2-ink-2);
+}
+/* A list: rows split by hairlines; on a wide screen a row reads as a table row, on a phone as a card. */
+.v2-desk-rows {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.v2-desk-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-v2-line);
+}
+.v2-desk-row:first-child {
+  border-top: 0;
+}
+.v2-desk-link {
+  display: grid;
+  flex: 1 1 32rem;
+  grid-template-columns:
+    minmax(7rem, 0.8fr) auto minmax(10rem, 2fr) minmax(7rem, 1fr)
+    minmax(10rem, 1.2fr);
+  align-items: center;
+  gap: 6px 14px;
+  min-width: 0;
+  min-height: 44px;
+  border-radius: 9px;
+  color: inherit;
+  text-decoration: none;
+}
+.v2-desk-link:hover {
+  background: var(--color-v2-hover);
+}
+.v2-desk-link[aria-current='page'] {
+  background: var(--color-v2-selected);
+}
+.v2-desk-main,
+.v2-desk-what,
+.v2-desk-time,
+.v2-desk-clocks {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.v2-desk-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.v2-desk-quick {
+  flex: none;
+}
+/* A plain row has a title, its lines and a time only. */
+.v2-desk-link:not(:has(.v2-desk-what)) {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.v2-desk-team {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 10px 14px;
+}
+.v2-desk-refused {
+  align-items: flex-start;
+  max-width: 32rem;
+}
+/* The drawer is as narrow as a phone: a row stacks there as it does on one. */
+.v2-drawer .v2-desk-link {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+@media (max-width: 1100px) {
+  .v2-desk-link {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .v2-desk-what,
+  .v2-desk-clocks {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 760px) {
+  .v2-desk-counts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .v2-desk-rows {
+    gap: 10px;
+  }
+  .v2-desk-row {
+    padding: 12px;
+    border: 1px solid var(--color-v2-line);
+    border-radius: 14px;
+    background: var(--color-v2-panel);
+  }
+  .v2-desk-quick {
+    flex: 1 1 100%;
+  }
+  .v2-desk-quick .v2-btn {
+    width: 100%;
+  }
+}

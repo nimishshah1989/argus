@@ -1,150 +1,143 @@
 import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { TFunction } from 'i18next';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getMe } from '../../../api.js';
-import { AccountButton, AccountSheet } from '../../../components/AccountSheet.js';
-import { readsAnalytics } from '../../../roles.js';
-import { SyncStatus } from '../../../patterns/sync-status.js';
-import { useWide } from '../../../patterns/wide.js';
-import {
-  CirclePlus,
-  FlaskConical,
-  LayoutGrid,
-  Lock,
-  Menu,
-  Users,
-  Wrench,
-  type IconComponent,
-} from '../../../ui/icon.js';
-import { SideNav } from '../../../ui/side-nav.js';
-import { useSystemTheme } from '../../../ui/system-theme.js';
-import { TabBar } from '../../../ui/tab-bar.js';
-import { TopBar } from '../../../ui/top-bar.js';
-import type { DeskView } from './model.js';
+import { getBrand, getMe } from '../../../api.js';
+import { AccountButton, AccountSheet } from '../../../ui/v2/account-sheet.js';
+import { DraftsList } from '../../../ui/v2/drafts-list.js';
+import type { DrawerSpec } from '../../../ui/v2/drawer.js';
+import { Segmented } from '../../../ui/v2/segmented.js';
+import { EntityShell, WhoContext } from '../entity/EntityShell.js';
+import { useNav } from '../nav.js';
+import { mayOpen, showsSettings, type DeskView } from './model.js';
+import { OfflineNotice, SyncStatus } from './parts.js';
 
-export const rowClass =
-  'flex min-h-target items-center justify-between gap-3 rounded-card bg-surface px-4 py-3 shadow-card';
+type Tab = DeskView | 'live';
+const ROUTE: Record<Tab, string> = {
+  open: '/desk',
+  mine: '/desk/mine',
+  team: '/desk/team',
+  live: '/desk/board',
+};
 
-/** The small capitals over a group of cards or rows. */
-export function ListHeading({ children }: { children: ReactNode }) {
-  return <h2 className="v2-h2">{children}</h2>;
+/** The rail of a desk page: the login's sections, with the desk (its foot entry) marked as the page you are on. */
+export function useDeskNav(role: string | undefined) {
+  return useNav('today', role).map((item) => ({ ...item, current: item.id === 'desk' }));
 }
 
-function TopTrailing({ person }: { person: ReactNode }) {
+/**
+ * The desk's section tabs (ADR 0056 point 2): Open (count), Mine, Team and Live board as the kit's tabs, then
+ * "Report a problem" (the floor's report flow), Plant settings and Settings for admin and head, and the account.
+ */
+function DeskTabs({ current, badge, role }: { current: DeskView; badge: number; role?: string }) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [account, setAccount] = useState(false);
+  const tabs: { key: Tab; label: string }[] = [
+    { key: 'open', label: `${t('desk.tab.open')} (${badge})` },
+    { key: 'mine', label: t('desk.tab.mine') },
+    { key: 'team', label: t('desk.tab.team') },
+    { key: 'live', label: t('deskLists.tab.live') },
+  ];
+  const shown = tabs.filter((tab) => tab.key === 'live' || !role || mayOpen(tab.key, role));
   return (
-    <div className="flex items-center gap-2">
-      <SyncStatus />
-      {person}
+    <div className="v2-desk-bar">
+      <Segmented
+        label={t('deskLists.tabs')}
+        options={shown}
+        value={current}
+        onChange={(key) => navigate(ROUTE[key])}
+      />
+      <div className="v2-desk-tools">
+        <Link to="/floor" className="v2-btn v2-btn-primary">
+          {t('deskLists.reportProblem')}
+        </Link>
+        {showsSettings(role) ? (
+          <>
+            <Link to="/settings/machines" className="v2-btn v2-btn-ghost">
+              {t('plant.menu.link')}
+            </Link>
+            <Link to="/desk/settings" className="v2-btn v2-btn-ghost">
+              {t('settings.title')}
+            </Link>
+          </>
+        ) : null}
+        <AccountButton onClick={() => setAccount(true)} />
+      </div>
+      <AccountSheet open={account} onOpenChange={setAccount} />
     </div>
   );
 }
 
-/** Header with the sync pill, the screen, and the five desk destinations: a bottom tab bar, or the left menu from 1024 px. */
-function deskTabs(t: TFunction, badge: number) {
-  return [
-    { to: '/desk', label: t('desk.tab.open'), icon: Menu, badge },
-    { to: '/desk/mine', label: t('desk.tab.mine'), icon: Wrench },
-    { to: '/desk/team', label: t('desk.tab.team'), icon: Users },
-    { to: '/floor', label: t('deskLists.tab.report'), icon: CirclePlus },
-    { to: '/desk/board', label: t('deskLists.tab.live'), icon: LayoutGrid },
-  ];
+/** The frame's company name and role, as the analytics screens give it (the header's plant, the search's pages). */
+export function DeskWho({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
+  const role = useQuery({ queryKey: ['me'], queryFn: getMe }).data?.user.role;
+  const brand = useQuery({ queryKey: ['brand'], queryFn: getBrand }).data?.company;
+  return (
+    <WhoContext.Provider value={{ role, company: brand || t('analytics.title') }}>
+      {children}
+    </WhoContext.Provider>
+  );
 }
 
-interface DeskTab {
-  to: string;
-  label: string;
-  icon: IconComponent;
-  badge?: number;
-}
-
-/** The desktop menu adds the analytics face for the roles `readsAnalytics` names (the server's `canAnalytics`); the phone keeps its five tabs. */
-function menuTabs(role: string | undefined, tabs: DeskTab[], t: TFunction): DeskTab[] {
-  if (!role || !readsAnalytics(role)) return tabs;
-  return [...tabs, { to: '/analytics', label: t('analytics.entry'), icon: FlaskConical }];
-}
-
+/**
+ * A desk page in the v2 Shell (ADR 0055 point 2, S28): the rail with Desk current, the title in the header, the
+ * section tabs and tools, "Updated · sync", the offline notice, the drafts, then the page. `drawer` is the ticket
+ * opened beside the list on a wide screen.
+ */
 export function DeskFrame({
   title,
-  subtitle,
+  updated,
   current,
   badge,
+  drawer = null,
   children,
 }: {
   title: string;
-  subtitle?: string;
+  updated?: string;
   current: DeskView;
   badge: number;
+  drawer?: DrawerSpec | null;
   children: ReactNode;
 }) {
-  const { t } = useTranslation();
-  const wide = useWide();
-  useSystemTheme();
-  const tabs = deskTabs(t, badge);
   const role = useQuery({ queryKey: ['me'], queryFn: getMe }).data?.user.role;
-  const wideTabs = menuTabs(role, tabs, t);
-  const here = current === 'open' ? '/desk' : `/desk/${current}`;
-  const [account, setAccount] = useState(false);
-  const person = <AccountButton named={wide} onClick={() => setAccount(true)} />;
-  const top = (
-    <TopBar
-      title={title}
-      subtitle={subtitle}
-      trailing={<TopTrailing person={wide ? null : person} />}
-    />
-  );
-  const sheet = <AccountSheet open={account} onOpenChange={setAccount} />;
-  if (wide)
-    return (
-      <div className="flex min-h-dvh bg-v2-page">
-        <div className="sticky top-0 h-dvh">
-          <SideNav
-            label={t('deskLists.tabs')}
-            groups={[{ items: wideTabs }]}
-            current={here}
-            footer={person}
-          />
-        </div>
-        <div className="flex min-w-0 flex-1 flex-col">
-          {top}
-          <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 p-4">
-            {children}
-          </main>
-        </div>
-        {sheet}
-      </div>
-    );
+  const nav = useDeskNav(role);
   return (
-    <div className="flex min-h-dvh flex-col bg-v2-page">
-      {top}
-      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-4 p-4">{children}</main>
-      <TabBar label={t('deskLists.tabs')} tabs={tabs} current={here} />
-      {sheet}
-    </div>
+    <DeskWho>
+      <EntityShell nav={nav} title={title} drawer={drawer}>
+        <div className="v2-desk">
+          <DeskTabs current={current} badge={badge} role={role} />
+          <p className="v2-sub v2-desk-sync">
+            {updated ? <span>{updated}</span> : null}
+            <SyncStatus />
+          </p>
+          <OfflineNotice />
+          <DraftsList />
+          {children}
+        </div>
+      </EntityShell>
+    </DeskWho>
   );
 }
 
 /** A login whose role may not open this screen (B4): say so, and offer what it can do. */
 export function NotAvailable({ roleLabel }: { roleLabel: string }) {
   const { t } = useTranslation();
-  useSystemTheme();
+  const role = useQuery({ queryKey: ['me'], queryFn: getMe }).data?.user.role;
+  const nav = useDeskNav(role);
   return (
-    <div className="flex min-h-dvh flex-col bg-v2-page">
-      <TopBar
-        title={t('desk.title')}
-        trailing={<span className="v2-pill v2-pill-neutral">{roleLabel}</span>}
-      />
-      <main className="mx-auto flex w-full max-w-xl flex-col items-center gap-4 px-4 pt-32 text-center">
-        <span className="flex h-18 w-18 items-center justify-center rounded-full bg-v2-well">
-          <Lock aria-hidden size={32} />
-        </span>
-        <h2 className="v2-h2">{t('deskLists.notAvailable')}</h2>
-        <p className="v2-sub">{t('deskLists.notAvailable.body')}</p>
-        <Link to="/floor" className="v2-btn v2-btn-primary mt-8 w-full">
-          {t('deskLists.reportProblem')}
-        </Link>
-      </main>
-    </div>
+    <DeskWho>
+      <EntityShell nav={nav} title={t('desk.title')}>
+        <section className="v2-card v2-pad v2-stack v2-desk-refused">
+          <span className="v2-pill v2-pill-neutral">{roleLabel}</span>
+          <h2 className="v2-h2">{t('deskLists.notAvailable')}</h2>
+          <p className="v2-sub">{t('deskLists.notAvailable.body')}</p>
+          <Link to="/floor" className="v2-btn v2-btn-primary">
+            {t('deskLists.reportProblem')}
+          </Link>
+        </section>
+      </EntityShell>
+    </DeskWho>
   );
 }

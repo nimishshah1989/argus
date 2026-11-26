@@ -1,12 +1,9 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import type { CommandAction, Ticket } from '../../../api.js';
-import { TicketCard } from '../../../components/TicketCard.js';
-import { Banner } from '../../../ui/banner.js';
-import { LoadingState } from '../../../ui/elements/states.js';
-import { ListHeading, rowClass } from './Frame.js';
-import type { MineCard, MineModel, TicketRowItem } from './team-model.js';
+import { Notice } from '../../../ui/v2/notice.js';
+import { Skeleton } from '../../../ui/v2/screen-states.js';
+import { ListCard, PlainRow, TicketRow } from './parts.js';
+import type { MineCard, MineModel } from './team-model.js';
 
 export type MineViewProps = {
   model: MineModel;
@@ -19,16 +16,7 @@ export type MineViewProps = {
   dayReportFailed: boolean;
 };
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section aria-label={title} className="flex flex-col gap-2">
-      <ListHeading>{title}</ListHeading>
-      {children}
-    </section>
-  );
-}
-
-function CardList({
+function Cards({
   cards,
   model,
   pending,
@@ -41,42 +29,26 @@ function CardList({
 }) {
   if (cards.length === 0) return <p className="v2-sub">{model.words.none}</p>;
   return (
-    <ul className="flex flex-col gap-3">
+    <ul className="v2-desk-rows">
       {cards.map((card) => (
-        <li key={card.ticket.id}>
-          <TicketCard
-            ticket={card.ticket}
-            now={model.now}
-            machineCode={card.machine}
-            names={model.names}
-            quick={card.quick}
-            pending={pending}
-            onQuick={onQuick}
-          />
-        </li>
+        <TicketRow
+          key={card.ticket.id}
+          ticket={card.ticket}
+          now={model.now}
+          machine={card.machine}
+          names={model.names}
+          quick={card.quick}
+          pending={pending}
+          onQuick={onQuick}
+        />
       ))}
     </ul>
   );
 }
 
-function ClosedRow({ row }: { row: TicketRowItem }) {
-  return (
-    <li>
-      <Link to={`/desk/${row.id}`} className={rowClass}>
-        <span className="min-w-0">
-          <span className="v2-h3 block">{row.ref}</span>
-          <span className="v2-sub block truncate">{row.machine}</span>
-          <span className="v2-sub block truncate">{row.detail}</span>
-        </span>
-        <span className="v2-sub shrink-0 text-right">{row.time}</span>
-      </Link>
-    </li>
-  );
-}
-
 /**
- * `/desk/mine` under the frame's title: regions In progress and Waiting (ticket cards with their quick button),
- * Closed last 30 days (rows), and the "Day report" link last, in v1's control order. No h1.
+ * The Mine tab (S28): In progress and Waiting (rows with their quick button), Closed last 30 days, and the Day
+ * report, in v1's order. The Shell's header carries the title.
  */
 export function MineView({
   model,
@@ -85,31 +57,36 @@ export function MineView({
   onDayReport,
   dayReportFailed,
 }: MineViewProps): ReactNode {
-  const { t } = useTranslation();
   const { words } = model;
-  if (model.state === 'loading') return <LoadingState label={t('common.loading')} tiles={1} />;
-  if (model.state === 'error') return <Banner tone="error" title={model.error ?? ''} />;
+  if (model.state === 'loading') return <Skeleton />;
+  if (model.state === 'error') return <Notice tone="error" title={model.error ?? ''} />;
   return (
     <>
-      {model.empty && <p className="v2-sub">{model.empty}</p>}
-      <Section title={words.inProgress}>
-        <CardList cards={model.inProgress} model={model} pending={pending} onQuick={onQuick} />
-      </Section>
-      <Section title={words.waiting}>
-        <CardList cards={model.waiting} model={model} pending={pending} onQuick={onQuick} />
-      </Section>
-      <Section title={words.closed}>
+      {model.empty && <p className="v2-lede">{model.empty}</p>}
+      <ListCard title={words.inProgress}>
+        <Cards cards={model.inProgress} model={model} pending={pending} onQuick={onQuick} />
+      </ListCard>
+      <ListCard title={words.waiting}>
+        <Cards cards={model.waiting} model={model} pending={pending} onQuick={onQuick} />
+      </ListCard>
+      <ListCard title={words.closed}>
         {model.closed.length === 0 ? (
           <p className="v2-sub">{words.none}</p>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className="v2-desk-rows">
             {model.closed.map((row) => (
-              <ClosedRow key={row.id} row={row} />
+              <PlainRow
+                key={row.id}
+                id={row.id}
+                title={row.ref}
+                lines={[row.machine, row.detail]}
+                time={row.time}
+              />
             ))}
           </ul>
         )}
-      </Section>
-      <section aria-label={words.dayReport}>
+      </ListCard>
+      <section aria-label={words.dayReport} className="v2-stack">
         <a
           href={model.dayReport.href}
           download
@@ -117,11 +94,11 @@ export function MineView({
             event.preventDefault();
             onDayReport();
           }}
-          className={`${rowClass} v2-h3`}
+          className="v2-btn v2-btn-ghost"
         >
           {words.dayReport}
         </a>
-        {dayReportFailed && <Banner tone="error" title={words.dayReportError} />}
+        {dayReportFailed && <Notice tone="error" title={words.dayReportError} />}
       </section>
     </>
   );

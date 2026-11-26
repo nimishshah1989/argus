@@ -1,4 +1,3 @@
-/* eslint-disable i18next/no-literal-string -- icon names and typed unions only; every visible word comes in as a prop */
 import type { ReactNode } from 'react';
 import { Icon, type IconName } from './icons.js';
 

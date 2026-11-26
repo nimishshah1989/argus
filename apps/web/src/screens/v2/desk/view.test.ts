@@ -15,14 +15,13 @@ import { OpenView } from './View.js';
  * ticket. Names, words and control order are pinned by the e2e specs (desk-lists, desk, tasks, desk-two-pane,
  * gallery/desk-order), not here.
  */
-function draw(pane?: ReactNode | null): string {
+function draw(): string {
   const view = h(OpenView, {
     model: openModel(deskFixture, realT),
     pending: false,
     onFilter: () => undefined,
     onSegment: () => undefined,
     onQuick: () => undefined,
-    pane,
   });
   return renderToStaticMarkup(
     h(QueryClientProvider, { client: new QueryClient() }, h(MemoryRouter, null, view as ReactNode)),
@@ -45,12 +44,7 @@ describe('the Open screen renders', () => {
     }
   });
 
-  it('wide: the chosen ticket is drawn beside the list, or the hint while none is chosen', () => {
-    expect(draw(h('p', null, 'THE TICKET'))).toContain('THE TICKET');
-    const empty = draw(null);
-    expect(empty).toContain('aria-label="Ticket"');
-    expect(empty).toContain('Pick a ticket on the left to see it here.');
-    // Phone: no pane region at all.
+  it('draws no ticket pane of its own: a wide screen opens the ticket in the Shell drawer (ADR 0056)', () => {
     expect(draw()).not.toContain('aria-label="Ticket"');
   });
 });
