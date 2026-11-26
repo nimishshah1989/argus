@@ -1,5 +1,5 @@
 /* eslint-disable i18next/no-literal-string -- routes, ids and prop values only; every visible string goes through t() */
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { AUDIT_AREAS, type AuditArea, type AuditRow } from '@uptimo/shared/audit';
@@ -11,9 +11,10 @@ import { viewState } from '../../../patterns/view-state.js';
 import { DataTable, type Column } from '../../../ui/v2/data-table.js';
 import { DateField } from '../../../ui/v2/date-field.js';
 import { ScreenStates } from '../../../ui/v2/screen-states.js';
+import { KeyPill } from '../../../ui/v2/key-pill.js';
 import { SelectField } from '../../../ui/v2/select-field.js';
 import { Takeaway } from '../../../ui/v2/takeaway.js';
-import { auditTakeaway, mayExport } from './model.js';
+import { auditTakeaway, mayExport, searchText } from './model.js';
 
 const audit = defineResource<AuditRow, AuditRow>({ key: 'audit', path: '/api/v1/audit' });
 const people = defineResource<PersonAdmin, PersonAdmin>({ key: 'people', path: '/api/v1/people' });
@@ -180,7 +181,7 @@ export function Lead({
   );
 }
 
-function Trail(p: { rows: AuditRow[]; timeZone?: string }) {
+function Trail(p: { rows: AuditRow[]; timeZone?: string; more?: ReactNode }) {
   const { t } = useTranslation();
   const areaOf = (row: AuditRow) =>
     AUDIT_AREAS.includes(row.entity as AuditArea)
@@ -207,27 +208,43 @@ function Trail(p: { rows: AuditRow[]; timeZone?: string }) {
         </>
       ),
     },
-    { key: 'area', label: t('audit.area'), cell: areaOf },
+    {
+      key: 'area',
+      label: t('audit.area'),
+      cell: (row) => <KeyPill text={areaOf(row)} tone="neutral" />,
+    },
     { key: 'by', label: t('audit.col.by'), cell: byOf },
   ];
   return (
     <DataTable
       rows={p.rows}
       rowKey={(row) => row.id}
-      rowLabel={(row) => humanise(row.action)}
+      rowLabel={(row) =>
+        `${humanise(row.action)} · ${areaOf(row)} · ${formatDateTime(row.at, p.timeZone)}`
+      }
       columns={columns}
       headed
       filters={[]}
-      text={(row) => [humanise(row.action), areaOf(row), byOf(row), reasonOf(row)].join(' ')}
+      text={(row) => searchText(humanise(row.action), areaOf(row), byOf(row), reasonOf(row))}
       expand={(row) => <Values row={row} />}
+      more={p.more}
       words={{
         title: t('audit.title'),
         search: t('audit.search'),
         showing: t('v2m.showing'),
         noResults: t('v2m.noResults'),
-        open: t('audit.reason'),
       }}
     />
+  );
+}
+
+/** The button under the last page that loads the next older changes. */
+function Older(p: { busy: boolean; onClick: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <button type="button" className="v2-btn v2-btn-ghost" disabled={p.busy} onClick={p.onClick}>
+      {t('audit.older')}
+    </button>
   );
 }
 
@@ -273,19 +290,15 @@ export function AuditView() {
         emptyText={t('audit.empty')}
       >
         {(all) => (
-          <>
-            <Trail rows={all} timeZone={config.data?.timeZone} />
-            {list.hasNextPage ? (
-              <button
-                type="button"
-                className="v2-btn v2-btn-ghost"
-                disabled={list.isFetchingNextPage}
-                onClick={() => void list.fetchNextPage()}
-              >
-                {t('audit.older')}
-              </button>
-            ) : null}
-          </>
+          <Trail
+            rows={all}
+            timeZone={config.data?.timeZone}
+            more={
+              list.hasNextPage ? (
+                <Older busy={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()} />
+              ) : undefined
+            }
+          />
         )}
       </ScreenStates>
     </div>

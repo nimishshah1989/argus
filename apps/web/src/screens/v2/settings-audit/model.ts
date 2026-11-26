@@ -17,7 +17,7 @@ export function auditTakeaway(
   const since = now.getTime() - AUDIT_WINDOW_DAYS * 86_400_000;
   const time = (row: AuditRow) => Date.parse(row.at);
   if (hasMore && rows.length > 0 && Math.min(...rows.map(time)) >= since) return null;
-  const inside = rows.filter((row) => time(row) >= since && time(row) <= now.getTime());
+  const inside = rows.filter((row) => time(row) >= since);
   const area = top(inside, (row) => row.entity, time);
   if (!area) return null;
   const mine = inside.filter((row) => row.entity === area.key && row.actor);
@@ -43,12 +43,12 @@ function top(
 
 /** What the table's search reads for one change: what, area, by and the reason; a change with no reason adds nothing. */
 export function searchText(
-  _what: string,
-  _area: string,
-  _by: string,
-  _reason: string | undefined,
+  what: string,
+  area: string,
+  by: string,
+  reason: string | undefined,
 ): string {
-  throw new Error('not implemented');
+  return [what, area, by, reason].filter(Boolean).join(' ');
 }
 
 /** Only the admin exports the CSV; the head reads. */

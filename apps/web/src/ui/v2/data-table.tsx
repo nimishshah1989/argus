@@ -48,7 +48,7 @@ export type TableWords = {
   showing: string;
   noResults: string;
   /** The row action's name, e.g. "Open". */
-  open: string;
+  open?: string;
 };
 
 /** A table with more columns than this scrolls sideways inside its card instead of running past it. */
@@ -403,6 +403,7 @@ export function DataTable<R>(props: TableProps<R>) {
           onPage={ask.setPage}
         />
       )}
+      {small || view.page >= view.pages ? props.more : null}
     </section>
   );
 }
