@@ -2,7 +2,7 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-26 ~13:00 IST · **By:** release session `8d81591a…` (context full) · **Goal (Nimish):** all screens live on the newest kit, nothing old remains · **Branch:** plan/handoff-s26b
+**Updated:** 2026-11-26 ~13:20 IST (after ADR 0055) · **By:** release session `8d81591a…` (context full) · **Goal (Nimish):** all screens live on the newest kit, nothing old remains · **Branch:** plan/handoff-s26b
 
 ## State
 
