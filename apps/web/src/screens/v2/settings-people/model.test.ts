@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { login, person } from './fixture.js';
+import { login, person } from './fixture-rows.js';
 import { loginsTakeaway, peopleTakeaway } from './model.js';
 
 describe('S26-4 people and logins model', () => {
