@@ -1,4 +1,5 @@
 import type { MessageKey } from '@uptimo/shared/i18n';
+import { ApiError } from '../../../api.js';
 
 /** The shortest new password the screen lets you save (v1's `MIN_LENGTH`). */
 export const MIN_PASSWORD_LENGTH = 8;
@@ -9,12 +10,14 @@ export const MIN_PASSWORD_LENGTH = 8;
  * `signin.tooMany`; field `password` → `signin.weakPassword`; anything else → null (the caller rethrows it).
  */
 export function passwordRefusal(error: unknown): MessageKey | null {
-  void error;
-  throw new Error('not implemented');
+  if (!(error instanceof ApiError)) return null;
+  if (error.code === 'unauthenticated' || error.field === 'old') return 'signin.wrongPassword';
+  if (error.code === 'rate_limited') return 'signin.tooMany';
+  if (error.field === 'password') return 'signin.weakPassword';
+  return null;
 }
 
 /** Save may be pressed: a current password, a new one of at least `MIN_PASSWORD_LENGTH`, typed the same twice. */
 export function passwordReady(old: string, next: string, repeat: string): boolean {
-  void [old, next, repeat];
-  throw new Error('not implemented');
+  return Boolean(old) && next.length >= MIN_PASSWORD_LENGTH && next === repeat;
 }
