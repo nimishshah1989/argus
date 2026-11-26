@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { expect, test } from './test.js';
+import { openShowDetail } from './show-detail.js';
 import { commandViaApi, getJson } from './fixtures-actions.js';
 import { MACHINES, apiLogin, raiseTicketViaApi, signIn } from './fixtures.js';
 
@@ -175,6 +176,10 @@ async function openFixFinder(page: Page): Promise<void> {
     'true',
   );
   await expect(page.getByRole('heading', { level: 1, name: 'Fix Finder' })).toBeVisible();
+  await openShowDetail(
+    page,
+    page.getByRole('region', { name: FF.kpis[0]!.label, exact: true }).first(),
+  );
   for (const kpi of FF.kpis) {
     await expect(page.getByText(kpi.label, { exact: true }).first()).toBeVisible();
     await expect(page.getByText(kpi.value, { exact: true }).first()).toBeVisible();

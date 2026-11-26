@@ -1,17 +1,19 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import i18n from 'i18next';
 import { useTranslation } from 'react-i18next';
+import type { FiguresReply } from '@uptimo/shared/analytics';
+import type { Sheet } from '@uptimo/shared/xlsx';
+import { analyticsFiguresQuery } from '../../../api.js';
 import { SavedCopyNotice, ScreenStates, type Loaded } from '../../../ui/v2/screen-states.js';
 import { useScreenModel } from '../data.js';
 import { EntityShell } from '../entity/EntityShell.js';
-import { liveReply } from '../figures/live.js';
 import { useKept } from '../kept.js';
 import { LiveFrame, type LiveEntry } from '../live-frame.js';
 import { useRefreshOnFigures } from '../refresh.js';
-import { downloadCsv, logCsv } from './csv.js';
 import { everyMatchOf } from './live.js';
 import { EMPTY_QUERY, type LogModel, type LogQuery } from './model.js';
+import { logSheets } from './sweep.js';
 import { BreakdownLogView } from './View.js';
 
 export const BREAKDOWN_LOG_ENTRY: LiveEntry = {
@@ -31,13 +33,13 @@ export function BreakdownLogPage() {
   const loaded = useScreenModel('breakdown-log', query);
   useRefreshOnFigures(loaded.retry);
   const model = useKept(loaded);
-  const exportLog = async (): Promise<void> => {
-    const { header, rows } = everyMatchOf(await liveReply(client), query, i18n.t.bind(i18n));
-    downloadCsv(logCsv(header, rows));
-  };
-  return (
-    <BreakdownLogFrame loaded={loaded} model={model} onQuery={setQuery} onExport={exportLog} />
+  const reply = client.getQueryData<FiguresReply>(analyticsFiguresQuery.queryKey);
+  const sheets = useMemo(
+    () =>
+      reply && model ? logSheets(everyMatchOf(reply, query, i18n.t.bind(i18n)), model.words) : [],
+    [reply, query, model],
   );
+  return <BreakdownLogFrame loaded={loaded} model={model} onQuery={setQuery} sheets={sheets} />;
 }
 
 /** What the page draws for where its load stands: the log, or the state in the shell under the screen's title. */
@@ -45,12 +47,12 @@ export function BreakdownLogFrame({
   loaded,
   model,
   onQuery,
-  onExport,
+  sheets,
 }: {
   loaded: Loaded<LogModel>;
   model: LogModel | undefined;
   onQuery: (query: LogQuery) => void;
-  onExport: () => Promise<void>;
+  sheets: Sheet[];
 }) {
   const { t } = useTranslation();
   // A refresh that failed after a good load leaves the last answer on screen, and says so.
@@ -69,7 +71,7 @@ export function BreakdownLogFrame({
             nav={nav}
             title={title}
             onQuery={onQuery}
-            onExport={onExport}
+            sheets={sheets}
           />
         ) : (
           <EntityShell nav={nav} title={title}>

@@ -12,7 +12,7 @@ function declarations(block: string): Tokens {
 /** The light tokens are the `@theme` block and the plain `:root` block; dark is `:root[data-theme='dark']` over them. */
 export function readTokens(css: string): { light: Tokens; dark: Tokens } {
   const light = {
-    ...declarations(/@theme\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? ''),
+    ...declarations(/@theme(?:\s+static)?\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? ''),
     ...declarations(/\n:root\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? ''),
   };
   const dark = declarations(/:root\[data-theme='dark'\]\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '');

@@ -19,4 +19,11 @@ export const liveBoardEn = {
   'live.today.repair': 'Repair today',
   'live.today.average': 'average of {{count}}, {{closed}} closed',
   'live.ages.line': '{{label}}: {{count}}',
+  'live.longest': 'Longest',
+  'live.offlineKept': 'Offline — last numbers kept · reconnecting…',
+  'live.take.stops': '{{code}} has waited longest: {{age}} with nobody started',
+  'live.take.overDay_one': '{{count}} breakdown is over a day old',
+  'live.take.overDay_other': '{{count}} breakdowns are over a day old',
+  'live.take.noneOverDay': 'No breakdown is over a day old',
+  'live.take.ages': '{{over}}; {{under}} of {{total}} are under 1 h',
 };

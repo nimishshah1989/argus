@@ -18,10 +18,10 @@ import { figureOf, shortDate, type FiguresPart } from '../printed-page/printed.j
 import { say, strong } from '../printed-page/segs.js';
 import { verdictOf } from '../printed-page/verdict.js';
 import type { EnergyGridModel, EnergyModel } from './model.js';
+import { kvaText } from './sweep.js';
 import {
   averageYardstick,
   heaviest,
-  oneDecimal,
   shareYardstick,
   takeawaysOf,
   totalsOf,
@@ -67,14 +67,14 @@ function scaleOf(
   const [min, max] = range;
   const at = (step: number) => min + ((max - min) * step) / 5;
   const end = (word: string, value: number) =>
-    fill(t('v2e.heat.end'), { word, value: `${oneDecimal(value)} ${unit}` });
+    fill(t('v2e.heat.end'), { word, value: `${kvaText(value)} ${unit}` });
   return {
     low: end(t('v2e.heat.low'), min),
     high: end(t('v2e.heat.high'), max),
     steps: [0, 1, 2, 3, 4].map((step) =>
       fill(t('v2e.heat.range'), {
-        from: oneDecimal(at(step)),
-        to: oneDecimal(at(step + 1)),
+        from: kvaText(at(step)),
+        to: kvaText(at(step + 1)),
         unit,
       }),
     ),
@@ -149,16 +149,13 @@ function tileOf(tile: EnergyTile, level: HeatLevel | null, ctx: TileCtx): HeatTi
   const name = names.name(tile);
   const { unit } = ctx;
   const empty = tile.machines === 0;
-  const running = `${t('analytics.energy.running')}: ${oneDecimal(tile.runningKva)} ${t('analytics.energy.unit')}`;
+  const running = `${t('analytics.energy.running')}: ${kvaText(tile.runningKva)} ${t('analytics.energy.unit')}`;
   /** The map of averages says the average as its figure, so its lines hold only the count. */
   const counted = ctx.showRunning
-    ? [
-        machinesLine(tile, t),
-        t('analytics.energy.avg', { value: oneDecimal(tile.avgConnectedKva) }),
-      ]
+    ? [machinesLine(tile, t), t('analytics.energy.avg', { value: kvaText(tile.avgConnectedKva) })]
     : [machinesLine(tile, t)];
   const lines = empty ? [t('analytics.energy.noMachines')] : counted;
-  const value = empty ? '—' : oneDecimal(ctx.value(tile));
+  const value = empty ? '—' : kvaText(ctx.value(tile));
   const drill: Drill | undefined =
     tile.machineIds.length > 0
       ? {
@@ -219,8 +216,8 @@ function verdictFor(
     top
       ? say(t('v2e.headline'), {
           cell: strong(name(top)),
-          kva: strong(`${oneDecimal(top.connectedKva)} ${unit}`),
-          total: `${oneDecimal(total.connected)} ${unit}`,
+          kva: strong(`${kvaText(top.connectedKva)} ${unit}`),
+          total: `${kvaText(total.connected)} ${unit}`,
           machines: String(total.machines),
         })
       : [{ text: t('v2e.noFigures') }],
@@ -229,7 +226,7 @@ function verdictFor(
       densest
         ? say(t('v2e.densest'), {
             cell: name(densest),
-            avg: `${oneDecimal(densest.avgConnectedKva)} ${unit}`,
+            avg: `${kvaText(densest.avgConnectedKva)} ${unit}`,
           })
         : null,
     ],
@@ -249,14 +246,14 @@ function figuresFor(
     {
       id: 'connected',
       label: t('v2e.fig.connected'),
-      value: `${oneDecimal(total.connected)} ${unit}`,
+      value: `${kvaText(total.connected)} ${unit}`,
       sub: fill(t('v2e.fig.connectedSub'), { n: total.machines }),
       yardstick: averageYardstick(total, t),
     },
     {
       id: 'running',
       label: t('v2e.fig.running'),
-      value: `${oneDecimal(total.running)} ${unit}`,
+      value: `${kvaText(total.running)} ${unit}`,
       sub: fill(t('v2e.fig.runningSub'), { pct }),
       yardstick: shareYardstick(total.running, total, t),
     },
@@ -266,7 +263,7 @@ function figuresFor(
             id: 'heaviest',
             label: t('v2e.fig.heaviest'),
             value: name(top),
-            sub: `${oneDecimal(top.connectedKva)} ${unit} · ${machinesLine(top, t)}`,
+            sub: `${kvaText(top.connectedKva)} ${unit} · ${machinesLine(top, t)}`,
             yardstick: shareYardstick(top.connectedKva, total, t),
           },
         ]
@@ -277,7 +274,7 @@ function figuresFor(
             id: 'densest',
             label: t('v2e.fig.densest'),
             value: name(densest),
-            sub: `${oneDecimal(densest.avgConnectedKva)} ${unit} ${t('v2e.fig.perMachine')}`,
+            sub: `${kvaText(densest.avgConnectedKva)} ${unit} ${t('v2e.fig.perMachine')}`,
             yardstick: averageYardstick(total, t),
           },
         ]

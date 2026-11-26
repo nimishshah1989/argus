@@ -14,8 +14,8 @@ export const tasksEn = {
   'tasks.left': 'Left from {{ref}}',
   'tasks.leftBy': 'Left by {{who}}',
   'tasks.downMin': '{{minutes}} machine-stopped',
-  'tasks.tabHint': 'Follow-up tasks left after a close, earliest expected date first.',
-  'tasks.tabEmpty': 'No follow-up tasks.',
+  'tasks.tabHint': 'Work left after a breakdown was closed. Earliest expected date first.',
+  'tasks.tabEmpty': 'No pending tasks.',
   'tasks.leave': 'Leave a follow-up task',
   'tasks.incomplete': 'A follow-up task needs what is left and a reason for it.',
   'tasks.leaveHint':
