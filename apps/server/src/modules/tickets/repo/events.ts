@@ -137,17 +137,49 @@ export interface AppendOemCauseInput {
  * closed-breakdown guard in the counter update as appendWhyWhyEvent: null when the ticket is not a closed breakdown.
  */
 export async function appendOemCauseEvent(
-  _client: Db,
-  _input: AppendOemCauseInput,
+  client: Db,
+  input: AppendOemCauseInput,
 ): Promise<WhyWhyEvent | null> {
-  throw new Error('not implemented');
+  const ticket = (
+    await client.query(
+      `UPDATE ticket SET last_event_seq = GREATEST(last_event_seq,
+         (SELECT COALESCE(MAX(seq), -1) FROM ticket_event WHERE tenant_id = $1 AND ticket_id = $2)) + 1
+       WHERE tenant_id = $1 AND id = $2 AND kind = 'stopped' AND status = 'closed'
+       RETURNING last_event_seq`,
+      [input.tenantId, input.ticketId],
+    )
+  ).rows[0];
+  if (!ticket) return null;
+  const row = (
+    await client.query(
+      `INSERT INTO ticket_event (tenant_id, ticket_id, seq, type, at, login_id, acting_person_id, payload)
+       VALUES ($1, $2, $3, 'oem_cause', $4, $5, $6, $7)
+       RETURNING id, seq, at`,
+      [
+        input.tenantId,
+        input.ticketId,
+        ticket.last_event_seq,
+        input.at,
+        input.loginId,
+        input.actingPersonId,
+        JSON.stringify(input.payload),
+      ],
+    )
+  ).rows[0];
+  return { id: row.id as string, seq: row.seq as number, at: row.at as Date };
 }
 
 /** The latest oem_cause event of every ticket that has one (DISTINCT ON), for the analytics loader. */
 export async function oemCauseEventRows(
-  _client: Db,
+  client: Db,
 ): Promise<{ ticketId: string; payload: unknown }[]> {
-  throw new Error('not implemented');
+  return (
+    await client.query(
+      `SELECT DISTINCT ON (ticket_id) ticket_id, payload
+         FROM ticket_event WHERE type = 'oem_cause'
+        ORDER BY ticket_id, seq DESC`,
+    )
+  ).rows.map((row) => ({ ticketId: row.ticket_id as string, payload: row.payload }));
 }
 
 /** Load the ordered event history, including correction and pause snapshots. */
