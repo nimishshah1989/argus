@@ -144,7 +144,7 @@ test('an admin edits the plan’s interval on the settings screen and it persist
   await signIn(page, 'admin');
   await page.goto('/settings/pm-plans');
   await expect(page.getByRole('heading', { name: t('pm.plans.title'), exact: true })).toBeVisible();
-  await page.getByLabel(t('pm.plans.search'), { exact: true }).fill(machine.code);
+  // The e2e plant has under 10 plans: one page, no search box (kit rule, ADR 0036 R13), so the row's Edit opens it.
   await page.getByRole('button', { name: t('kit.crud.editRow', { name: title }) }).click();
 
   const form = page.getByRole('form', { name: t('kit.crud.editRow', { name: title }) });
@@ -156,7 +156,6 @@ test('an admin edits the plan’s interval on the settings screen and it persist
   await expect(form).toBeHidden();
 
   await page.reload();
-  await page.getByLabel(t('pm.plans.search'), { exact: true }).fill(machine.code);
   await page.getByRole('button', { name: t('kit.crud.editRow', { name: title }) }).click();
   await expect(
     page
