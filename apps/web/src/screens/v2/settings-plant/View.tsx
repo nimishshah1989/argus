@@ -5,7 +5,7 @@ import { defineResource } from '../../../data/index.js';
 import type { CrudRow, CrudSpec } from '../../../patterns/crud-spec.js';
 import { CrudPage } from '../../../ui/v2/crud-page.js';
 import { Takeaway, type TakeawayData } from '../../../ui/v2/takeaway.js';
-import { analyticsProfileSpec } from '../../settings/analytics-profile-spec.js';
+import { analyticsProfileSpec } from '../settings-lists/analytics-profile-spec.js';
 import { groupsSpec, machinesSpec, shiftsSpec } from './plant-specs.js';
 import { groupsTakeaway, machinesTakeaway, shiftsTakeaway } from './model.js';
 
