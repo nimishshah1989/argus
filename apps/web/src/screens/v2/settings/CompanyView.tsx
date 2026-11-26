@@ -51,10 +51,11 @@ function CompanyFieldRow(p: {
   if (field.kind === 'choice')
     return (
       <div className="v2-crud-field">
-        <label className="v2-select-field">
-          {t(field.labelKey)}
+        <div className="v2-select-field">
+          {/* A label beside the menu, not around it: its name is the label alone, never the options' words. */}
+          <label htmlFor={`company-${field.id}`}>{t(field.labelKey)}</label>
           <select
-            aria-label={t(field.labelKey)}
+            id={`company-${field.id}`}
             value={p.value}
             disabled={p.disabled}
             onChange={(e) => p.onChange(e.target.value)}
@@ -65,7 +66,7 @@ function CompanyFieldRow(p: {
               </option>
             ))}
           </select>
-        </label>
+        </div>
         <Help field={field} />
       </div>
     );
