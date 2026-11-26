@@ -2,12 +2,22 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { raiseTicket, type Ticket } from '../../../api.js';
-import { useOnline } from '../../../data/index.js';
+import { raiseTicket, tickets, type Ticket } from '../../../api.js';
+import { signoffRefusal, type Refusal } from '../../../components/signoff.js';
+import { useCommand, useOnline } from '../../../data/index.js';
 import { startsNow, useReport } from '../../../faces/floor/report-state.js';
 import { FLOOR, readRecent, useFloorData, type FloorData } from '../../../faces/floor/use-floor.js';
+import { viewState } from '../../../patterns/view-state.js';
 import { otherWorkModel, reportModel, tabsModel } from './adapter.js';
+import {
+  cancelModel,
+  disputeModel,
+  mineModel,
+  pmModel,
+  type ListsContext,
+} from './lists-adapter.js';
 import { EMPTY_OTHER_WORK, floorWaiting, otherWorkLocation, type OtherWorkForm } from './model.js';
+import { CancelSheetView, DisputeSheetView, MineView, PmJobsView } from './ListsView.js';
 import { FloorFrame, FloorWaitingView, OtherWorkView, ReportView } from './View.js';
 
 /**
@@ -118,6 +128,162 @@ function OtherFlow({ data }: { data: FloorData }) {
         onMine: () => navigate(FLOOR.mine),
       }}
     />
+  );
+}
+
+/** The list query's rows and paging, drawn through `viewState` as v1 `QueuePage` did. */
+function useListState(list: ReturnType<typeof tickets.useList>, online: boolean) {
+  const rows = list.data?.pages.flatMap((page) => page.items) ?? [];
+  const ctx: Pick<ListsContext, 'state' | 'paging' | 'nowIso'> = {
+    state: viewState({
+      online,
+      hasData: list.data !== undefined,
+      isEmpty: rows.length === 0,
+      error: list.error,
+    }),
+    paging: { hasNext: Boolean(list.hasNextPage), fetching: list.isFetchingNextPage },
+    nowIso: new Date().toISOString(),
+  };
+  return { rows, ctx, more: () => void list.fetchNextPage(), retry: () => void list.refetch() };
+}
+
+type OpenSheet = { kind: 'dispute' | 'cancel'; ticketId: string } | null;
+
+/** My complaints: the list, the answer to "Is it fixed?", and the two sheets (one open at a time). */
+function MineList({ data }: { data: FloorData }) {
+  const { t } = useTranslation();
+  const command = useCommand();
+  const list = useListState(tickets.useList({ raisedBy: data.me.actingPersonId }), useOnline());
+  const [sheet, setSheet] = useState<OpenSheet>(null);
+  const [reason, setReason] = useState('');
+  const [answered, setAnswered] = useState<{ ticketId: string; refusal: Refusal | null } | null>(
+    null,
+  );
+  const ticket = list.rows.find((row) => row.id === sheet?.ticketId);
+  const open = (next: OpenSheet) => {
+    setReason('');
+    setSheet(next);
+  };
+  const close = () => open(null);
+
+  async function answer(ticketId: string, response: 'confirmed' | 'disputed', why?: string) {
+    setAnswered({ ticketId, refusal: null });
+    const body = { personId: data.me.actingPersonId, response, ...(why ? { reason: why } : {}) };
+    if (await command.run(ticketId, 'handback', body)) close();
+    else setAnswered({ ticketId, refusal: signoffRefusal(command.failure(), response) });
+  }
+  async function cancel(ticketId: string) {
+    if (await command.run(ticketId, 'cancel', { reason: reason.trim() })) close();
+  }
+  const sheetOn = (send: () => void) => ({
+    open: sheet !== null,
+    onOpenChange: (next: boolean) => (next ? undefined : close()),
+    reason: setReason,
+    send,
+  });
+  const mine = mineModel(
+    list.rows,
+    {
+      ...list.ctx,
+      me: data.me,
+      machines: data.config.machines,
+      // The ask's refusal note stays quiet while the Not fixed sheet shows it.
+      answer:
+        answered && sheet?.kind !== 'dispute' ? { ...answered, pending: command.pending } : null,
+    },
+    t,
+  );
+  return (
+    <>
+      <MineView
+        model={mine}
+        on={{
+          more: list.more,
+          retry: list.retry,
+          cancel: (ticketId) => open({ kind: 'cancel', ticketId }),
+          yes: (ticketId) => void answer(ticketId, 'confirmed'),
+          no: (ticketId) => {
+            setAnswered(null);
+            open({ kind: 'dispute', ticketId });
+          },
+        }}
+      />
+      {ticket && sheet?.kind === 'dispute' ? (
+        <DisputeSheetView
+          model={disputeModel(
+            ticket,
+            {
+              reason,
+              refusal: answered?.ticketId === ticket.id ? answered.refusal : null,
+              pending: command.pending,
+            },
+            t,
+          )}
+          on={sheetOn(() => void answer(ticket.id, 'disputed', reason.trim()))}
+        />
+      ) : null}
+      {ticket && sheet?.kind === 'cancel' ? (
+        <CancelSheetView
+          model={cancelModel(ticket, { reason, error: command.error, pending: command.pending }, t)}
+          on={sheetOn(() => void cancel(ticket.id))}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function PmList({ data }: { data: FloorData }) {
+  const { t } = useTranslation();
+  const list = useListState(
+    // eslint-disable-next-line i18next/no-literal-string -- query values, not copy
+    tickets.useList({ channel: ['pm'], status: ['open', 'working'] }),
+    useOnline(),
+  );
+  const model = pmModel(list.rows, { ...list.ctx, me: data.me, machines: data.config.machines }, t);
+  return <PmJobsView model={model} on={{ more: list.more, retry: list.retry }} />;
+}
+
+/** `/floor/mine`: what this person reported (`raisedBy` = the acting person), with sign-off and cancel. */
+export function FloorMinePage(): ReactNode {
+  const { t } = useTranslation();
+  const { pathname } = useLocation();
+  const online = useOnline();
+  const load = useFloorData();
+  const { data } = load;
+  return (
+    <FloorFrame tabs={tabsModel(data?.maintenance, pathname, t)}>
+      {data ? (
+        <MineList data={data} />
+      ) : (
+        <FloorWaitingView
+          title={t('floor.complaints')}
+          state={floorWaiting(load.error, online)}
+          onRetry={load.retry}
+        />
+      )}
+    </FloorFrame>
+  );
+}
+
+/** `/floor/pm`: the open PM jobs, each a link to its ticket. */
+export function FloorPmPage(): ReactNode {
+  const { t } = useTranslation();
+  const { pathname } = useLocation();
+  const online = useOnline();
+  const load = useFloorData();
+  const { data } = load;
+  return (
+    <FloorFrame tabs={tabsModel(data?.maintenance, pathname, t)}>
+      {data ? (
+        <PmList data={data} />
+      ) : (
+        <FloorWaitingView
+          title={t('pm.jobs.title')}
+          state={floorWaiting(load.error, online)}
+          onRetry={load.retry}
+        />
+      )}
+    </FloorFrame>
   );
 }
 

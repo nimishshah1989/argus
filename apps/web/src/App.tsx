@@ -9,9 +9,12 @@ import { Desk } from './screens/Desk.js';
 import { ChangePassword } from './faces/signin/password.js';
 import { Who } from './faces/signin/who.js';
 import { SignInView } from './screens/v2/sign-in/View.js';
-import { MyComplaints } from './faces/floor/my-complaints.js';
-import { PmJobs } from './faces/floor/pm-jobs.js';
-import { FloorOtherPage, FloorReportPage } from './screens/v2/floor/Page.js';
+import {
+  FloorMinePage,
+  FloorOtherPage,
+  FloorPmPage,
+  FloorReportPage,
+} from './screens/v2/floor/Page.js';
 import { Settings } from './screens/Settings.js';
 import { TicketRoute } from './screens/desk/TicketRoute.js';
 import {
@@ -43,8 +46,8 @@ export function App() {
         <Route path="/password" element={<ChangePassword />} />
         <Route path="/floor" element={<FloorReportPage />} />
         <Route path="/floor/other" element={<FloorOtherPage />} />
-        <Route path="/floor/mine" element={<MyComplaints />} />
-        <Route path="/floor/pm" element={<PmJobs />} />
+        <Route path="/floor/mine" element={<FloorMinePage />} />
+        <Route path="/floor/pm" element={<FloorPmPage />} />
         <Route path="/desk/mine" element={<Desk view="mine" />} />
         <Route path="/desk/team" element={<Desk view="team" />} />
         <Route path="/desk/board" element={<Board />} />

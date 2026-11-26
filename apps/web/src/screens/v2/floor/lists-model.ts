@@ -1,4 +1,8 @@
 import type { Machine, Me, Ticket } from '../../../api.js';
+import { actorFrom, offers } from '../../../components/actionSpecs.js';
+import { machineLabel } from '../../../components/format.js';
+import { canAskHandback, signoffState } from '../../../components/signoff.js';
+import { floorStatus } from '../../../faces/floor/machines.js';
 import type { ViewState } from '../../../patterns/view-state.js';
 import type { TakeawayData } from '../../../ui/v2/takeaway.js';
 
@@ -131,47 +135,77 @@ export type CancelModel = {
 };
 
 /** What a complaint is about on the floor: its machine's code from the plant, else the typed place, else ''. */
-export function complaintPlace(_ticket: Ticket, _machines: readonly Machine[]): string {
-  throw new Error('not implemented');
-}
+export const complaintPlace = (ticket: Ticket, machines: readonly Machine[]): string =>
+  machines.find((m) => m.id === ticket.machineId)?.code ?? ticket.location ?? '';
 
 /** The card's pill: `floorStatus`, except a closed ticket with a sign-off shows production's side (disputed keeps Fixed). */
-export function complaintPill(_ticket: Ticket): ListPill {
-  throw new Error('not implemented');
+export function complaintPill(ticket: Ticket): ListPill {
+  const side = ticket.status === 'closed' ? ticket.handback?.status : undefined;
+  if (side && side !== 'disputed') return { group: 'handback', id: side };
+  return floorStatus(ticket);
 }
 
 /**
  * Answerers (`canAskHandback`) see the ask while it is asked and the answered lines after; anyone else sees only the
  * timed-out lines (they say what the plant did, never "You said…"). No handback: null.
  */
-export function signoffShows(_ticket: Ticket, _role: string): SignoffShows {
-  throw new Error('not implemented');
+export function signoffShows(ticket: Ticket, role: string): SignoffShows {
+  if (!ticket.handback) return null;
+  const state = signoffState(ticket.handback);
+  if (state === 'timedOut') return 'answered';
+  if (!canAskHandback(role)) return null;
+  return state === 'asking' ? 'ask' : 'answered';
 }
 
 /** Cancel is offered only where the domain offers it to this login (`offers(ticket, actorFrom(me), 'cancel')`). */
-export function mayCancel(_ticket: Ticket, _me: Me): boolean {
-  throw new Error('not implemented');
+export function mayCancel(ticket: Ticket, me: Me): boolean {
+  const actor = actorFrom(me);
+  return actor !== null && offers(ticket, actor, 'cancel');
 }
+
+const wholeMinutes = (fromIso: string, nowIso: string): number =>
+  Math.max(0, Math.floor((new Date(nowIso).getTime() - new Date(fromIso).getTime()) / 60000));
+
+const oldest = (rows: readonly Ticket[]): Ticket | undefined =>
+  rows.reduce<Ticket | undefined>(
+    (best, row) => (!best || row.reportedAt < best.reportedAt ? row : best),
+    undefined,
+  );
+
+const longest = (
+  job: Ticket | undefined,
+  place: string,
+  of: number,
+  nowIso: string,
+): Longest | null =>
+  job
+    ? { ticketId: job.id, ref: job.ref, place, minutes: wholeMinutes(job.reportedAt, nowIso), of }
+    : null;
 
 /** The Booked complaint (nobody has taken it) that has waited longest; null when none is Booked. */
 export function longestWaiting(
-  _rows: readonly Ticket[],
-  _machines: readonly Machine[],
-  _nowIso: string,
+  rows: readonly Ticket[],
+  machines: readonly Machine[],
+  nowIso: string,
 ): Longest | null {
-  throw new Error('not implemented');
+  const booked = rows.filter((row) => {
+    const status = floorStatus(row);
+    return status.group === 'floor' && status.id === 'booked';
+  });
+  const job = oldest(booked);
+  return longest(job, job ? complaintPlace(job, machines) : '', booked.length, nowIso);
 }
 
 /** The oldest loaded PM job (its place is `machineLabel`); null when there are none. */
 export function oldestPmJob(
-  _rows: readonly Ticket[],
-  _machines: readonly Machine[],
-  _nowIso: string,
+  rows: readonly Ticket[],
+  machines: readonly Machine[],
+  nowIso: string,
 ): Longest | null {
-  throw new Error('not implemented');
+  const job = oldest(rows);
+  return longest(job, job ? machineLabel(job, [...machines]) : '', rows.length, nowIso);
 }
 
 /** A sheet's send is ready once the trimmed reason has text and nothing is in flight. */
-export function reasonReady(_reason: string, _pending: boolean): boolean {
-  throw new Error('not implemented');
-}
+export const reasonReady = (reason: string, pending: boolean): boolean =>
+  reason.trim() !== '' && !pending;
