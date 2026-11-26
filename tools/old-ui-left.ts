@@ -2,7 +2,7 @@
 // Walks the imports the shipped app actually reaches from apps/web/src/main.tsx and lists every
 // reachable .tsx component that is not on the v2 kit (screens/v2, ui/v2). Logic (.ts) is allowed
 // in old folders (ADR 0051 keeps it); the dev-only /gallery is not shipped and is not walked.
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 
 const WEB_SRC = 'apps/web/src';
@@ -50,4 +50,41 @@ export function oldUiLeft(root: string): string[] {
       !f.startsWith('ui/v2/') &&
       !NOT_DESIGN.has(f),
   );
+}
+
+// screens/analytics/Analytics.tsx stays: a hidden test reads it (it only re-exports the v2 routes and draws nothing).
+export const OLD_ALLOWED = new Set([...NOT_DESIGN, 'screens/analytics/Analytics.tsx']);
+const ON_KIT = /^(screens\/v2|ui\/v2|gallery)\//;
+const toWeb = (src: string, file: string) => relative(src, file).split('\\').join('/');
+
+function walk(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)],
+  );
+}
+
+/** Old .tsx on disk, shipped or dead: any .tsx under apps/web/src outside screens/v2, ui/v2 and gallery. */
+export function oldTsxOnDisk(root: string): string[] {
+  const src = join(root, WEB_SRC);
+  return walk(src)
+    .map((f) => toWeb(src, f))
+    .filter((f) => f.endsWith('.tsx') && !f.endsWith('.test.tsx') && !ON_KIT.test(f))
+    .filter((f) => !OLD_ALLOWED.has(f))
+    .sort();
+}
+
+/** Every gallery import of a .tsx that is not on the v2 kit: the gallery shows v2 pieces only. */
+export function galleryOldImports(root: string): string[] {
+  const src = join(root, WEB_SRC);
+  const out: string[] = [];
+  for (const file of walk(join(src, 'gallery'))) {
+    if (!/\.tsx?$/.test(file)) continue;
+    for (const m of readFileSync(file, 'utf8').matchAll(IMPORT)) {
+      const next = resolveImport(file, m[1] ?? m[2] ?? '');
+      if (!next?.endsWith('.tsx')) continue;
+      const to = toWeb(src, next);
+      if (!ON_KIT.test(to) && !NOT_DESIGN.has(to)) out.push(`${toWeb(src, file)} -> ${to}`);
+    }
+  }
+  return out.sort();
 }

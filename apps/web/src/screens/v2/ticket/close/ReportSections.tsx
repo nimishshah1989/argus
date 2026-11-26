@@ -2,8 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getRecentCodes, type Config } from '../../../../api.js';
-import { ChoiceField, Field } from '../../../../ui/v2/close-kit.js';
-import { CodePicker, type CodeOption } from '../../../../ui/v2/code-picker.js';
+import { ChoiceField, CodePicker, Field, type CodeOption } from '../../../../ui/v2/close-kit.js';
 import {
   DONE_SLOTS,
   activePeople,
