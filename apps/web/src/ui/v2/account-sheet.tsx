@@ -21,6 +21,7 @@ import {
 import { AlertsCard, usePushBinding } from './alerts-card.js';
 import { BottomSheet } from './bottom-sheet.js';
 import { Button } from './button.js';
+import { DangerButton } from './floor-kit.js';
 import { Segmented } from './segmented.js';
 
 /**
@@ -150,10 +151,10 @@ function Body({ user, onSignOut }: { user: Me; onSignOut: () => void }) {
       {GUJARATI_ON ? <LanguageChoice /> : null}
       <AlertsCard personId={user.actingPersonId || undefined} />
       {grant ? null : <NavRow to="/password" icon={KeyRound} label={t('account.changePassword')} />}
-      <Button danger onClick={onSignOut}>
+      <DangerButton onClick={onSignOut}>
         <LogOut aria-hidden size={20} />
         {t('account.signOut')}
-      </Button>
+      </DangerButton>
     </>
   );
 }

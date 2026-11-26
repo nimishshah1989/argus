@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { NOW, change } from './fixture-rows.js';
-import { auditTakeaway, mayExport } from './model.js';
+import { auditTakeaway, mayExport, searchText } from './model.js';
 
 describe('S26-5 audit model', () => {
   it('names the area with most changes in the last 7 days, and who made most of them', () => {
@@ -23,5 +23,17 @@ describe('S26-5 audit model', () => {
   it('lets only the admin export', () => {
     expect(mayExport('admin')).toBe(true);
     expect(mayExport('head')).toBe(false);
+  });
+});
+
+describe('S26-5 fixes (ticket 842)', () => {
+  it('counts a change stamped slightly after the browser clock (server clock ahead)', () => {
+    const ahead = change(new Date(NOW.getTime() + 5 * 60_000).toISOString(), 'shift', 'Admin A');
+    expect(auditTakeaway([ahead], false, NOW)?.count).toBe(1);
+  });
+
+  it('searches a change with no reason without the word "undefined"', () => {
+    expect(searchText('Update', 'Shifts', 'Admin A', undefined)).not.toContain('undefined');
+    expect(searchText('Update', 'Shifts', 'Admin A', 'night cover')).toContain('night cover');
   });
 });

@@ -9,7 +9,6 @@ const ROOT = new URL('..', import.meta.url).pathname;
 const OLD_LEFT = [
   'components/AccountSheet.tsx',
   'components/AlertsCard.tsx',
-  'components/Drafts.tsx',
   'components/UpdateBanner.tsx',
   'faces/signin/parts.tsx',
   'patterns/crud-actions.tsx',
@@ -19,7 +18,6 @@ const OLD_LEFT = [
   'patterns/frame.tsx',
   'patterns/queue-table.tsx',
   'patterns/sync-status.tsx',
-  'patterns/wizard-page.tsx',
   'screens/analytics/Analytics.tsx',
   'screens/settings/Company.tsx',
   'screens/settings/Jobs.tsx',
@@ -28,18 +26,12 @@ const OLD_LEFT = [
   'ui/banner.tsx',
   'ui/button.tsx',
   'ui/card.tsx',
-  'ui/elements/states.tsx',
   'ui/filter-chip.tsx',
-  'ui/floor-pieces.tsx',
   'ui/input.tsx',
   'ui/layout.tsx',
-  'ui/loading.tsx',
-  'ui/machine-icon.tsx',
   'ui/segmented-bar.tsx',
   'ui/sheet.tsx',
   'ui/status/status-pill.tsx',
-  'ui/tab-bar.tsx',
-  'ui/text.tsx',
 ];
 
 describe('nothing old remains (ADR 0051, ADR 0055)', () => {

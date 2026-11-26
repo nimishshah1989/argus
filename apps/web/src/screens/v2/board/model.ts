@@ -80,7 +80,7 @@ export interface BoardModel {
   tv: boolean;
   /** "Live board" (h1; screen-reader only on the TV). */
   title: string;
-  /** Report, Desk, Open TV view; none at all on the TV. */
+  /** Report a problem, Open TV view; none at all on the TV. */
   links: BoardLink[];
   /** "Updated 10:44" in the plant's time zone. */
   updated: string;
@@ -110,12 +110,11 @@ export interface BoardModel {
   takeaways: Takeaways;
 }
 
-/** The nav links: none on the TV; Report (/floor), Desk (/desk), Open TV view (wide only) elsewhere. */
+/** The links beside the Desk tabs: none on the TV; Report a problem (/floor) and Open TV view (wide only) elsewhere. The Desk is the rail's. */
 export function linksFor(tv: boolean, t: TFunction): BoardLink[] {
   if (tv) return [];
   return [
-    { to: '/floor', label: t('nav.report') },
-    { to: '/desk', label: t('nav.desk') },
+    { to: '/floor', label: t('deskLists.reportProblem') },
     { to: KIOSK_URL, label: t('live.openTv'), wideOnly: true },
   ];
 }

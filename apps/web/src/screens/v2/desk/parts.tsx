@@ -8,7 +8,7 @@ import { getSignoffFeed, type CommandAction, type Ticket } from '../../../api.js
 import type { ActionSpec } from '../../../components/actionSpecs.js';
 import { formatMinutes, formatTime } from '../../../components/format.js';
 import { feedRows, type FeedWords } from '../../../components/signoff-feed.js';
-import { useOnline, useSyncStatus } from '../../../data/index.js';
+import { useOnline } from '../../../data/index.js';
 import { queueByOwner } from '../../../offline/outbox.js';
 import { viewState } from '../../../patterns/view-state.js';
 import { Button } from '../../../ui/v2/button.js';
@@ -29,15 +29,7 @@ function useFrom(): FromList {
   return { from: from ?? location.pathname };
 }
 
-/** The sync pill (v1 `patterns/sync-status`): online, syncing or offline, announced when it changes. */
-export function SyncStatus() {
-  const id = useSyncStatus();
-  return (
-    <span role="status" data-testid="sync-status">
-      <StatusPill group="sync" id={id} />
-    </span>
-  );
-}
+export { SyncStatus } from '../../../ui/v2/sync-status.js';
 
 /**
  * The offline and queued state (v1 `OfflineBanner`): offline, or "N queued, reconnecting…" while the outbox holds

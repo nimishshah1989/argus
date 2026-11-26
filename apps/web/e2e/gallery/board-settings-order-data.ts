@@ -23,6 +23,8 @@ export const SHELL = [
   'button: SearchCtrl K',
   'button: Alerts',
 ];
+/** The live board sits in the same shell (S30, ADR 0055/0056), under its own title. */
+const BOARD_SHELL = SHELL.map((c) => (c === 'h1: Settings' ? 'h1: Live board' : c));
 export const MENU = [
   'h3: Desk',
   'a: Open',
@@ -50,9 +52,12 @@ export const PHONE: [string, string[]][] = [
   [
     '/desk/board',
     [
-      'a: Report',
-      'a: Desk',
-      'h1: Live board',
+      ...BOARD_SHELL,
+      'button: Open',
+      'button: Mine',
+      'button: Team',
+      'button: Live',
+      'a: Report a pro',
       'h2: Nobody has s',
       'h2: Being repair',
       'h2: Paused and w',
@@ -236,10 +241,13 @@ export const WIDE: [string, string[]][] = [
   [
     '/desk/board',
     [
-      'a: Report',
-      'a: Desk',
+      ...BOARD_SHELL,
+      'button: Open',
+      'button: Mine',
+      'button: Team',
+      'button: Live',
+      'a: Report a pro',
       'a: Open TV view',
-      'h1: Live board',
       'h2: Nobody has s',
       'h2: Being repair',
       'h2: Paused and w',
