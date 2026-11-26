@@ -60,3 +60,4 @@ _One line per failure, newest first. Written by the orchestrator whenever review
 - 2026-11-26 · spec · A seed that adds an API route must also add its `REPLY_SCHEMAS` entry and bump the route count in `apps/server/test/reply-contract.test.ts` (#813 went red on it).
 - 2026-11-26 · process · Nimish merged green PRs (#826, #830, #833, #834, #836, #837) before the critical review ran; #830 and #836 shipped a swallowed-error bug that review caught after. Fix: the coordinator reviews the moment CI is green; Nimish is asked to leave merging to the loop.
 - 2026-11-26 · spec+proof · #843 profile 'not set' tested with hand-built nulls the server never sends; every plant showed all set. Fix: model tests use server-shaped replies.
+- 2026-11-26 · proof · Said '~5 tickets left' from the issue list; 14 of 36 routes were still old. Fix: tools/old-ui-left.test.ts measures it (ADR 0057).
