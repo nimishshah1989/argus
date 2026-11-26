@@ -6,8 +6,9 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 ## State
 
-- Staging serves 97a00964. 15 of 29 screens on the newest kit, 14 left. Nimish approved restarting the run on 2026-11-26.
-- Deploy of the notes-only commit ded7d084 failed (docker build exit 132, cause not checked): confirm the next merge deploys.
+- #801 (#752 sweep C) was merged 08:10 under Nimish's account with `loop-guard` red; staging serves 7539319a and is healthy. 18 of 29 screens on the newest kit, 11 left.
+- #801 had no second review after its fixes: run a late `reviewer` pass on 7539319a and record findings on #752.
+- `loop auto` restarted 08:17 (Nimish approved) in the app's terminal tab. Earlier failed deploy of ded7d084 (exit 132) is superseded.
 
 ## ORDER (only these can merge without Nimish; take them in this order)
 
@@ -17,7 +18,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 ## WAITING ON NIMISH (do not merge, do not work around; end `LOOP: NEEDS NIMISH` only when nothing above is left)
 
-- A. Approval check on PR #801 (#752, green otherwise, still needs a second review) and #753 (built, unpushed): short screen names, plus no wireframe for cell-change-log, bottleneck, forecast-lab. Do NOT edit any `Screens:` line. Spend nothing on these.
+- A. Approval check on #753 (built, unpushed): short screen names, plus no wireframe for forecast-lab. Do NOT edit its `Screens:` line. Spend nothing on it.
 - B. #765 (built, pushed): delete `apps/web/src/screens/analytics/ReportsPage.tsx` and `report-view.ts`. Do not delete them. After his yes: `git rm`, `loop finish 765`. `loop clean` deletes the remote plan branch: re-push `git push -f origin plan/t765` before `loop prep`.
 - C. "Unbuilt from the wireframe" rows in #768, #769, #770, #771, #772. #768 waits for #767 merged; #770 and #771 wait for #769 merged.
 
