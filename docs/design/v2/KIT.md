@@ -414,11 +414,11 @@ How to read an entry: **For** is what the part does. **Pick it when** says when 
 - **Key props:** `label`, `checked`, `disabled`, `onChange`.
 - **Used by:** ticket.
 
-### Close screen parts — `close-kit.tsx` (`FinishTime`, `ScreenFooter`, `Field`, `ChoiceField`, `FactRows`, `MinuteTiles`)
+### Close screen parts — `close-kit.tsx` (`FinishTime`, `ScreenFooter`, `Field`, `ChoiceField`, `CodePicker`, `FactRows`, `MinuteTiles`)
 
-- **For:** the pieces of the ticket's close screens: "When did you finish?" with earlier / now / later steps, a footer pinned to the bottom with a hint over the one button, a labelled control, a labelled choice with an empty first option, label-and-value fact rows, and three small figure tiles.
+- **For:** the pieces of the ticket's close screens: "When did you finish?" with earlier / now / later steps, a footer pinned to the bottom with a hint over the one button, a labelled control, a labelled choice with an empty first option, a searchable code list with this login's last 5 codes first (`CodePicker`; `pickerGroups` is its pure filter), label-and-value fact rows, and three small figure tiles.
 - **Pick it when:** building a ticket close step. A general form is a `FormSheet`.
-- **Key props:** `FinishTime`: `time`, `status`, `earlier`/`now`/`later`, `canEarlier`/`canNow`/`canLater`, `isNow`, `onEarlier`/`onNow`/`onLater`; `ChoiceField`: `id`, `label`, `value`, `options`, `onChange`, `empty`.
+- **Key props:** `FinishTime`: `time`, `status`, `earlier`/`now`/`later`, `canEarlier`/`canNow`/`canLater`, `isNow`, `onEarlier`/`onNow`/`onLater`; `ChoiceField`: `id`, `label`, `value`, `options`, `onChange`, `empty`; `CodePicker`: the same plus `recent` (codes used last, newest first) and the search box's words.
 - **Used by:** ticket.
 
 ### `AccountSheet`, `AccountButton`, `SignOutPrompt` — `account-sheet.tsx`
