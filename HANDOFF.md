@@ -2,34 +2,30 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-26 ~23:00 IST · **By:** session `c39914a2…` · **Goal (Nimish, ADR 0055):** all screens live on the newest kit, nothing old remains · **Mode (ADR 0057):** organic session, parallel agents · **Branch:** plan/handoff-s32 · **Staging:** 78d2eb52 (= main)
+**Updated:** 2026-11-26 ~23:15 IST · **By:** session `c39914a2…` (515k context, handing over) · **Mode (ADR 0057):** organic session, parallel agents · **Branch:** plan/handoff-s33 · **Staging:** 78d2eb52 + #871 (docs)
 
-## State (all merged and deployed to staging)
+## State (merged and on staging)
 
-- **Nothing old remains (ADR 0055/0057):** `tools/old-ui-left.test.ts` fails on any old-design .tsx on disk or shipped; 0 left. Kit catalogue `docs/design/v2/KIT.md`; `/gallery` is the kit index.
-- **Every card goes somewhere (ADR 0060, #866):** `screens/v2/destinations.ts` read by the kit; 171 of 171 cards; guard `destinations.test.ts`. Some cards open their page's rows (the `*` default), not their own.
-- **Tables colour themselves, "On this page", bubble labels (ADR 0061, #869):** guard `screens/v2/table-look.test.ts`; 38 of 44 fixture tables colour.
-- **Multi-year (ADR 0063, #870):** forecasts, history figures and A1/A3 month trends read 2022–2026; one year picker (`?years=`); year-over-year lines. 2026 answer key unchanged.
-- **Data on staging:** 2026 log loaded 26 Nov (#865 job, snapshot `uptimo-pre-history-20261126155839`, batch `9aa60229…`); 2022–2025 was already there (4,220 reports, source of that load untraced). A1 Jan–Sep = answer key; Oct 0.43 vs 0.42 and Nov 0.12 vs 0.22 from earlier live-ticket imports.
-- **Live breakdowns in A1, report charts over every year (ADR 0064, branch plan/analytics-live-and-years):** A1 counts live tickets (key's November holds); monthly/annual report month charts read 2022–2026. Other figures still history-only.
-- Also merged: Desk/Ticket/Board in Shell, Floor on kit, Settings, real names (ADR 0059, #867), A-codes hidden (ADR 0062, #863), #803 Desk data (#862, #864), TV board fits any screen (#868).
-- Nimish approved merging PRs whose only red check is loop-guard "existing test modified on a build branch". Nimish chose "+N more" on the TV over the wireframe's "and N more" (26 Nov).
+- Nothing old remains (guard `tools/old-ui-left.test.ts`); kit catalogue `docs/design/v2/KIT.md`. Every card goes somewhere (ADR 0060). Tables colour themselves + "On this page" (ADR 0061). Multi-year + year picker (ADR 0063). Real names (ADR 0059). TV board fits any screen, "+N more" (Nimish's choice over "and N more").
+- 2026 log loaded on staging (snapshot `uptimo-pre-history-20261126155839`, batch `9aa60229…`); 2022–2025 was already there. Do NOT run `history-load.yml -f legacy=true` until its source is checked.
+- **Live breakdowns in A1, report charts over every year (ADR 0064, #874):** A1 counts live tickets (key's November holds); monthly/annual report month charts read 2022–2026. Other figures still history-only.
 
-## Not done
+## In flight (Nimish: "fix the not-done items too") — four agents started by c39914a2, no commits yet at handover
 
-- Nobody has clicked through any of this on staging with real data.
-- Breakdown log hours show "0.67", not "40 min". bd-pm month grids uncoloured. 14 screens have no table fixture for the guard.
-- Monthly/annual report month charts and Compare's weekly trend still 2026-only. Free text keeps `[P1]` placeholders, not names.
-- Do NOT run `history-load.yml -f legacy=true` until the earlier 2022–2025 load's refs are checked (double-count risk).
-- `pnpm size` fails on main (floor/View.tsx, live.tsx, ticket/adapter.ts).
+- `plan/analytics-live-and-years`: A1 ignores live tickets (real bug; explains Nov 0.12 vs key 0.22, check Oct); monthly/annual charts and Compare weekly trend read all years; trace the old 2022–2025 load (ADR 0064).
+- `v2/table-polish`: durations as "40 min", colour bd-pm month grids, table-look guard covers the 14 skipped screens.
+- `v2/free-text-names`: names instead of `[P1]` in free text (AI/engine stay redacted); ADR 0059 addendum goes on a plan/ branch.
+- `v2/split-big-files`: `pnpm size`/`shortcuts` (floor/View.tsx, live.tsx, ticket/adapter.ts).
+- Their worktrees: `.claude/worktrees/agent-*`. Each opens one PR.
 
 ## Next steps
 
-1. Nimish clicks through staging. 2. The "Not done" list. 3. Floor segment tiles (ADR 0055 point 1).
+1. Merge those four PRs. Rule (Nimish, "Yes, merge those", 26 Nov): merge when every check is green, or the only red is loop-guard with only "existing test modified on a build branch". Verify staging health.
+2. Floor segment tiles (ADR 0055 point 1), after the file split merges (same screen).
+3. Click through staging: Nimish must sign in (browser pane) first.
 
 ## Don't repeat
 
-- Never answer "how much is left" from tickets or memory: run the guards.
-- Never tell agents a protected file is editable; loop-guard rejects it off plan/ branches. ADR files are protected too.
-- A PR's `Screens:` line must hold approval ids (`S30-board`), and loop-guard reads the body from the push, so re-push after editing it.
-- Reserve ADR numbers before parallel agents write them (0058 collided once).
+- "What's left" comes from the guards, never from memory or tickets.
+- Protected files (kit, ADRs, docs/design) only on plan/ branches. A PR's `Screens:` line holds approval ids (`S30-board`) or `none`; loop-guard reads the body from the push event.
+- Reserve ADR numbers before parallel agents write (0058 collided; next free after 0064).
