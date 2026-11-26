@@ -39,7 +39,7 @@ function cellOf(kind: ReturnType<typeof kindOf>, printed: string, numeric: boole
  * printed an input there, which carries no text); `keep` lists the columns that stay whatever they hold.
  */
 export function printedTable(
-  table: PageTable,
+  table: PageTable & { measure?: string },
   chips: PrintedChip[] = [],
   keep: readonly number[] = [],
 ): PrintedTable {
@@ -56,7 +56,8 @@ export function printedTable(
     header: columns.map(({ label, numeric }) => ({
       label,
       numeric,
-      look: lookOfHeader(label, numeric, table.title),
+      // A paired table's title names both measures ("BD % / PM % · BD %"): its own measure says what it holds.
+      look: lookOfHeader(label, numeric, table.measure ?? table.title),
     })),
     rows: table.rows.map((row) => columns.map((c) => cellOf(c.kind, row[c.at] ?? '', c.numeric))),
     chips,

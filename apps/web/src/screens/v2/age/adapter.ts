@@ -45,7 +45,13 @@ function bandTable(bands: Band[], t: Translate): TableModel {
         average.sub ?? '',
       ]),
     },
-    { id: 'bands', title, words: tableWords(c, title, bands.length) },
+    {
+      id: 'bands',
+      title,
+      words: tableWords(c, title, bands.length),
+      // Breakdown hours, in all and per machine: a loss in any language.
+      looks: { [t('v2m.age.hours')]: 'loss', [t('v2m.age.average')]: 'loss' },
+    },
   );
 }
 

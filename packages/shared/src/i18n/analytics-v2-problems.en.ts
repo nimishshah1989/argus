@@ -25,7 +25,7 @@ export const analyticsV2ProblemsEn = {
   'v2p.ff.search': 'Search {n} similar breakdowns',
   'v2p.ff.match': 'Match',
   'v2p.ff.done': 'What was done',
-  'v2p.ff.down': 'Down (hrs)',
+  'v2p.ff.down': 'Down',
   'v2p.ff.full': '100% match',
   'v2p.ff.partial': 'Part match',
   // Problem Analysis.
@@ -56,7 +56,7 @@ export const analyticsV2ProblemsEn = {
   'v2p.bl.srNo': 'Sr No',
   'v2p.bl.ticket': 'Ticket',
   'v2p.bl.openTicket': 'Open the ticket for Sr No {srNo}',
-  'v2p.bl.hours': 'Downtime (hrs)',
+  'v2p.bl.hours': 'Downtime',
   'v2p.bl.imported': 'Imported',
   'v2p.bl.long': 'Over 4 h',
   'v2p.bl.watch': 'Over 1 h',

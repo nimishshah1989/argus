@@ -1,5 +1,5 @@
 import { isValidElement, Children, cloneElement, Fragment, type ReactNode } from 'react';
-import { exact } from './format.js';
+import { exact, formatMinutes } from './format.js';
 
 /**
  * How a table column colours itself (ADR 0061, Nimish 26 Nov: "no conditional formatting in any of them"):
@@ -18,12 +18,14 @@ export const TOP_MARKS = 3;
 export const BAR_COLUMNS = 8;
 
 const PLAIN =
-  /^(#|sr\.?( no\.?)?|no\.?|order|year|machines|in entries|available hrs|start of \d{4}|end|added.*|fleet at (start|end)|action|owner|due date)$/i;
+  /^(#|sr\.?( no\.?)?|no\.?|order|year|machines|in entries|available hrs|start of \d{4}|end|added.*|fleet at (start|end)|action|owner|due date|cell|location|serial|uses|same kind|effective machines|young machines|machines added|(avg )?age( \(days\))?)$/i;
 const PLAN = /\bpm\b|planned/i;
-const GAIN = /mtbf|availab|uptime|\boee\b|saved|quick|kept/i;
+const GAIN = /mtbf|availab|uptime|\boee\b|saved|quick|kept|capacity left|caught/i;
 const LOSS =
-  /\bbd\b|breakdown|downtime|\bhours?\b|\bhrs\b|mttr|loss|cost|₹|times|% of|total %|stopp|repeat|cause/i;
-const NEUTRAL = /team|supported|people/i;
+  /\bbd\b|breakdown|downtime|\bhours?\b|\bhrs\b|mttr|loss|\blost\b|cost|₹|times|% of|total %|stopp|repeat|cause|per 100 machine-days/i;
+const RISK = /score|vs peers/i;
+const NEUTRAL =
+  /team|supported|people|involvement|specialization|share of machines|area|m²|kva|power|above \d+% line/i;
 const CATEGORY = /^(category|family|age band|shift|type|machine type)$/i;
 
 const toneIn = (words: string): ColumnTone | undefined =>
@@ -33,9 +35,11 @@ const toneIn = (words: string): ColumnTone | undefined =>
       ? 'gain'
       : LOSS.test(words)
         ? 'loss'
-        : NEUTRAL.test(words)
-          ? 'neutral'
-          : undefined;
+        : RISK.test(words)
+          ? 'risk'
+          : NEUTRAL.test(words)
+            ? 'neutral'
+            : undefined;
 
 /**
  * The look an engine column declares by its own header (the engine prints English headers; they are data, read as
@@ -78,16 +82,25 @@ export const scaled = (look: ColumnLook | undefined): look is ColumnTone =>
 
 const RAW = /^-?\d+\.\d{3,}$/;
 
+/** The unit a duration column's numbers are in (DOMAIN.md §5): its cells then read as time, "40 min", "2 h 26 min". */
+export type DurationUnit = 'hours' | 'minutes';
+
+const BARE = /^-?[\d,]*\.?\d+$/;
+
 /**
  * No raw float reaches a table (Nimish saw "0.6666666666666666" in the Breakdown log): a string or number cell that is
- * a bare number with three or more decimals prints through `exact` (Indian grouping, at most 2 decimals). Fragments
- * are walked; any other element is left alone.
+ * a bare number with three or more decimals prints through `exact` (Indian grouping, at most 2 decimals). In a
+ * duration column (`unit`) every bare number reads as time through `formatMinutes` ("0.67" hours is "40 min").
+ * Fragments are walked; any other element is left alone.
  */
-export function tidyCell(node: ReactNode): ReactNode {
+export function tidyCell(node: ReactNode, unit?: DurationUnit): ReactNode {
+  const tidy = (child: ReactNode) => tidyCell(child, unit);
+  if (unit && (typeof node === 'number' || (typeof node === 'string' && BARE.test(node.trim()))))
+    return formatMinutes(Number(String(node).replace(/,/g, '')) * (unit === 'hours' ? 60 : 1));
   if (typeof node === 'number') return Number.isInteger(node) ? node : exact(node);
   if (typeof node === 'string') return RAW.test(node.trim()) ? exact(Number(node)) : node;
-  if (Array.isArray(node)) return node.map(tidyCell);
+  if (Array.isArray(node)) return node.map(tidy);
   if (isValidElement<{ children?: ReactNode }>(node) && node.type === Fragment)
-    return cloneElement(node, {}, ...Children.toArray(node.props.children).map(tidyCell));
+    return cloneElement(node, {}, ...Children.toArray(node.props.children).map(tidy));
   return node;
 }

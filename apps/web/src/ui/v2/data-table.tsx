@@ -26,7 +26,7 @@ import { Takeaway, type Meaning, type TakeawayData } from './takeaway.js';
 import type { Status } from './status.js';
 import { applyFilters, optionsOf, type TableSelect } from './table-filters.js';
 import { SelectField } from './select-field.js';
-import type { ColumnLook } from './table-look.js';
+import type { ColumnLook, DurationUnit } from './table-look.js';
 
 export type Column<R> = {
   key: string;
@@ -46,6 +46,8 @@ export type Column<R> = {
    * words pills, `plain` leaves an id, a date or a count alone. Absent: plain, or the measure's own meaning.
    */
   look?: ColumnLook;
+  /** A duration column: its numbers are in this unit and read as time ("40 min", "2 h 26 min"); `sortBy` stays the number. */
+  unit?: DurationUnit;
   /** What the cell's figure means (ADR 0036): the cell's `<td>` wears it as `data-status`; absent → no attribute. */
   status?: (row: R) => Status;
 };
