@@ -1,9 +1,14 @@
 /* eslint-disable i18next/no-literal-string -- typed keys only; every visible word comes from the model */
 import { DataTable, type Column } from '../../../ui/v2/data-table.js';
 import { EntityChip } from '../../../ui/v2/entity-chip.js';
+import { ReasonChips } from '../../../ui/v2/reason-chip.js';
 import type { ActionCenterModel, RiskRow } from './model.js';
+import { riskReasons } from './sweep.js';
 
-const columns = (words: ActionCenterModel['words']['risk']): Column<RiskRow>[] => [
+const columns = (
+  words: ActionCenterModel['words']['risk'],
+  labels: string[],
+): Column<RiskRow>[] => [
   {
     key: 'machine',
     label: words.machine,
@@ -22,7 +27,12 @@ const columns = (words: ActionCenterModel['words']['risk']): Column<RiskRow>[] =
     sortBy: (r) => r.score.value,
     cell: (r) => r.score.shown,
   },
-  { key: 'why', label: words.why, sortBy: (r) => r.why, cell: (r) => r.why },
+  {
+    key: 'why',
+    label: words.why,
+    sortBy: (r) => r.why,
+    cell: (r) => <ReasonChips reasons={riskReasons(r.why, labels)} />,
+  },
 ];
 
 /** "Machines needing attention": the engine's top machines by open nudges, its score and the rules that fired. */
@@ -33,7 +43,10 @@ export function RiskTable({ model }: { model: ActionCenterModel }) {
       rows={model.risk}
       rowKey={(r) => r.text}
       rowLabel={(r) => `${r.machine?.label ?? ''} ${r.model}`.trim()}
-      columns={columns(risk)}
+      columns={columns(
+        risk,
+        model.types.map((x) => x.label),
+      )}
       filters={[]}
       text={(r) => r.text}
       words={risk.table}

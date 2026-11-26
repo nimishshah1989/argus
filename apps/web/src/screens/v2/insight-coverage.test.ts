@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'vitest';
+import { annualReportModel } from './annual-report/adapter.js';
 import { FROZEN, PROVIDERS } from './data.js';
 import { hasYardstick, tilesIn } from './insight.js';
 import type { Takeaways } from '../../ui/v2/takeaway.js';
+import { ticketModel } from './ticket/adapter.js';
+import { fixtureInput } from './ticket/fixture.js';
 import { realReply } from './figures/real-reply.js';
-import { realT } from './printed-page/test-support.js';
+import { answerKey, realT } from './printed-page/test-support.js';
 import { shiftKpisModel } from './shift-kpis/adapter.js';
+import { boardModel } from './board/adapter.js';
+import { fixtureConfig, fixtureState, fixtureToday } from './board/fixture.js';
+import { openModel } from './desk/adapter.js';
+import { deskFixture } from './desk/fixture.js';
+import { monthlyReportModel } from './monthly-report/adapter.js';
 
 /**
  * ADR 0023, UX rules 60 and 67: every live v2 screen's model gives each of its sections a computed takeaway, in
@@ -42,8 +50,41 @@ const NOT_YET = new Set([
 
 /** Each finished screen's sections, written out so a section added later without a takeaway fails here. */
 const SECTIONS: Record<string, string[]> = {
+  // Ticket 771 (S29): the lines over the Minutes card and Who worked on it.
+  ticket: ['ticket.minutes', 'ticket.people'],
+  'annual-report': [
+    'months',
+    'quarters',
+    'machines',
+    'cells',
+    'causes',
+    'categories',
+    'age',
+    'team',
+    'pm',
+    'long',
+    'added',
+  ],
   // ADR 0033: shift-kpis.compare opens with the verdict, not a takeaway that would repeat it.
   'shift-kpis': ['shift-kpis.shift-split', 'shift-kpis.backlog', 'shift-kpis.breakdown-map'],
+  // Ticket 772 (S30): the top verdict over the columns and the line over the ages card.
+  board: ['board.stops', 'board.ages'],
+  // ADR 0045 T3 (S28-A): the desk's Open screen, Breakdowns and Tasks lines (scope desk.md "More intelligent").
+  desk: ['desk.breakdowns', 'desk.tasks'],
+  // Ticket 767 (S27-A): the report wizard has no table, chart or figure tile, so no takeaway; T2 (#768) adds
+  // My complaints' line ("Waiting longest") here when its list joins the floor.
+  floor: [],
+  'monthly-report': [
+    'daily',
+    'months',
+    'machine',
+    'cell',
+    'category',
+    'code',
+    'longest',
+    'team',
+    'added',
+  ],
 };
 
 type Said = { text: string }[];
@@ -54,7 +95,18 @@ type WithTakeaways = {
 } | null;
 /** A finished screen's model, when its frozen provider needs params or it has none (a test-support file builds it). */
 const MODELS: Record<string, () => Promise<WithTakeaways>> = {
+  ticket: async () => ticketModel(fixtureInput(), realT),
+  'annual-report': async () =>
+    annualReportModel(answerKey('annual-report', 'annual-report', 42), realT),
   'shift-kpis': async () => shiftKpisModel(realReply(), realT),
+  board: async () =>
+    boardModel(
+      { state: fixtureState, config: fixtureConfig, today: fixtureToday, tv: false },
+      realT,
+    ),
+  desk: async () => openModel(deskFixture, realT),
+  'monthly-report': async () =>
+    monthlyReportModel(answerKey('monthly-report', 'monthly-report', 42), realT),
 };
 
 describe('insight coverage (M2b)', () => {

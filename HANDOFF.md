@@ -2,35 +2,31 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-25 · **By:** Plan (Opus 5.5) · **Model:** Opus 5.5
+**Updated:** 2026-11-26 ~13:20 IST (after ADR 0055) · **By:** release session `8d81591a…` (context full) · **Goal (Nimish):** all screens live on the newest kit, nothing old remains · **Branch:** plan/handoff-s26b
 
 ## State
 
-- LIVE on main: #762 S25 Guide (PR #779 + fix #784; reviewer PASS on #784, CI green, `loop clean 762` done). Late fix cause: the e2e needs the Guide's figure label as its own `<span>` text node (v1 had it, commit 88c957cf). Reviewer notes, not done: add a unit test for `withDesk` / the label span in `apps/web/src/screens/v2/guide`; if another screen needs the Desk link, move `withDesk` into LiveFrame; `docs/loop/handoff/762.md` omits the span/h1/Desk fixes.
-- S27–S30 wireframes ALL APPROVED. Builds in other sessions' `.loop/wt/`: #767 (commit 8c70eae3, session local_bfc6fd20) and #769 (commit 0614a320, session local_77555ba6); no PRs yet, hidden tests and e2e never run.
-- Open PRs, rebased with `gh pr update-branch` onto the new main, CI not yet re-read: #781 sweep A (#750), #782 Monthly (#763), #783 sweep B (#751). Known cause before rebase: loop-guard flags `#<n>` / "(#763)" text in code comments as raw colour/size.
-- S26-1..S26-8 Settings: designed, NOT ticketed (context budget). ADR 0047 in PR #786 (docs only; also brings ADR 0044 + 0046 to main) holds all eight designs. Next: merge #786 when green, then ONE `loop plan "Write the S26-1..S26-8 issues and light seeds from ADR 0047; no new decisions"`. S26-1 first; S26-2..8 after it merges.
-- Tests: none run by me this session beyond CI on #784 (all green). `.loop.json` commands (setup/test/typecheck/lint) were NOT re-verified.
-- Not started: #765 S24 Annual, sweeps #752/#753.
-- Flakes seen: who-is-acting.spec.ts:219, detail-downtime.spec.ts:7, desk lifecycle 409, desk-lists.spec.ts:11 (phone).
+- Merged today by this session: #823 (ADR 0050), #825 (#770 Desk Mine+Team), #824 (#790 Settings PM plans/registers/roster/ladder), #822 (#795 Desk settings, main 86d3705e). Staging served 47dea7fe at session end; 86d3705e was deploying: confirm `/api/v1/health`.
+- #826 (#789 Settings machines/groups/shifts) open, head 1d04cf45, now CONFLICTING with main after #822 (merge main in a throwaway worktree, push without force): one real red test, `settings-production-data.spec.ts:12` (switch "Not counted in production data: VC-7" missing after search). Planner job was running on it (log `…/8d81591a…/scratchpad/plan-789c.log`). loop-guard + loop-tests red are paperwork (seed files, `(#789` comment read as hex, handoff prettier).
+- Board bug ticket #828 (seed plan/t828: kit `ui/v2/shell.css` + `shell.tsx` get a `.v2-frame` class; new `e2e/gallery/board-wide.spec.ts` at 1440/1920 px). Next: `loop prep 828`, `loop build 828` (Haiku, budget 1 file/60 lines), finish, CI, review, merge. Planner says 4 `board-settings-order` tests and one `v2-shell` rail-click test already fail locally on main: ticket them separately.
+- ADR numbering: seeds 789 and 790 both made an ADR 0053; #789's was renamed 0054 on its PR branch.
+- Not started, all seeded: #791 #792 #793 #794 (one at a time, shared Plant.tsx/registry.ts), #812 #813 #814 #815 (OEM), #816 #817 #818, then #819 last.
 
-## Next step
+## Decided by Nimish, 26 Nov (ADR 0055; no question open)
 
-1. `loop ci 781`, `loop ci 782`, `loop ci 783`. For loop-guard reds: rewrite the `#<n>` comments (do NOT loosen `.github/loop/check_pr.py`). Merge one PR at a time (all touch live.tsx/Analytics.tsx), `gh pr update-branch` the rest after each.
-2. `loop finish 767`, `loop finish 769` etc. in the sessions' folders, one at a time, then reviewer and merge.
-3. Merge PR #786, run the S26 seed plan job (line above), build S26-1 then S26-2..8; then #765 S24, #752, #753.
+1. Floor: a plant with no machine groups (staging: 0 groups, 192 machines) shows its segments as tiles on step 1.
+2. Desk Open/Mine/Team, Board browser view and the ticket page move into the v2 `Shell` (Analytics frame); TV view and Floor keep their own. Needs new S28-S30 wireframes, then Nimish approves.
+3. Build-only: the next session builds and merges, back to back, with no new planning except items 1 and 2. Merge on green tests plus a critical-only review (ADR 0050). He wants it live ASAP and is tired of process: report in plain words, briefly.
 
-## Blocked / open questions
+## Next steps (one session builds everything; two lanes in parallel)
 
-None. Nimish: `design/approved.json` has uncommitted S27–S30 approvals in this checkout; commit on a plan branch.
+1. #828 Board fix (Haiku), then #826 (merge main, it CONFLICTS; one red test, see the planner log). Confirm `/api/v1/health` serves each merge.
+2. Lane A: #791, #792, #793, #794 in order. Lane B: #816, #817, #818, then #812, #813, #814, #815. Then #819.
+3. `loop plan` for ADR 0055 items 1 and 2 (Floor segment tiles ticket; S28-S30 wireframes in the Shell for Nimish to approve), then build them.
 
 ## Don't repeat
 
-- `loop build N` reads the issue BODY, not comments: put fix notes in the body (`gh issue edit`) before `loop prep`. `loop finish` commits leftover builder work itself.
-- NEVER run `loop finish N` twice without a code change. `loop prep N` on a finished ticket needs `gh issue reopen N` first. `loop finish` removes `.loop/wt/N`.
-- Re-running `/loop:init` overwrites `.github/loop/check_pr.py` with the stock file (drops ADR 0035/0038/0040 carve-outs) and writes machine paths into `.claude/settings.json`: `git checkout` both. Branch protection on main was NOT enabled.
-- Hooks block `git -C .loop/wt/N` for the coordinator and holdout paths for builders. New v2 page needs a `PAGE_KEYS` entry in figure-content.ts; v2 page title is the screen's own name. Builders cannot run prettier: use builder-small.
-
-## Files touched this session
-
-HANDOFF.md only (committed). `docs/loop/metrics.jsonl` modified by the loop, uncommitted.
+- Rebuild of a PR whose build folder lags its remote: `loop prep <N> --fresh`, ticket "Don't" tells the builder to `git checkout origin/<PR branch> -- <files>` and `git rm` the v1 files (builders can't merge). Publish from a throwaway worktree: merge main, typecheck + unit tests (symlink node_modules from the main checkout), then `git merge -s ours origin/<PR branch>` and push without force (force-push is refused).
+- `loop ci` prints GREEN with checks still pending: wait until `gh pr checks` shows no pending.
+- zsh: `git show $b:apps/...` breaks (`:a` modifier); write `"${b}:apps/..."`.
+- Deploy image build crashes at random (qemu exit 132): `gh run rerun <id> --failed`, sometimes twice.

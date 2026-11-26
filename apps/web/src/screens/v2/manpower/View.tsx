@@ -1,7 +1,10 @@
 /* eslint-disable i18next/no-literal-string -- the two forms of the card are typed ids, not copy; every visible word comes from the model */
 import { useState, type ReactElement } from 'react';
+import { FigureTile } from '../../../ui/v2/figure-tile.js';
 import { Panel } from '../../../ui/v2/panel.js';
+import { Row } from '../../../ui/v2/row.js';
 import { Segmented } from '../../../ui/v2/segmented.js';
+import { ShowDetail } from '../../../ui/v2/show-detail.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
 import { Takeaway } from '../../../ui/v2/takeaway.js';
 import { PageBody } from '../printed-page/PageBody.js';
@@ -56,9 +59,20 @@ export function ManpowerView({
 }) {
   return (
     <PageBody
-      model={model}
+      model={{ ...model, figures: model.figures.slice(0, 4) }}
       nav={nav}
       title={title}
+      after={
+        model.figures.length > 4 ? (
+          <ShowDetail>
+            <Row cols={4}>
+              {model.figures.slice(4).map((figure) => (
+                <FigureTile key={figure.id} figure={figure} />
+              ))}
+            </Row>
+          </ShowDetail>
+        ) : null
+      }
       around={(table, drawn) => {
         const id = sectionOf(table.title, model.words.pair.fallback);
         const takeaway = id === undefined ? null : (model.takeaways?.[id] ?? null);
