@@ -2,31 +2,25 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-26 ~13:20 IST (after ADR 0055) · **By:** release session `8d81591a…` (context full) · **Goal (Nimish):** all screens live on the newest kit, nothing old remains · **Branch:** plan/handoff-s26b
+**Updated:** 2026-11-26 ~14:55 IST · **By:** build session `d2fcfc9d…` (context full) · **Goal (Nimish, ADR 0055):** all screens live on the newest kit, nothing old remains · **Branch:** plan/handoff-s27
 
 ## State
 
-- Merged today by this session: #823 (ADR 0050), #825 (#770 Desk Mine+Team), #824 (#790 Settings PM plans/registers/roster/ladder), #822 (#795 Desk settings, main 86d3705e). Staging served 47dea7fe at session end; 86d3705e was deploying: confirm `/api/v1/health`.
-- #826 (#789 Settings machines/groups/shifts) open, head 1d04cf45, now CONFLICTING with main after #822 (merge main in a throwaway worktree, push without force): one real red test, `settings-production-data.spec.ts:12` (switch "Not counted in production data: VC-7" missing after search). Planner job was running on it (log `…/8d81591a…/scratchpad/plan-789c.log`). loop-guard + loop-tests red are paperwork (seed files, `(#789` comment read as hex, handoff prettier).
-- Board bug ticket #828 (seed plan/t828: kit `ui/v2/shell.css` + `shell.tsx` get a `.v2-frame` class; new `e2e/gallery/board-wide.spec.ts` at 1440/1920 px). Next: `loop prep 828`, `loop build 828` (Haiku, budget 1 file/60 lines), finish, CI, review, merge. Planner says 4 `board-settings-order` tests and one `v2-shell` rail-click test already fail locally on main: ticket them separately.
-- ADR numbering: seeds 789 and 790 both made an ADR 0053; #789's was renamed 0054 on its PR branch.
-- Not started, all seeded: #791 #792 #793 #794 (one at a time, shared Plant.tsx/registry.ts), #812 #813 #814 #815 (OEM), #816 #817 #818, then #819 last.
+- Merged this session (main ≥ 089ff752): #829 (#828 Board fix), #826 (#789 Settings machines), #830 (#816 /who), #831 (#812 OEM figure), #833 (#818 v1 analytics pages gone), #834 (#791 Settings people/logins), #835 (#813 OEM cause save), #836 + #837 (#817 /password, with error fix), #838 (#832 /who error fix), #839 (#792 Settings audit). Confirm staging `/api/v1/health` serves main.
+- Nimish merges green PRs himself, often before review (#826 #830 #833 #834 #836 #837 #839). #839 got no review yet: run a post-merge critical review.
+- **#840 (#814 OEM screen) open, head cdb83574, 3 red:** old e2e tests still expect v1 OEM: `e2e/gallery/v2-machines.spec.ts:100` expects "₹ 59,994 to claim"; `e2e/analytics-guide.spec.ts:10` expects `#guide-oem` "not in this build yet". Next: `loop plan` to update both on `plan/t814` (no rupees, ADR 0051; OEM now built), then merge the seed into the PR branch in a throwaway worktree, set PR body `Plan-base:` to the new seed head BEFORE pushing, review, merge.
+- Not started: #815 (after #814), #793 then #794 (share Plant.tsx/registry.ts; after #839, now merged), then #819 last.
+- Follow-ups for the planner: #826 coverage rows say "same" but per-segment machine count (Groups) and segment on each machine row were dropped; OEM figure returns null when young machines have no breakdowns; 29 Feb warranty date prints wrong.
 
-## Decided by Nimish, 26 Nov (ADR 0055; no question open)
+## Next steps
 
-1. Floor: a plant with no machine groups (staging: 0 groups, 192 machines) shows its segments as tiles on step 1.
-2. Desk Open/Mine/Team, Board browser view and the ticket page move into the v2 `Shell` (Analytics frame); TV view and Floor keep their own. Needs new S28-S30 wireframes, then Nimish approves.
-3. Build-only: the next session builds and merges, back to back, with no new planning except items 1 and 2. Merge on green tests plus a critical-only review (ADR 0050). He wants it live ASAP and is tired of process: report in plain words, briefly.
+1. Fix #840 seed as above → merge. 2. #815 and #793 in parallel (no shared files), then #794, then #819. 3. ADR 0055 items (Floor segment tiles; S28–S30 wireframes in the Shell for Nimish) via `loop plan`.
 
-## Next steps (one session builds everything; two lanes in parallel)
+## Don't repeat (details in LESSONS.md)
 
-1. #828 Board fix (Haiku), then #826 (merge main, it CONFLICTS; one red test, see the planner log). Confirm `/api/v1/health` serves each merge.
-2. Lane A: #791, #792, #793, #794 in order. Lane B: #816, #817, #818, then #812, #813, #814, #815. Then #819.
-3. `loop plan` for ADR 0055 items 1 and 2 (Floor segment tiles ticket; S28-S30 wireframes in the Shell for Nimish to approve), then build them.
-
-## Don't repeat
-
-- Rebuild of a PR whose build folder lags its remote: `loop prep <N> --fresh`, ticket "Don't" tells the builder to `git checkout origin/<PR branch> -- <files>` and `git rm` the v1 files (builders can't merge). Publish from a throwaway worktree: merge main, typecheck + unit tests (symlink node_modules from the main checkout), then `git merge -s ours origin/<PR branch>` and push without force (force-push is refused).
-- `loop ci` prints GREEN with checks still pending: wait until `gh pr checks` shows no pending.
-- zsh: `git show $b:apps/...` breaks (`:a` modifier); write `"${b}:apps/..."`.
-- Deploy image build crashes at random (qemu exit 132): `gh run rerun <id> --failed`, sometimes twice.
+- Builders: plain literal commands only (no `{a,b}`, loops, heredocs, `python3 -`, `cd &&`, `VAR=` prefix); `git rm`; one-line commits; `## Blocked` = exactly `None.`; prettier the handoff. Every ticket's Don't now says so; add it to new tickets.
+- Never `#NNN` in comments of apps/web files (guard reads hex). New API route → `REPLY_SCHEMAS` + route count in `reply-contract.test.ts`.
+- Seed fix on an open PR: planner pushes `plan/t<N>`; coordinator merges it into the PR branch in a scratch worktree, edits PR body `Plan-base:` first, then pushes (guard reads the body from the push event).
+- Conflict in a test-data file: never `git checkout --theirs` blindly; check the other side equals main first.
+- `loop finish` prints GREEN with checks pending: confirm with `gh pr checks`. Run local checks one ticket at a time.
+- Rebuild after a seed fix: `git branch -f backup-t<N> <build branch>`, `loop prep <N> --fresh`, ticket Don't lists literal paths to `git checkout backup-t<N> -- …`.
