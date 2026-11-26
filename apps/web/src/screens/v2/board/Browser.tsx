@@ -1,11 +1,12 @@
 /* eslint-disable i18next/no-literal-string -- icon names, tones and kinds only; every visible word comes in the model or t() */
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { EntityChip } from '../../../ui/v2/entity-chip.js';
 import { KeyPill } from '../../../ui/v2/key-pill.js';
 import { SyncStatus } from '../../../ui/v2/sync-status.js';
 import { Takeaway } from '../../../ui/v2/takeaway.js';
+import type { FromList } from '../desk/parts.js';
 import type { AgeBucket, BoardColumn, BoardModel } from './model.js';
 import { AGE_INK, MachineTile, STATUS } from './parts.js';
 
@@ -84,9 +85,18 @@ function PulseCards({ pulse }: { pulse: BoardModel['pulse'] }) {
   );
 }
 
-/** One status column as a card: its chip, count and name, then every stop, oldest first. Empty: the head alone. */
+/** Where a row's ticket came from: Close in the side panel comes back to the board (as the Desk's lists do). */
+const FROM: FromList = { from: '/desk/board' };
+
+/**
+ * One status column as a card: its chip, count and name, then every stop, oldest first. Empty: the head alone. A
+ * row opens its ticket (S29) beside the board; the machine chip still opens the machine, and the age is the row's
+ * keyboard link. The open ticket's row is marked.
+ */
 function ColumnCard({ column }: { column: BoardColumn }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { id: openId } = useParams();
   const { tone, icon } = STATUS[column.status];
   return (
     <section aria-label={column.title} className="v2-card v2-pad">
@@ -102,7 +112,12 @@ function ColumnCard({ column }: { column: BoardColumn }) {
         <table className="v2-table">
           <tbody>
             {column.rows.map((row) => (
-              <tr key={row.id} data-testid="tile">
+              <tr
+                key={row.id}
+                data-testid="tile"
+                data-selected={row.ticketId === openId}
+                onClick={() => navigate(`/desk/${row.ticketId}`, { state: FROM })}
+              >
                 <td>
                   <span className="flex min-w-0 items-center gap-3">
                     <MachineTile segment={row.segment} tv={false} />
@@ -115,7 +130,15 @@ function ColumnCard({ column }: { column: BoardColumn }) {
                 <td
                   className={`v2-num-cell whitespace-nowrap ${row.ageTone ? AGE_INK[row.ageTone] : ''}`}
                 >
-                  {row.age}
+                  <Link
+                    to={`/desk/${row.ticketId}`}
+                    state={FROM}
+                    className="board-open"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {row.age}
+                    <span className="sr-only">{t('live.openTicket', { code: row.code })}</span>
+                  </Link>
                   {row.longest ? (
                     <span className="block">
                       <KeyPill text={t('live.longest')} tone="loss" icon="alert" />

@@ -28,6 +28,7 @@ export const liveBoardGu = gujarati(liveBoardEn, {
   'live.kpi.of': '{{count}} મશીનમાંથી ({{pct}}%)',
   'live.kpi.split': '{{notStarted}} શરૂ નથી · {{repairing}} રિપેર ચાલુ · {{waiting}} રાહમાં',
   'live.kpi.longest': 'સૌથી લાંબું {{code}}, {{age}}',
+  'live.openTicket': '{{code}} ની ટિકિટ ખોલો',
   'live.refresh': 'દર 30 સેકન્ડે તાજું થાય છે · વૉલ ટીવી જેવા જ આંકડા',
   'live.tab.count': '{{label}} ({{count}})',
 });

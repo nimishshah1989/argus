@@ -20,6 +20,7 @@ import { mayOpenDesk } from '../../../roles.js';
 import { ErrorState, Skeleton } from '../../../ui/v2/screen-states.js';
 import { Segmented } from '../../../ui/v2/segmented.js';
 import { useSystemTheme } from '../../../ui/system-theme.js';
+import type { DrawerSpec } from '../../../ui/v2/drawer.js';
 import { EntityShell } from '../entity/EntityShell.js';
 import { useNav } from '../nav.js';
 import { boardModel } from './adapter.js';
@@ -76,9 +77,10 @@ function States({ error, onRetry }: { error: unknown; onRetry: () => void }) {
 /**
  * `/desk/board` and `/desk/board?kiosk=1`: reads `/state`, `/config`, `/board/today` every REFETCH_MS. The browser
  * board sits in the v2 Shell (rail on the Desk); the wall TV keeps its own full-screen frame and is forced dark
- * (`useSystemTheme(tv)`). Either shows loading, error (refetch continues) or the board.
+ * (`useSystemTheme(tv)`). Either shows loading, error (refetch continues) or the board. `drawer`: a stop's ticket
+ * open beside the board (the Desk's `DeskRoute` passes it, ADR 0056 point 4).
  */
-export function BoardPage(): ReactNode {
+export function BoardPage({ drawer = null }: { drawer?: DrawerSpec | null }): ReactNode {
   const { t } = useTranslation();
   const [params] = useSearchParams();
   const tv = params.get('kiosk') === '1';
@@ -111,7 +113,7 @@ export function BoardPage(): ReactNode {
       </main>
     );
   return (
-    <EntityShell nav={nav} title={t('board.title')}>
+    <EntityShell nav={nav} title={t('board.title')} drawer={drawer}>
       {model ? (
         <BoardView
           model={model}

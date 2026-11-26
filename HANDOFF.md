@@ -2,18 +2,19 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-26 ~20:30 IST · **By:** session `c39914a2…` · **Goal (Nimish, ADR 0055):** all screens live on the newest kit, nothing old remains · **Mode (ADR 0057):** organic session, parallel agents · **Branch:** plan/handoff-s30
+**Updated:** 2026-11-26 ~20:30 IST · **By:** session `c39914a2…` · **Goal (Nimish, ADR 0055):** all screens live on the newest kit, nothing old remains · **Mode (ADR 0057):** organic session, parallel agents · **Branch:** v2/board-rows-ticket
 
 ## State
 
 - **ADR 0055 met by measurement:** `tools/old-ui-left.test.ts` on main f980d307 has `OLD_LEFT = []`. The shipped app renders no old-design component (62 on 26 Nov afternoon → 0).
 - Merged this push: #849 guard, #850 S28–S30 approvals, #852 audit fixes (#842), #853 + #856 Board in Shell, #854 Floor on kit, #855 Settings Company/Translations (#794), sign-in, App wiring, lists/profile fix (#846), #857 Desk + Ticket in Shell.
+- Board rows now open their ticket in the side panel (S30, same `EntityShell` drawer as the Desk); the machine chip still opens the machine; TV unchanged.
 - Nimish approved merging PRs whose only red check is loop-guard "existing test modified on a build branch" (26 Nov). Protected files stay plan-only.
 
 ## Not built (server lacks data, or protected file)
 
 - #803 sign-off outcomes list, crew roles and paused jobs under Working, ticket downtime-vs-average line, searchable code lists with last 5 used.
-- TV icon on "Open TV view" (needs a plan/ change to ui/v2/icons.tsx). Board rows open the machine panel, not the ticket. Day-score items out per ADR 0050.
+- TV icon on "Open TV view" (needs a plan/ change to ui/v2/icons.tsx). Day-score items out per ADR 0050.
 - Dead old files only the dev gallery imports (ui/close-kit, counts-strip, detail-kit, tick-row, ticket-card, top-bar, side-nav, patterns/crud-list, crud-page, queue-table, ui/filter-chip, shims screens/analytics/Analytics.tsx, patterns/crud-actions.ts, form-sheet.tsx) can be deleted with their gallery pages in a plan/ PR.
 
 ## Next steps
