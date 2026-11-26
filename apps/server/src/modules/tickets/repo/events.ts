@@ -1,5 +1,5 @@
 import type { PoolClient } from 'pg';
-import { whyWhyPayloadSchema, type WhyWhyPayload } from '@uptimo/shared';
+import { whyWhyPayloadSchema, type OemCausePayload, type WhyWhyPayload } from '@uptimo/shared';
 import type { LoadedEvent } from '../mapper.js';
 
 type Db = Pick<PoolClient, 'query'>;
@@ -121,6 +121,33 @@ export async function whyWhyEventRows(
         ORDER BY ticket_id, seq DESC`,
     )
   ).rows.map((row) => ({ ticketId: row.ticket_id as string, payload: row.payload }));
+}
+
+export interface AppendOemCauseInput {
+  tenantId: string;
+  ticketId: string;
+  at: Date;
+  loginId: string;
+  actingPersonId: string;
+  payload: OemCausePayload;
+}
+
+/**
+ * Appends one oem_cause event as the ticket's next event (ADR 0051; nothing updates or deletes one), with the same
+ * closed-breakdown guard in the counter update as appendWhyWhyEvent: null when the ticket is not a closed breakdown.
+ */
+export async function appendOemCauseEvent(
+  _client: Db,
+  _input: AppendOemCauseInput,
+): Promise<WhyWhyEvent | null> {
+  throw new Error('not implemented');
+}
+
+/** The latest oem_cause event of every ticket that has one (DISTINCT ON), for the analytics loader. */
+export async function oemCauseEventRows(
+  _client: Db,
+): Promise<{ ticketId: string; payload: unknown }[]> {
+  throw new Error('not implemented');
 }
 
 /** Load the ordered event history, including correction and pause snapshots. */
