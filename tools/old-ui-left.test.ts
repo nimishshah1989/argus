@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { oldUiLeft, reachable } from './old-ui-left.js';
+import { galleryOldImports, oldTsxOnDisk, oldUiLeft, reachable } from './old-ui-left.js';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 
@@ -18,5 +18,14 @@ describe('nothing old remains (ADR 0051, ADR 0055)', () => {
 
   it('renders no old-design component beyond the shrinking list', () => {
     expect(oldUiLeft(ROOT)).toEqual([...OLD_LEFT].sort());
+  });
+
+  // Nimish, 26 Nov: "all old stuff removed". Not even dead code: no .tsx outside the v2 kit and the gallery.
+  it('keeps no old-design .tsx on disk', () => {
+    expect(oldTsxOnDisk(ROOT)).toEqual([]);
+  });
+
+  it('the gallery imports no old-design .tsx', () => {
+    expect(galleryOldImports(ROOT)).toEqual([]);
   });
 });

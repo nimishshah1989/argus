@@ -2,7 +2,7 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import type { FormField } from '../../patterns/form-sheet.js';
+import type { FormField } from './crud-model.js';
 import { Field } from './form-sheet.js';
 
 const choice = (n: number): FormField => ({

@@ -265,9 +265,7 @@ decoration. The values below are today's (`tokens.css`); the pick (packet 80s) m
 rgb(0 0 0 / 0.1)`. Dark: a 1 px hairline, `0 0 0 1px #2c2c2e`, with no blur (LOCK.md: light cards carry one soft
   shadow, dark cards a hairline).
 - **Level 2, overlay.** A sheet or side panel over a scrim. Light: `0 -8px 24px rgb(0 0 0 / 0.16)`. Dark: the same
-  with 0.5 opacity. **Today** the scrim is `neutral-900` at 40 % (`ui/sheet.tsx`); in dark `neutral-900` is `#f5f5f7`, so
-  the scrim lightens the backdrop there. **Target:** a black scrim at 40 % in both themes; the token `--color-scrim` (`bg-scrim`) is that scrim and only `DrillPanel` uses it so far, `ui/sheet.tsx` keeps its own until the gallery baselines are regenerated. The code does not change in
-  this packet.
+  with 0.5 opacity. `BottomSheet`, the page search and the drawer on a narrow screen lay one scrim (`--color-v2-scrim`) behind them.
 
 **The No-Nesting Rule.** No level 1 inside level 1. A tile on a card is a flat region (a `line` rule or surface-2),
 never a second raised card. Today the card's shadow is written by hand 57 times (slice 80, section A); ticket 82 makes
@@ -287,7 +285,7 @@ Radius per role. A round chip is the only full radius; everything else has a cor
 | chip    | 9999 px (round) | Status chips and badges; defined here, see the top of this file                                   |
 | tile    | 16 px           | The KPI tile is a card today; whether it takes its own radius is part of the pick (not known yet) |
 
-Fields draw at 8 px today (`ui/input.tsx`). Whether they move to the control radius is not known yet.
+Buttons in the v2 kit draw at 10 px (`v2.css`) and fields at 9 px (`date-field.css`).
 
 - **Border or shadow.** A card is lifted by level 1 and has no border of its own. A field and an unfilled button
   (the secondary variant) have a 1 px `control` border, because they must be found; filled and text-only buttons
@@ -302,118 +300,115 @@ Fields draw at 8 px today (`ui/input.tsx`). Whether they move to the control rad
 
 ## Components
 
-The kit is `ui/` and `patterns/`. Today it holds Button (primary, secondary, tonal, quiet, quiet-danger), Input,
-Card, Sheet, StatusPill, TopBar, TabBar, Banner, Skeleton, CountsStrip, SegmentedBar and TicketCard (LOCK.md). Ticket
-83 adds the 13 elements below, each with a gallery section at 360 and 1440 px in light and dark. Each must pass
-`break-ui`: a 40-character Gujarati label, a 7-digit number and 0 items, with every tap target at least 44 px.
-Anatomy, states and sizes per tier are written here as each element is built; where nothing is decided the line says so.
+The kit is the v2 kit: `apps/web/src/ui/v2/` (general parts) and `apps/web/src/ui/v2/domain/` (maintenance parts).
+Every screen lives under `screens/v2/` and composes only these parts; `pnpm ui:check` fails a screen that draws its
+own colours, sizes, weights or motion, and `tools/old-ui-left.test.ts` fails if an old-design `.tsx` comes back
+anywhere under `apps/web/src`. Logic that the kit reads (`patterns/view-state.ts`, `patterns/crud-spec.ts`,
+`ui/status/*.ts`, `ui/meaning/`) stays where it is (ADR 0051); it draws nothing.
 
-1. **KPI tile.** One current value (see the tile in full below).
-2. **Status chip.** Tint, ink, icon and word; 12 px caption, 28 px high, not tappable. A tappable filter chip is 44 px.
-3. **Sparkline.** Anatomy, size and whether a tile carries one are not known yet.
-4. **Trend delta.** Arrow icon, the change with `%` or its unit, and a tone from the direction of good, not the arrow.
-5. **Heat grid.** Two dimensions. Cells are fills from the ramp, so the label is a computed black or white at 4.5:1.
-6. **Ranked list.** The form for more than 12 categories; bars start at zero.
-7. **Timeline.** A ticket's history. Its anatomy is not known yet.
-8. **Insight banner.** The kit Banner: info, attention, error, muted or ok tone, a 20 px icon and a word.
-9. **Empty, loading and error states.** The next subsection.
-10. **Data table.** Pages, sorts and filters; no list paints more than 50 rows first, and a list that can pass 200
-    rows pages on the server.
-11. **Period picker.** The time range of every figure.
-12. **Grouped navigation.** The 8 analytics groups (Guide is the eighth), collapsed except the current one, and the Data checklist at the foot.
-13. **Drill trail.** Where you are in a drill-down.
+- **The catalogue.** [`docs/design/v2/KIT.md`](design/v2/KIT.md) lists every part: its file, what it is for, when to
+  pick it over its neighbours, its key props and the screens that use it. The dev gallery's index (`/gallery`) lists
+  the same parts and links every screen view (`/gallery?view=v2-<name>`).
+- **The rules.** [`docs/design/v2/LANGUAGE.md`](design/v2/LANGUAGE.md) (look, behaviour, the screen recipe and "which
+  kit part to reach for") and `docs/design/v2/UX-RULES.md` (how information behaves). Where this file and those two
+  disagree on a v2 screen, they win.
 
-### The KPI tile in full
+The groups, in the order KIT.md uses:
 
-- **Anatomy.** A translated label, the value with its unit, a trend delta, and the mark that says where a tap drills.
-  The tile is a card (level 1) and a tap on it goes to its drill target, so it is at least 44 px high.
-- **Value size.** 28, 32 or 40 px, as the pick decides (not known yet). On the TV it takes one of the six TV sizes.
-- **Tone.** The delta takes its tone from the direction of good, and so does the edge unless the tile has a family:
-  then the edge and the trend line are the family's identity colour and the delta and chip keep the tone. One critical
-  fill per card, and a fill never carries text. A tile that drills shows a chevron at its top right and darkens while
-  pressed.
-- **Tier.** Phone: 2 tiles a row. Laptop: 4 to 6. TV: scoreboard tiles, no money.
-- **States.** Ready, empty, loading, error and offline, as below. A missing value prints "—", never 0.
+1. **Foundations.** The `--*-v2-*` tokens in `ui/tokens.css` (light and dark), `v2.css`, the self-hosted fonts
+   (Inter, Geist, Geist Mono), `motion.ts` + `motion.css`, `format.ts` (Indian grouping, lakh and crore) and `Icon`
+   (`icons.tsx`).
+2. **Layout.** `Shell` and, for every screen, `EntityShell` (`screens/v2/entity/EntityShell.tsx`), whose drawer is
+   driven by `?drawer=` in the URL so Back closes it; `Drawer`, `Panel`, `Row`, `SectionHead`, and `BottomSheet` for
+   pages outside the Shell.
+3. **Data display.** `KpiCard`, `FigureTile`, `TileSet`, `Sparkline`, `TrendChart`, `ChartCard`, `ChartNumbers`,
+   `Pareto`, `BulletBar`, `RankedBars`, `Quadrant`, `BubblePlot`, `EventStrip`, `DataTable`, `PagedTable`, `Verdict`,
+   `Points`, `Takeaway`, `KeyPill`, `StatusPill`, `EntityChip`, `ReasonChips`, `SeverityRow`, `ReviewMarker`.
+4. **Inputs and forms.** `Button`, `Segmented`, `PeriodToggle`, `SelectField`, `DateField`, `FormSheet`, `Wizard`,
+   `CrudPage` with `crud-actions` (bulk actions) and `crud-model`, `MoreToggle`, `WhyToggle`, `ShowDetail`,
+   `DrillButton`, `DrillAction`, `DownloadExcel`, `TickRow`, the close parts (`close-kit.tsx`), `AccountSheet` and
+   `DraftsList`.
+5. **Feedback and states.** `ScreenStates` (skeleton, error, offline, empty and the rest), `Banner`, `Notice`,
+   `UpdateBanner`, `SyncStatus`, `AlertsCard`, `ActionStrips`.
+6. **Domain pieces.** `floor-kit.tsx` (the floor's rows, tiles and fields) and `domain/`: the entity details
+   (`MachineDetail`, `CellDetail`, `PersonDetail`, `DecisionDetail`), `RowsBehind`, `DecisionList`/`DecisionRow`,
+   `EngineTable`, `PrintedDataTable`, `HeatMatrix`, `HeatTiles`, `MonthCalendar`, `CompareBox`, `FactList`,
+   `PlantMap`, `MachineTable`, and the forms `AckForm`, `CorrectDate`, `WhyForm`.
+
+A part a screen needs and the kit lacks is added to the kit (with its KIT.md entry and its gallery line), never drawn in
+the screen.
+
+### Where the first analytics elements went
+
+The twelve elements ticket 83 named are all v2 kit parts now; the old `ui/elements` versions are deleted.
+
+| Element            | v2 part                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------- |
+| KPI tile           | `KpiCard` (below), `FigureTile` for a figure with no change to compare                      |
+| Status chip        | `StatusPill` for a state, `KeyPill` for a key pointer                                       |
+| Sparkline          | `Sparkline`                                                                                 |
+| Trend delta        | The change line inside `KpiCard`                                                            |
+| Heat grid          | `HeatMatrix` (two dimensions) and `HeatTiles`                                               |
+| Ranked list        | `RankedBars`, or `Pareto` for where the hours go                                            |
+| Timeline           | The ticket page's history (`screens/v2/ticket`); `EventStrip` for 90 days of events         |
+| Insight banner     | `Verdict` and `Takeaway` (the answer first); `Banner` and `Notice` for messages             |
+| Data table         | `DataTable` (rows in the browser), `PagedTable` and `EngineTable` (paged or printed)        |
+| Period picker      | `PeriodToggle`, or `Segmented` for any short choice                                         |
+| Grouped navigation | The `Shell` rail                                                                            |
+| Drill trail        | The drawer's place in the URL (`?drawer=`): Back steps out of a drill, so no trail is drawn |
+
+### The KPI card in full
+
+- **Anatomy.** `KpiCard`: a label, the value as the engine printed it (Geist, 24 px), its change against the last
+  period, one line of meaning, an optional sparkline, and with `drill` a control that opens the rows behind the figure
+  in the drawer.
+- **Tone.** The change takes its tone from the figure's direction of good (down is good for downtime), never from the
+  sign, and always with a word or an arrow beside the colour. A missing value prints "—", never 0.
+- **Tier.** `Row` puts 2 to 4 cards side by side on a laptop; on a phone they stack. `TileSet` folds past four and
+  collapses to one line when every figure is zero.
 
 ### Empty, loading and error
 
-Every element and every template has all three. `viewState` (`patterns/view-state.ts`) picks one of five: ready,
-empty, loading, error or offline. Cached data still shows when the network is down, so offline is shown only when
-there is nothing to show. A `not_found` answer is empty, not an error. `StateNotice` (`patterns/frame.tsx`) draws them.
-
-- **Loading.** Skeletons in the screen's own layout (title, line, short, row, tile), then "Loading…" with
-  `role="status"` from `common.loading`. The skeleton pulses unless motion is reduced.
-- **Empty.** One body line in `ink-2`, written and translated by the screen that owns the list, with no button.
-- **Offline.** One body line in `ink-2` with `role="status"`, from `kit.pattern.offline`.
-- **Error.** A body title in `ink` with `role="alert"` (`kit.pattern.error`) and a secondary Retry button
-  (`kit.pattern.retry`). Retry is the only state with a button.
-
-What each new element shows in these three states is not known yet; ticket 83 draws them in each gallery section.
+`useScreenModel` returns `loading`, `ready`, `error` or `empty`, and `ScreenStates` draws each: a skeleton in the
+screen's own layout, an error with "Try again", the empty line, and the offline, refused and not-computed states.
+`viewState` (`patterns/view-state.ts`) is the logic behind the floor's and the forms' states. Cached data still shows
+when the network is down, so offline is shown only when there is nothing to show. A `not_found` answer is empty, not
+an error. Retry is the only state with a button.
 
 ### Charts
 
-These are the rules ticket 84 builds to. Today the one chart door (`ui/chart/use-chart.ts`) draws bar, line, scatter
-and mixed charts with at most two series, no legend and no animation unless a spec asks for `draw`: then it draws in
-once over 700 ms, never again on a data update and never under reduced motion (D27, which D33 amends).
+Every chart goes through the one chart door (`ui/chart/use-chart.ts`, drawn by `ui/chart/chart.tsx`) or a kit part
+built on it (`TrendChart`, `ChartCard`).
 
-- **Choose the form.** A tile for one current value. A trend (line) for 6 or more periods. A bar for 12 categories or
-  fewer. A ranked list or Pareto for more. A heatmap for two dimensions.
-- **The numbers.** The table is always there, behind "Show the numbers".
-- **Legend.** A legend from 2 series up; a line's end labels count as its legend.
-- **Touch.** A tooltip on a pointer and a tap on a phone. Bars start at zero.
-- **Colour.** From the chart palette in Colors, never a status value.
+- **Choose the form.** A KPI card for one current value. A trend (line) for 6 or more periods. Bars for 12 categories
+  or fewer. `RankedBars` or `Pareto` for more. `HeatMatrix` for two dimensions. `Quadrant` for two measures.
+- **The numbers.** The table is always there, behind "Show the numbers" (`ChartNumbers`).
+- **Touch.** A tooltip on a pointer and a tap on a phone. Bars start at zero. Charts are `role="img"` with a sentence.
+- **Colour.** Meaning colours and machine type colours only (`--color-v2-*`), never decoration.
 
 ### Icons
 
-Lucide, imported only through `ui/icon.ts` (D04; `tools/check-ui.ts` fails Lucide anywhere else). The target is three
-sizes, 16, 20 and 24 px, with stroke 2.
-
-**Today** the kit draws 14 px (`patterns/queue-table.tsx`), 16, 18 (`patterns/form-sheet.tsx`, `ui/filter-chip.tsx`),
-20 and 22 px (`ui/tab-bar.tsx`, `ui/floor-pieces.tsx`), and the ticks in `ui/filter-chip.tsx` and `ui/tick-row.tsx`
-use stroke 3. Which of the three sizes each moves to, and whether a tick keeps stroke 3, is not known yet. A status
-icon always sits beside its word.
+`Icon` from `ui/v2/icons.tsx`: one stroke weight (1.8 on a 24 grid), sized to the text beside it, drawn in the text's
+colour and always decoration beside a word or inside a named control. A missing icon is added there, drawn the same
+way. Lucide (`ui/icon.ts`) is imported only there (`tools/check-ui.ts`); a few parts still use it
+(`account-sheet.tsx`, `floor-kit.tsx`, `alerts-card.tsx`) and two screens (`floor/View.tsx`, `settings-plant/plant-specs.tsx`) until their icons are drawn in `icons.tsx`.
 
 ### Motion
 
-Motion shows what changed and what is new (Nimish, 19 Nov: the analytics showcase wins). Loading skeletons may loop;
-all other motion runs once and is purposeful. Reduced motion switches all of it off.
-
-- **Two zones.** The analytics elements (`ui/elements`, `ui/elements/elements.css`, `motion.ts`) move as below. The
-  floor and the desk stay locked to v3: they gain no motion beyond colour, type, depth and what they already have
-  (below).
-- **Built in the analytics elements (tickets 83 and 83b).** A figure counts up from zero over 600 ms (ease-out) when it
-  first appears and eases from the old value to the new one when it changes (`useCountUp`); heat-grid squares pop in
-  over 460 ms, staggered 32 ms per column; a sparkline is revealed left to right over 800 ms; a table or list cross-fades over 200 ms
-  when its filter, sort or page changes; a drill panel (`DrillPanel`) slides in from the right over 320 ms and out over 200 ms (its scrim fades over 200 ms each way); a chart
-  drawn through the chart door with `draw: true` (bar, line, Pareto) draws in once over 700 ms.
-- **Opt in.** A chart that does not ask for `draw` stays still; a screen opts in per chart.
-- **UI feedback** stays at `--motion-fast` 150 ms and `--motion-slow` 250 ms. Nothing on floor or desk runs past 300 ms.
-
-- **What moves, today, on floor and desk.** The sheet and its scrim (250 ms, `ui/sheet.tsx`), the pressed colour of a
-  floor tile (150 ms, `ui/floor-pieces.tsx`), and the skeleton, which pulses until content arrives. Floor rows never
-  animate in or reorder, and floor and desk figures never count up.
-- **Reduced motion.** Changes are instant: a figure shows its final value, squares and lines appear drawn, lists do not
-  fade, the skeleton holds still, and charts draw with no animation, also if reduced motion is asked for while one is on screen. The browser test `elements.spec.ts` checks that
-  the heat-grid pop and the drill-panel slide are off under reduced motion and on otherwise, and `chart-option.test.ts` checks that a chart's draw-in is off under reduced motion.
-- **Tone.** A KPI tile's chip and delta take their tone from the figure's direction of good (down is good for
-  downtime), not from the sign of the change, and a tone is only drawn where an icon and a word say it too. With a
-  `family` (availability, downtime, repairs, planned), the tile's edge and trend line wear the family's identity
-  colour instead (`--color-family-*`); a family says what a figure is, never whether it is good, so it never replaces
-  the tone's icon and word. A heat grid of one family shades in that family's five-step ramp
-  (`--color-family-<name>-ramp-1..5`, ink 4.5:1, checked by `tokens.test.ts`). The family hues are an exempt identity
-  palette (Colors bans status hues for chart series; these are not series) used only as a 4 px edge, a sparkline
-  stroke, a panel's top edge and a heat ramp. Repairs shares the info blue with Transferred and downtime sits near the
-  red and amber bands, so a family colour is never read as a status: it never appears without the figure's own
-  label, and a status is always an icon and a word (Transferred is a chip with the word), never an edge colour alone.
+Only from `ui/v2/motion.ts` and `motion.css`, and only to show what changed: figures tick up on first load and between
+values, charts draw in once, a changed value flashes its direction once, rows re-flow after a filter or sort, the
+drawer slides in, buttons press to 0.97, a down machine pulses three times. UI motion takes 160 to 240 ms and data
+motion 500 to 800 ms on one ease-out curve (`--motion-v2-*`), so UI feedback never runs past 300 ms. The older
+`--motion-fast` (150 ms) and `--motion-slow` (250 ms) tokens are still in `tokens.css`, and no kit part uses them.
+Nothing fades in because a page loaded. Under reduced motion all of it is instant.
 
 ### Numbers
 
-- **Grouping.** `en-IN`: 1,00,000 and 10,00,000 (Nimish, 19 Nov). Figures print with `en-GB` today
-  (`figure-content.ts`). Which ticket moves them to `en-IN` is not known yet.
+- **Grouping.** `en-IN`: 1,00,000 and 10,00,000 (Nimish, 19 Nov), through `format.ts`.
 - **Money.** The form it prints today, "₹ 38.23 lakh". Never on the TV.
 - **Percentage and unit.** A percentage always prints `%`. A figure with a unit prints it.
 - **Missing.** "—", never a blank or 0.
-- **Gujarati digits.** Whether Gujarati screens print Gujarati digits is not known yet.
+- **As printed.** A screen prints the engine's number; a number beside it only places a mark or sorts a column.
 
 ## Do's and Don'ts
 
