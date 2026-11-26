@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CrudCtx } from '../../patterns/crud-spec.js';
+import type { CrudCtx } from '../../../patterns/crud-spec.js';
 import { ladderSpec } from './ladder-spec.js';
 
 /**

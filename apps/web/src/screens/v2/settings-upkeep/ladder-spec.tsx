@@ -5,7 +5,7 @@ import {
   type RuleReply,
 } from '@uptimo/shared/escalation-settings';
 import type { PersonAdmin } from '@uptimo/shared/people';
-import type { CrudCtx, CrudSpec, LabelKey } from '../../patterns/crud-spec.js';
+import type { CrudCtx, CrudSpec, LabelKey } from '../../../patterns/crud-spec.js';
 
 /**
  * The escalation ladder (ticket 31): when a clock is missed, who is told at which level, after how long and
