@@ -2,33 +2,28 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-26 08:20 IST · **By:** session with Nimish · **Goal (Nimish):** all screens live on the newest kit · **Branch:** plan/handoff-s26b
+**Updated:** 2026-11-26 08:30 IST · **By:** release session (`local_7710e647-bb9d-4008-ab43-c6a316dec3ff`) · **Goal (Nimish):** all screens live on the newest kit · **Branch:** plan/handoff-s26b
 
 ## State
 
-- #801 (#752 sweep C) was merged 08:10 under Nimish's account with `loop-guard` red; staging serves 7539319a and is healthy. 18 of 29 screens on the newest kit, 11 left.
-- #801 had no second review after its fixes: run a late `reviewer` pass on 7539319a and record findings on #752.
-- `loop auto` restarted 08:17 (Nimish approved) in the app's terminal tab. Earlier failed deploy of ded7d084 (exit 132) is superseded.
+- Merge rule is ADR 0050: tests and build green + no critical fault → merge. `loop-guard` paperwork does not hold a merge. Nimish approved #753's screen list, #765's file deletion and the unbuilt rows in #768-#772 (follow-ups in #803).
+- Staging serves 7539319a (#801 merged). 18 of 29 screens on the newest kit, 11 left. #801 had no second review: late critical-only review still open.
+- `loop auto` was stopped 08:25; two app sessions replace it.
 
-## ORDER (only these can merge without Nimish; take them in this order)
+## Who owns what (never touch the other's tickets)
 
-- Lane A: #767 (built in `.loop/wt/767`, unpushed: `loop finish 767`, review, merge). Lane B: Settings #789-#795 (seeds `plan/t789`..`t795`). Run both lanes only where the two tickets' file lists share no file.
-- Then #763 Monthly: fix review findings 1, 2 and 4 in the issue body. Finding 3 (Gujarati blank) is NOT a defect: ADR 0036 §3, English only.
-- Build, open PR and review, but DO NOT MERGE (decision C): #772 (finish list in its `docs/loop/handoff/772.md`), #769 (built: `loop finish 769`).
-
-## WAITING ON NIMISH (do not merge, do not work around; end `LOOP: NEEDS NIMISH` only when nothing above is left)
-
-- A. Approval check on #753 (built, unpushed): short screen names, plus no wireframe for forecast-lab. Do NOT edit its `Screens:` line. Spend nothing on it.
-- B. #765 (built, pushed): delete `apps/web/src/screens/analytics/ReportsPage.tsx` and `report-view.ts`. Do not delete them. After his yes: `git rm`, `loop finish 765`. `loop clean` deletes the remote plan branch: re-push `git push -f origin plan/t765` before `loop prep`.
-- C. "Unbuilt from the wireframe" rows in #768, #769, #770, #771, #772. #768 waits for #767 merged; #770 and #771 wait for #769 merged.
+- RELEASE session (owns this file, all merges): #802 (#767 Floor report), #753 (5 screens), #769 (Desk open list), #765 (Annual).
+- BUILD session (up to open PR with green tests, never merges): #772 → #789-#795 → #763 fixes 1, 2, 4 (3 is not a defect: ADR 0036 §3 English only) → #768 once #767 is merged → #770, #771 once #769 is merged.
+- Neither switches branches in the main checkout; the build session commits nothing there.
 
 ## Follow-ups (plan job needed)
 
-- #751 comment lists 4 (empty Excel when figures cache empty, stale comment/unused `words.export`, figures 5+ below tables, UTC date in export filename). S26-1 follow-ups issue. #799 old handoff: close it.
+- #751 comment lists 4; S26-1 follow-ups issue. #799 old handoff: close it. ADR 0050 + this file need a PR to main.
 
 ## Don't repeat
 
-- Never `loop clean` or remove `.loop/wt/753`, `767`, `769`, `772` until their branches are pushed: only copy.
-- A builder that edits an existing test fails loop-guard. Fix = `loop plan` puts the corrected test on `plan/t<N>`, merge main + seed into the PR branch from a throwaway worktree OUTSIDE `.loop/wt`, hooks ON, then close/reopen the PR so loop-guard rereads `Plan-base:`.
-- `loop finish` says "CI GREEN" even when the PR is CONFLICTING and no CI ran. Check `gh pr view --json mergeStateStatus` before review.
-- `loop plan` jobs can exceed 10 min: run in background, check `gh pr list` before rerunning. Never merge with red browser shards.
+- Never `loop clean` or remove a `.loop/wt/<N>` until its branch is pushed: only copy.
+- Branch conflicts with main: merge main in a throwaway worktree OUTSIDE `.loop/wt`, hooks ON, push, close/reopen the PR.
+- `loop finish` says "CI GREEN" even when the PR is CONFLICTING and no CI ran. Check `gh pr view --json mergeStateStatus`.
+- `loop clean` deletes the remote `plan/t<N>` branch: re-push it before any further `loop prep`.
+- Never merge with red api, browser or gallery shards.
