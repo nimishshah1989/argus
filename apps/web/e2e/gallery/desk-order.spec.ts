@@ -17,7 +17,8 @@ const RAIL = [
   'a: Desk',
   'button: Menu',
 ];
-const HEADER = ['button: Search⌘ K', 'button: Alerts'];
+// The search shows Ctrl K off a Mac (CI runs Linux), as board-settings-order-data.ts writes it.
+const HEADER = ['button: SearchCtrl K', 'button: Alerts'];
 const TABS = [
   'button: Open (3)',
   'button: Mine',

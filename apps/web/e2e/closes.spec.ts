@@ -126,7 +126,7 @@ test('closes without a report, then fills the report later', async ({ page }, te
 
   await test.step('the reason is required', async () => {
     await page.getByRole('button', { name: 'Close without report', exact: true }).click();
-    const sheet = page.getByRole('dialog', { name: `Close without report: ${machine.code}` });
+    const sheet = page.getByRole('form', { name: `Close without report: ${machine.code}` });
     await expect(sheet.getByText(/listed under Needs report for 7 days/)).toBeVisible();
     const submit = sheet.getByRole('button', { name: 'Close ticket', exact: true });
     await expect(submit).toBeDisabled();
@@ -165,7 +165,7 @@ test('marks a work request done', async ({ page }) => {
   await signIn(page, 'asha');
   await page.goto(`/desk/${ticket.id}`);
   await page.getByRole('button', { name: 'Mark done', exact: true }).click();
-  const sheet = page.getByRole('dialog', { name: /^Done: / });
+  const sheet = page.getByRole('form', { name: /^Done: / });
   const submit = sheet.getByRole('button', { name: 'Mark done', exact: true });
   await expect(submit).toBeDisabled();
   await sheet.getByLabel('What was done?').fill('Floor cleaned and checked');
@@ -181,7 +181,7 @@ test('marks done while offline and sends it on reconnect', async ({ page }) => {
 
   await page.context().setOffline(true);
   await page.getByRole('button', { name: 'Mark done', exact: true }).click();
-  const sheet = page.getByRole('dialog', { name: /^Done: / });
+  const sheet = page.getByRole('form', { name: /^Done: / });
   await expect(
     sheet.getByText('You are offline. This will send when you reconnect.'),
   ).toBeVisible();

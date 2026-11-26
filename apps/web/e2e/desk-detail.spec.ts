@@ -86,11 +86,12 @@ async function workingFacts(page: Page): Promise<void> {
   await expect(page.getByText('hands on', { exact: true })).toBeVisible();
 
   await expect(page.getByRole('heading', { name: 'Who worked on it' })).toBeVisible();
-  const crew = page.getByRole('list').filter({ hasText: 'joined' });
+  // S29: the crew is a table (Person, Role, Joined, Minutes, Left).
+  const crew = page.getByRole('table').filter({ hasText: 'Joined' });
   await expect(crew.getByText('Asha', { exact: true })).toBeVisible();
   await expect(crew.getByText('Bina', { exact: true })).toBeVisible();
-  await expect(page.getByText(/^Lead · joined /)).toBeVisible();
-  await expect(page.getByText(/^Support · joined /)).toBeVisible();
+  await expect(crew.getByRole('cell', { name: 'Lead', exact: true })).toBeVisible();
+  await expect(crew.getByRole('cell', { name: 'Support', exact: true })).toBeVisible();
 
   await expect(page.getByRole('heading', { name: 'Full history' })).toBeVisible();
   const history = page.getByRole('list').filter({ hasText: 'Started' });

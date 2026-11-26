@@ -241,7 +241,7 @@ test('follows acknowledge and restore clocks through existing ticket actions', a
 
   await page.getByRole('link', { name: /Open tickets/ }).click();
   // v3: a job in progress is under Mine, not Open's Breakdowns
-  await page.getByRole('navigation', { name: 'Desk' }).getByRole('link', { name: 'Mine' }).click();
+  await page.getByRole('group', { name: 'Desk' }).getByRole('button', { name: 'Mine' }).click();
   const card = page.getByRole('link', { name: new RegExp(ticket.ref) });
   await expect(card).toContainText('Acknowledge');
   await expect(timerRow(card, 'Acknowledge')).toContainText('Stopped');

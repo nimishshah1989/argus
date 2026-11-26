@@ -213,14 +213,13 @@ test.describe('Alerts already on', () => {
   });
 });
 
-test('on a wide screen the name at the foot of the left menu opens a side panel', async ({
+test('on a wide screen the Account button beside the desk tabs opens a side panel', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await signIn(page, 'asha');
   await page.goto('/desk');
-  const menu = page.getByRole('navigation', { name: 'Desk' });
-  await menu.getByRole('button', { name: 'Account', exact: true }).click();
+  await page.getByRole('button', { name: 'Account', exact: true }).click();
   await expect(account(page)).toBeVisible();
   const box = await account(page).boundingBox();
   expect(box && box.x + box.width).toBeGreaterThan(1400);

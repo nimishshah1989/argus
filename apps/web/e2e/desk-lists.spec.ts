@@ -3,10 +3,33 @@ import { expect, test } from './test.js';
 import { apiLogin, machineFor, raiseTicketViaApi, signIn } from './fixtures.js';
 import { commandViaApi, getJson } from './fixtures-actions.js';
 
-/** Ticket 16 goal 1: Open, Mine, Team and needs-report from the bottom tab bar, by role (v3.views.01–05). */
+/** Ticket 16 goal 1: Open, Mine, Team and needs-report from the desk's section tabs (S28), by role (v3.views.01–05). */
 test.describe.configure({ mode: 'serial' });
 
-const tabs = (page: Page) => page.getByRole('navigation', { name: 'Desk' });
+const tabs = (page: Page) => page.getByRole('group', { name: 'Desk' });
+
+/** Mine and Team from the section tabs, then the way to the floor and the Live board. */
+async function mineAndTeam(page: Page): Promise<void> {
+  // Mine and Team from the section tabs (same sign-in: the server caps sign-ins per address).
+  await tabs(page).getByRole('button', { name: 'Mine' }).click();
+  await expect(page).toHaveURL(/\/desk\/mine$/);
+  await expect(page.getByRole('heading', { name: 'My tickets', level: 1 })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Day report' })).toBeVisible();
+  await tabs(page).getByRole('button', { name: 'Team' }).click();
+  await expect(page).toHaveURL(/\/desk\/team$/);
+  await expect(page.getByRole('heading', { name: 'Team now', level: 1 })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Closed, last 30 days' })).toBeVisible();
+  await expect(tabs(page).getByRole('button', { name: 'Team' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(page.getByRole('link', { name: 'Report a problem' })).toHaveAttribute(
+    'href',
+    '/floor',
+  );
+  await tabs(page).getByRole('button', { name: 'Live' }).click();
+  await expect(page).toHaveURL(/\/desk\/board$/);
+}
 
 test('Open: counts strip, Team now, Breakdowns / Tasks / Work, a tap on a count filters; Mine and Team', async ({
   page,
@@ -18,10 +41,19 @@ test('Open: counts strip, Team now, Breakdowns / Tasks / Work, a tap on a count 
 
   await signIn(page, 'asha');
   await page.goto('/desk');
-  await expect(tabs(page).getByRole('link')).toHaveText([/Open/, 'Mine', 'Team', 'Report', 'Live']);
-  await expect(tabs(page).getByRole('link', { name: /Open/ })).toHaveAttribute(
-    'aria-current',
-    'page',
+  await expect(tabs(page).getByRole('button')).toHaveText([
+    /^Open \(\d+\)$/,
+    'Mine',
+    'Team',
+    'Live',
+  ]);
+  await expect(tabs(page).getByRole('button', { name: /Open/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(page.getByRole('link', { name: 'Report a problem' })).toHaveAttribute(
+    'href',
+    '/floor',
   );
   await expect(page.getByRole('heading', { name: 'Open', level: 1 })).toBeVisible();
   await expect(page.getByTestId('sync-status')).toHaveText(/Online/);
@@ -60,20 +92,7 @@ test('Open: counts strip, Team now, Breakdowns / Tasks / Work, a tap on a count 
   for (const id of [stopped.id, work.id])
     await commandViaApi(token, id, 'cancel', { personId, reason: 'List check done' });
 
-  // Mine and Team from the tab bar (same sign-in: the server caps sign-ins per address).
-  await tabs(page).getByRole('link', { name: 'Mine' }).click();
-  await expect(page).toHaveURL(/\/desk\/mine$/);
-  await expect(page.getByRole('heading', { name: 'My tickets', level: 1 })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Day report' })).toBeVisible();
-  await tabs(page).getByRole('link', { name: 'Team' }).click();
-  await expect(page).toHaveURL(/\/desk\/team$/);
-  await expect(page.getByRole('heading', { name: 'Team now', level: 1 })).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Closed, last 30 days' })).toBeVisible();
-  await expect(tabs(page).getByRole('link', { name: 'Report' })).toHaveAttribute('href', '/floor');
-  await expect(tabs(page).getByRole('link', { name: 'Live' })).toHaveAttribute(
-    'href',
-    '/desk/board',
-  );
+  await mineAndTeam(page);
 });
 
 for (const [login, path] of [

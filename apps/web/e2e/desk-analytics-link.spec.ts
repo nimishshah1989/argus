@@ -2,9 +2,9 @@ import { expect, test } from './test.js';
 import { signIn } from './fixtures.js';
 
 /**
- * Owner ruling (19 Nov): the desk menu links to Analytics for exactly the roles the analytics shell opens for
+ * Owner ruling (19 Nov): the desk reaches Analytics for exactly the roles the analytics shell opens for
  * (`canAnalytics`): supervisor, head, plant head and admin. Operators, technicians and the board login do not get it.
- * The desk menu is the wide one (from 1024 px).
+ * Since ADR 0055 the desk sits in the v2 Shell, so the way in is the rail's Analytics sections (Today first).
  */
 const WITH_LINK = ['sup', 'head', 'ph', 'admin'] as const;
 const WITHOUT_LINK = ['asha', 'op', 'brd'] as const;
@@ -17,8 +17,8 @@ for (const login of WITH_LINK)
     await signIn(page, login);
     await page.goto('/desk');
     const entry = page
-      .getByRole('navigation', { name: 'Desk' })
-      .getByRole('link', { name: 'Analytics', exact: true });
+      .getByRole('navigation', { name: 'Analytics' })
+      .getByRole('link', { name: 'Today', exact: true });
     await expect(entry).toBeVisible();
     await entry.click();
     await expect(page).toHaveURL(/\/analytics\/today$/);
@@ -29,5 +29,10 @@ for (const login of WITHOUT_LINK)
     await page.setViewportSize({ width: 1440, height: 900 });
     await signIn(page, login);
     await page.goto('/desk');
-    await expect(page.getByRole('link', { name: 'Analytics', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Analytics' })
+        .getByRole('link', { name: 'Today', exact: true }),
+    ).toHaveCount(0);
   });
