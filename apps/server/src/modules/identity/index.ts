@@ -34,6 +34,7 @@ export {
   normalisePhone,
   refuseErased,
 } from './repo/erasure.js';
+export { nameCodes, personNames } from './repo/names.js';
 export { actingTeams, listActingChoices, type ActingChoice } from './repo/acting.js';
 export { setTenantLogo, tenantLogoId, updateTenantProfile } from './repo/profile.js';
 export {

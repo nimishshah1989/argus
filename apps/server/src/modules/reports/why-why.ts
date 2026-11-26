@@ -3,7 +3,7 @@ import type { PoolClient } from 'pg';
 import { canAnalytics } from '@uptimo/domain';
 import { apiError, isUuid, type WhyWhyPayload } from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
-import { personCode, requireAuth, tenantInfo } from '../identity/index.js';
+import { nameCodes, personCode, personNames, requireAuth, tenantInfo } from '../identity/index.js';
 import { actorOf, plantToday } from '../plant/index.js';
 import { loadReport, loadWhyWhy, pdfTicketRow, WHY_WHY_READ_REFUSAL } from '../tickets/index.js';
 import { esc, machineLabel } from './html.js';
@@ -24,7 +24,7 @@ export interface WhyWhyPdfInput {
   date: string;
   hours: number;
   record: WhyWhyPayload;
-  /** The author's coded name, never a real name (R2: a person is an id). */
+  /** The author's name, or their code once erased (ADR 0059). */
   author: string;
   generatedAt: Date;
 }
@@ -164,7 +164,7 @@ async function sheetOf(client: PoolClient, tenantId: string, ticketId: string): 
       date,
       hours: minutesOf(report, row) / 60,
       record,
-      author: personCode(record.completedBy),
+      author: nameCodes(personCode(record.completedBy), await personNames(client, tenantId)),
       generatedAt: new Date(),
     },
     fileName: whyWhyPdfName(machine.code ?? ref, date),
