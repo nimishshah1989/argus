@@ -100,13 +100,35 @@ function block(read: WindowRead, rows: () => TicketRowItem[], empty: string): Wi
   return { state, error: read.error, rows: state === 'ready' ? rows() : [], empty };
 }
 
-/** Who is on the single longest working job: its lead, its hands-on minutes, its machine. */
+/** "1 job is paused for Spare part; 2 for Vendor visit.": paused jobs counted by reason, most first; '' when none. */
+function pausedLine(live: Ticket[], config: Config | undefined, t: TFunction): string {
+  const counts = new Map<string, number>();
+  for (const ticket of waitingFirst(live)) {
+    const reason = waitText(ticket, config);
+    counts.set(reason, (counts.get(reason) ?? 0) + 1);
+  }
+  const parts = [...counts]
+    .sort((a, b) => b[1] - a[1])
+    .map(([reason, count], i) =>
+      t(i === 0 ? 'deskLists.takeaway.paused' : 'deskLists.takeaway.pausedMore', {
+        count,
+        reason,
+      }),
+    );
+  return parts.length === 0 ? '' : `${parts.join('; ')}.`;
+}
+
+/**
+ * Who is on the single longest working job: its lead, its hands-on minutes, its machine; then the paused jobs by
+ * reason. Nothing when nobody is working.
+ */
 function longestLine(
   live: Ticket[],
   names: Record<string, string>,
-  machines: Config['machines'],
+  config: Config | undefined,
   t: TFunction,
 ): TakeawayData | null {
+  const machines = config?.machines ?? [];
   const top = live
     .filter((x) => x.status === 'working')
     .reduce<Ticket | undefined>(
@@ -115,11 +137,16 @@ function longestLine(
     );
   if (!top) return null;
   return {
-    text: t('deskLists.takeaway.teamLongest', {
-      name: (top.leadPersonId && names[top.leadPersonId]) || t('common.teamMember'),
-      minutes: formatMinutes(top.figures?.activeMin),
-      machine: machineLabel(top, machines),
-    }),
+    text: [
+      t('deskLists.takeaway.teamLongest', {
+        name: (top.leadPersonId && names[top.leadPersonId]) || t('common.teamMember'),
+        minutes: formatMinutes(top.figures?.activeMin),
+        machine: machineLabel(top, machines),
+      }),
+      pausedLine(live, config, t),
+    ]
+      .filter(Boolean)
+      .join(' '),
     tone: 'neutral',
     tag: tagOf('neutral', (k) => t(k)),
     outlier: top.ref,
@@ -163,7 +190,7 @@ function workingRows(
       if (member.ticketId === ticket.id && member.personId !== ticket.leadPersonId)
         people.push({ personId: member.personId, role: t(ROLE_KEYS[member.role]) });
     const stateText = paused
-      ? `${t('status.waiting')} · ${waitText(ticket, config)}`
+      ? t('deskLists.pausedFor', { reason: waitText(ticket, config) })
       : t('status.working');
     const base = { ticketId: ticket.id, ref: ticket.ref, machine: machineLabel(ticket, machines) };
     // A paused job nobody holds (handed over, not picked up) still shows, without a person.
@@ -235,7 +262,7 @@ export function teamModel(input: TeamInput, t: TFunction): TeamModel {
       none,
     ),
     closed: { ...closedBlock, months },
-    takeaways: { 'desk.team': longestLine(state.open, names, machines, t) },
+    takeaways: { 'desk.team': longestLine(state.open, names, config, t) },
     words: {
       workingNow: t('desk.view.workingNow'),
       waiting: t('status.waiting'),

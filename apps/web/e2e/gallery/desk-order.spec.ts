@@ -76,7 +76,7 @@ const TEAM = [
   ...TABS,
   'h2: Working now',
   'a: T-B1DRL-04In',
-  'a: T-C1GRD-07Wa',
+  'a: T-C1GRD-07Pa',
   'h2: Waiting',
   'a: T-C1GRD-07sp',
   'h2: Not started',

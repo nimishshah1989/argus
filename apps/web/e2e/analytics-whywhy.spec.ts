@@ -6,7 +6,7 @@ import { commandViaApi, getJson } from './fixtures-actions.js';
 import { MACHINES, apiLogin, raiseTicketViaApi, signIn } from './fixtures.js';
 
 /**
- * 41e-2: the A6 Why-Why screen. A head opens the candidate list, starts a Why-Why on the first candidate,
+ * 41e-2: the Why-Why screen. A head opens the candidate list, starts a Why-Why on the first candidate,
  * saves the five whys and the conclusion against the real ticket route, sees the row read Completed after the
  * figures reply is refetched, and downloads the saved record's PDF. The figures reply is stubbed (the face's
  * established seam) but is built from the real saved record, so the row can only read Completed after the
@@ -148,7 +148,7 @@ test('a head starts a Why-Why on the first candidate, saves it, sees Completed a
   await page.goto('/analytics/breakdowns?screen=a6-why-why');
 
   const tabs = page.getByRole('group', { name: 'Breakdowns screens', exact: true });
-  await expect(tabs.getByRole('button', { name: 'A6 Why-Why', exact: true })).toHaveAttribute(
+  await expect(tabs.getByRole('button', { name: 'Why-Why', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
@@ -212,7 +212,7 @@ test('the page action opens the tickets the figure counted, and an old v1 addres
   await stubFigures(page);
   await signIn(page, 'head');
   await page.goto('/analytics/breakdowns?screen=a6-why-why');
-  await page.getByRole('button', { name: /Show the rows behind A6 Why-Why/ }).click();
+  await page.getByRole('button', { name: /Show the rows behind Why-Why/ }).click();
   await expect(page).toHaveURL(/[?&]drawer=figure:a6-why-why$/);
   const drawer = page.locator('aside.v2-drawer');
   await expect(drawer.getByRole('link', { name: worst.ref, exact: true })).toBeVisible();
