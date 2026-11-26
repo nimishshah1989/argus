@@ -3,6 +3,7 @@ import type { Ticket } from '../../../api.js';
 import { formatMinutes, formatTime } from '../../../components/format.js';
 import { fill } from '../../../i18n/fill.js';
 import type { Cell, TableModel } from '../../../ui/v2/domain/engine-table.js';
+import { readable } from '../../../ui/v2/format.js';
 import type { KpiData } from '../../../ui/v2/kpi-card.js';
 import { reliabilityOf } from '../../analytics/reliability-values.js';
 import { typeLine, timeLine } from '../../desk/openLists.js';
@@ -23,6 +24,7 @@ type Figure = FiguresReply['figures'][number];
 /** Problem Analysis, where the costliest problems are taken apart (the breakdowns section's own screen). */
 const PROBLEM_ANALYSIS_PATH = '/analytics/breakdowns?screen=a10-problems';
 
+const LAKH = 100_000;
 const oneDecimal = new Intl.NumberFormat('en-IN', {
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
@@ -52,7 +54,7 @@ function costliestRows(rows: unknown[]): Cell[][] {
       [
         { text: problem, sort: problem },
         {
-          text: oneDecimal.format(hours),
+          text: hours >= LAKH ? readable(hours) : oneDecimal.format(hours),
           sort: hours,
           ...(longest > 0 ? { bar: hours / longest } : {}),
         },
@@ -90,7 +92,9 @@ export function costliestOf(
   const added = change.delta.text === '' ? null : `${change.delta.text} ${change.period}`;
   const sub = [
     Number.isFinite(total)
-      ? t('analytics.content.costliest.caption', { hours: oneDecimal.format(total) })
+      ? t('analytics.content.costliest.caption', {
+          hours: total >= LAKH ? readable(total) : oneDecimal.format(total),
+        })
       : null,
     added,
   ]

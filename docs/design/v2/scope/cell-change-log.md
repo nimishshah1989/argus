@@ -41,3 +41,19 @@ database id, as the server does.
 | Moves on record and machines that moved, as two cards                                   | counted from the engine's moves          | yes, built (a count of the engine's rows, not an engine figure) |
 | Breakdown hours of a machine before and after its move                                  | `cell-change-log` with the breakdown log | needs server: a figure joining the two                          |
 | Moves per month, and which cells receive the most machines                              | `cell-change-log`                        | needs server: the grouping is not in the reply                  |
+
+## ADR 0036 kit rules (ticket #752, sweep #706 batch C)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25. Rows from the builder's `docs/loop/handoff/752.md` and ticket #752.
+
+| Rule                          | Status         | Where, or why not                                          |
+| ----------------------------- | -------------- | ---------------------------------------------------------- |
+| R1 / R10 TileSet + ShowDetail | done           | 2 tiles, nothing folds; no moves → the all-zero line (R10) |
+| R20 RankedBars                | not applicable | ADR 0041                                                   |
+| R21 Quadrant                  | not applicable | ADR 0041                                                   |
+| R6 Download Excel             | not applicable | the CSV stays; it carries CE-MTN-F-01 (ADR 0041)           |
+| R11 readable / rupees / exact | not applicable | ADR 0041                                                   |
+| R2 ActionStrips               | not applicable | ADR 0041                                                   |
+| R17 ReasonChips               | not applicable | ADR 0041                                                   |
+| R4 PeriodToggle               | not applicable | ADR 0041                                                   |
+| R5 ReviewMarker               | not applicable | ADR 0041                                                   |

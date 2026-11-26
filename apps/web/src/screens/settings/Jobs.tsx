@@ -1,29 +1,22 @@
-/* eslint-disable i18next/no-literal-string -- routes, ids and prop values only; every visible string goes through t() */
-import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { MessageKey } from '@uptimo/shared/i18n';
 import type { FailedJobsReply } from '@uptimo/shared/replies';
-import { getConfig, getMe } from '../../api.js';
-import { formatDateTime } from '../../components/format.js';
-import { ApiError, http, useOnline } from '../../data/index.js';
-import { PatternFrame, StateNotice } from '../../patterns/frame.js';
-import { viewState } from '../../patterns/view-state.js';
-import { Button } from '../../ui/button.js';
-import { CircleCheck, CircleX, Cog, RefreshCw, TriangleAlert } from '../../ui/icon.js';
+import { getMe } from '../../api.js';
+import { ApiError, http } from '../../data/index.js';
+import { Cog, TriangleAlert } from '../../ui/icon.js';
 import { canSeeJobs } from './jobs-access.js';
-import { TONE_FILL, type ChipTone } from '../../ui/meaning.js';
+import { TONE_FILL } from '../../ui/meaning.js';
 
 type FailedJob = FailedJobsReply['items'][number];
 type Me = Awaited<ReturnType<typeof getMe>>['user'];
 export { canSeeJobs };
 
-/** The nav entry; the screen reads its own access, as the audit screen does. */
+/** The nav entry; the v2 view (`screens/v2/settings/JobsView.tsx`) draws the page and reads its own access. */
 export const JOBS_PAGE = {
   page: 'jobs',
   icon: Cog,
   key: 'jobs.menu',
-  screen: JobsScreen,
   needsJobsAccess: true,
 } as const;
 
@@ -60,7 +53,7 @@ const KINDS = {
 } as const satisfies Record<string, MessageKey>;
 
 /** A kind the plant does not know yet reads as its own name in words ("some.new_job" becomes "Some new job"). */
-function kindWords(queue: string, translate: (key: MessageKey) => string): string {
+export function kindWords(queue: string, translate: (key: MessageKey) => string): string {
   const known = (KINDS as Record<string, MessageKey>)[queue];
   if (known) return translate(known);
   const words = queue
@@ -68,27 +61,6 @@ function kindWords(queue: string, translate: (key: MessageKey) => string): strin
     .filter(Boolean)
     .join(' ');
   return words.charAt(0).toUpperCase() + words.slice(1);
-}
-
-type Look = 'failed' | 'running' | 'retryFailed';
-const LOOK = {
-  failed: { tone: 'danger', icon: CircleX, label: 'jobs.tag.failed' },
-  running: { tone: 'info', icon: RefreshCw, label: 'jobs.tag.running' },
-  retryFailed: { tone: 'warning', icon: TriangleAlert, label: 'jobs.tag.retryFailed' },
-} as const satisfies Record<Look, { tone: ChipTone; icon: unknown; label: MessageKey }>;
-
-/** Colour never carries meaning alone: an icon and a word on every tag. */
-function Tag({ look }: { look: Look }) {
-  const { t } = useTranslation();
-  const { tone, icon: Icon, label } = LOOK[look];
-  return (
-    <span
-      className={`inline-flex min-h-chip shrink-0 items-center gap-2 rounded-full px-3 text-caption font-bold ${TONE_FILL[tone]}`}
-    >
-      <Icon aria-hidden size={16} />
-      {t(label)}
-    </span>
-  );
 }
 
 /** The count on the Settings entry: icon and word, so the red is never the only signal. */
@@ -112,20 +84,9 @@ export function useFailedCount(user: Me | undefined): number {
 }
 
 /** Retry runs the job once. The row stays (and says Running) until the server answers; an error leaves it as it was. */
-function RetryRow({
-  job,
-  kind,
-  timeZone,
-  onRetried,
-}: {
-  job: FailedJob;
-  kind: string;
-  timeZone?: string;
-  onRetried: (kind: string) => void;
-}) {
-  const { t } = useTranslation();
+export function useRetryJob(job: FailedJob, kind: string, onRetried: (kind: string) => void) {
   const client = useQueryClient();
-  const retry = useMutation({
+  return useMutation({
     mutationFn: () =>
       http(`${LIST}/${encodeURIComponent(job.id)}/retry`, { method: 'POST', body: '{}' }),
     onSuccess: async () => {
@@ -138,115 +99,4 @@ function RetryRow({
         void client.invalidateQueries({ queryKey: FAILED_KEY });
     },
   });
-  const look: Look = retry.isPending ? 'running' : retry.isError ? 'retryFailed' : 'failed';
-  return (
-    <li className="flex flex-col gap-2 rounded-card bg-surface p-4 shadow-card">
-      <div className="flex items-start justify-between gap-2">
-        <p className="min-w-0 break-words text-body font-semibold">{kind}</p>
-        <Tag look={look} />
-      </div>
-      <p className="break-words text-body text-neutral-900">{job.error || t('jobs.noError')}</p>
-      <p className="text-footnote text-neutral-600">
-        {job.failedAt ? t('jobs.failedAt', { when: formatDateTime(job.failedAt, timeZone) }) : null}
-        {job.failedAt ? ' · ' : null}
-        {t('jobs.attempts', { count: job.attempts })}
-      </p>
-      {retry.isError ? (
-        <p role="alert" className="text-footnote font-medium text-danger-ink">
-          {t('jobs.retryError', { kind })}
-        </p>
-      ) : null}
-      <Button
-        variant="secondary"
-        disabled={retry.isPending}
-        aria-label={t('jobs.retryJob', { kind })}
-        onClick={() => retry.mutate()}
-      >
-        {retry.isPending ? t('jobs.retrying') : t('jobs.retry')}
-      </Button>
-    </li>
-  );
-}
-
-function NoAccess() {
-  const { t } = useTranslation();
-  return (
-    <div className="flex flex-col gap-2 pt-8 text-center">
-      <h2 className="text-title2 font-extrabold">{t('jobs.noAccess')}</h2>
-      <p className="text-body text-neutral-600">{t('jobs.noAccess.body')}</p>
-    </div>
-  );
-}
-
-function FailedList({
-  items,
-  onRetried,
-}: {
-  items: FailedJob[];
-  onRetried: (kind: string) => void;
-}) {
-  const { t } = useTranslation();
-  const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
-  return (
-    <ul className="flex flex-col gap-2">
-      {items.map((job) => (
-        <RetryRow
-          key={job.id}
-          job={job}
-          kind={kindWords(job.queue, (key) => t(key))}
-          timeZone={config.data?.timeZone}
-          onRetried={onRetried}
-        />
-      ))}
-    </ul>
-  );
-}
-
-/** Background jobs (ticket 78b): the failed ones with their error, and a Retry for each. Admin and head, as the API is. */
-export function JobsScreen() {
-  const { t } = useTranslation();
-  const me = useQuery({ queryKey: ['me'], queryFn: getMe });
-  const allowed = canSeeJobs(me.data?.user);
-  const jobs = useFailedJobs(allowed);
-  const online = useOnline();
-  const [done, setDone] = useState<string | null>(null);
-  const statusRef = useRef<HTMLParagraphElement>(null);
-  // The Retry button left the page with its row: keyboard focus moves to the result, not to the top.
-  useEffect(() => {
-    if (done) statusRef.current?.focus();
-  }, [done]);
-  if (me.data && !allowed) return <NoAccess />;
-  const items = jobs.data?.items ?? [];
-  const state = viewState({
-    online,
-    hasData: jobs.data !== undefined,
-    isEmpty: items.length === 0,
-    error: jobs.error,
-  });
-  return (
-    <PatternFrame title={t('jobs.title')}>
-      <p className="text-footnote text-neutral-600">{t('jobs.intro')}</p>
-      {items.length > 0 ? (
-        <div>
-          <FailedCount count={items.length} />
-        </div>
-      ) : null}
-      {done ? (
-        <p
-          ref={statusRef}
-          tabIndex={-1}
-          role="status"
-          className="flex items-center gap-2 text-body font-medium text-ok-ink"
-        >
-          <CircleCheck aria-hidden size={18} />
-          {t('jobs.retried', { kind: done })}
-        </p>
-      ) : null}
-      {state === 'ready' ? (
-        <FailedList items={items} onRetried={setDone} />
-      ) : (
-        <StateNotice state={state} empty={t('jobs.empty')} onRetry={() => void jobs.refetch()} />
-      )}
-    </PatternFrame>
-  );
 }

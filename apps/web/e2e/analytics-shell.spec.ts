@@ -3,8 +3,8 @@ import { signIn } from './fixtures.js';
 
 /**
  * Ticket 86a: the approved navigation map on the real analytics screens. The shell is a frame: the screens
- * inside keep their own journeys (the other analytics specs), so this one checks the frame alone. It stands on Reports,
- * a page still in this frame: Today is a v2 screen in the v2 shell, which analytics.spec.ts checks.
+ * inside keep their own journeys (the other analytics specs), so this one checks the frame alone. It stands on the
+ * annual report, the last page still in this frame (ticket 765 moves it): the monthly report is v2 since ticket 763.
  */
 const SECTIONS = [
   'Today',
@@ -22,7 +22,7 @@ test('a head sees the six sections and the Guide, tabs inside a section, and a p
   const wide = testInfo.project.name === 'chromium';
   if (wide) await page.setViewportSize({ width: 1440, height: 900 });
   await signIn(page, 'head');
-  await page.goto('/analytics/reports');
+  await page.goto('/analytics/reports?screen=annual-report');
   if (!wide) await page.getByRole('button', { name: 'Menu', exact: true }).click();
 
   const menu = page.getByRole('navigation', { name: 'Analytics', exact: true });

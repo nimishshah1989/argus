@@ -366,10 +366,11 @@ describe('the page', () => {
 
   it('opens on the answer, the two banners, the headline figures, then what needs you, the other figures, the problems and the pictures', () => {
     const out = render(model({ open: { tickets: [breached()], now: NOW }, board: board(1, 0) }));
-    const headings = [...out.matchAll(/<h2[^>]*>(.*?)<\/h2>/g)].map((h) => text(h[1]!).trim());
-    expect(headings.slice(0, 9)).toEqual([
-      'Action Center',
-      'Team Focus',
+    // The two banners became action strips, which have no heading (sweep 706; sweep.test.ts checks the strips).
+    const headings = [...out.matchAll(/<h2[^>]*>(.*?)<\/h2>/g)]
+      .map((h) => text(h[1]!).trim())
+      .filter((h) => h !== 'Action Center' && h !== 'Team Focus');
+    expect(headings.slice(0, 7)).toEqual([
       'Breakdown overview',
       'What needs you now',
       'Where the time goes',

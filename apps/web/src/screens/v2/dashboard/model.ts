@@ -3,6 +3,7 @@ import type { FiguresReply } from '@uptimo/shared/analytics';
 import type { Ticket } from '../../../api.js';
 import type { ChartSpec } from '../../../ui/chart/use-chart.js';
 import type { TableModel } from '../../../ui/v2/domain/engine-table.js';
+import type { Strip } from '../../../ui/v2/action-strip.js';
 import type { BannerTone } from '../../../ui/v2/banner.js';
 import type { BubbleDot, BubbleWords } from '../../../ui/v2/bubble-plot.js';
 import type { Drill } from '../../../ui/v2/drill.js';
@@ -23,6 +24,8 @@ export type DashboardModel = {
   actionCenter: BannerModel | null;
   /** This month's Team Focus actions still open, and the top one, with the way in; none when none is open. */
   teamFocus: BannerModel | null;
+  /** The page's action strips (the kit drops the empty ones). */
+  strips: Strip[];
   /** The engine's figures as cards, in three groups; the first card of a `hero` group is the lead figure. */
   sections: { id: string; title: string; sub: string; hero: boolean; kpis: KpiData[] }[];
   costliest: CostliestModel | null;
