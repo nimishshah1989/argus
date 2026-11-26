@@ -25,7 +25,7 @@ const platform: FiguresReply = {
 };
 
 describe('OEM analytics', () => {
-  it('draws from the engine’s own reply now the engine computes it (#814)', () => {
+  it('draws from the engine’s own reply now the engine computes it (ticket 814)', () => {
     expect(oemModel(realReply(), t, { mayDecide: false })).not.toBeNull();
   });
 
