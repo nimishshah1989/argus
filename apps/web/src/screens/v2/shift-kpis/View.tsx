@@ -1,10 +1,14 @@
+import { useTranslation } from 'react-i18next';
 import { ChartCard } from '../../../ui/v2/chart-card.js';
 import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
 import { HeatMatrix } from '../../../ui/v2/domain/heat-matrix.js';
 import { PrintedDataTable } from '../../../ui/v2/domain/printed-table.js';
 import { DrillAction, Section } from '../../../ui/v2/drill-action.js';
 import { FigureTile } from '../../../ui/v2/figure-tile.js';
+import { Panel } from '../../../ui/v2/panel.js';
+import { RankedBars } from '../../../ui/v2/ranked-bars.js';
 import { Row } from '../../../ui/v2/row.js';
+import { ShowDetail } from '../../../ui/v2/show-detail.js';
 import { EmptyState } from '../../../ui/v2/screen-states.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
 import { Takeaway, type TakeawayData } from '../../../ui/v2/takeaway.js';
@@ -12,9 +16,36 @@ import { Verdict } from '../../../ui/v2/verdict.js';
 import { EntityShell } from '../entity/EntityShell.js';
 import { useEntityParam } from '../entity/url.js';
 import type { ShiftModel, ShiftSection } from './model.js';
+import { paretoRows } from './sweep.js';
 
 /** Tiles in rows of two to four, so a section's figures stand in even rows. */
 const columnsFor = (n: number): 2 | 3 | 4 => (n <= 2 ? 2 : n === 3 || n === 6 ? 3 : 4);
+
+/** A section's figures: the first four in a row, the rest under "Show detail". */
+function Figures({ figures }: { figures: ShiftSection['figures'] }) {
+  const shown = figures.slice(0, 4);
+  const rest = figures.slice(4);
+  return (
+    <>
+      {shown.length > 0 ? (
+        <Row cols={columnsFor(shown.length)}>
+          {shown.map((figure) => (
+            <FigureTile key={figure.id} figure={figure} />
+          ))}
+        </Row>
+      ) : null}
+      {rest.length > 0 ? (
+        <ShowDetail>
+          <Row cols={columnsFor(rest.length)}>
+            {rest.map((figure) => (
+              <FigureTile key={figure.id} figure={figure} />
+            ))}
+          </Row>
+        </ShowDetail>
+      ) : null}
+    </>
+  );
+}
 
 function SectionView({
   section,
@@ -27,6 +58,7 @@ function SectionView({
   words: ShiftModel['words'];
   selected: string | undefined;
 }) {
+  const { t } = useTranslation();
   return (
     <Section
       title={section.title}
@@ -34,18 +66,19 @@ function SectionView({
     >
       {takeaway ? <Takeaway data={takeaway} /> : null}
       {section.notComputed ? <EmptyState text={words.notComputed} /> : null}
-      {section.figures.length > 0 ? (
-        <Row cols={columnsFor(section.figures.length)}>
-          {section.figures.map((figure) => (
-            <FigureTile key={figure.id} figure={figure} />
-          ))}
-        </Row>
-      ) : null}
+      <Figures figures={section.figures} />
       {section.charts.length > 0 ? (
         <Row cols={2}>
-          {section.charts.map((chart) => (
-            <ChartCard key={chart.id} spec={chart.spec} sub={chart.sub} aria={chart.aria} />
-          ))}
+          {section.charts.map((chart) => {
+            const rows = paretoRows(chart.spec, t('insight.rest'));
+            return rows ? (
+              <Panel key={chart.id} title={chart.spec.title} sub={chart.sub}>
+                <RankedBars rows={rows} label={chart.aria} />
+              </Panel>
+            ) : (
+              <ChartCard key={chart.id} spec={chart.spec} sub={chart.sub} aria={chart.aria} />
+            );
+          })}
         </Row>
       ) : null}
       {section.tables.map((table, at) => (

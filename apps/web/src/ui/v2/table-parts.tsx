@@ -121,6 +121,7 @@ export function TableBar({
   onChip,
   hideSearch = false,
 }: {
+  /** Empty when the page above already heads the table. */
   title: string;
   /** One quiet line under the title (a count, a total). */
   sub?: string;
@@ -137,7 +138,7 @@ export function TableBar({
 }) {
   return (
     <div className="v2-table-bar">
-      <TableTitle title={title} sub={sub} />
+      {title ? <TableTitle title={title} sub={sub} /> : null}
       {aside}
       {hideSearch ? null : (
         <label className="v2-table-search">

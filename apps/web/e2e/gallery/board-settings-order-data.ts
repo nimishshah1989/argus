@@ -3,7 +3,11 @@
  * screens before the 88b restyle; the Settings screens re-read for S26-1 (ADR 0046 d2, ADR 0047, wireframe
  * S26-settings): they now sit in the v2 kit shell (`SHELL` first, as on every v2 screen); the wide menu gains its
  * Desk and Plant group headings; the phone home is the page list with sub-lines, then "Back to desk" (no Plant
- * heading). Every page body keeps its old order.
+ * heading). Every page body keeps its old order, except where a page moves onto the kit `CrudPage` table: Machines and
+ * Shifts (ticket 789, ADR 0054) list the table's sort headers, then each row's own column controls before its Edit and
+ * switch buttons, and a list under 10 rows has no search box (ADR 0036 R13); no other control is dropped. S26-8
+ * (ticket 795) puts /desk/settings in the shell too: each machine code becomes an EntityChip button, and the read-only
+ * Restore clock pauses card (link to Lists) follows SLA policies.
  */
 export const SHELL = [
   'a: Today',
@@ -58,12 +62,16 @@ export const PHONE: [string, string[]][] = [
   [
     '/desk/settings',
     [
-      'h1: Settings',
+      ...SHELL,
       'a: Back to desk',
       'h2: Machine crit',
+      'button: CNC-01',
       'select: Criticality ',
+      'button: CNC-02',
       'select: Criticality ',
+      'button: DRL-04',
       'select: Criticality ',
+      'button: GRD-07',
       'select: Criticality ',
       'h2: Severity mat',
       'select: A Machine st',
@@ -89,6 +97,8 @@ export const PHONE: [string, string[]][] = [
       'input: ',
       'input: ',
       'button: Save SLA pol',
+      'h2: Restore cloc',
+      'a: Edit wait re',
     ],
   ],
   [
@@ -121,16 +131,21 @@ export const PHONE: [string, string[]][] = [
       'a: Settings',
       'h2: Machines',
       'button: Add machine',
-      'input: Search code ',
-      'button: All3',
-      'button: Turning3',
+      'button: All 3',
+      'button: Turning 3',
       'button: 1 machine no',
+      'button: Code',
+      'button: Type',
+      'button: Criticality',
+      'button: Status',
+      'button: Cell',
+      'button: Production d',
+      'button: Not counted ',
       'button: Edit CNC-01',
       'button: Not counted ',
       'button: Edit CNC-02',
       'button: Not counted ',
       'button: Edit DRL-04',
-      'button: Not counted ',
     ],
   ],
   [
@@ -140,6 +155,9 @@ export const PHONE: [string, string[]][] = [
       'a: Settings',
       'h2: Shifts',
       'button: Add shift',
+      'button: Code',
+      'button: Starts at',
+      'button: Hours',
       'button: Edit Day',
       'button: Switch off D',
       'button: Edit Evening',
@@ -195,28 +213,8 @@ export const PHONE: [string, string[]][] = [
       'button: Export CSV',
     ],
   ],
-  [
-    '/settings/people',
-    [
-      ...SHELL,
-      'a: Settings',
-      'button: People',
-      'button: Logins',
-      'h2: People',
-      'button: Add person',
-    ],
-  ],
-  [
-    '/settings/logins',
-    [
-      ...SHELL,
-      'a: Settings',
-      'button: People',
-      'button: Logins',
-      'h2: Logins',
-      'button: Add login',
-    ],
-  ],
+  ['/settings/people', [...SHELL, 'a: Settings', 'h2: People', 'button: Add person']],
+  ['/settings/logins', [...SHELL, 'a: Settings', 'h2: Logins', 'button: Add login']],
   [
     '/settings/roster',
     [
@@ -251,12 +249,16 @@ export const WIDE: [string, string[]][] = [
   [
     '/desk/settings',
     [
-      'h1: Settings',
+      ...SHELL,
       'a: Back to desk',
       'h2: Machine crit',
+      'button: CNC-01',
       'select: Criticality ',
+      'button: CNC-02',
       'select: Criticality ',
+      'button: DRL-04',
       'select: Criticality ',
+      'button: GRD-07',
       'select: Criticality ',
       'h2: Severity mat',
       'select: A Machine st',
@@ -282,6 +284,8 @@ export const WIDE: [string, string[]][] = [
       'input: ',
       'input: ',
       'button: Save SLA pol',
+      'h2: Restore cloc',
+      'a: Edit wait re',
     ],
   ],
   [
@@ -291,20 +295,21 @@ export const WIDE: [string, string[]][] = [
       ...MENU,
       'h2: Machines',
       'button: Add machine',
-      'input: Search code ',
-      'button: All3',
-      'button: Turning3',
+      'button: All 3',
+      'button: Turning 3',
       'button: 1 machine no',
-      'button: Machines',
-      'button: Cell',
+      'button: Code',
+      'button: Type',
       'button: Criticality',
+      'button: Status',
+      'button: Cell',
       'button: Production d',
+      'button: Not counted ',
       'button: Edit CNC-01',
       'button: Not counted ',
       'button: Edit CNC-02',
       'button: Not counted ',
       'button: Edit DRL-04',
-      'button: Not counted ',
     ],
   ],
   [
@@ -314,7 +319,9 @@ export const WIDE: [string, string[]][] = [
       ...MENU,
       'h2: Shifts',
       'button: Add shift',
-      'button: Shifts',
+      'button: Code',
+      'button: Starts at',
+      'button: Hours',
       'button: Edit Day',
       'button: Switch off D',
       'button: Edit Evening',

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Ticket } from '../../api.js';
-import { waitingFirst } from './TeamPanel.js';
+import { waitingFirst } from '../v2/desk/team-model.js';
 
 let n = 0;
 function ticket(over: Partial<Ticket>): Ticket {

@@ -7,23 +7,36 @@ import {
   getConfig,
   getMe,
   getState,
+  getToken,
   type CommandAction,
   type State,
   type Ticket,
 } from '../../../api.js';
 import { Drafts } from '../../../components/Drafts.js';
-import { formatTime } from '../../../components/format.js';
+import { errorMessage, formatTime } from '../../../components/format.js';
 import { OfflineBanner } from '../../../components/OfflineBanner.js';
 import { SignoffFeed } from '../../../components/SignoffFeed.js';
 import { useCommand } from '../../../data/index.js';
 import { useWide } from '../../../patterns/wide.js';
 import { Banner } from '../../../ui/banner.js';
 import { Loading, Skeleton } from '../../../ui/loading.js';
-import type { ChipFilter } from '../../desk/openLists.js';
-import { DeskFrame, NotAvailable } from '../../desk/Shell.js';
-import { TicketDetail } from '../../TicketDetail.js';
+import { LoadingState } from '../../../ui/elements/states.js';
+import { breakdownCount, type ChipFilter } from '../../desk/openLists.js';
+import { useTicketWindow } from '../../desk/useTicketWindow.js';
+import {
+  CANCELLED_WINDOW_MS,
+  CLOSED_WINDOW_MS,
+  dayReportHref,
+  todayDate,
+} from '../../desk/views.js';
+import { TicketPage } from '../ticket/Page.js';
 import { openModel } from './adapter.js';
-import { mayOpen, showsSettings, type OpenModel, type Segment } from './model.js';
+import { DeskFrame, NotAvailable } from './Frame.js';
+import { MineView } from './MineView.js';
+import { mayOpen, showsSettings, type DeskView, type OpenModel, type Segment } from './model.js';
+import { mineModel, teamModel } from './team-adapter.js';
+import { mineQuery, type WindowRead } from './team-model.js';
+import { TeamView } from './TeamView.js';
 import { OpenView } from './View.js';
 
 const LINK = 'v2-btn v2-btn-ghost';
@@ -52,14 +65,14 @@ type BodyProps = {
   onQuick: (ticket: Ticket, action: CommandAction) => void;
 };
 
-/** Wide (>= 1024 px): the chosen ticket (v1 `TicketDetail embedded`, until S29) beside the list; a phone has no pane. */
+/** Wide (>= 1024 px): the chosen ticket (`TicketPage embedded`) beside the list; a phone has no pane. */
 function OpenBody({ state, model, ...rest }: BodyProps) {
   const { t } = useTranslation();
   const { id } = useParams();
   const wide = useWide();
   if (model && state.data) {
     let pane: ReactNode;
-    if (wide) pane = id ? <TicketDetail embedded /> : null;
+    if (wide) pane = id ? <TicketPage embedded /> : null;
     return (
       <OpenView
         {...rest}
@@ -130,5 +143,150 @@ export function DeskOpenPage(): ReactNode {
         onQuick={onQuick}
       />
     </DeskFrame>
+  );
+}
+
+const roleLabel = (role: string, t: (key: string) => string): string =>
+  t(`account.role.${role === 'plant_head' ? 'plantHead' : role}`);
+
+/** Mine and Team: the frame, the role check and the settings links; never two-pane. */
+function ListPage({
+  view,
+  title,
+  children,
+}: {
+  view: Exclude<DeskView, 'open'>;
+  title: string;
+  children: (data: { state: UseQueryResult<State> }) => ReactNode;
+}): ReactNode {
+  const { t } = useTranslation();
+  const state = useQuery({ queryKey: ['state'], queryFn: getState });
+  const me = useQuery({ queryKey: ['me'], queryFn: getMe });
+  const user = me.data?.user;
+  if (user && !mayOpen(view, user.role))
+    return <NotAvailable roleLabel={roleLabel(user.role, t)} />;
+  const updated = state.dataUpdatedAt
+    ? t('deskLists.updated', { time: formatTime(new Date(state.dataUpdatedAt).toISOString()) })
+    : undefined;
+  return (
+    <DeskFrame
+      title={title}
+      subtitle={updated}
+      current={view}
+      badge={breakdownCount(state.data?.open ?? [])}
+    >
+      <div className="flex items-center justify-end gap-2">
+        <SettingsLinks role={user?.role} />
+      </div>
+      <OfflineBanner />
+      <Drafts />
+      {children({ state })}
+    </DeskFrame>
+  );
+}
+
+/** The day report as v1 downloaded it: with the sign-in token, saved as `day-report-{date}.pdf`. */
+async function downloadDayReport(): Promise<boolean> {
+  const token = getToken();
+  try {
+    const res = await fetch(dayReportHref(), {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) return false;
+    const url = URL.createObjectURL(await res.blob());
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `day-report-${todayDate()}.pdf`;
+    link.click();
+    URL.revokeObjectURL(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function MineBody({ now }: { now: string }): ReactNode {
+  const { t } = useTranslation();
+  const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
+  const me = useQuery({ queryKey: ['me'], queryFn: getMe });
+  const { run, error, pending } = useCommand();
+  const [failed, setFailed] = useState(false);
+  const user = me.data?.user;
+  const mine = useTicketWindow(mineQuery(user), Date.now() - CLOSED_WINDOW_MS);
+  const model = mineModel(
+    {
+      mine: {
+        items: mine.items,
+        loading: mine.loading,
+        error: mine.error ? errorMessage(mine.error) : null,
+      },
+      me: user,
+      config: config.data,
+      now,
+    },
+    t,
+  );
+  return (
+    <>
+      {error ? <Banner tone="error" title={error} /> : null}
+      <MineView
+        model={model}
+        pending={pending}
+        onQuick={(ticket, action) => {
+          if (user?.actingPersonId) void run(ticket.id, action, {});
+        }}
+        onDayReport={() => {
+          setFailed(false);
+          void downloadDayReport().then((ok) => setFailed(!ok));
+        }}
+        dayReportFailed={failed}
+      />
+    </>
+  );
+}
+
+const windowRead = (read: ReturnType<typeof useTicketWindow>): WindowRead => ({
+  items: read.items,
+  loading: read.loading,
+  error: read.error ? errorMessage(read.error) : null,
+});
+
+function TeamBody({ state }: { state: UseQueryResult<State> }): ReactNode {
+  const { t } = useTranslation();
+  const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
+  const cancelled = useTicketWindow({ status: ['cancelled'] }, Date.now() - CANCELLED_WINDOW_MS);
+  const closed = useTicketWindow({ status: ['closed'] }, Date.now() - CLOSED_WINDOW_MS);
+  if (state.isLoading && !state.data) return <LoadingState label={t('common.loading')} tiles={1} />;
+  if (state.error || !state.data) return <Banner tone="error" title={errorMessage(state.error)} />;
+  const model = teamModel(
+    {
+      state: state.data,
+      config: config.data,
+      cancelled: windowRead(cancelled),
+      closed: windowRead(closed),
+      now: state.data.now,
+    },
+    t,
+  );
+  return <TeamView model={model} />;
+}
+
+/** `/desk/mine` (the live wiring): my jobs in progress, waiting and closed, quick buttons, the day report. */
+export function DeskMinePage(): ReactNode {
+  const { t } = useTranslation();
+  return (
+    <ListPage view="mine" title={t('desk.mineTitle')}>
+      {({ state }) => <MineBody now={state.data?.now ?? new Date().toISOString()} />}
+    </ListPage>
+  );
+}
+
+/** `/desk/team` (the live wiring): who is working, waiting, not started, and the cancelled and closed windows. */
+export function DeskTeamPage(): ReactNode {
+  const { t } = useTranslation();
+  return (
+    <ListPage view="team" title={t('desk.teamNow')}>
+      {({ state }) => <TeamBody state={state} />}
+    </ListPage>
   );
 }
