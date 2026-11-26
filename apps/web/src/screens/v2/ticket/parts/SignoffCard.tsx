@@ -1,9 +1,7 @@
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
-import type { Config, Ticket } from '../api.js';
-import { MinuteTiles } from '../ui/detail-kit.js';
-import { Banner, type BannerTone } from '../ui/banner.js';
-import { formatMinutes, formatTime, peopleNames } from './format.js';
+import type { Config, Ticket } from '../../../../api.js';
+import { formatMinutes, formatTime, peopleNames } from '../../../../components/format.js';
 import {
   formatLimit,
   signoffLimitMin,
@@ -11,13 +9,15 @@ import {
   waitedMin,
   type Handback,
   type SignoffState,
-} from './signoff.js';
+} from '../../../../components/signoff.js';
+import type { BannerTone } from '../../../../ui/v2/banner.js';
+import { Notice } from '../../../../ui/v2/notice.js';
 
 const TONE: Record<SignoffState, BannerTone> = {
-  asking: 'attention',
-  confirmed: 'info',
-  reopened: 'error',
-  timedOut: 'muted',
+  asking: 'risk',
+  confirmed: 'plan',
+  reopened: 'loss',
+  timedOut: 'neutral',
 };
 
 interface Copy {
@@ -73,35 +73,47 @@ function copyFor(t: TFunction, handback: Handback, config?: Config): Copy {
   }
 }
 
-/** The desk's view of production's sign-off: where it stands and the turnaround both ways (slice 6, frames 13 to 20). */
-export function SignoffPanel({ ticket, config }: { ticket: Ticket; config?: Config }) {
+/** Production's line under its answer, per state. */
+function productionHint(
+  t: TFunction,
+  ticket: Ticket,
+  handback: Handback,
+  at: (iso: string | null) => string,
+): string | undefined {
+  switch (signoffState(handback)) {
+    case 'asking':
+      return t('signoff.waitingSoFar', {
+        time: formatMinutes(waitedMin(handback, new Date().toISOString())),
+      });
+    case 'confirmed':
+      return ticket.closedAt && handback.respondedAt
+        ? t('signoff.confirmedWindow', { from: at(ticket.closedAt), to: at(handback.respondedAt) })
+        : undefined;
+    case 'reopened':
+      return handback.respondedAt
+        ? t('signoff.disputedAt', { time: at(handback.respondedAt) })
+        : undefined;
+    case 'timedOut':
+      return handback.dueAt ? t('signoff.timedOutAt', { time: at(handback.dueAt) }) : undefined;
+  }
+}
+
+/** Whether production's OK is still being waited for: the card then goes first on the page. */
+export function signoffWaiting(ticket: Ticket): boolean {
+  return ticket.handback ? signoffState(ticket.handback) === 'asking' : false;
+}
+
+/**
+ * The desk's view of production's sign-off (v1 `SignoffPanel`, slice 6, frames 13 to 20): where it stands, the
+ * turnaround both ways and, after a dispute, how often it was reopened. The region is named by the state.
+ */
+export function SignoffCard({ ticket, config }: { ticket: Ticket; config?: Config }) {
   const { t } = useTranslation();
   const { handback } = ticket;
   if (!handback) return null;
   const copy = copyFor(t, handback, config);
   const state = signoffState(handback);
   const at = (iso: string | null) => (iso ? formatTime(iso, config?.timeZone) : '');
-  const productionHint = (() => {
-    switch (state) {
-      case 'asking':
-        return t('signoff.waitingSoFar', {
-          time: formatMinutes(waitedMin(handback, new Date().toISOString())),
-        });
-      case 'confirmed':
-        return ticket.closedAt && handback.respondedAt
-          ? t('signoff.confirmedWindow', {
-              from: at(ticket.closedAt),
-              to: at(handback.respondedAt),
-            })
-          : undefined;
-      case 'reopened':
-        return handback.respondedAt
-          ? t('signoff.disputedAt', { time: at(handback.respondedAt) })
-          : undefined;
-      case 'timedOut':
-        return handback.dueAt ? t('signoff.timedOutAt', { time: at(handback.dueAt) }) : undefined;
-    }
-  })();
   const tiles = [
     {
       label: t('signoff.maintenance'),
@@ -111,7 +123,11 @@ export function SignoffPanel({ ticket, config }: { ticket: Ticket; config?: Conf
         to: at(handback.requestedAt),
       }),
     },
-    { label: t('signoff.production'), value: copy.answer, hint: productionHint },
+    {
+      label: t('signoff.production'),
+      value: copy.answer,
+      hint: productionHint(t, ticket, handback, at),
+    },
     ...(handback.reopenCount > 0
       ? [
           {
@@ -123,11 +139,20 @@ export function SignoffPanel({ ticket, config }: { ticket: Ticket; config?: Conf
       : []),
   ];
   return (
-    <section aria-label={copy.title} className="flex flex-col gap-3">
-      <Banner tone={TONE[state]} title={copy.title}>
+    <section aria-label={copy.title} className="v2-card v2-pad v2-stack v2-ticket-gap">
+      <h2 className="v2-h2">{t('detail.signoff')}</h2>
+      <Notice tone={TONE[state]} title={copy.title}>
         {copy.sub}
-      </Banner>
-      <MinuteTiles tiles={tiles} />
+      </Notice>
+      <dl className="v2-facts">
+        {tiles.map((tile) => (
+          <div key={tile.label}>
+            <dt className="v2-sub">{tile.label}</dt>
+            <dd className="v2-fact-value v2-num">{tile.value}</dd>
+            {tile.hint ? <dd className="v2-yardstick">{tile.hint}</dd> : null}
+          </div>
+        ))}
+      </dl>
     </section>
   );
 }

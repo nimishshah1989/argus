@@ -1,26 +1,23 @@
 /* eslint-disable i18next/no-literal-string -- prop values, ids and routes only; every visible string goes through t() */
 import { useState, type ReactNode } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import {
   getConfig,
   getMe,
   getState,
-  getToken,
   type CommandAction,
   type State,
   type Ticket,
 } from '../../../api.js';
-import { Drafts } from '../../../components/Drafts.js';
 import { errorMessage, formatTime } from '../../../components/format.js';
-import { OfflineBanner } from '../../../components/OfflineBanner.js';
-import { SignoffFeed } from '../../../components/SignoffFeed.js';
 import { useCommand } from '../../../data/index.js';
 import { useWide } from '../../../patterns/wide.js';
-import { Banner } from '../../../ui/banner.js';
-import { Loading, Skeleton } from '../../../ui/loading.js';
-import { LoadingState } from '../../../ui/elements/states.js';
+import type { DrawerSpec } from '../../../ui/v2/drawer.js';
+import { Notice } from '../../../ui/v2/notice.js';
+import { ErrorState, Skeleton } from '../../../ui/v2/screen-states.js';
 import { breakdownCount, type ChipFilter } from '../../desk/openLists.js';
 import { useTicketWindow } from '../../desk/useTicketWindow.js';
 import {
@@ -33,70 +30,47 @@ import { TicketPage } from '../ticket/Page.js';
 import { openModel } from './adapter.js';
 import { DeskFrame, NotAvailable } from './Frame.js';
 import { MineView } from './MineView.js';
-import { mayOpen, showsSettings, type DeskView, type OpenModel, type Segment } from './model.js';
+import { mayOpen, type DeskView, type Segment } from './model.js';
+import { SignoffCard, type FromList } from './parts.js';
 import { mineModel, teamModel } from './team-adapter.js';
 import { mineQuery, type WindowRead } from './team-model.js';
 import { TeamView } from './TeamView.js';
+import { downloadPdf } from './pdf.js';
 import { OpenView } from './View.js';
 
-const LINK = 'v2-btn v2-btn-ghost';
+const roleLabel = (role: string, t: (key: string) => string): string =>
+  t(`account.role.${role === 'plant_head' ? 'plantHead' : role}`);
 
-function SettingsLinks({ role }: { role?: string }) {
-  const { t } = useTranslation();
-  if (!showsSettings(role)) return null;
-  return (
-    <>
-      <Link to="/settings/machines" className={LINK}>
-        {t('plant.menu.link')}
-      </Link>
-      <Link to="/desk/settings" className={LINK}>
-        {t('settings.title')}
-      </Link>
-    </>
-  );
-}
-
-type BodyProps = {
-  state: UseQueryResult<State>;
-  model?: OpenModel;
-  pending: boolean;
-  onFilter: (filter: ChipFilter) => void;
-  onSegment: (segment: Segment) => void;
-  onQuick: (ticket: Ticket, action: CommandAction) => void;
+const LIST_ROUTE: Record<DeskView, string> = {
+  open: '/desk',
+  mine: '/desk/mine',
+  team: '/desk/team',
 };
 
-/** Wide (>= 1024 px): the chosen ticket (`TicketPage embedded`) beside the list; a phone has no pane. */
-function OpenBody({ state, model, ...rest }: BodyProps) {
+/** The ticket beside a list (ADR 0056 point 4): the kit drawer holds the ticket page; closing it goes back to the list. */
+function useTicketDrawer(ticketId: string | undefined, from: string): DrawerSpec | null {
   const { t } = useTranslation();
-  const { id } = useParams();
-  const wide = useWide();
-  if (model && state.data) {
-    let pane: ReactNode;
-    if (wide) pane = id ? <TicketPage embedded /> : null;
-    return (
-      <OpenView
-        {...rest}
-        model={model}
-        signoff={<SignoffFeed now={state.data.now} />}
-        pane={pane}
-      />
-    );
-  }
-  if (state.error) return <Banner tone="error" title={t('kit.pattern.error')} />;
-  return (
-    <Loading>
-      <Skeleton shape="tile" />
-      <Skeleton shape="row" />
-      <Skeleton shape="tile" />
-    </Loading>
-  );
+  const navigate = useNavigate();
+  if (!ticketId) return null;
+  return {
+    id: ticketId,
+    label: t('deskWide.ticket'),
+    onClose: () => navigate(from),
+    fullPage: { href: `/desk/${ticketId}`, label: t('ashell.entity.fullPage') },
+    content: <TicketPage embedded from={from} />,
+  };
 }
 
+const updatedLine = (state: UseQueryResult<State>, t: TFunction) =>
+  state.dataUpdatedAt
+    ? t('deskLists.updated', { time: formatTime(new Date(state.dataUpdatedAt).toISOString()) })
+    : undefined;
+
 /**
- * `/desk` and `/desk/:id` (the live wiring): reads `/state`, `/config`, `/auth/me`, holds the filter and segment,
- * runs quick commands through `useCommand`, and refuses a role `mayOpen` refuses.
+ * `/desk` (the live wiring): reads `/state`, `/config`, `/auth/me`, holds the filter and segment, runs quick commands
+ * through `useCommand`, and refuses a role `mayOpen` refuses. `ticketId`: the ticket open beside the list.
  */
-export function DeskOpenPage(): ReactNode {
+export function DeskOpenPage({ ticketId }: { ticketId?: string }): ReactNode {
   const { t } = useTranslation();
   const state = useQuery({ queryKey: ['state'], queryFn: getState });
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
@@ -104,106 +78,78 @@ export function DeskOpenPage(): ReactNode {
   const { run, error, pending } = useCommand();
   const [filter, setFilter] = useState<ChipFilter>('');
   const [segment, setSegment] = useState<Segment>('breakdowns');
+  const drawer = useTicketDrawer(ticketId, LIST_ROUTE.open);
   const user = me.data?.user;
   if (user && !mayOpen('open', user.role))
-    return (
-      <NotAvailable
-        roleLabel={t(`account.role.${user.role === 'plant_head' ? 'plantHead' : user.role}`)}
-      />
-    );
-
+    return <NotAvailable roleLabel={roleLabel(user.role, t)} />;
   const model = state.data
     ? openModel({ state: state.data, config: config.data, me: user, filter, segment }, t)
     : undefined;
   const onQuick = (ticket: Ticket, action: CommandAction) => {
     if (user?.actingPersonId) void run(ticket.id, action, {});
   };
-  const updated = state.dataUpdatedAt
-    ? t('deskLists.updated', { time: formatTime(new Date(state.dataUpdatedAt).toISOString()) })
-    : undefined;
-  return (
-    <DeskFrame
-      title={t('desk.tab.open')}
-      subtitle={updated}
-      current="open"
-      badge={model?.badge ?? 0}
-    >
-      <div className="flex items-center justify-end gap-2">
-        <SettingsLinks role={user?.role} />
-      </div>
-      <OfflineBanner />
-      <Drafts />
-      {error ? <Banner tone="error" title={error} /> : null}
-      <OpenBody
-        state={state}
+  let body: ReactNode;
+  if (model && state.data)
+    body = (
+      <OpenView
         model={model}
         pending={pending}
         onFilter={setFilter}
         onSegment={setSegment}
         onQuick={onQuick}
+        signoff={<SignoffCard now={state.data.now} />}
       />
+    );
+  else if (state.error) body = <ErrorState onRetry={() => void state.refetch()} />;
+  else body = <Skeleton blocks={4} />;
+  return (
+    <DeskFrame
+      title={t('desk.tab.open')}
+      updated={updatedLine(state, t)}
+      current="open"
+      badge={model?.badge ?? 0}
+      drawer={drawer}
+    >
+      {error ? <Notice tone="loss" title={error} /> : null}
+      {body}
     </DeskFrame>
   );
 }
 
-const roleLabel = (role: string, t: (key: string) => string): string =>
-  t(`account.role.${role === 'plant_head' ? 'plantHead' : role}`);
-
-/** Mine and Team: the frame, the role check and the settings links; never two-pane. */
+/** Mine and Team: the frame, the role check and the ticket beside the list. */
 function ListPage({
   view,
   title,
+  ticketId,
   children,
 }: {
   view: Exclude<DeskView, 'open'>;
   title: string;
+  ticketId?: string;
   children: (data: { state: UseQueryResult<State> }) => ReactNode;
 }): ReactNode {
   const { t } = useTranslation();
   const state = useQuery({ queryKey: ['state'], queryFn: getState });
   const me = useQuery({ queryKey: ['me'], queryFn: getMe });
+  const drawer = useTicketDrawer(ticketId, LIST_ROUTE[view]);
   const user = me.data?.user;
   if (user && !mayOpen(view, user.role))
     return <NotAvailable roleLabel={roleLabel(user.role, t)} />;
-  const updated = state.dataUpdatedAt
-    ? t('deskLists.updated', { time: formatTime(new Date(state.dataUpdatedAt).toISOString()) })
-    : undefined;
   return (
     <DeskFrame
       title={title}
-      subtitle={updated}
+      updated={updatedLine(state, t)}
       current={view}
       badge={breakdownCount(state.data?.open ?? [])}
+      drawer={drawer}
     >
-      <div className="flex items-center justify-end gap-2">
-        <SettingsLinks role={user?.role} />
-      </div>
-      <OfflineBanner />
-      <Drafts />
       {children({ state })}
     </DeskFrame>
   );
 }
 
 /** The day report as v1 downloaded it: with the sign-in token, saved as `day-report-{date}.pdf`. */
-async function downloadDayReport(): Promise<boolean> {
-  const token = getToken();
-  try {
-    const res = await fetch(dayReportHref(), {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    if (!res.ok) return false;
-    const url = URL.createObjectURL(await res.blob());
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `day-report-${todayDate()}.pdf`;
-    link.click();
-    URL.revokeObjectURL(url);
-    return true;
-  } catch {
-    return false;
-  }
-}
+const downloadDayReport = () => downloadPdf(dayReportHref(), `day-report-${todayDate()}.pdf`);
 
 function MineBody({ now }: { now: string }): ReactNode {
   const { t } = useTranslation();
@@ -228,7 +174,7 @@ function MineBody({ now }: { now: string }): ReactNode {
   );
   return (
     <>
-      {error ? <Banner tone="error" title={error} /> : null}
+      {error ? <Notice tone="loss" title={error} /> : null}
       <MineView
         model={model}
         pending={pending}
@@ -256,8 +202,8 @@ function TeamBody({ state }: { state: UseQueryResult<State> }): ReactNode {
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
   const cancelled = useTicketWindow({ status: ['cancelled'] }, Date.now() - CANCELLED_WINDOW_MS);
   const closed = useTicketWindow({ status: ['closed'] }, Date.now() - CLOSED_WINDOW_MS);
-  if (state.isLoading && !state.data) return <LoadingState label={t('common.loading')} tiles={1} />;
-  if (state.error || !state.data) return <Banner tone="error" title={errorMessage(state.error)} />;
+  if (state.isLoading && !state.data) return <Skeleton blocks={2} />;
+  if (state.error || !state.data) return <Notice tone="loss" title={errorMessage(state.error)} />;
   const model = teamModel(
     {
       state: state.data,
@@ -272,21 +218,47 @@ function TeamBody({ state }: { state: UseQueryResult<State> }): ReactNode {
 }
 
 /** `/desk/mine` (the live wiring): my jobs in progress, waiting and closed, quick buttons, the day report. */
-export function DeskMinePage(): ReactNode {
+export function DeskMinePage({ ticketId }: { ticketId?: string }): ReactNode {
   const { t } = useTranslation();
   return (
-    <ListPage view="mine" title={t('desk.mineTitle')}>
+    <ListPage view="mine" title={t('desk.mineTitle')} ticketId={ticketId}>
       {({ state }) => <MineBody now={state.data?.now ?? new Date().toISOString()} />}
     </ListPage>
   );
 }
 
 /** `/desk/team` (the live wiring): who is working, waiting, not started, and the cancelled and closed windows. */
-export function DeskTeamPage(): ReactNode {
+export function DeskTeamPage({ ticketId }: { ticketId?: string }): ReactNode {
   const { t } = useTranslation();
   return (
-    <ListPage view="team" title={t('desk.teamNow')}>
+    <ListPage view="team" title={t('desk.teamNow')} ticketId={ticketId}>
       {({ state }) => <TeamBody state={state} />}
     </ListPage>
   );
+}
+
+/**
+ * `/desk/:id?` (replaces v1 `screens/desk/TicketRoute`): no id is the Open list. A ticket opened from a desk list on
+ * a wide screen (the row passes `from` in the history state) opens in the side panel beside that list; opened by a
+ * link, on a phone, or by a login that may not open the desk, it is its own page.
+ */
+export function DeskRoute(): ReactNode {
+  const { id } = useParams();
+  const wide = useWide();
+  const location = useLocation();
+  const me = useQuery({ queryKey: ['me'], queryFn: getMe });
+  const from = (location.state as Partial<FromList> | null)?.from;
+  if (!id) return <DeskOpenPage />;
+  const role = me.data?.user.role;
+  // Until the role is known a wide screen opened from a list shows nothing: the page, then the panel, would flash.
+  if (from && wide && me.isPending) return null;
+  const beside = Boolean(from) && wide && role !== undefined && mayOpen('open', role);
+  return beside ? besideList(from, id) : <TicketPage />;
+}
+
+/** The list the ticket was opened from, with the ticket in its side panel (a call, not a component: the Open list keeps its filter). */
+function besideList(from: string | undefined, id: string): ReactNode {
+  if (from === LIST_ROUTE.mine) return <DeskMinePage ticketId={id} />;
+  if (from === LIST_ROUTE.team) return <DeskTeamPage ticketId={id} />;
+  return <DeskOpenPage ticketId={id} />;
 }

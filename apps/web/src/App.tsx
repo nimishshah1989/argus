@@ -3,7 +3,7 @@ import { lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { BoardPage } from './screens/v2/board/Page.js';
-import { DeskMinePage, DeskTeamPage } from './screens/v2/desk/Page.js';
+import { DeskMinePage, DeskRoute, DeskTeamPage } from './screens/v2/desk/Page.js';
 import { PasswordView } from './screens/v2/password/View.js';
 import { SignInView } from './screens/v2/sign-in/View.js';
 import { WhoView } from './screens/v2/who/View.js';
@@ -14,7 +14,6 @@ import {
   FloorReportPage,
 } from './screens/v2/floor/Page.js';
 import { DeskSettingsView } from './screens/v2/desk-settings/View.js';
-import { TicketRoute } from './screens/desk/TicketRoute.js';
 import {
   ActionCenterRoute,
   AnalyticsFace,
@@ -60,7 +59,7 @@ export function App() {
         <Route path="/analytics/today/action-center" element={<ActionCenterRoute />} />
         <Route path="/analytics/machines/:id" element={<MachinePageRoute />} />
         <Route path="/analytics/:group" element={<AnalyticsFace />} />
-        <Route path="/desk/:id?" element={<TicketRoute />} />
+        <Route path="/desk/:id?" element={<DeskRoute />} />
         <Route
           path="/gallery"
           element={

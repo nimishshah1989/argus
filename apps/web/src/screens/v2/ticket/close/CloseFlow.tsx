@@ -1,15 +1,20 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { CommandAction, CommandBody, Config, TicketDetail } from '../api.js';
-import { Banner } from '../ui/banner.js';
-import { Button } from '../ui/button.js';
-import { FinishTime, ScreenFooter } from '../ui/close-kit.js';
-import { FactList, MinuteTiles } from '../ui/detail-kit.js';
-import { TopBar } from '../ui/top-bar.js';
-import { closeAt, earliestFinish, finishFigures, stepFinish, STEP_MIN } from './closeFinish.js';
+import type { CommandAction, CommandBody, Config, TicketDetail } from '../../../../api.js';
+import {
+  closeAt,
+  earliestFinish,
+  finishFigures,
+  stepFinish,
+  STEP_MIN,
+} from '../../../../components/closeFinish.js';
+import { formatClock, formatMinutes, machineLabel } from '../../../../components/format.js';
+import { FactRows, FinishTime, MinuteTiles, ScreenFooter } from '../../../../ui/v2/close-kit.js';
+import { Button } from '../../../../ui/v2/button.js';
+import { Notice } from '../../../../ui/v2/notice.js';
+import { CloseHead } from './CloseHead.js';
 import { NO_TASK, TaskLeaveCard, taskInput, taskReady, type TaskDraft } from './FollowUpTask.js';
 import { PmClose } from './PmClose.js';
-import { formatClock, formatMinutes, machineLabel } from './format.js';
 import { Classification, WhatHappened, WhoDidIt } from './ReportSections.js';
 import { StatusBadge } from './StatusBadge.js';
 import {
@@ -17,7 +22,7 @@ import {
   initialReportValues,
   reportReady,
   type ReportValues,
-} from './reportFields.js';
+} from '../../../../components/reportFields.js';
 
 export interface CloseFlowProps {
   detail: TicketDetail;
@@ -44,13 +49,13 @@ function TicketFacts(props: CloseFlowProps & { responseMin: number | null }) {
     : '—';
   return (
     <>
-      <section className="flex items-center justify-between gap-3 rounded-2xl bg-surface p-4 shadow-card">
-        <h2 className="text-title1 font-extrabold leading-tight">
-          {machineLabel(ticket, props.config.machines)}
-        </h2>
-        <StatusBadge status={ticket.status} handedOver={ticket.handedOver} />
+      <section className="v2-card v2-pad">
+        <div className="v2-card-head">
+          <h2 className="v2-h2">{machineLabel(ticket, props.config.machines)}</h2>
+          <StatusBadge status={ticket.status} handedOver={ticket.handedOver} />
+        </div>
       </section>
-      <FactList
+      <FactRows
         rows={[
           { label: t('closes.fact.reported'), value: formatClock(ticket.reportedAt, zone) },
           { label: t('closes.fact.workStarted'), value: started },
@@ -74,43 +79,40 @@ function FinishStep(props: CloseFlowProps & { onNext: (finish: Date, openedAt: D
   const behind = Math.round((now.getTime() - finish.getTime()) / 60_000);
   return (
     <>
-      <TopBar
-        back={{ onClick: props.onExit, label: t('common.back') }}
-        trailing={<h1 className="text-footnote text-neutral-600">{t('closes.step1.title')}</h1>}
+      <CloseHead title={t('closes.step1.title')} onBack={props.onExit} />
+      <TicketFacts {...props} responseMin={figs.responseMin} />
+      <FinishTime
+        title={t('closes.finish.title')}
+        label={t('closes.finish.label')}
+        time={formatClock(finish.toISOString(), zone)}
+        status={
+          behind <= 0
+            ? t('closes.finish.now')
+            : t('closes.finish.ago', { time: formatMinutes(behind) })
+        }
+        hint={t('closes.finish.hint')}
+        earlier={t('closes.finish.earlier')}
+        now={t('closes.finish.now')}
+        later={t('closes.finish.later')}
+        canEarlier={finish > floor}
+        canNow={finish < now}
+        isNow={finish >= now}
+        canLater={finish < now}
+        onEarlier={() => step(-STEP_MIN)}
+        onNow={() => setFinish(now)}
+        onLater={() => step(STEP_MIN)}
       />
-      <main className="flex flex-1 flex-col gap-4 p-4">
-        <TicketFacts {...props} responseMin={figs.responseMin} />
-        <FinishTime
-          title={t('closes.finish.title')}
-          label={t('closes.finish.label')}
-          time={formatClock(finish.toISOString(), zone)}
-          status={
-            behind <= 0
-              ? t('closes.finish.now')
-              : t('closes.finish.ago', { time: formatMinutes(behind) })
-          }
-          hint={t('closes.finish.hint')}
-          earlier={t('closes.finish.earlier')}
-          now={t('closes.finish.now')}
-          later={t('closes.finish.later')}
-          canEarlier={finish > floor}
-          canNow={finish < now}
-          isNow={finish >= now}
-          canLater={finish < now}
-          onEarlier={() => step(-STEP_MIN)}
-          onNow={() => setFinish(now)}
-          onLater={() => step(STEP_MIN)}
-        />
-        <MinuteTiles
-          tiles={[
-            { label: t('closes.tile.response'), value: formatMinutes(figs.responseMin) },
-            { label: t('closes.tile.repair'), value: formatMinutes(figs.repairMin) },
-            { label: t('closes.tile.downtime'), value: formatMinutes(figs.downtimeMin) },
-          ]}
-        />
-      </main>
+      <MinuteTiles
+        tiles={[
+          { label: t('closes.tile.response'), value: formatMinutes(figs.responseMin) },
+          { label: t('closes.tile.repair'), value: formatMinutes(figs.repairMin) },
+          { label: t('closes.tile.downtime'), value: formatMinutes(figs.downtimeMin) },
+        ]}
+      />
       <ScreenFooter hint={t('closes.step1.hint')}>
-        <Button onClick={() => props.onNext(finish, now)}>{t('closes.step1.next')}</Button>
+        <Button primary onClick={() => props.onNext(finish, now)}>
+          {t('closes.step1.next')}
+        </Button>
       </ScreenFooter>
     </>
   );
@@ -172,34 +174,29 @@ function ReportStep(
   return (
     <form
       aria-label={t('closes.reportTitle')}
-      className="flex flex-1 flex-col"
+      className="flex flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault();
         void submit();
       }}
     >
-      <TopBar
-        back={{ onClick: props.onBack, label: t('common.back') }}
-        trailing={<h1 className="text-footnote text-neutral-600">{t('closes.reportTitle')}</h1>}
-      />
-      <main className="flex flex-1 flex-col gap-4 p-4">
-        {late ? (
-          <Banner tone="info" title={t('closes.late.title')}>
-            {t('closes.late.note')}
-          </Banner>
-        ) : null}
-        <WhatHappened {...fields} machineCode={machineCode} />
-        <WhoDidIt {...fields} />
-        <Classification {...fields} />
-        {late ? null : (
-          <TaskLeaveCard config={props.config} draft={props.task} onChange={props.setTask} />
-        )}
-        {props.error ? <Banner tone="error" title={props.error} /> : null}
-      </main>
+      <CloseHead title={t('closes.reportTitle')} onBack={props.onBack} />
+      {late ? (
+        <Notice tone="plan" title={t('closes.late.title')}>
+          {t('closes.late.note')}
+        </Notice>
+      ) : null}
+      <WhatHappened {...fields} machineCode={machineCode} />
+      <WhoDidIt {...fields} />
+      <Classification {...fields} />
+      {late ? null : (
+        <TaskLeaveCard config={props.config} draft={props.task} onChange={props.setTask} />
+      )}
+      {props.error ? <Notice tone="loss" title={props.error} /> : null}
       <ScreenFooter hint={late ? t('closes.form.hintLate') : t('closes.form.hintClose')}>
-        <Button type="submit" disabled={!canSend}>
+        <button type="submit" className="v2-btn v2-btn-primary" disabled={!canSend}>
           {props.pending ? t('common.saving') : submitLabel}
-        </Button>
+        </button>
       </ScreenFooter>
     </form>
   );
@@ -254,7 +251,7 @@ function CloseScreens(props: CloseFlowProps) {
     window.scrollTo(0, 0);
   }, [step]);
   return (
-    <div className="flex min-h-dvh flex-col bg-neutral-100">
+    <div className="flex flex-col gap-4">
       {step === 1 || !values ? (
         <FinishStep {...props} onNext={next} />
       ) : (

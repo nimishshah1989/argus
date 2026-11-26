@@ -18,11 +18,11 @@ async function expectStatus(page: Page, label: string): Promise<void> {
 }
 
 const deskTab = (page: Page, name: string | RegExp) =>
-  page.getByRole('navigation', { name: 'Desk' }).getByRole('link', { name });
+  page.getByRole('group', { name: 'Desk' }).getByRole('button', { name });
 
 async function expectOpenBoard(page: Page, ref: string): Promise<void> {
   await page.goto('/desk');
-  await expect(deskTab(page, /Open/)).toHaveAttribute('aria-current', 'page');
+  await expect(deskTab(page, /Open/)).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('button', { name: /^Breakdowns \(\d+\)$/ })).toBeVisible();
   await expect(page.getByRole('link', { name: new RegExp(ref) })).toBeVisible();
 }
@@ -74,7 +74,7 @@ async function joinAndLeaveAsSupport(browser: Browser, ref: string): Promise<voi
 async function checkDeskTabs(page: Page, ref: string): Promise<void> {
   const refLink = page.getByRole('link', { name: new RegExp(ref) });
   await page.getByRole('link', { name: /Open tickets/ }).click();
-  await expect(deskTab(page, /Open/)).toHaveAttribute('aria-current', 'page');
+  await expect(deskTab(page, /Open/)).toHaveAttribute('aria-pressed', 'true');
   // v3: a started job leaves the Breakdowns list; Team now counts its lead
   await expect(refLink).toHaveCount(0);
   await page.getByRole('link', { name: /^Team now: \d+ on/ }).click();
@@ -184,7 +184,7 @@ async function closeWithReport(page: Page): Promise<void> {
 
 async function closeWithoutReport(page: Page): Promise<void> {
   await ticketView(page).getByRole('button', { name: 'Close without report', exact: true }).click();
-  const sheet = page.getByRole('dialog', { name: /^Close without report: / });
+  const sheet = page.getByRole('form', { name: /^Close without report: / });
   // The sheet requires a reason for a without-report close.
   await sheet.getByLabel('Reason').fill('Closed without the report');
   await sheet.getByRole('button', { name: 'Close ticket', exact: true }).click();

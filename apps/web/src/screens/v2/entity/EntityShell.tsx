@@ -26,6 +26,8 @@ export type EntityShellProps = Omit<
   local?: (ref: EntityRef) => LocalEntity | null;
   /** Where the rows behind a figure come from; the app's own (the engine's drill) when left out. A preview or a test may pass its own. */
   rows?: Provider<'rows-behind'>;
+  /** A screen's own drawer (the desk's ticket beside its list), shown while the URL opens no entity or figure. */
+  drawer?: DrawerSpec | null;
 };
 
 /** What a route puts above every screen inside it (the section's other screens): a screen draws it without knowing. */
@@ -123,7 +125,7 @@ function useRowsDrawer(
  * those rows opens on top of them, so Back returns to the rows. The rail's links and the search go through the router
  * (no reload), and the search lists the pages the login's role may open.
  */
-export function EntityShell({ local, rows, children, ...shell }: EntityShellProps) {
+export function EntityShell({ local, rows, drawer = null, children, ...shell }: EntityShellProps) {
   const { current, open, close } = useEntityParam();
   const figure = useFigureParam();
   const entityDrawer = useEntityDrawer(current, close, local);
@@ -145,7 +147,7 @@ export function EntityShell({ local, rows, children, ...shell }: EntityShellProp
             plant={company}
             search={pages}
             at={location.pathname + location.search}
-            drawer={rowsDrawer ?? entityDrawer}
+            drawer={rowsDrawer ?? entityDrawer ?? drawer}
           >
             {chrome}
             {children}

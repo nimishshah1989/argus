@@ -1,9 +1,8 @@
 /* eslint-disable i18next/no-literal-string -- prop values only; every visible string goes through t() */
 import { useTranslation } from 'react-i18next';
 import { canLateReport, type ActionCrewMember, type ActorContext } from '@uptimo/domain';
-import type { CommandAction, CommandBody, Config, Ticket } from '../api.js';
-import { Button } from '../ui/button.js';
-import { Card } from '../ui/card.js';
+import type { CommandAction, CommandBody, Config, Ticket } from '../../../../api.js';
+import { Button } from '../../../../ui/v2/button.js';
 import { ActionBar } from './ActionBar.js';
 
 interface Props {
@@ -45,10 +44,13 @@ export function ReportControls({
   return (
     <>
       {needsLateReport(ticket, actor) && (
-        <Card title={t('closes.reportTitle')}>
-          <p className="text-footnote text-neutral-600">{t('closes.late.note')}</p>
-          <Button onClick={() => onFlow('late')}>{t('report.fillButton')}</Button>
-        </Card>
+        <section className="v2-card v2-pad">
+          <h3 className="v2-h3">{t('closes.reportTitle')}</h3>
+          <p className="v2-sub">{t('closes.late.note')}</p>
+          <Button primary onClick={() => onFlow('late')}>
+            {t('report.fillButton')}
+          </Button>
+        </section>
       )}
       <ActionBar
         ticket={ticket}

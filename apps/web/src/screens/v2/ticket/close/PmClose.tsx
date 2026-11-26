@@ -1,16 +1,12 @@
-/* eslint-disable i18next/no-literal-string -- prop values and ids only; every visible string goes through t() */
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { PmChecklistItem } from '@uptimo/shared/pm';
-import type { CommandAction, CommandBody, Config, TicketDetail } from '../api.js';
-import { Banner } from '../ui/banner.js';
-import { Button } from '../ui/button.js';
-import { ScreenFooter } from '../ui/close-kit.js';
-import { Input, Label, Textarea } from '../ui/input.js';
-import { Stack } from '../ui/layout.js';
-import { TickRow } from '../ui/tick-row.js';
-import { TopBar } from '../ui/top-bar.js';
-import { machineLabel } from './format.js';
+import type { CommandAction, CommandBody, Config, TicketDetail } from '../../../../api.js';
+import { machineLabel } from '../../../../components/format.js';
+import { Field, ScreenFooter } from '../../../../ui/v2/close-kit.js';
+import { Notice } from '../../../../ui/v2/notice.js';
+import { TickRow } from '../../../../ui/v2/tick-row.js';
+import { CloseHead } from './CloseHead.js';
 import {
   emptyDraft,
   METER_KEY,
@@ -20,7 +16,7 @@ import {
   setReading,
   setTicked,
   type PmDraft,
-} from './pmDraft.js';
+} from '../../../../components/pmDraft.js';
 
 export interface PmCloseProps {
   detail: TicketDetail;
@@ -42,15 +38,14 @@ function ReadingBox(props: {
   onChange: (text: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-1">
-      <Label htmlFor={props.id}>{props.label}</Label>
-      <Input
+    <Field id={props.id} label={props.label}>
+      <input
         id={props.id}
         inputMode="decimal"
         value={props.value}
         onChange={(event) => props.onChange(event.target.value)}
       />
-    </div>
+    </Field>
   );
 }
 
@@ -59,8 +54,8 @@ function Checklist(props: { ticks: PmChecklistItem[]; draft: PmDraft; onChange: 
   const { t } = useTranslation();
   if (props.ticks.length === 0) return null;
   return (
-    <Stack gap={2}>
-      <h3 className="text-footnote font-bold text-neutral-900">{t('pm.close.checklist')}</h3>
+    <div className="flex flex-col gap-2">
+      <h3 className="v2-h3">{t('pm.close.checklist')}</h3>
       {props.ticks.map((item) => (
         <TickRow
           key={item.id}
@@ -69,7 +64,7 @@ function Checklist(props: { ticks: PmChecklistItem[]; draft: PmDraft; onChange: 
           onChange={(checked) => props.onChange((current) => setTicked(current, item.id, checked))}
         />
       ))}
-    </Stack>
+    </div>
   );
 }
 
@@ -84,8 +79,8 @@ function Readings(props: {
   const boxes = props.readings.filter((item) => item.kind === 'reading');
   if (boxes.length === 0 && !props.meter) return null;
   return (
-    <Stack gap={2}>
-      <h3 className="text-footnote font-bold text-neutral-900">{t('pm.close.readings')}</h3>
+    <div className="flex flex-col gap-2">
+      <h3 className="v2-h3">{t('pm.close.readings')}</h3>
       {boxes.map((item) => (
         <ReadingBox
           key={item.id}
@@ -103,7 +98,7 @@ function Readings(props: {
           onChange={(text) => props.onChange((current) => setReading(current, METER_KEY, text))}
         />
       ) : null}
-    </Stack>
+    </div>
   );
 }
 
@@ -111,9 +106,8 @@ function Readings(props: {
 function Comments(props: { draft: PmDraft; onChange: Draft }) {
   const { t } = useTranslation();
   return (
-    <Stack gap={1}>
-      <Label htmlFor="pm-comments">{t('pm.close.comment')}</Label>
-      <Textarea
+    <Field id="pm-comments" label={t('pm.close.comment')}>
+      <textarea
         id="pm-comments"
         value={props.draft.comments}
         placeholder={t('pm.close.commentPlaceholder')}
@@ -121,20 +115,16 @@ function Comments(props: { draft: PmDraft; onChange: Draft }) {
           props.onChange((current) => ({ ...current, comments: event.target.value }))
         }
       />
-    </Stack>
+    </Field>
   );
 }
 
 /** The machine and the plan behind the job. */
 function Heading(props: { detail: TicketDetail; config: Config }) {
   return (
-    <section className="flex flex-col gap-1 rounded-2xl bg-surface p-4 shadow-card">
-      <h2 className="text-title1 font-extrabold leading-tight">
-        {machineLabel(props.detail.ticket, props.config.machines)}
-      </h2>
-      <p className="text-body text-neutral-900">
-        {props.detail.pmPlan?.title ?? props.detail.ticket.problem}
-      </p>
+    <section className="v2-card v2-pad">
+      <h2 className="v2-h2">{machineLabel(props.detail.ticket, props.config.machines)}</h2>
+      <p className="v2-lede">{props.detail.pmPlan?.title ?? props.detail.ticket.problem}</p>
     </section>
   );
 }
@@ -161,33 +151,28 @@ export function PmClose(props: PmCloseProps) {
   return (
     <form
       aria-label={t('pm.close.title')}
-      className="flex flex-1 flex-col"
+      className="flex flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault();
         void submit();
       }}
     >
-      <TopBar
-        back={{ onClick: props.onExit, label: t('common.back') }}
-        trailing={<h1 className="text-footnote text-neutral-600">{t('pm.close.title')}</h1>}
-      />
-      <main className="flex flex-1 flex-col gap-4 p-4">
-        <Heading detail={props.detail} config={props.config} />
-        {plan ? null : (
-          <Banner tone="info" title={t('pm.close.noPlan')}>
-            {t('pm.close.noPlanHint')}
-          </Banner>
-        )}
-        {plan && empty ? <Banner tone="info" title={t('pm.close.noChecklist')} /> : null}
-        <Checklist ticks={ticks} draft={draft} onChange={setDraft} />
-        <Readings readings={readings} meter={meter} draft={draft} onChange={setDraft} />
-        <Comments draft={draft} onChange={setDraft} />
-        {props.error ? <Banner tone="error" title={props.error} /> : null}
-      </main>
+      <CloseHead title={t('pm.close.title')} onBack={props.onExit} />
+      <Heading detail={props.detail} config={props.config} />
+      {plan ? null : (
+        <Notice tone="plan" title={t('pm.close.noPlan')}>
+          {t('pm.close.noPlanHint')}
+        </Notice>
+      )}
+      {plan && empty ? <Notice tone="plan" title={t('pm.close.noChecklist')} /> : null}
+      <Checklist ticks={ticks} draft={draft} onChange={setDraft} />
+      <Readings readings={readings} meter={meter} draft={draft} onChange={setDraft} />
+      <Comments draft={draft} onChange={setDraft} />
+      {props.error ? <Notice tone="loss" title={props.error} /> : null}
       <ScreenFooter hint={t('pm.close.hint')}>
-        <Button type="submit" disabled={!ready}>
+        <button type="submit" className="v2-btn v2-btn-primary" disabled={!ready}>
           {props.pending ? t('common.saving') : t('pm.close.submit')}
-        </Button>
+        </button>
       </ScreenFooter>
     </form>
   );

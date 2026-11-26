@@ -2,12 +2,9 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import type { Config, TicketDetail } from '../api.js';
-import { formatMinutes } from './format.js';
-import { Card } from '../ui/card.js';
-import { SectionTitle } from '../ui/detail-kit.js';
-import { Inline, Stack } from '../ui/layout.js';
-import { StatusPill } from '../ui/status/status-pill.js';
+import type { Config, TicketDetail } from '../../../../api.js';
+import { formatMinutes } from '../../../../components/format.js';
+import { StatusTag } from './StatusTag.js';
 
 type TaskRow = TicketDetail['tasks'][number];
 
@@ -30,36 +27,35 @@ function taskLine(task: TaskRow, labels: Record<string, string>, t: TFunction): 
   return parts.filter(Boolean).join(' · ');
 }
 
-function Fact({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col">
-      <dt className="text-caption text-neutral-600">{label}</dt>
-      <dd className="text-body font-bold">{value}</dd>
-    </div>
-  );
-}
-
 /** A task's own detail: the breakdown it was left from, and what it was left for. */
 function LeftFrom({ detail, labels }: { detail: TicketDetail; labels: Record<string, string> }) {
   const { t } = useTranslation();
   const { parent, ticket } = detail;
   if (!parent) return null;
+  const facts = [
+    {
+      label: t('tasks.reason'),
+      value: ticket.taskReason ? (labels[ticket.taskReason] ?? ticket.taskReason) : '—',
+    },
+    { label: t('tasks.expectedOn'), value: ticket.taskExpectedOn ?? '—' },
+    ...(ticket.taskDownMin === null
+      ? []
+      : [{ label: t('tasks.stoppedMinutes'), value: formatMinutes(ticket.taskDownMin) }]),
+  ];
   return (
-    <Card>
-      <Link to={`/desk/${parent.id}`} className="text-body font-semibold text-accent-text">
+    <div className="v2-stack v2-ticket-gap">
+      <Link to={`/desk/${parent.id}`} className="v2-ticket-link">
         {t('tasks.left', { ref: parent.ref })}
       </Link>
-      <dl className="flex flex-wrap gap-4">
-        <Fact
-          label={t('tasks.reason')}
-          value={ticket.taskReason ? (labels[ticket.taskReason] ?? ticket.taskReason) : '—'}
-        />
-        <Fact label={t('tasks.expectedOn')} value={ticket.taskExpectedOn ?? '—'} />
-        {ticket.taskDownMin === null ? null : (
-          <Fact label={t('tasks.stoppedMinutes')} value={formatMinutes(ticket.taskDownMin)} />
-        )}
+      <dl className="v2-facts">
+        {facts.map((fact) => (
+          <div key={fact.label}>
+            <dt className="v2-sub">{fact.label}</dt>
+            <dd className="v2-fact-value">{fact.value}</dd>
+          </div>
+        ))}
       </dl>
-    </Card>
+    </div>
   );
 }
 
@@ -67,26 +63,23 @@ function TaskLink({ task, labels }: { task: TaskRow; labels: Record<string, stri
   const { t } = useTranslation();
   return (
     <li>
-      <Link
-        to={`/desk/${task.id}`}
-        className="flex min-h-target flex-col gap-1 rounded-2xl bg-surface p-4 shadow-card"
-      >
-        <span className="flex items-center justify-between gap-2">
-          <span className="font-mono text-caption font-medium text-neutral-700">{task.ref}</span>
-          <StatusPill group="task" id={task.state} />
+      <Link to={`/desk/${task.id}`} className="v2-ticket-task">
+        <span className="v2-ticket-task-head">
+          <span className="v2-sub v2-num">{task.ref}</span>
+          <StatusTag status={{ group: 'task', id: task.state }} />
         </span>
-        <span className="text-body">{task.text}</span>
-        <span className="text-footnote text-neutral-600">{taskLine(task, labels, t)}</span>
+        <span>{task.text}</span>
+        <span className="v2-sub">{taskLine(task, labels, t)}</span>
       </Link>
     </li>
   );
 }
 
 /**
- * The follow-up box on a ticket (`v3.actions.17`): the tasks left from it with their state, reason and date,
- * or, when the ticket is itself a task, the breakdown it came from. The state is colour, icon and word.
+ * The follow-up card on a ticket (v1 `TaskPanel`, `v3.actions.17`): the tasks left from it with their state, reason
+ * and date, or, when the ticket is itself a task, the breakdown it came from. The state is colour, icon and word.
  */
-export function TaskPanel({ detail, config }: { detail: TicketDetail; config?: Config }) {
+export function TaskCard({ detail, config }: { detail: TicketDetail; config?: Config }) {
   const { t } = useTranslation();
   const { tasks, taskSummary, parent } = detail;
   if (!parent && tasks.length === 0) return null;
@@ -94,14 +87,18 @@ export function TaskPanel({ detail, config }: { detail: TicketDetail; config?: C
   const label = t(parent ? 'tasks.thisTask' : 'tasks.title');
   const box = taskSummary.box;
   return (
-    <section aria-label={label} data-testid="tasks-panel" className="flex flex-col gap-2">
-      <SectionTitle>{label}</SectionTitle>
+    <section
+      aria-label={label}
+      data-testid="tasks-panel"
+      className="v2-card v2-pad v2-stack v2-ticket-gap"
+    >
+      <h2 className="v2-h2">{label}</h2>
       <LeftFrom detail={detail} labels={labels} />
       {tasks.length > 0 ? (
-        <Stack gap={2}>
-          <Inline gap={2}>
-            {box === 'none' ? null : <StatusPill group="task" id={box} />}
-            <p className="text-footnote text-neutral-600">
+        <>
+          <div className="v2-ticket-chips">
+            {box === 'none' ? null : <StatusTag status={{ group: 'task', id: box }} />}
+            <p className="v2-sub">
               {t('tasks.summary', {
                 pending: taskSummary.pending,
                 inProgress: taskSummary.inProgress,
@@ -109,13 +106,13 @@ export function TaskPanel({ detail, config }: { detail: TicketDetail; config?: C
                 done: taskSummary.done,
               })}
             </p>
-          </Inline>
-          <ul className="flex flex-col gap-2">
+          </div>
+          <ul className="v2-ticket-tasks">
             {tasks.map((task) => (
               <TaskLink key={task.id} task={task} labels={labels} />
             ))}
           </ul>
-        </Stack>
+        </>
       ) : null}
     </section>
   );

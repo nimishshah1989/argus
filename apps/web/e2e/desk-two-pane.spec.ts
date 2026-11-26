@@ -3,8 +3,9 @@ import { actionMachines, commandViaApi, getJson } from './fixtures-actions.js';
 import { apiLogin, raiseTicketViaApi, signIn } from './fixtures.js';
 
 /**
- * Open and the ticket side by side (slice 4 D5): from 1024 px a ticket opens beside the list, on a phone it
- * opens as its own page. Tickets are raised through the API; every name is a fake.
+ * Open and the ticket side by side (slice 4 D5, ADR 0056 point 4): from 1024 px a ticket picked on a desk list opens
+ * in the Shell's side panel beside the list; on a phone, or by link, it is its own page. Tickets are raised through the
+ * API; every name is a fake.
  */
 test.describe.configure({ mode: 'serial' });
 
@@ -47,27 +48,28 @@ test('a ticket opens beside the list on a wide screen and as its own page on a p
     return;
   }
 
-  await expect(page.getByText('Pick a ticket on the left to see it here.')).toBeVisible();
+  const pane = page.getByRole('region', { name: 'Ticket' });
+  await expect(pane).toHaveCount(0);
   await card.click();
   await expect(page).toHaveURL(new RegExp(`/desk/${seeded.id}$`));
-  await expect(page.getByRole('heading', { name: seeded.ref })).toBeVisible();
+  await expect(pane.getByRole('heading', { name: seeded.ref })).toBeVisible();
   await expect(page.getByText(problem).first()).toBeVisible();
   await expect(card).toBeVisible();
   await expect(card).toHaveAttribute('aria-current', 'page');
-  const deskHeader = await page.locator('header').first().boundingBox();
-  const pane = await page.getByRole('region', { name: 'Ticket' }).boundingBox();
-  expect(pane!.y).toBeGreaterThanOrEqual(deskHeader!.y + deskHeader!.height);
-  await expect(page.getByText('Pick a ticket on the left to see it here.')).toHaveCount(0);
+  // The panel sits beside the list, right of it, the list still in view.
+  const list = await card.boundingBox();
+  const side = await pane.boundingBox();
+  expect(side!.x).toBeGreaterThanOrEqual(list!.x + list!.width);
 
-  await page.getByRole('link', { name: 'Open tickets' }).click();
+  await pane.getByRole('link', { name: 'Open tickets' }).click();
   await expect(page).toHaveURL(/\/desk$/);
-  await expect(page.getByText('Pick a ticket on the left to see it here.')).toBeVisible();
+  await expect(pane).toHaveCount(0);
   await expect(card).not.toHaveAttribute('aria-current', 'page');
 
   await page.getByRole('button', { name: /^Work \(\d+\)$/ }).click();
   await page.getByRole('link', { name: new RegExp(request.ref) }).click();
   await expect(page).toHaveURL(new RegExp(`/desk/${request.id}$`));
-  await expect(page.getByRole('heading', { name: request.ref })).toBeVisible();
+  await expect(pane.getByRole('heading', { name: request.ref })).toBeVisible();
   await expect(page.getByRole('button', { name: /^Work \(\d+\)$/ })).toHaveAttribute(
     'aria-pressed',
     'true',

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useOnline } from '../../data/index.js';
+import { offlineNotice } from '../../patterns/view-state.js';
 import { missingRequired, submitHeld, type FormField, type FormSheetProps } from './crud-model.js';
 import { DateField } from './date-field.js';
 import { Drawer } from './drawer.js';
@@ -71,6 +72,8 @@ function Form(p: FormSheetProps) {
     blocked: p.blocked?.(values),
   });
   const note = p.note?.(values);
+  // Offline: a command that queues says it sends on reconnect (v1); one that needs the server says so.
+  const notice = offlineNotice(online, p.offlineAllowed);
 
   async function submit(event: FormEvent): Promise<void> {
     event.preventDefault();
@@ -92,7 +95,7 @@ function Form(p: FormSheetProps) {
       ))}
       <Hint text={note} />
       <Hint text={p.actingAs} />
-      <Hint text={held === 'offline' ? t('kit.form.needsConnection') : undefined} status />
+      <Hint text={notice ? t(notice) : undefined} status />
 
       {p.error ? (
         <p role="alert" className="v2-crud-hint">

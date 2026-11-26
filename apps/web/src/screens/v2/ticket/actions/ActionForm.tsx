@@ -1,9 +1,7 @@
-/* eslint-disable i18next/no-literal-string -- prop values only; every visible string goes through t() */
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { Button } from '../ui/button.js';
-import type { CommandAction, CommandBody, Config } from '../api.js';
+import type { CommandAction, CommandBody, Config } from '../../../../api.js';
 
 interface FieldSpec {
   name: string;
@@ -13,9 +11,6 @@ interface FieldSpec {
   required?: boolean;
   hint?: string;
 }
-
-const inputClass =
-  'mt-2 min-h-target w-full rounded-xl border border-control bg-surface px-4 text-body';
 
 function listOptions(config: Config, list: string): { value: string; label: string }[] {
   return (config.lists[list] ?? [])
@@ -130,10 +125,10 @@ interface FieldsProps {
 function FormFields({ fields, values, onChange }: FieldsProps) {
   const { t } = useTranslation();
   return (
-    <div className="mt-3 flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
       {fields.map((field) => (
-        <label key={field.name} className="block">
-          <span className="text-footnote font-medium text-neutral-600">
+        <label key={field.name} className="v2-close-field">
+          <span>
             {field.label}
             {field.required ? <span aria-hidden="true"> *</span> : null}
           </span>
@@ -141,7 +136,6 @@ function FormFields({ fields, values, onChange }: FieldsProps) {
             <select
               value={values[field.name] ?? ''}
               onChange={(event) => onChange(field.name, event.target.value)}
-              className={inputClass}
             >
               <option value="">{t('common.choose')}</option>
               {(field.options ?? []).map((option) => (
@@ -154,12 +148,9 @@ function FormFields({ fields, values, onChange }: FieldsProps) {
             <textarea
               value={values[field.name] ?? ''}
               onChange={(event) => onChange(field.name, event.target.value)}
-              className={`${inputClass} min-h-24 py-3`}
             />
           )}
-          {field.hint && (
-            <span className="mt-1 block text-caption text-neutral-600">{field.hint}</span>
-          )}
+          {field.hint && <span className="v2-crud-hint">{field.hint}</span>}
         </label>
       ))}
     </div>
@@ -176,13 +167,13 @@ interface ActionsProps {
 function FormActions({ pending, disabled, submitLabel, onDone }: ActionsProps) {
   const { t } = useTranslation();
   return (
-    <div className="mt-4 grid grid-cols-2 gap-2">
-      <Button variant="secondary" onClick={onDone}>
+    <div className="grid grid-cols-2 gap-2">
+      <button type="button" className="v2-btn v2-btn-ghost" onClick={onDone}>
         {t('common.back')}
-      </Button>
-      <Button type="submit" disabled={disabled || pending}>
+      </button>
+      <button type="submit" className="v2-btn v2-btn-primary" disabled={disabled || pending}>
         {pending ? t('common.saving') : submitLabel}
-      </Button>
+      </button>
     </div>
   );
 }
@@ -238,8 +229,8 @@ export function ActionForm({ action, personId, config, pending, onRun, onDone }:
   }
 
   return (
-    <form onSubmit={submit} aria-label={title} className="rounded-2xl bg-surface p-4 shadow-card">
-      <h3 className="text-body font-bold">{title}</h3>
+    <form onSubmit={submit} aria-label={title} className="v2-card v2-pad">
+      <h3 className="v2-h3">{title}</h3>
       <FormFields fields={fields} values={values} onChange={update} />
       <FormActions pending={pending} disabled={!body} submitLabel={submitLabel} onDone={onDone} />
     </form>

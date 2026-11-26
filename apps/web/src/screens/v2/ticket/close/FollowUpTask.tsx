@@ -1,9 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import type { TaskInput } from '@uptimo/shared/tasks';
-import type { Config } from '../api.js';
-import { Card } from '../ui/card.js';
-import { Checkbox, Input, Label, Select, Textarea } from '../ui/input.js';
-import { Stack } from '../ui/layout.js';
+import type { Config } from '../../../../api.js';
+import { Field } from '../../../../ui/v2/close-kit.js';
+import { TickRow } from '../../../../ui/v2/tick-row.js';
 
 /** What the close screens hold before the task is sent. */
 export interface TaskDraft {
@@ -36,35 +35,31 @@ function reasonsOf(config: Config) {
   return (config.lists.task_reason ?? []).filter((item) => item.active !== false);
 }
 
+interface TaskProps {
+  config: Config;
+  draft: TaskDraft;
+  onChange: (draft: TaskDraft) => void;
+}
+
 /**
  * "Leave a follow-up task" on the close screens (`v3.actions.17`): the job is not finished, so the ticket
  * leaves a child task with what is left, the plant's reason for it and the day it is expected.
  */
-function TaskLeaveFields({
-  config,
-  draft,
-  onChange,
-}: {
-  config: Config;
-  draft: TaskDraft;
-  onChange: (draft: TaskDraft) => void;
-}) {
+function TaskLeaveFields({ config, draft, onChange }: TaskProps) {
   const { t } = useTranslation();
   return (
-    <Stack gap={3}>
-      <p className="text-footnote text-neutral-600">{t('tasks.leaveHint')}</p>
-      <Stack gap={1}>
-        <Label htmlFor="close-task-text">{t('tasks.what')}</Label>
-        <Textarea
+    <div className="flex flex-col gap-3">
+      <p className="v2-sub">{t('tasks.leaveHint')}</p>
+      <Field id="close-task-text" label={t('tasks.what')}>
+        <textarea
           id="close-task-text"
           maxLength={300}
           value={draft.text}
           onChange={(event) => onChange({ ...draft, text: event.target.value })}
         />
-      </Stack>
-      <Stack gap={1}>
-        <Label htmlFor="close-task-reason">{t('tasks.reason')}</Label>
-        <Select
+      </Field>
+      <Field id="close-task-reason" label={t('tasks.reason')}>
+        <select
           id="close-task-reason"
           value={draft.reasonCode}
           onChange={(event) => onChange({ ...draft, reasonCode: event.target.value })}
@@ -75,48 +70,38 @@ function TaskLeaveFields({
               {item.label}
             </option>
           ))}
-        </Select>
-      </Stack>
-      <Stack gap={1}>
-        <Label htmlFor="close-task-date">{t('tasks.expectedLabel')}</Label>
-        <Input
+        </select>
+      </Field>
+      <Field id="close-task-date" label={t('tasks.expectedLabel')}>
+        <input
           id="close-task-date"
           type="date"
           value={draft.expectedOn}
           onChange={(event) => onChange({ ...draft, expectedOn: event.target.value })}
         />
-        <p className="text-caption text-neutral-600">{t('tasks.expectedHint')}</p>
-      </Stack>
-    </Stack>
+        <p className="v2-crud-hint">{t('tasks.expectedHint')}</p>
+      </Field>
+    </div>
   );
 }
 
-export function TaskLeaveCard({
-  config,
-  draft,
-  onChange,
-}: {
-  config: Config;
-  draft: TaskDraft;
-  onChange: (draft: TaskDraft) => void;
-}) {
+export function TaskLeaveCard({ config, draft, onChange }: TaskProps) {
   const { t } = useTranslation();
   if (reasonsOf(config).length === 0) return null;
   return (
-    <div data-testid="follow-up-task">
-      <Card title={t('tasks.thisTask')}>
-        <Checkbox
-          label={t('tasks.leave')}
-          checked={draft.on}
-          onChange={(event) => onChange({ ...draft, on: event.target.checked })}
-        />
-        {draft.on ? <TaskLeaveFields config={config} draft={draft} onChange={onChange} /> : null}
-        {taskReady(draft) ? null : (
-          <p role="status" data-testid="task-incomplete" className="text-footnote text-danger">
-            {t('tasks.incomplete')}
-          </p>
-        )}
-      </Card>
+    <div data-testid="follow-up-task" className="v2-card v2-pad">
+      <h3 className="v2-h3">{t('tasks.thisTask')}</h3>
+      <TickRow
+        label={t('tasks.leave')}
+        checked={draft.on}
+        onChange={(on) => onChange({ ...draft, on })}
+      />
+      {draft.on ? <TaskLeaveFields config={config} draft={draft} onChange={onChange} /> : null}
+      {taskReady(draft) ? null : (
+        <p role="status" data-testid="task-incomplete" className="v2-sub v2-task-incomplete">
+          {t('tasks.incomplete')}
+        </p>
+      )}
     </div>
   );
 }

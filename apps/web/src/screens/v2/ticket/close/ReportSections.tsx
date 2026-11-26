@@ -1,9 +1,7 @@
 /* eslint-disable i18next/no-literal-string -- prop values only; every visible string goes through t() */
 import { useTranslation } from 'react-i18next';
-import type { Config } from '../api.js';
-import { Field } from '../ui/close-kit.js';
-import { Input, Select, Textarea } from '../ui/input.js';
-import { Grid, Stack } from '../ui/layout.js';
+import type { Config } from '../../../../api.js';
+import { ChoiceField, Field } from '../../../../ui/v2/close-kit.js';
 import {
   DONE_SLOTS,
   activePeople,
@@ -11,7 +9,7 @@ import {
   codeOptions,
   shiftOptions,
   type ReportValues,
-} from './reportFields.js';
+} from '../../../../components/reportFields.js';
 
 export interface SectionProps {
   values: ReportValues;
@@ -22,37 +20,10 @@ export interface SectionProps {
 /** The server's caps on the report's one-line boxes. */
 const TEXT_MAX = { spareUsed: 200, handoverName: 120 } as const;
 
-interface Option {
-  value: string;
-  label: string;
-}
-
-function Choice(props: {
-  id: string;
-  label: string;
-  value: string;
-  options: Option[];
-  onChange: (value: string) => void;
-  /** An optional box shows a dash for "nobody". */
-  empty?: string;
-}) {
+/** A report list: "Select" first, or a dash for "nobody" on an optional box. */
+function Choice(props: Omit<Parameters<typeof ChoiceField>[0], 'empty'> & { empty?: string }) {
   const { t } = useTranslation();
-  return (
-    <Field id={props.id} label={props.label}>
-      <Select
-        id={props.id}
-        value={props.value}
-        onChange={(event) => props.onChange(event.target.value)}
-      >
-        <option value="">{props.empty ?? t('closes.form.select')}</option>
-        {props.options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </Select>
-    </Field>
-  );
+  return <ChoiceField {...props} empty={props.empty ?? t('closes.form.select')} />;
 }
 
 /** A calendar day such as 2026-11-14 as "14 Nov 2026". */
@@ -80,24 +51,24 @@ export function WhatHappened({
     label: person.name,
   }));
   return (
-    <Stack gap={3}>
+    <div className="flex flex-col gap-3">
       <Field id="report-machine" label={t('closes.form.machine')}>
-        <Input id="report-machine" readOnly value={machineCode} />
+        <input id="report-machine" readOnly value={machineCode} />
       </Field>
-      <Grid columns={2} gap={3}>
+      <div className="grid grid-cols-2 gap-3">
         <Field id="report-date" label={t('closes.form.date')}>
-          <Input id="report-date" readOnly value={formatDay(values.date)} />
+          <input id="report-date" readOnly value={formatDay(values.date)} />
         </Field>
         <Choice
           id="report-shift"
           label={t('closes.form.shift')}
           value={values.shiftCode}
           options={shiftOptions(config.shifts)}
-          onChange={(shiftCode) => update({ shiftCode })}
+          onChange={(shift) => update({ shiftCode: shift })}
         />
-      </Grid>
+      </div>
       <Field id="report-problem" label={t('closes.form.problem')}>
-        <Textarea
+        <textarea
           id="report-problem"
           maxLength={2000}
           value={values.problem}
@@ -112,7 +83,7 @@ export function WhatHappened({
         onChange={(observedBy) => update({ observedBy })}
       />
       <Field id="report-corrective" label={t('closes.form.correctiveAction')}>
-        <Textarea
+        <textarea
           id="report-corrective"
           maxLength={4000}
           placeholder={t('closes.form.correctivePlaceholder')}
@@ -120,7 +91,7 @@ export function WhatHappened({
           onChange={(event) => update({ correctiveAction: event.target.value })}
         />
       </Field>
-    </Stack>
+    </div>
   );
 }
 
@@ -146,12 +117,12 @@ export function WhoDidIt({ values, update, config }: SectionProps) {
     />
   );
   return (
-    <Stack gap={3}>
+    <div className="flex flex-col gap-3">
       {done(0)}
-      <Grid columns={2} gap={3}>
+      <div className="grid grid-cols-2 gap-3">
         {done(1)}
         {done(2)}
-      </Grid>
+      </div>
       <Choice
         id="report-supported"
         label={t('closes.form.supportedBy')}
@@ -160,7 +131,7 @@ export function WhoDidIt({ values, update, config }: SectionProps) {
         empty={t('closes.form.none')}
         onChange={(supportedBy) => update({ supportedBy })}
       />
-    </Stack>
+    </div>
   );
 }
 
@@ -169,7 +140,7 @@ export function Classification({ values, update, config }: SectionProps) {
   const { t } = useTranslation();
   const field = (id: string, label: string, key: 'spareUsed' | 'handoverName', hint: string) => (
     <Field id={id} label={label}>
-      <Input
+      <input
         id={id}
         placeholder={hint}
         maxLength={TEXT_MAX[key]}
@@ -179,9 +150,9 @@ export function Classification({ values, update, config }: SectionProps) {
     </Field>
   );
   return (
-    <Stack gap={3}>
+    <div className="flex flex-col gap-3">
       <Field id="report-downtime" label={t('closes.form.downtime')}>
-        <Input id="report-downtime" readOnly value={values.downtimeMin} />
+        <input id="report-downtime" readOnly value={values.downtimeMin} />
       </Field>
       <Choice
         id="report-category"
@@ -210,6 +181,6 @@ export function Classification({ values, update, config }: SectionProps) {
         'handoverName',
         t('closes.form.handoverPlaceholder'),
       )}
-    </Stack>
+    </div>
   );
 }

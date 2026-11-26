@@ -225,7 +225,7 @@ test('E2 shows the quick action on the desk card', async ({ page }) => {
   await expectQuick('open', 'Start work');
   await page.getByRole('button', { name: /^Work \(\d+\)$/ }).click();
   await expectQuick('handed over', 'Pick up');
-  await page.getByRole('navigation', { name: 'Desk' }).getByRole('link', { name: 'Mine' }).click();
+  await page.getByRole('group', { name: 'Desk' }).getByRole('button', { name: 'Mine' }).click();
   await expectQuick('waiting', 'Resume work');
   await expectQuick('working', 'Machine running again');
 });

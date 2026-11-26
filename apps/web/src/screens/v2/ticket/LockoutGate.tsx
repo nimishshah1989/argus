@@ -1,9 +1,9 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import type { CommandAction, CommandBody } from '../api.js';
-import { ApiError, confirmLockoutThen } from '../data/index.js';
-import { isGated, lockoutRefusalKey, type LockoutView } from './lockout.js';
+import type { CommandAction, CommandBody } from '../../../api.js';
+import { ApiError, confirmLockoutThen } from '../../../data/index.js';
+import { isGated, lockoutRefusalKey, type LockoutView } from '../../../components/lockout.js';
 
 /** The ticks on the page and the one call that confirms them and then runs the held-back action. */
 export interface Gate {

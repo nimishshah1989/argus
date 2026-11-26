@@ -1,9 +1,9 @@
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
-import type { PmReport } from '../api.js';
-import { FactList, SectionTitle, type FactRow } from '../ui/detail-kit.js';
-import { Stack } from '../ui/layout.js';
 import { PM_MEASUREMENT_LABELS } from '@uptimo/shared/pm';
+import type { PmReport } from '../../../../api.js';
+import { Panel } from '../../../../ui/v2/panel.js';
+import { Facts } from './Facts.js';
 
 /** The machine meter's key inside `readings` (R6/R8); every other key is a `<point>.<metric>` reading item. */
 const METER_KEY = 'meter';
@@ -16,8 +16,8 @@ function readingLabel(t: TFunction, key: string): string {
 }
 
 /**
- * The closed PM job's report (ticket 49c): how many points were ticked, which were not done, the readings the
- * technician took and the comment. `doneBy` is the acting person's id (46b's shape), printed as their name.
+ * The closed PM job's report (v1 `PmReportCard`, ticket 49c): how many points were ticked, which were not done, the
+ * readings the technician took and the comment. `doneBy` is the acting person's id, printed as their name.
  */
 export function PmReportCard({
   report,
@@ -29,7 +29,7 @@ export function PmReportCard({
   const { t } = useTranslation();
   const done = Math.max(0, report.total - report.undone.length);
   const person = report.doneBy ? names[report.doneBy] : undefined;
-  const rows: FactRow[] = [
+  const rows = [
     { label: t('pm.close.checklist'), value: t('pm.report.points', { done, total: report.total }) },
     ...(report.undone.length
       ? [{ label: t('pm.report.undone'), value: report.undone.join(', ') }]
@@ -42,9 +42,8 @@ export function PmReportCard({
     ...(person ? [{ label: t('pm.report.doneBy'), value: person }] : []),
   ];
   return (
-    <Stack gap={2}>
-      <SectionTitle>{t('pm.report.title')}</SectionTitle>
-      <FactList rows={rows} />
-    </Stack>
+    <Panel title={t('pm.report.title')}>
+      <Facts rows={rows} />
+    </Panel>
   );
 }

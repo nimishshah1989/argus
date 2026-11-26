@@ -1,9 +1,11 @@
 /* eslint-disable i18next/no-literal-string -- prop values only; every visible string goes through t() */
 import { useTranslation } from 'react-i18next';
-import type { CommandBody, Config, Ticket } from '../api.js';
+import type { CommandBody, Config, Ticket } from '../../../../api.js';
 import type { TaskInput } from '@uptimo/shared/tasks';
-import { FormSheet, type FormField } from '../patterns/form-sheet.js';
-import { machineLabel } from './format.js';
+import { machineLabel } from '../../../../components/format.js';
+import { FormSheet } from '../../../../ui/v2/form-sheet.js';
+
+type FormField = Parameters<typeof FormSheet>[0]['fields'][number];
 
 export interface CloseSheetProps {
   ticket: Ticket;

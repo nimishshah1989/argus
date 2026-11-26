@@ -1,43 +1,25 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Banner } from '../../../ui/banner.js';
-import { Card } from '../../../ui/card.js';
-import { LoadingState } from '../../../ui/elements/states.js';
+import { Notice } from '../../../ui/v2/notice.js';
+import { Skeleton } from '../../../ui/v2/screen-states.js';
 import { Takeaway } from '../../../ui/v2/takeaway.js';
-import { ListHeading, rowClass } from './Frame.js';
+import { ListCard, PlainRow } from './parts.js';
 import type { TeamModel, TicketRowItem, WindowBlock } from './team-model.js';
 
 export type TeamViewProps = { model: TeamModel };
 
-/** A row inside a card: no second shadow, a tint instead. */
-const innerRow =
-  'flex min-h-target items-center justify-between gap-3 rounded-xl bg-v2-subtle px-4 py-3';
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section aria-label={title} className="flex flex-col gap-2">
-      <ListHeading>{title}</ListHeading>
-      {children}
-    </section>
-  );
-}
-
 function Rows({ rows, empty }: { rows: TicketRowItem[]; empty: string }) {
   if (rows.length === 0) return <p className="v2-sub">{empty}</p>;
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className="v2-desk-rows">
       {rows.map((row) => (
-        <li key={row.id}>
-          <Link to={`/desk/${row.id}`} className={rowClass}>
-            <span className="min-w-0">
-              <span className="v2-h3 block">{row.ref}</span>
-              <span className="v2-sub block truncate">{row.machine}</span>
-              <span className="v2-sub block truncate">{row.detail}</span>
-            </span>
-            <span className="v2-sub shrink-0 text-right">{row.time}</span>
-          </Link>
-        </li>
+        <PlainRow
+          key={row.id}
+          id={row.id}
+          title={row.ref}
+          lines={[row.machine, row.detail]}
+          time={row.time}
+        />
       ))}
     </ul>
   );
@@ -45,9 +27,8 @@ function Rows({ rows, empty }: { rows: TicketRowItem[]; empty: string }) {
 
 /** A window's own loading, error, empty or rows. */
 function Window({ block, children }: { block: WindowBlock; children?: ReactNode }) {
-  const { t } = useTranslation();
-  if (block.state === 'loading') return <LoadingState label={t('common.loading')} tiles={1} />;
-  if (block.state === 'error') return <Banner tone="error" title={block.error ?? ''} />;
+  if (block.state === 'loading') return <Skeleton blocks={1} />;
+  if (block.state === 'error') return <Notice tone="loss" title={block.error ?? ''} />;
   return (
     <>
       <Rows rows={block.rows} empty={block.empty} />
@@ -56,68 +37,64 @@ function Window({ block, children }: { block: WindowBlock; children?: ReactNode 
   );
 }
 
+/** Working now: one row per lead with their hands-on minutes, and the jobs they are on. */
 function WorkingNow({ model }: TeamViewProps) {
   if (model.working.length === 0) return <p className="v2-sub">{model.words.nobody}</p>;
   return (
-    <ul className="flex flex-col gap-3">
-      {model.working.map((lead) => (
-        <li key={lead.personId}>
-          <Card>
-            <div className="flex items-center justify-between gap-3">
-              <p className="v2-h3">{lead.name}</p>
-              <p className="v2-pill v2-pill-neutral">{lead.minutes}</p>
-            </div>
-            <ul className="flex flex-col gap-2">
-              {lead.jobs.map((job) => (
-                <li key={job.id}>
-                  <Link to={`/desk/${job.id}`} className={innerRow}>
-                    <span className="v2-h3">{job.ref}</span>
-                    <span className="v2-sub">{job.machine}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        </li>
-      ))}
+    <ul className="v2-desk-rows">
+      {model.working.map((lead) =>
+        lead.jobs.map((job, i) => (
+          <PlainRow
+            key={`${lead.personId}:${job.id}`}
+            id={job.id}
+            title={job.ref}
+            lines={[job.machine, lead.name]}
+            time={i === 0 ? lead.minutes : undefined}
+          />
+        )),
+      )}
     </ul>
   );
 }
 
+/** Monthly totals per person: each month a small table of primary and support jobs, most first. */
 function Monthly({ model }: TeamViewProps) {
   const { t } = useTranslation();
   return (
-    <div className="flex flex-col gap-3">
+    <div className="v2-stack">
       <h3 className="v2-h3">{model.words.monthly}</h3>
       {model.closed.months.map((month) => (
-        <Card key={month.month}>
-          <p className="v2-h3">{month.label}</p>
-          <ul className="space-y-1">
+        <table key={month.month} className="v2-table">
+          <caption className="v2-sub">{month.label}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{t('detail.col.person')}</th>
+              <th scope="col">{t('role.primary')}</th>
+              <th scope="col">{t('role.support')}</th>
+            </tr>
+          </thead>
+          <tbody>
             {month.rows.map((person) => (
-              <li key={person.personId} className="flex justify-between gap-3">
-                <span>{person.name}</span>
-                <span className="v2-sub text-right">
-                  <span className="block">
-                    {person.primary} {t('role.primary')}
-                  </span>
-                  {person.support && (
-                    <span className="block">
-                      {person.support} {t('role.support')}
-                    </span>
-                  )}
-                </span>
-              </li>
+              <tr key={person.personId}>
+                <td>{person.name}</td>
+                <td className="v2-num-cell">
+                  {person.primary} {t('role.primary')}
+                </td>
+                <td className="v2-num-cell">
+                  {person.support ? `${person.support} ${t('role.support')}` : '—'}
+                </td>
+              </tr>
             ))}
-          </ul>
-        </Card>
+          </tbody>
+        </table>
       ))}
     </div>
   );
 }
 
 /**
- * `/desk/team` under the frame's title: the takeaway, then regions Working now, Waiting, Not started, Cancelled
- * last 24 hours, Closed last 30 days (with the h3 Monthly totals per person), in v1's control order. No h1.
+ * The Team tab (S28): the takeaway, then Working now, Waiting, Not started, Cancelled last 24 hours and Closed last
+ * 30 days with the monthly totals per person, in v1's order. The Shell's header carries the title.
  */
 export function TeamView({ model }: TeamViewProps): ReactNode {
   const { words } = model;
@@ -125,23 +102,23 @@ export function TeamView({ model }: TeamViewProps): ReactNode {
   return (
     <>
       {line && <Takeaway data={line} />}
-      <Section title={words.workingNow}>
+      <ListCard title={words.workingNow}>
         <WorkingNow model={model} />
-      </Section>
-      <Section title={words.waiting}>
+      </ListCard>
+      <ListCard title={words.waiting}>
         <Rows rows={model.waiting} empty={words.none} />
-      </Section>
-      <Section title={words.notStarted}>
+      </ListCard>
+      <ListCard title={words.notStarted}>
         <Rows rows={model.notStarted} empty={words.none} />
-      </Section>
-      <Section title={words.cancelled}>
+      </ListCard>
+      <ListCard title={words.cancelled}>
         <Window block={model.cancelled} />
-      </Section>
-      <Section title={words.closed}>
+      </ListCard>
+      <ListCard title={words.closed}>
         <Window block={model.closed}>
           <Monthly model={model} />
         </Window>
-      </Section>
+      </ListCard>
     </>
   );
 }

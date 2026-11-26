@@ -63,7 +63,7 @@ async function openAndStart(page: Page, ref: string): Promise<void> {
 
 async function closeOffline(page: Page): Promise<void> {
   await ticketView(page).getByRole('button', { name: 'Mark done', exact: true }).click();
-  const sheet = page.getByRole('dialog', { name: /^Done: / });
+  const sheet = page.getByRole('form', { name: /^Done: / });
   await sheet.getByLabel('What was done?').fill('Finished while offline');
   await sheet.getByRole('button', { name: 'Mark done', exact: true }).click();
   await expect(sheet).toBeHidden();

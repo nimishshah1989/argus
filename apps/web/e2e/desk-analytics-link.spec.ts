@@ -4,7 +4,7 @@ import { signIn } from './fixtures.js';
 /**
  * Owner ruling (19 Nov): the desk menu links to Analytics for exactly the roles the analytics shell opens for
  * (`canAnalytics`): supervisor, head, plant head and admin. Operators, technicians and the board login do not get it.
- * The desk menu is the wide one (from 1024 px).
+ * The entry sits in the desk's tools row beside its section tabs (ADR 0056).
  */
 const WITH_LINK = ['sup', 'head', 'ph', 'admin'] as const;
 const WITHOUT_LINK = ['asha', 'op', 'brd'] as const;
@@ -16,9 +16,8 @@ for (const login of WITH_LINK)
     await page.setViewportSize({ width: 1440, height: 900 });
     await signIn(page, login);
     await page.goto('/desk');
-    const entry = page
-      .getByRole('navigation', { name: 'Desk' })
-      .getByRole('link', { name: 'Analytics', exact: true });
+    // ADR 0056: the desk's tools row (beside the section tabs) carries the entry.
+    const entry = page.getByRole('link', { name: 'Analytics', exact: true });
     await expect(entry).toBeVisible();
     await entry.click();
     await expect(page).toHaveURL(/\/analytics\/today$/);

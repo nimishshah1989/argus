@@ -48,4 +48,12 @@ export const detailEn = {
   'escalation.acknowledgedAfterBy': 'acknowledged after {{time}} · {{who}}',
   'escalation.nobodyTold': 'Escalation due, nobody told',
   'escalation.setLadder': 'Set the ladder',
+  'detail.pdf': 'Download PDF',
+  'detail.pdfFailed': 'The PDF could not be downloaded.',
+  'detail.signoff': 'Production sign-off',
+  'detail.col.person': 'Person',
+  'detail.col.role': 'Role',
+  'detail.col.joined': 'Joined',
+  'detail.col.minutes': 'Minutes',
+  'detail.col.left': 'Left',
 };

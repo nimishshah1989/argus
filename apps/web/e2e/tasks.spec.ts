@@ -112,7 +112,7 @@ async function markTaskDone(page: Page, task: MadeTask, machineCode: string, par
     `Left from ${parentRef}`,
   );
   await page.getByRole('button', { name: 'Mark done', exact: true }).click();
-  const sheet = page.getByRole('dialog', { name: `Done: ${machineCode}` });
+  const sheet = page.getByRole('form', { name: `Done: ${machineCode}` });
   await sheet.getByLabel('What was done?').fill('Bearing replaced');
   // A typo queued offline is refused on replay and jams every command behind it: the sheet holds Send.
   const minutes = sheet.getByLabel('Machine-stopped minutes');
