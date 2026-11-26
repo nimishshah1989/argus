@@ -320,21 +320,27 @@ export function PlainRow({
   title,
   lines,
   time,
+  status,
   action,
 }: {
   id: string;
   title: string;
   lines: string[];
   time?: string;
+  /** A status pill, after the title and the first line (where v1's card had it). */
+  status?: ReactNode;
   action?: ReactNode;
 }) {
   const from = useFrom();
+  const [first, ...rest] = lines.filter(Boolean);
   return (
     <li className="v2-desk-row">
       <Link to={`/desk/${id}`} state={from} className="v2-desk-link">
         <span className="v2-desk-main">
           <span className="v2-h3">{title}</span>
-          {lines.filter(Boolean).map((line) => (
+          {first ? <span className="v2-sub">{first}</span> : null}
+          {status}
+          {rest.map((line) => (
             <span key={line} className="v2-sub">
               {line}
             </span>

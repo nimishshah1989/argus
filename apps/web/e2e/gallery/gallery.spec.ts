@@ -3,7 +3,18 @@ import { expect, test, type Page } from '@playwright/test';
 import { en, gu, type MessageKey } from '@uptimo/shared/i18n';
 import { existsSync } from 'node:fs';
 
-const SECTIONS = ['tokens', 'components', 'layout', 'status', 'meaning', 'shell', 'floor'] as const;
+const SECTIONS = [
+  'tokens',
+  'components',
+  'layout',
+  'status',
+  'meaning',
+  'shell',
+  'desk',
+  'detail-kit',
+  'floor',
+  'closes',
+] as const;
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
 type Catalogue = Record<MessageKey, string>;

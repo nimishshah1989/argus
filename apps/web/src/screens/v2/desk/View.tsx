@@ -102,7 +102,7 @@ function TaskRow({ c }: { c: TaskCard }) {
       title={c.machine}
       lines={[c.ticket.ref, c.ticket.problem, c.meta]}
       time={c.line}
-      action={<StatusPill group="task" id={c.state} />}
+      status={<StatusPill group="task" id={c.state} />}
     />
   );
 }
@@ -114,6 +114,7 @@ function ReportRow({ c, fill }: { c: ReportCard; fill: string }) {
       id={c.ticket.id}
       title={c.machine}
       lines={[c.ticket.ref, c.ticket.problem, c.meta]}
+      status={<StatusPill group="report" id="needs_report" />}
       action={
         <Link to={`/desk/${c.ticket.id}`} className="v2-btn v2-btn-ghost">
           {fill}
@@ -191,7 +192,7 @@ export function OpenView(props: OpenViewProps): ReactNode {
         </p>
       ) : null}
       {signoff}
-      <Link to="/desk/team" className="v2-card v2-desk-link v2-desk-team">
+      <Link to="/desk/team" className="v2-card v2-desk-team">
         <Icon name="people" size={18} />
         <span className="v2-desk-main">{model.teamNow}</span>
         <Icon name="chevronRight" size={16} />

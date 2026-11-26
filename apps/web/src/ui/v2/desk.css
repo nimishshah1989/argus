@@ -150,8 +150,23 @@
   grid-template-columns: minmax(0, 1fr) auto;
 }
 .v2-desk-team {
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
   padding: 10px 14px;
+  color: inherit;
+  text-decoration: none;
+}
+.v2-desk-team:hover {
+  background: var(--color-v2-hover);
+}
+.v2-desk-team .v2-desk-main {
+  flex: 1;
+}
+/* The ticket in the side panel is as narrow as a phone: one column. */
+.v2-drawer .v2-grid {
+  grid-template-columns: minmax(0, 1fr);
 }
 .v2-desk-refused {
   align-items: flex-start;
