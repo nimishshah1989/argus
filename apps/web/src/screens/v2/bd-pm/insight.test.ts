@@ -24,7 +24,8 @@ const YARDSTICKS: Record<string, string[]> = {
   'Actual Breakdown': ['80%', '3,819.4'],
   'PM Downtime': ['20%', '3,819.4'],
   'Avg Available Hrs / Machine': ['75%', '6,000'],
-  'Total Available Hrs': ['75%', '7,50,000'],
+  // Its lakh-scale total (7,50,000 → 7.50 lakh) is checked in sweep.test.ts (sweep 706, readable).
+  'Total Available Hrs': ['75%'],
   'Fleet Availability': ['99.31%'],
 };
 
