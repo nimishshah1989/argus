@@ -14,8 +14,10 @@ const WIDE_SIZE = { width: 1440, height: 900 };
 const TV_SIZE = { width: 1920, height: 1080 };
 
 const TV = ['h1: Live board', 'h2: Nobody has s', 'h2: Being repair', 'h2: Paused and w'];
-/** The three stopped machines, oldest first, with their ages masked (they grow with the clock). */
-const TILES = ['CNC-01 T Cell 6', 'DRL-04 T Cell 2', 'GRD-07 T Spare part · Cell 3'];
+/** The three stopped machines, oldest first, with their ages masked (they grow with the clock). The browser's tables
+ * print the code, its sub-line, then the age (and "Longest" on the verdict's machine); the TV's rows code, age, sub-line. */
+const TILES = ['CNC-01 Cell 6 T Longest', 'DRL-04 Cell 2 T', 'GRD-07 Spare part · Cell 3 T'];
+const TV_TILES = ['CNC-01 T Cell 6', 'DRL-04 T Cell 2', 'GRD-07 T Spare part · Cell 3'];
 
 const mask = (text: string) =>
   text.replace(/\d+ h \d+ min|\d+ h|\d+ min/g, 'T').replace(/\s+/g, ' ');
@@ -63,7 +65,7 @@ for (const scheme of ['light', 'dark'] as const) {
       await page.setViewportSize(TV_SIZE);
       await open(page, '/desk/board?kiosk=1');
       await expect.poll(() => controlOrder(page)).toEqual(TV);
-      await expect.poll(() => tiles(page)).toEqual(TILES);
+      await expect.poll(() => tiles(page)).toEqual(TV_TILES);
       await expect(page.getByTestId('age-overDay')).toHaveText('0');
       await expect(page.getByTestId('count-running')).toHaveText('1');
       await expect(page.getByTestId('count-stopped')).toHaveText('3');

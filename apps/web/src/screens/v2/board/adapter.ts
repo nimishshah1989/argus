@@ -94,6 +94,14 @@ function columnsOf(
   });
 }
 
+/** "Longest PR-02, 5 h 10 min": the oldest stop nobody has started, or null. */
+function longestLine(board: ReturnType<typeof liveBoard>, t: TFunction): string | null {
+  const oldest = board.columns.notStarted[0];
+  return oldest
+    ? t('live.kpi.longest', { code: oldest.machine.code, age: formatMinutes(oldest.ageMin) })
+    : null;
+}
+
 /** The replies → the board's model, through `liveBoard()` of `screens/board/data.ts` (kept, not copied). */
 export function boardModel({ state, config, today, tv }: BoardInput, t: TFunction): BoardModel {
   const board = liveBoard(config, state.open, state.now);
@@ -121,6 +129,21 @@ export function boardModel({ state, config, today, tv }: BoardInput, t: TFunctio
       runningWord: t('live.pulse.running'),
       of: t('live.pulse.of', { count: board.machines }),
       stoppedWord: t('live.pulse.stopped'),
+      runningLabel: t('status.ticket.running'),
+      stoppedLabel: t('status.ticket.stopped'),
+      share:
+        board.machines > 0
+          ? t('live.kpi.of', {
+              count: board.machines,
+              pct: Math.round((board.running / board.machines) * 100),
+            })
+          : t('live.pulse.of', { count: 0 }),
+      split: t('live.kpi.split', {
+        notStarted: board.columns.notStarted.length,
+        repairing: board.columns.repairing.length,
+        waiting: board.columns.waiting.length,
+      }),
+      longest: longestLine(board, t),
     },
     columns,
     ages: {

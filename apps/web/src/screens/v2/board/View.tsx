@@ -1,72 +1,12 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Icon, type IconName } from '../../../ui/v2/icons.js';
+import { Icon } from '../../../ui/v2/icons.js';
 import { KeyPill } from '../../../ui/v2/key-pill.js';
-import { SyncStatus } from '../../../ui/v2/sync-status.js';
 import { Takeaway } from '../../../ui/v2/takeaway.js';
-import type { AgeTone, BoardColumn, BoardModel, StopRowModel } from './model.js';
+import { BrowserBoard } from './Browser.js';
+import type { BoardColumn, BoardModel, StopRowModel } from './model.js';
+import { AGE_INK, MachineTile, STATUS } from './parts.js';
 import './board.css';
-
-/** A column's status as the v2 kit says it: its tint and its icon, beside the chip's word. */
-const STATUS: Record<BoardColumn['status'], { tone: 'loss' | 'plan' | 'risk'; icon: IconName }> = {
-  stopped: { tone: 'loss', icon: 'stop' },
-  in_progress: { tone: 'plan', icon: 'wrench' },
-  waiting: { tone: 'risk', icon: 'pause' },
-};
-
-/** Red where nobody has started, amber while waiting, plain while repaired. */
-const AGE_INK: Record<NonNullable<AgeTone>, string> = {
-  danger: 'v2-seg-loss',
-  hold: 'v2-seg-risk',
-};
-
-/** Plant segment codes to the v2 segment colours (ADR 0036 R23); a code the map does not know stays grey. */
-const SEGMENT: Record<string, string> = {
-  cnc: 'cnc',
-  conventional: 'conv',
-  process: 'process',
-  utility: 'util',
-  dg: 'dg',
-  robot: 'robot',
-};
-
-/** A machine's tile: the colour is its segment, never good or bad. Decorative: the row names the machine. */
-function MachineTile({ segment, tv }: { segment: string; tv: boolean }) {
-  return (
-    <span
-      aria-hidden="true"
-      data-machine={segment}
-      data-seg={SEGMENT[segment.toLowerCase()]}
-      className={`board-machine ${tv ? 'h-14 w-14 rounded-2xl' : 'h-10 w-10 rounded-xl'}`}
-    >
-      {/* eslint-disable-next-line i18next/no-literal-string -- an icon name, not copy */}
-      <Icon name="machines" size={tv ? 32 : 22} />
-    </span>
-  );
-}
-
-function Nav({ links, tabs }: { links: BoardModel['links']; tabs?: ReactNode }) {
-  return (
-    <nav className="flex flex-wrap items-center gap-2">
-      {tabs}
-      {links.map((link) => {
-        const item = (
-          <Link to={link.to} className="v2-btn v2-btn-ghost">
-            {link.label}
-          </Link>
-        );
-        return link.wideOnly ? (
-          <span key={link.to} className="ml-auto hidden sm:block">
-            {item}
-          </span>
-        ) : (
-          <span key={link.to}>{item}</span>
-        );
-      })}
-    </nav>
-  );
-}
 
 function Pulse({ model }: { model: BoardModel }) {
   const { pulse, tv } = model;
@@ -219,9 +159,9 @@ function DayTiles({ today }: { today: BoardModel['today'] }) {
 }
 
 /**
- * The board drawn from its model: in the browser the inside of the Shell, whose header carries the title (the Desk
- * tabs and links, "Updated" and the sync pill, pulse card, columns, ages card, day tiles), or the TV's own frame (no
- * link at all, sr-only h1, clock, 16:9). `offline` adds the TV's "last numbers kept" line.
+ * The board drawn from its model: in the browser the inside of the Shell (`BrowserBoard`), or the TV's own frame (no
+ * link at all, sr-only h1, clock, 16:9), which the components here draw. `offline` adds the TV's "last numbers kept"
+ * line.
  */
 export function BoardView({
   model,
@@ -230,7 +170,7 @@ export function BoardView({
 }: {
   model: BoardModel;
   offline?: boolean;
-  /** The Desk's tabs, first in the row of links (browser only). */
+  /** The Desk's tabs, beside the links (browser only). */
   tabs?: ReactNode;
 }): ReactNode {
   const { t } = useTranslation();
@@ -263,22 +203,5 @@ export function BoardView({
         ) : null}
       </main>
     );
-  return (
-    <>
-      <Nav links={model.links} tabs={tabs} />
-      <div className="flex flex-wrap items-center gap-3">
-        <p className="board-sub">{model.updated}</p>
-        <SyncStatus />
-      </div>
-      <section className="board-card">
-        <Pulse model={model} />
-      </section>
-      {stops ? <Takeaway data={stops} /> : null}
-      {columns}
-      <Ages model={model} />
-      <div className="grid grid-cols-2 gap-4">
-        <DayTiles today={model.today} />
-      </div>
-    </>
-  );
+  return <BrowserBoard model={model} tabs={tabs} />;
 }
