@@ -70,6 +70,16 @@ export const plantEn = {
   'plant.shifts.hoursColumn': 'Hours',
   'plant.shifts.hours': '{{from}} to {{to}}',
   'plant.shifts.hoursOvernight': '{{from}} to {{to}} · crosses midnight',
+  'plant.shifts.crossesMidnight': 'Crosses midnight',
+  'plant.machines.takeaway':
+    '{{unset}} of {{total}} have no criticality; {{excluded}} not counted in production data.',
+  'plant.groups.takeaway': '{{name}} has {{n}} of {{total}} machines.',
+  'plant.groups.takeawayHidden': '{{name}} has {{n}} of {{total}} machines (hidden).',
+  'plant.shifts.takeaway': '{{count}} shifts = {{hours}} h against {{production}} production hours',
+  'plant.shifts.takeaway_one':
+    '{{count}} shift = {{hours}} h against {{production}} production hours',
+  'plant.shifts.takeawayOnly': '{{count}} shifts = {{hours}} h',
+  'plant.shifts.takeawayOnly_one': '{{count}} shift = {{hours}} h',
   'plant.shifts.hint': 'A Shift 2 job belongs to the day the shift started.',
   'plant.menu.translations': 'Translations',
   'plant.menu.translations.sub': 'Gujarati for keys without it',

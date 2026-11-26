@@ -8,12 +8,13 @@ import {
   type SegmentReply,
   type ShiftReply,
 } from '@uptimo/shared/plant-settings';
-import { putMachineCriticality } from '../../api.js';
-import type { CrudCtx, CrudSpec } from '../../patterns/crud-spec.js';
-import { Ban } from '../../ui/icon.js';
-import { MachineIcon } from '../../ui/machine-icon.js';
-import { TONE_FILL, segmentIcon } from '../../ui/meaning.js';
+import { putMachineCriticality } from '../../../api.js';
+import type { CrudCtx, CrudSpec } from '../../../patterns/crud-spec.js';
+import { Ban } from '../../../ui/icon.js';
+import { KeyPill, type PillTone } from '../../../ui/v2/key-pill.js';
+import type { IconName } from '../../../ui/v2/icons.js';
 import { ProductionSwitch, ProductionTag } from './machine-production.js';
+import { shiftHours } from './model.js';
 
 /** The plant settings screens, each one a config for `CrudPage` (D5): what the rows say and which fields a form asks. */
 
@@ -23,22 +24,30 @@ const rowsOf = <T,>(c: CrudCtx, name: string) => c.lookups[name] as T[];
 const segmentOf = (c: CrudCtx, id: string | null) =>
   rowsOf<SegmentReply>(c, 'segments').find((s) => s.id === id);
 
-function Chip({ children }: { children: string }) {
-  return (
-    <span
-      className={`inline-flex h-chip items-center whitespace-nowrap rounded-full px-3 text-caption font-semibold ${TONE_FILL.muted}`}
-    >
-      {children}
-    </span>
-  );
-}
-
 const criticalityChip = (row: MachineReply, c: CrudCtx) => (
-  <Chip>
-    {row.criticality
-      ? c.t('plant.machines.criticalityOf', { value: row.criticality })
-      : c.t('plant.machines.notSet')}
-  </Chip>
+  <KeyPill
+    text={
+      row.criticality
+        ? c.t('plant.machines.criticalityOf', { value: row.criticality })
+        : c.t('plant.machines.notSet')
+    }
+    tone={row.criticality ? 'neutral' : 'risk'}
+    icon={row.criticality ? undefined : 'alert'}
+  />
+);
+
+const STATUS: Record<MachineReply['status'], { tone: PillTone; icon: IconName }> = {
+  active: { tone: 'gain', icon: 'check' },
+  idle: { tone: 'neutral', icon: 'clock' },
+  scrapped: { tone: 'loss', icon: 'stop' },
+};
+
+const statusChip = (row: MachineReply, c: CrudCtx) => (
+  <KeyPill
+    text={c.t(`plant.machines.status.${row.status}`)}
+    tone={STATUS[row.status].tone}
+    icon={STATUS[row.status].icon}
+  />
 );
 
 /**
@@ -135,16 +144,13 @@ export const machinesSpec: CrudSpec<MachineReply> = {
   look: (row, c) => ({
     title: row.code,
     sub: [row.category, cellOf(row, c)].filter(Boolean).join(' · '),
-    lead: <MachineIcon segment={segmentOf(c, row.segmentId)?.code ?? ''} status="running" />,
-    chip: criticalityChip(row, c),
     tag: <ProductionTag row={row} />,
-    extra: <ProductionSwitch row={row} />,
   }),
   columns: [
     {
-      labelKey: 'plant.machines.cell',
-      cell: (row, c) => cellOf(row, c),
-      sortKey: (row) => row.cell ?? '',
+      labelKey: 'plant.machines.category',
+      cell: (row) => row.category ?? '',
+      sortKey: (row) => row.category ?? '',
     },
     {
       labelKey: 'plant.machines.criticality',
@@ -152,8 +158,18 @@ export const machinesSpec: CrudSpec<MachineReply> = {
       sortKey: (row) => row.criticality ?? 'Z',
     },
     {
+      labelKey: 'plant.machines.status',
+      cell: (row, c) => statusChip(row, c),
+      sortKey: (row) => row.status,
+    },
+    {
+      labelKey: 'plant.machines.cell',
+      cell: (row, c) => cellOf(row, c),
+      sortKey: (row) => row.cell ?? '',
+    },
+    {
       labelKey: 'plant.machines.production.column',
-      cell: (row) => <ProductionSwitch row={row} boxed />,
+      cell: (row) => <ProductionSwitch row={row} />,
       sortKey: (row) => Number(row.excludedFromProduction),
     },
   ],
@@ -212,19 +228,18 @@ export const groupsSpec: CrudSpec<GroupReply> = {
       cell: (row, c) => machineCount(c, row.id),
       sortKey: (row, c) => machineCount(c, row.id),
     },
+    {
+      labelKey: 'plant.groups.shown',
+      cell: (row, c) => (
+        <KeyPill
+          text={c.t(row.hidden ? 'plant.groups.hidden' : 'plant.groups.shown')}
+          tone={row.hidden ? 'neutral' : 'gain'}
+          icon={row.hidden ? 'stop' : 'check'}
+        />
+      ),
+      sortKey: (row) => Number(row.hidden),
+    },
   ],
-  section: (row, c) => {
-    const segment = segmentOf(c, row.segmentId);
-    const Icon = segmentIcon(segment?.code ?? '');
-    const n = rowsOf<MachineReply>(c, 'machines').filter(
-      (m) => m.segmentId === row.segmentId,
-    ).length;
-    return {
-      key: row.segmentId,
-      title: `${segment?.name ?? ''} · ${c.t('plant.groups.machineCount', { count: n })}`,
-      lead: <Icon aria-hidden size={18} />,
-    };
-  },
 };
 
 const hours = (row: ShiftReply, c: CrudCtx) =>
@@ -248,5 +263,20 @@ export const shiftsSpec: CrudSpec<ShiftReply> = {
     { name: 'endsAt', labelKey: 'plant.shifts.endsAt', required: true, kind: 'time' },
   ],
   look: (row, c) => ({ title: row.name, sub: hours(row, c) }),
-  columns: [{ labelKey: 'plant.shifts.hoursColumn', cell: (row, c) => hours(row, c) }],
+  columns: [
+    { labelKey: 'plant.shifts.startsAt', cell: (row) => row.startsAt, sortKey: (r) => r.startsAt },
+    { labelKey: 'plant.shifts.endsAt', cell: (row) => row.endsAt },
+    {
+      labelKey: 'plant.shifts.hoursColumn',
+      cell: (row, c) => (
+        <>
+          {shiftHours(row.startsAt, row.endsAt)}{' '}
+          {row.crossesMidnight ? (
+            <KeyPill text={c.t('plant.shifts.crossesMidnight')} tone="neutral" icon="clock" />
+          ) : null}
+        </>
+      ),
+      sortKey: (row) => shiftHours(row.startsAt, row.endsAt),
+    },
+  ],
 };

@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import type { PlantPage } from '../../settings/Plant.js';
 import { JobsView } from './JobsView.js';
+import { GroupsView, MachinesView, ShiftsView } from '../settings-plant/View.js';
 import { LadderView, PmPlansView, RegistersView, RosterView } from '../settings-upkeep/View.js';
 
 /**
@@ -11,6 +12,9 @@ export const V2_VIEWS: Partial<Record<PlantPage, ComponentType>> = {
   // S26-1
   jobs: JobsView,
   // S26-2
+  machines: MachinesView,
+  groups: GroupsView,
+  shifts: ShiftsView,
   // S26-3
   'pm-plans': PmPlansView,
   registers: RegistersView,

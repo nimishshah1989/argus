@@ -46,3 +46,55 @@
   outline: 2px solid var(--color-v2-focus);
   outline-offset: 2px;
 }
+/* A row's own switch: a 44 px tap target around a 32 px pill; on fills with the accent. */
+.v2-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 52px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.v2-switch:focus-visible {
+  outline: 2px solid var(--color-v2-focus);
+  outline-offset: 2px;
+}
+.v2-switch-track {
+  position: relative;
+  width: 52px;
+  flex: none;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--color-v2-ink-3);
+  transition: background var(--motion-v2-fast);
+}
+.v2-switch-track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-v2-panel);
+  transition: left var(--motion-v2-fast);
+}
+.v2-switch[aria-checked='true'] .v2-switch-track {
+  background: var(--color-v2-accent);
+}
+.v2-switch[aria-checked='true'] .v2-switch-track::after {
+  left: 22px;
+}
+.v2-switch:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+@media (prefers-reduced-motion: reduce) {
+  .v2-switch-track,
+  .v2-switch-track::after {
+    transition: none;
+  }
+}
