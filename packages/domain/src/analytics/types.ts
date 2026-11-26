@@ -160,6 +160,12 @@ export interface WhyWhyRow {
   completedDate: string;
 }
 
+/** The cause a person decided for one breakdown on a young machine (ADR 0051): the latest `oem_cause` event. */
+export interface OemCauseRow {
+  ticketId: string;
+  cause: 'oem' | 'install' | 'ours' | 'undecided';
+}
+
 /**
  * One saved Action Center acknowledgement (ticket 44): the status the plant chose for one nudge key, who owns it,
  * the plant date it is due, a note and the instant it was saved. A snooze also carries the instant it opens again.
@@ -291,6 +297,8 @@ export interface EngineData {
   settings?: EngineSettings;
   /** The saved Why-Why records, latest per ticket; a ticket with no record is a candidate A6 shows as not started. */
   whyWhy?: readonly WhyWhyRow[];
+  /** The OEM causes people decided, latest per ticket (ADR 0051). Absent or missing a ticket: not decided. */
+  oemCauses?: readonly OemCauseRow[];
   /** The plant events (ticket 91): power and air failures, each with the machines it stopped. Absent: none. */
   plantEvents?: readonly PlantEventRow[];
   /**

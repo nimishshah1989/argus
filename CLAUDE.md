@@ -48,7 +48,7 @@ Build folders have no `tests/holdout/` (hidden tests); CI runs them. Hooks keep 
 ## 5. Nothing important lives only in chat
 
 - A decision made in conversation becomes an ADR in the same session. A new term goes in GLOSSARY.md. Progress goes in HANDOFF.md. If it isn't in a file, assume the next session won't know it.
-- One task per session. At the context budget (default 150k) the hook stops you: write the handoff and end; the next session continues from it.
+- One task per session. At the context budget (350k here; the plugin default is 150k) the hook stops you: write the handoff and end; the next session continues from it.
 
 ## 6. Proof, not opinion
 

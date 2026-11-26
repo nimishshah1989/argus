@@ -26,6 +26,7 @@ import { say, strong } from '../printed-page/segs.js';
 import { kpiOf, verdictOf } from '../printed-page/verdict.js';
 import { pageWords } from '../printed-page/words.js';
 import type { ManpowerModel } from './model.js';
+import { sumText } from './sweep.js';
 
 /** The engine's figure this screen is built from. */
 export const FIGURE = 'a4-manpower';
@@ -54,9 +55,8 @@ export function sectionOf(title: string, halves: readonly string[]): string | un
   return MONTHLY[title];
 }
 
-const whole = (n: number) => n.toLocaleString('en-IN');
-const oneDecimal = (n: number) =>
-  n.toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const whole = (n: number) => sumText(n, 0);
+const oneDecimal = (n: number) => sumText(n, 1);
 const isTotal = (row: PrintedTable['rows'][number]) => /^plant total/i.test(row[0]?.text ?? '');
 
 /** One item per person: the cell of `column` as printed, the PLANT TOTAL row and cells with no digit left out. */

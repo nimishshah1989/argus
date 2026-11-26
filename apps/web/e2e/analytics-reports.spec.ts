@@ -90,12 +90,10 @@ async function stubPdf(page: Page): Promise<void> {
   );
 }
 
-/** Both report charts are drawn ready by the one chart kit. */
-async function expectCharts(page: Page): Promise<void> {
-  const charts = page.getByTestId('chart');
-  await expect(charts).toHaveCount(2);
-  for (const chart of await charts.all())
-    await expect(chart).toHaveAttribute('data-chart-state', 'ready');
+/** The annual report's two charts are kit pieces (bars as labelled lists, as the 763 seed decided for the monthly). */
+async function expectAnnualCharts(page: Page): Promise<void> {
+  for (const id of ['months-chart', 'machines-chart'])
+    await expect(page.locator(`[data-section="${id}"]`).getByRole('list').first()).toBeVisible();
 }
 
 test('a head opens the reports, switches to the annual report, reads both keys and follows the PDF link', async ({
@@ -107,16 +105,13 @@ test('a head opens the reports, switches to the annual report, reads both keys a
   await signIn(page, 'head');
   await page.goto('/analytics/reports');
 
-  // The monthly report opens by default: its switch, period line, title, tables and charts.
-  const nav = page.getByRole('navigation', { name: 'Screens in Reports', exact: true });
-  await expect(nav.getByRole('link', { name: 'Monthly report', exact: true })).toHaveAttribute(
-    'aria-current',
-    'page',
-  );
-  await expect(page.getByText('October 2026', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: MONTHLY_PAGE.title, exact: true })).toBeVisible();
+  // The monthly report opens by default: the v2 printed page (ticket 763), its tab pressed, period line, title,
+  // commentary and both links. Its charts are kit pieces (no chart-shape assertion, as the 763 seed decided).
+  const monthlyTab = page.getByRole('button', { name: 'Monthly report', exact: true });
+  await expect(monthlyTab).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('paragraph').filter({ hasText: /^October 2026$/ })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Monthly report' })).toBeVisible();
   await expect(page.getByRole('heading', { name: COMMENTARY, exact: true })).toBeVisible();
-  await expectCharts(page);
 
   const pdf = page.getByRole('link', { name: 'Download PDF', exact: true });
   await expect(pdf).toHaveAttribute('href', '/api/v1/reports/monthly.pdf');
@@ -124,28 +119,45 @@ test('a head opens the reports, switches to the annual report, reads both keys a
     page.getByRole('link', { name: 'Export the whole data set (Excel)', exact: true }),
   ).toHaveAttribute('href', '/api/v1/reports/workbook.xlsx');
 
-  // The monthly key's first machine row, cell for cell.
-  const machines = page.getByRole('table', { name: MACHINE_RANK.title, exact: true }).first();
+  // The monthly key's first machine row (the first "Where the time went" table is the machines'). It opens on the
+  // wireframe's default columns, worst first: Machine, Hours, Against <previous month>, Breakdowns.
+  const machines = page.getByRole('region', { name: MACHINE_RANK.title, exact: true }).first();
+  await expect(machines.getByRole('columnheader').nth(2)).toContainText('Against ');
   const firstMachine = machines.getByRole('row').nth(1);
-  await expect(firstMachine.getByRole('cell')).toHaveCount(MACHINE_RANK.header.length);
+  for (const [index, label] of ['Machine', 'Hours', 'Change', 'Breakdowns'].entries())
+    await expect(firstMachine.getByRole('cell').nth(index)).toHaveText(
+      MACHINE_RANK.rows[0]![MACHINE_RANK.header.indexOf(label)]!,
+    );
+  // The whole table, Prev. hrs included, opens under the section's "Show detail": the same row, cell for cell.
+  const whole = machines.locator('xpath=following-sibling::details[1]');
+  await whole.getByText('Show detail', { exact: true }).click();
+  const firstWhole = whole.getByRole('table').getByRole('row').nth(1);
   for (const [index, cell] of MACHINE_RANK.rows[0]!.entries())
-    await expect(firstMachine.getByRole('cell').nth(index)).toHaveText(cell);
+    await expect(firstWhole.getByRole('cell').nth(index)).toHaveText(cell);
 
-  // Switch to the annual report: its period line, title, commentary caption and charts.
-  await nav.getByRole('link', { name: 'Annual report', exact: true }).click();
+  // Switch to the annual report (the v2 printed page since ticket 765): its tab pressed, period line, title,
+  // commentary and charts.
+  const tabs = page.getByRole('group', { name: 'Screens in Reports', exact: true });
+  await tabs.getByRole('button', { name: 'Annual report', exact: true }).click();
   await expect(page).toHaveURL(/screen=annual-report/);
-  await expect(nav.getByRole('link', { name: 'Annual report', exact: true })).toHaveAttribute(
-    'aria-current',
-    'page',
+  await expect(tabs.getByRole('button', { name: 'Annual report', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
   );
-  await expect(page.getByText('2026 to 11 November', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: ANNUAL_PAGE.title, exact: true })).toBeVisible();
+  // The period line (the lede names the period too, so the line is found as its own paragraph, as the monthly one is).
+  await expect(
+    page.getByRole('paragraph').filter({ hasText: /^2026 to 11 November$/ }),
+  ).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Annual report' })).toBeVisible();
   await expect(page.getByRole('heading', { name: COMMENTARY, exact: true })).toBeVisible();
-  await expectCharts(page);
+  await expectAnnualCharts(page);
   await expect(pdf).toHaveAttribute('href', '/api/v1/reports/annual.pdf');
 
-  // The annual key's Months-in-top-5 row: its machine and its count.
-  const top = page.getByRole('table', { name: TOP_MACHINES.title, exact: true });
+  // The annual key's Months-in-top-5 row: its machine and its count. The section shows five columns; the whole table,
+  // Months in top 5 included, opens under "Show the numbers".
+  const machinesSection = page.locator('[data-section="machines"]');
+  await machinesSection.getByText('Show the numbers', { exact: true }).click();
+  const top = machinesSection.getByRole('group').getByRole('table');
   const firstTop = top.getByRole('row').nth(1);
   await expect(firstTop.getByRole('cell').nth(1)).toHaveText(TOP_MACHINES.rows[0]![1]!);
   await expect(firstTop.getByRole('cell').nth(MONTHS_IN_TOP)).toHaveText(

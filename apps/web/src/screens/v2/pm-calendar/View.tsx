@@ -1,6 +1,8 @@
 /* eslint-disable i18next/no-literal-string -- entity kinds, role names and typed unions only; every visible word comes from the model */
 import { lazy, Suspense, useContext, useState } from 'react';
+import { DOC_REF } from '@uptimo/shared/doc-ref';
 import type { CalendarRange } from '../../../ui/v2/domain/calendar-events.js';
+import { DownloadExcel } from '../../../ui/v2/download-excel.js';
 import { DrillAction } from '../../../ui/v2/drill-action.js';
 import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
 import { EntityOpenContext } from '../../../ui/v2/entity-chip.js';
@@ -10,6 +12,7 @@ import { Panel } from '../../../ui/v2/panel.js';
 import { Segs } from '../../../ui/v2/points.js';
 import { Row } from '../../../ui/v2/row.js';
 import { Skeleton } from '../../../ui/v2/screen-states.js';
+import { ShowDetail } from '../../../ui/v2/show-detail.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
 import { EntityShell } from '../entity/EntityShell.js';
@@ -17,6 +20,7 @@ import { MoveFailed } from './move.js';
 import { MovePanel, useRestoreFocus } from './move-panel.js';
 import type { Judged, PmCalendarModel, PmJob, PmMoveRequest } from './model.js';
 import { leave, settleMove } from './settle.js';
+import { pmSheets } from './sweep.js';
 import { JobsTable, SpreadTable } from './tables.js';
 
 /** The calendar library is reached only through this `import()`: its chunk loads when a calendar is on screen. */
@@ -149,6 +153,28 @@ function useMoves(model: PmCalendarModel, onMove: (r: PmMoveRequest) => Promise<
   return { note, busy, run, drop, clear: () => setNote(null) };
 }
 
+/** The page's figures: the first four in a row, the rest under "Show detail". */
+function Figures({ figures }: { figures: PmCalendarModel['figures'] }) {
+  return (
+    <>
+      <Row cols={4}>
+        {figures.slice(0, 4).map((figure) => (
+          <FigureTile key={figure.id} figure={figure} />
+        ))}
+      </Row>
+      {figures.length > 4 ? (
+        <ShowDetail>
+          <Row cols={4}>
+            {figures.slice(4).map((figure) => (
+              <FigureTile key={figure.id} figure={figure} />
+            ))}
+          </Row>
+        </ShowDetail>
+      ) : null}
+    </>
+  );
+}
+
 /**
  * The PM calendar: how PM is doing and how many jobs share a day, the month with a drag to move a job, how the
  * compliance was judged, the crowded days with their nearest free day, and every job of the month with a keyboard
@@ -180,11 +206,7 @@ export function PmCalendarView({
   return (
     <EntityShell nav={nav} title={title}>
       <Verdict verdict={model.verdict} whyLabel={model.words.why} />
-      <Row cols={4}>
-        {model.figures.map((figure) => (
-          <FigureTile key={figure.id} figure={figure} />
-        ))}
-      </Row>
+      <Figures figures={model.figures} />
       {model.drill ? <DrillAction drill={model.drill} /> : null}
       <Notes note={ownRefusal(note, chosen) ? null : note} />
       <CalendarPanel model={model} loading={loading} busy={busy} onRange={onRange} onDrop={drop} />
@@ -204,6 +226,9 @@ export function PmCalendarView({
           onClose={() => setChosen(null)}
         />
       ) : null}
+      <div>
+        <DownloadExcel file="pm-calendar" sheets={pmSheets(model)} docRef={DOC_REF.pm} />
+      </div>
       <JobsTable model={model} onChoose={choose} />
       <SourceLine text={model.source} />
     </EntityShell>

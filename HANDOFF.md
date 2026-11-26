@@ -2,28 +2,33 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-25 · **By:** Plan · **Model:** Opus 5.5
-**Milestone:** M2b screens lane · **Branch:** plan/v2-floor-desk (stopped at context budget)
+**Updated:** 2026-11-26 11:20 IST · **By:** release session `local_abd659d2…` (context full) · **Goal (Nimish):** all screens live on the newest kit, nothing old remains · **Branch:** plan/handoff-s26b
 
 ## State
 
-- Plan PR #764 (this branch). Nimish's S27-S30 approvals (25 Nov) are NOT in it: the loop guard blocks Plan from staging the approvals file; it is still uncommitted in the main checkout.
-- Coverage tables written from the v1 code + e2e specs: `docs/design/v2/scope/{floor,desk,ticket,board}.md` (0 MISSING rows that drop v1 scope; each lists "Unbuilt from the wireframe" items needing Nimish's written yes, and "Selectors the e2e specs rely on").
-- ADR 0045 decides the split: 6 tickets (S27-A, S27-B, S28-A, S28-B, S29, S30), files, kept logic, which v1 tests the seeds retarget, and that locked control-order specs (`e2e/gallery/floor-order-lists.ts`, `desk-order.spec.ts`, `board-settings-order.spec.ts`) win over the wireframe.
-- **No issues and no seed branches created yet.**
+- Staging serves a5c83744 = main (health checked). Merged 26 Nov: #805 #806 #808 #811 #804 #809 #820 #807 #821. Nimish merges some himself (#806 went in red; #811 fixed it).
+- Still old: Desk Mine + Team (#770), Settings sub-pages (#789-#795), OEM not live (#812-#815), /who, /password, analytics fallback, dead v1 code (#816-#819).
+- #822 (#795) open, conflicting: merge main and `origin/plan/t795` in a throwaway worktree (seed renamed `fixture.ts` to `fixture-rows.ts`).
+- OEM: ADR 0051. Seeds `plan/t812`-`t819` pushed. Order: #816 #817 #818, #812 #813, #814 (after #812), #815 (after #813 + #814), #819 last. Bhavin owes the claim-amount rule.
+- Merge rule: ADR 0050.
+- Tests: #811 #804 #809 #807 #821 passed test shards, static, secrets and critical-only review (#809, #807: `loop-guard` red, not critical). Screens not opened by eye.
 
-## Next
+## Next steps (RELEASE role: owns this file and all merges)
 
-1. `loop ci 764`, merge when green. Get the approvals committed by an allowed route (Nimish runs `loop approve`).
-2. New Plan session: create the 6 issues from ADR 0045 "Tickets" (loop-ticket format; builder notes: dontAsk, no heredocs/redirects/subshells/brace lists; handoff `## Blocked` reads exactly `None.`), then seed `plan/t<N>` each: skeleton `model.ts`/`View.tsx`, visible `view.test.ts` + `insight.test.ts`, hidden `screens/v2/holdout/<screen>-*.test.ts`, and the test retargets ADR 0045 names (T3: `TasksList.test.ts`; T4: `team-waiting.test.ts`, `fetch-guard.test.ts:17`). Prove red, lint, push.
-3. Coordinator: ask Nimish for written yes/no on each scope file's "Unbuilt from the wireframe" rows.
+1. Merge #823 (ADR 0050 + handoff; conflict with main resolved) when `gh pr checks` is green.
+2. Build session (or, if none, finish built work): #822, #789, #770, #790; then #791-#794 one at a time; then #812-#819.
+3. Review (critical-only), merge, confirm `/api/v1/health`, then `loop clean <N>`. Build handover: `~/Library/Application Support/Claude/side-session-notes/local_7710e647-bb9d-4008-ab43-c6a316dec3ff/build-handover.md`.
+4. Fold its "Don't repeat" into LESSONS.md. Older follow-ups: comment on #751, S26-1; #800's handoff says #782 merged with no review (no late one recorded).
 
 ## Blocked
 
-None.
+- New building: the build session `local_975943c3…` stopped (context full) and its replacement card is not started. Release card `task_40f525ec` also not started.
 
 ## Don't repeat
 
-- Builders cannot modify or delete existing tests (`.github/loop/check_pr.py`): every e2e/unit test edit goes on the seed.
-- v1 floor has no offline send queue and no lockout (ADR 0045 §6); the server already serves `GET /api/v1/tickets/:id/pdf`.
-- The inventory seed notes were in this session's scratchpad only; the facts needed are in ADR 0045 and the scope files.
+- `loop ci` says "CI GREEN" with shards pending or GitHub unreachable: check `gh pr checks` and `mergeStateStatus`.
+- `engine-scale.test.ts` (20 s) fails on a busy Mac and burns a `loop finish` attempt. If the branch holds all of origin, push without force and let CI judge.
+- `loop finish` force-pushes: pull a behind build folder first. Never run `loop finish 763` again.
+- Deploy build crashes at random (`qemu` exit 132): `gh run rerun <id> --failed`. A handoff "Blocked" section in a builder note reads exactly `None.`.
+- Merge conflicts: throwaway worktree outside `.loop/wt`; never switch branches in the main checkout. New keys in a shipped namespace need Gujarati.
+- The app auto-archives sessions on PR close (setting on).
