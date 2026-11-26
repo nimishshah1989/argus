@@ -8,7 +8,10 @@ import { MOTION } from './motion.js';
 import {
   ExpandButton,
   FoldRow,
+  LookCell,
   MeasureCell,
+  looksOf,
+  type Looks,
   TableBar,
   TableHead,
   TablePager,
@@ -21,6 +24,7 @@ import { Takeaway, type Meaning, type TakeawayData } from './takeaway.js';
 import type { Status } from './status.js';
 import { applyFilters, optionsOf, type TableSelect } from './table-filters.js';
 import { SelectField } from './select-field.js';
+import type { ColumnLook } from './table-look.js';
 
 export type Column<R> = {
   key: string;
@@ -35,6 +39,11 @@ export type Column<R> = {
    * ranks worst first, marks the worst row, draws the number as a bar and folds the tail.
    */
   meaning?: Meaning & { value: (row: R) => number };
+  /**
+   * How the column colours itself (ADR 0058): a meaning bars its numbers and marks its top rows, `category` makes its
+   * words pills, `plain` leaves an id, a date or a count alone. Absent: plain, or the measure's own meaning.
+   */
+  look?: ColumnLook;
   /** What the cell's figure means (ADR 0036): the cell's `<td>` wears it as `data-status`; absent → no attribute. */
   status?: (row: R) => Status;
 };
@@ -240,6 +249,7 @@ function DataRow<R>({
   largest,
   pill,
   worst,
+  looks,
 }: {
   t: TableProps<R>;
   row: R;
@@ -248,6 +258,7 @@ function DataRow<R>({
   largest: number;
   pill?: TakeawayData;
   worst: boolean;
+  looks: Looks<R>;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -266,9 +277,15 @@ function DataRow<R>({
             data-status={c.status?.(row)}
           >
             {c.meaning ? (
-              <MeasureCell column={c} row={row} largest={largest} pill={worst ? pill : undefined} />
+              <MeasureCell
+                column={c}
+                row={row}
+                largest={largest}
+                pill={worst ? pill : undefined}
+                top={looks.ranked === c.key && looks.top.has(row)}
+              />
             ) : (
-              c.cell(row)
+              <LookCell column={c} row={row} looks={looks} />
             )}
           </td>
         ))}
@@ -291,6 +308,7 @@ function TableRows<R>({
   worst,
   fold,
   onUnfold,
+  sorted,
 }: {
   t: TableProps<R>;
   rows: R[];
@@ -298,8 +316,11 @@ function TableRows<R>({
   worst?: R;
   fold?: Fold;
   onUnfold: () => void;
+  /** The column the reader sorted by, which then decides the marked top rows. */
+  sorted?: string;
 }) {
   const m = measureOf(t.columns)?.meaning;
+  const looks = looksOf(t.columns, t.rows, sorted);
   const largest = m ? Math.max(...t.rows.map(m.value)) : 0;
   const pill = t.takeaway?.tone === 'loss' || t.takeaway?.tone === 'risk' ? t.takeaway : undefined;
   return (
@@ -314,6 +335,7 @@ function TableRows<R>({
           largest={largest}
           pill={pill}
           worst={worst !== undefined && row === worst}
+          looks={looks}
         />
       ))}
       {fold ? (
@@ -389,6 +411,7 @@ export function DataTable<R>(props: TableProps<R>) {
             worst={worst}
             fold={fold}
             onUnfold={unfold}
+            sorted={ask.sort?.key}
           />
           {props.total ? <TotalFoot columns={columns} cells={props.total} /> : null}
         </table>

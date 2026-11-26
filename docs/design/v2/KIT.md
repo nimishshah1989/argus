@@ -48,6 +48,12 @@ How to read an entry: **For** is what the part does. **Pick it when** says when 
 - **Pick it when:** a screen's model has to print a number the engine did not print itself. Figures the engine already printed are shown as sent.
 - **Used by:** bd-pm, compare, dashboard, energy, manpower, problem-analysis, shift-kpis.
 
+### Table looks — `table-look.ts`
+
+- **For:** how a table column colours itself (ADR 0058). `ColumnLook` is a meaning (`loss`, `gain`, `risk`, `plan`, `neutral`), `category` or `plain`. `lookOfHeader(label, numeric, title)` reads it from an engine header (the builders in `printed-page/table.ts` and `figures/table.ts` call it); `catOf(word)` gives a word its fixed category colour (1 to 5); `tidyCell(node)` makes sure no raw float ("0.6666666666666666") reaches a cell, printing it through `exact`.
+- **Pick it when:** a screen builds `Column`s or a `TableModel` header with translated labels: give each number column a `look` (the kit cannot read a translated header). `table-look.test.ts` fails on a number column without one.
+- **Used by:** kit: `table-parts.tsx`, `data-table.tsx`, `paged-table.tsx`, `domain/engine-table.tsx`, `domain/printed-table.tsx`; dashboard, breakdown-log.
+
 ### Icons — `icons.tsx` (`Icon`)
 
 - **For:** the v2 icon set: one stroke weight, sized to the text beside it, drawn in the text's colour. Each entity (machine, cell, person, decision) has its own icon. Icons are decoration: a word or the control's name always says what they mean.
@@ -65,6 +71,14 @@ How to read an entry: **For** is what the part does. **Pick it when** says when 
 - **Pick it when:** never directly in a screen; screens use `EntityShell` (below), which wraps `Shell` and wires the drawer to the URL. `Shell` is the plain frame for a preview or test.
 - **Key props:** `nav` (rail items: `id`, `label`, `icon`, `href`, `current`, `end` for the foot of the rail), `title`, `plant`, `search` (pages for the search; none means no search box), `at` (current address, closes menus on change), `alerts` and `onAlerts`, `drawer` (a `DrawerSpec` or null).
 - **Used by:** entity (through `EntityShell`). Also exports `NavigateContext`, which routes rail and search links without a page reload.
+- **On this page (ADR 0058):** the Shell reads every titled part of the page (each `h2` inside it: a `SectionHead`, a `Panel`, a table's or a chart card's title) into `OnThisPage`, and adds them to the ⌘ K search ("Repeat offenders" jumps there). Nothing to pass.
+
+### `OnThisPage` — `on-this-page.tsx`
+
+- **For:** the page's own index (Nimish, 26 Nov: "it will be so hard for someone to even remember where is what"). From 1280 px a sticky rail at the right lists the sections, the one being read marked; below that, or while the drawer is open, a compact jump menu sits at the top of the page. A click scrolls there, focuses the heading and puts `#section` in the address, so a link to a section works. Under 3 sections it shows nothing.
+- **Pick it when:** never directly; the `Shell` draws it. `sectionsIn`, `useSections`, `useCurrent` and `jumpTo` are its parts.
+- **Key props:** `sections` (`PageSection`: `id`, `title`), `current`, `place` (`rail` or `jump`).
+- **Used by:** kit-internal: `shell.tsx`.
 
 ### `EntityShell` and its drawer — `../../screens/v2/entity/EntityShell.tsx`
 
@@ -202,7 +216,7 @@ How to read an entry: **For** is what the part does. **Pick it when** says when 
 
 ### `Quadrant` — `quadrant.tsx`
 
-- **For:** a four-quadrant chart: points placed on two axes, two split lines, each quadrant named, and the worst points labelled.
+- **For:** a four-quadrant chart: points placed on two axes, two split lines, each quadrant named, and the points that matter labelled: the often-and-long ones, then the three biggest by x × y, at most six. `placeLabels` (in `bubble-math.ts`) keeps every label clear of every other label and every dot, with a leader line when one moves off its dot's line; a long name is cut with "…" and keeps the whole name on hover. Every point is in the card's "Show the numbers" for the keyboard.
 - **Pick it when:** sorting things by two measures at once (frequent and long, rare and short). Replaces bubble charts for new work.
 - **Key props:** `points` (`key`, `label`, `x`, `y`), `split {x, y}`, `names` (one per quadrant), `axis {x, y}`, `aria`.
 - **Used by:** problem-analysis.
@@ -217,6 +231,7 @@ How to read an entry: **For** is what the part does. **Pick it when** says when 
 ### `DataTable` — `data-table.tsx`
 
 - **For:** the kit's table when all rows are in the browser: search, filter chips, optional dropdown filters, sort, ten rows a page, sticky header, numbers right-aligned. A row opens the drawer; rows re-flow when filters change. Under 10 rows it drops search and pager. It can open with a takeaway line, expand a row in place, and carry a total footer.
+- **Colours itself (ADR 0058):** each `Column`'s `look` decides its cells. A number column with a meaning gets a bar scaled to the column (a tint in a table with more than four of them); the column the table is ranked by (the chosen sort, else the measure, else the first coloured column) marks its top three rows in the meaning's colour and weight (loss red, gain green). A `category` column's words are pills in their fixed colour. `plain` (and no look) stays as it is. No raw float prints.
 - **Pick it when:** any list of rows the page already holds. If the server pages the rows, use `PagedTable`; if the engine printed the table, use `domain/EngineTable` or `domain/PrintedDataTable`, which wrap this one.
 - **Key props:** `rows`, `rowKey`, `rowLabel`, `columns` (`Column`), `filters` (`FilterChip`), `text` (what search matches), `words`, `initialSort`, `selected`, `headed`, `aside`, `onOpen`, `takeaway`, `expand`, `total`, `selects`, `more`.
 - **Used by:** action-center, data-checklist, fix-finder, pm-calendar, settings-audit, settings-lists, team-focus, why-why; kit: `crud-page.tsx`, `domain/engine-table.tsx`, `domain/machine-table.tsx`, `domain/printed-table.tsx`, `domain/rows-behind.tsx`.
@@ -260,7 +275,7 @@ How to read an entry: **For** is what the part does. **Pick it when** says when 
 
 - **For:** a small coloured pill with a word and optional icon. Always means something; the word says it, not just the colour.
 - **Pick it when:** a tag or status on a row or card. For a status from the shared status list use `StatusPill`; for a thing that opens use `EntityChip`.
-- **Key props:** `text`, `tone` (`loss`, `gain`, `risk`, `plan`, `decide`, `neutral`), `icon`.
+- **Key props:** `text`, `tone` (`loss`, `gain`, `risk`, `plan`, `decide`, `neutral`), `icon`, `cat` (1 to 5: a category's fixed colour as a dot before the word, from `catOf`).
 - **Used by:** action-center, annual-report, board, breakdown-log, compare, desk-settings, guide, machine, pm-calendar, settings, settings-audit, settings-lists, settings-people, settings-plant, team-focus, ticket, why-why; and many kit parts.
 
 ### `StatusPill` — `status-pill.tsx`

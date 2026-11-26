@@ -84,9 +84,9 @@ export function costliestOf(
   const title = t('v2d.costliest.title');
   const header = [
     { label: t('analytics.content.costliest.problem'), numeric: false },
-    { label: t('analytics.content.costliest.hours'), numeric: true },
-    { label: t('analytics.content.costliest.share'), numeric: true },
-    { label: t('analytics.content.costliest.breakdowns'), numeric: true },
+    { label: t('analytics.content.costliest.hours'), numeric: true, look: 'loss' as const },
+    { label: t('analytics.content.costliest.share'), numeric: true, look: 'loss' as const },
+    { label: t('analytics.content.costliest.breakdowns'), numeric: true, look: 'loss' as const },
   ];
   const drill = figure.status === 'ready' ? drillOf(figure, t) : undefined;
   const added = change.delta.text === '' ? null : `${change.delta.text} ${change.period}`;
@@ -176,10 +176,10 @@ export function machinesTable(
   const header = [
     { label: t('v2d.machines.col.machine'), numeric: false },
     { label: t('v2d.machines.col.model'), numeric: false },
-    { label: t('v2d.machines.col.age'), numeric: true },
-    { label: t('v2d.machines.col.hours'), numeric: true },
-    { label: t('v2d.machines.col.breakdowns'), numeric: true },
-    { label: t('v2d.machines.col.mttr'), numeric: true },
+    { label: t('v2d.machines.col.age'), numeric: true, look: 'plain' as const },
+    { label: t('v2d.machines.col.hours'), numeric: true, look: 'loss' as const },
+    { label: t('v2d.machines.col.breakdowns'), numeric: true, look: 'loss' as const },
+    { label: t('v2d.machines.col.mttr'), numeric: true, look: 'loss' as const },
   ];
   const rows = [...points]
     .sort((a, b) => b.x - a.x)
@@ -254,8 +254,8 @@ export function needsOf(
     { label: t('v2d.needs.col.machine'), numeric: false },
     { label: t('v2d.needs.col.ticket'), numeric: false },
     { label: t('v2d.needs.col.problem'), numeric: false },
-    { label: t('v2d.needs.col.kind'), numeric: false },
-    { label: t('v2d.needs.col.time'), numeric: true },
+    { label: t('v2d.needs.col.kind'), numeric: false, look: 'category' as const },
+    { label: t('v2d.needs.col.time'), numeric: true, look: 'risk' as const },
     { label: t('v2d.needs.col.clock'), numeric: false },
   ];
   const clocks = [

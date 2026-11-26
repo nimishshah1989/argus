@@ -24,6 +24,9 @@ show layout and behaviour; where they differ from this page on sizes, weights or
 - **Key pointers** are pills visible without clicking (`KeyPill`): a short word on a tint, with an icon when they name a state.
 - **Drawer.** One item at a time, 420 px. The page reflows. ✕, Esc or the same item closes it, and focus goes back.
 - **Tables.** Search, 2 to 4 filter chips, sort on the meaningful columns, 10 rows a page, sticky header, numbers right, a row opens the drawer.
+- **Tables colour themselves** (ADR 0058). Each column declares its `look`: a meaning bars its numbers and marks the top three of the ranked column in that colour (loss red, gain green); a category's words are pills in their fixed colour; ids, dates and plain counts stay plain. A screen never colours a cell by hand.
+- **On this page** (ADR 0058). Every titled part of a page is in its index without asking: a sticky rail at the right on a wide screen, a jump menu at the top on a phone, and in ⌘ K search. Give each part a real title; that is the whole job.
+- **Chart labels never collide** (ADR 0058). A chart names only the points that matter and places each label clear of every other label and dot; the rest are named on hover and in "Show the numbers"
 - **Motion.** Only from `ui/v2/motion.ts` and `motion.css`:
   - numbers tick up on first load and between values on update;
   - charts draw in once;
@@ -61,6 +64,7 @@ apps/web/src/screens/v2/data.ts   add the key to `Screens` and its provider to `
 | Need                                                  | Part                                                                                                    |
 | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | App frame: rail, glass header, search, alerts, drawer | `Shell` (`shell.tsx`), `Drawer`                                                                         |
+| Where each part of a long page is                     | `OnThisPage`, drawn by the `Shell` from the page's titles: nothing to add                               |
 | The answer sentence and its Why                       | `Verdict`, `WhyToggle` / `WhyButton` + `WhyPanel`, `Points` (typed rich text)                           |
 | A key figure with delta, meaning, trend               | `KpiCard`, `Sparkline`                                                                                  |
 | A titled card; cards side by side                     | `Panel`, `Row` (`cols` 2, 3, 4, or `wide`)                                                              |

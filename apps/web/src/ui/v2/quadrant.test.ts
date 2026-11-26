@@ -24,7 +24,7 @@ describe('Quadrant (ADR 0036 R21)', () => {
     expect(offenders(points, split, 2).map((x) => x.key)).toEqual(['c', 'b']);
   });
 
-  it('names every quadrant once and labels only the offenders', () => {
+  it('names every quadrant once and labels the offenders and the biggest by x × y', () => {
     const points = [p('a', 11, 6), p('b', 30, 5), p('d', 2, 50), p('e', 50, 1)];
     const html = renderToStaticMarkup(
       createElement(Quadrant, { points, split, names, axis: { x: 'AX', y: 'AY' }, aria: 'chart' }),
@@ -32,7 +32,8 @@ describe('Quadrant (ADR 0036 R21)', () => {
     for (const name of Object.values(names)) expect(count(html, name)).toBe(1);
     expect(html).toContain('>L-a</text>');
     expect(html).toContain('>L-b</text>');
-    expect(html).not.toContain('>L-d</text>');
+    // d is rare but long: 2 × 50 = 100, among the three biggest (b 150, d 100, a 66), so it is named too.
+    expect(html).toContain('>L-d</text>');
     expect(html).not.toContain('>L-e</text>');
     expect(count(html, '<circle')).toBe(4);
   });

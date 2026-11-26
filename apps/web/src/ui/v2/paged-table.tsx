@@ -7,7 +7,9 @@ import { Icon } from './icons.js';
 import { isSmall } from './table-rules.js';
 import {
   ExpandButton,
+  LookCell,
   MeasureCell,
+  looksOf,
   TableBar,
   TableHead,
   TablePager,
@@ -86,6 +88,8 @@ function PageRows<R>({ t }: { t: Props<R> }) {
   const [opened, setOpened] = useState<string[]>([]);
   const m = measureOf(t.columns)?.meaning;
   const largest = m ? Math.max(...t.rows.map(m.value)) : 0;
+  // The server pages the rows: bars scale to the page, and no row is marked top, since the page is not the whole list.
+  const looks = { ...looksOf(t.columns, t.rows, t.sort?.key), top: new Set<R>() };
   const toggle = (key: string) =>
     setOpened((o) => (o.includes(key) ? o.filter((k) => k !== key) : [...o, key]));
   return (
@@ -101,7 +105,16 @@ function PageRows<R>({ t }: { t: Props<R> }) {
                   className={c.numeric ? 'v2-num-cell' : undefined}
                   data-status={c.status?.(row)}
                 >
-                  {c.meaning ? <MeasureCell column={c} row={row} largest={largest} /> : c.cell(row)}
+                  {c.meaning ? (
+                    <MeasureCell
+                      column={c}
+                      row={row}
+                      largest={largest}
+                      top={looks.ranked === c.key && looks.top.has(row)}
+                    />
+                  ) : (
+                    <LookCell column={c} row={row} looks={looks} />
+                  )}
                 </td>
               ))}
               <td className="v2-row-action">

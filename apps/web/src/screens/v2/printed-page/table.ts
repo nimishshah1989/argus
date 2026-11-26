@@ -4,6 +4,7 @@ import type {
   PrintedTable,
 } from '../../../ui/v2/domain/printed-table.js';
 export type { PrintedCell, PrintedChip, PrintedTable };
+import { lookOfHeader } from '../../../ui/v2/table-look.js';
 import type { PageTable } from '../../analytics/page-content.js';
 import { cellChip, dayValue, machineChip, numberValue, personChips, shortDate } from './printed.js';
 
@@ -52,7 +53,11 @@ export function printedTable(
   });
   return {
     title: table.title,
-    header: columns.map(({ label, numeric }) => ({ label, numeric })),
+    header: columns.map(({ label, numeric }) => ({
+      label,
+      numeric,
+      look: lookOfHeader(label, numeric, table.title),
+    })),
     rows: table.rows.map((row) => columns.map((c) => cellOf(c.kind, row[c.at] ?? '', c.numeric))),
     chips,
   };
