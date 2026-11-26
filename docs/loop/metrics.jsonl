@@ -39,3 +39,6 @@
 {"issue": 771, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-26T10:20:47"}
 {"issue": 763, "size": "standard", "model": "sonnet", "attempts": 3, "result": "pr", "ts": "2026-11-26T10:32:13"}
 {"issue": 795, "size": "standard", "model": "sonnet", "attempts": 2, "result": "pr", "ts": "2026-11-26T10:35:17"}
+{"issue": 790, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-26T11:20:35"}
+{"issue": 795, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-26T11:51:50"}
+{"issue": 770, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-26T12:05:29"}
