@@ -12,7 +12,6 @@ describe('S25 Guide model', () => {
       false,
       false,
       false,
-      false,
     ]);
   });
 
@@ -23,11 +22,11 @@ describe('S25 Guide model', () => {
       ['overview', 2],
       ['reliability', 3],
       ['problems', 7],
-      ['machines', 5],
+      ['machines', 6],
       ['people-money', 3],
       ['reports-data', 3],
       ['planning', 3],
-      ['unbuilt', 4],
+      ['unbuilt', 3],
     ]);
     expect(model().chips[1]!.label).toBe('analytics.guide.group.basics');
     expect(model().chips[0]!.label).toBe('analytics.guide.all');
@@ -35,7 +34,7 @@ describe('S25 Guide model', () => {
   });
 
   it('says which topic has the most and how many are not built', () => {
-    expect(model().takeaway).toEqual({ group: 'problems', n: 7, total: 36, unbuilt: 4 });
+    expect(model().takeaway).toEqual({ group: 'problems', n: 7, total: 36, unbuilt: 3 });
   });
 
   it('numbers the entries after "How this platform works" and anchors each one', () => {
@@ -51,7 +50,6 @@ describe('S25 Guide model', () => {
       'action-center',
     ]);
     expect(shownEntries(model(), 'unbuilt').map((i) => i.entry.id)).toEqual([
-      'oem',
       'learning',
       'no-code',
       'amc-legal',

@@ -58,10 +58,10 @@ describe('run with a span', () => {
 
   it('leaves the as-of and history figures identical across spans', () => {
     // The machine page is the one as-of figure whose breakdown, PM and drill block follows the span (packet 76o); it
-    // is held to hand values per span in `many-years-a10-machine.test.ts`, so the other 26 are compared here.
+    // is held to hand values per span in `many-years-a10-machine.test.ts`, so the other 27 are compared here.
     expect(fixedFigures('2025')).toEqual(fixedFigures('2026'));
     expect(fixedFigures('both')).toEqual(fixedFigures('2026'));
-    expect(fixedFigures('2026')).toHaveLength(26);
+    expect(fixedFigures('2026')).toHaveLength(27);
   });
 
   it('marks which figures read the span, the run date and the whole history, by key', () => {
@@ -125,6 +125,7 @@ describe('run with a span', () => {
         'fix-finder',
         'forecast-lab',
         'money-matters',
+        'oem-analytics',
         'team-focus',
         'team-focus.cost',
       ],

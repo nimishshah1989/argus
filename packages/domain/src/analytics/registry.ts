@@ -75,7 +75,7 @@ const tile = (owner: number, screenId: string, name: string, label: string): Fig
 /**
  * The kept screens of `docs/plan/m4a-triage.md` that an engine ticket computes. Left out on purpose: the PM,
  * AMC, legal and PM report registers (loaded by M4b tickets 49 and 51, no rows on main to drill to yet), the
- * Guide, the settings and the workbook export (not figures), and OEM analytics (deferred).
+ * Guide, the settings and the workbook export (not figures).
  */
 const DEFS: readonly FigureDef[] = [
   dashboard('total-machines', 'Total machines', 'machine'),
@@ -108,6 +108,7 @@ const DEFS: readonly FigureDef[] = [
   screen(39, 'a7-footprint', 'A7 footprint', 'machine'),
   screen(39, 'a8-age', 'A8 age analysis', 'machine'),
   screen(39, 'machine-page', 'Machine page', 'machine'),
+  { ...screen(812, 'oem-analytics', 'OEM analytics', 'ticket'), mixed: true },
   screen(40, 'breakdown-log', 'Breakdown log', 'ticket'),
   screen(40, 'a1-bd-pm', 'A1 breakdown percent and PM split', 'ticket'),
   screen(40, 'a2-category-cell', 'A2 category and cell', 'ticket'),
@@ -173,6 +174,7 @@ const AS_OF_KEYS: ReadonlySet<string> = new Set([
 const HISTORY_KEYS: ReadonlySet<string> = new Set([
   ...['a9-bottleneck-forecast', 'forecast-lab', 'compare', 'compare.spares-cost'],
   ...['team-focus', 'team-focus.cost', 'money-matters', 'fix-finder', 'data-checklist'],
+  'oem-analytics',
 ]);
 
 export const FIGURES: readonly FigureDef[] = DEFS.map((def): FigureDef => {

@@ -1,6 +1,7 @@
 import { DEFAULT_PROFILE } from '@uptimo/shared';
 import { describe, expect, it } from 'vitest';
 import { oemAnalyticsFigure } from '../src/analytics/oem.js';
+import { COMPUTERS, runWith } from '../src/index.js';
 import { ENGINE_DATA, read, type FigureKey, type KeyTable } from './answer-key/fixture.js';
 
 /**
@@ -99,5 +100,24 @@ describe('the OEM Analytics figure on the 11 November workbook', () => {
     expect(COMPUTED.drillIds.length).toBeGreaterThan(0);
     expect(COMPUTED.drillIds.every((id) => tickets.has(id))).toBe(true);
     expect(new Set(COMPUTED.drillIds)).toEqual(new Set(table(3).got.rowTicketIds));
+  });
+});
+
+describe('the OEM Analytics figure in an engine run', () => {
+  it('lists young machines that never broke down without failing the run (a mixed figure, ADR 0051)', () => {
+    // Young machines with no breakdown are rows of the value but no ticket to drill to: the registry marks it mixed.
+    const young = new Set(table(0).got.rows.map((row) => row[0]));
+    const youngIds = new Set(
+      ENGINE_DATA.machines.filter((m) => young.has(m.code)).map((m) => m.id),
+    );
+    const reports = ENGINE_DATA.reports.filter((report) => !youngIds.has(report.machineId));
+    const kept = new Set(reports.map((report) => report.ticketId));
+    const tickets = ENGINE_DATA.tickets.filter((ticket) => kept.has(ticket.id));
+    const data = { ...ENGINE_DATA, tickets, reports, tasks: [], whyWhy: [] };
+    const run = runWith(COMPUTERS, { data, asOf: AS_OF, profile: DEFAULT_PROFILE });
+    const oem = run.figures.find((figure) => figure.key === 'oem-analytics');
+    const pages = (oem?.value as unknown as { pages: Page[] } | null)?.pages ?? [];
+    expect(pages[0]?.tables[0]?.rows.length).toBeGreaterThan(0);
+    expect(oem?.drill.ids).toEqual([]);
   });
 });

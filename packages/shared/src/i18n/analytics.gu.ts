@@ -6,6 +6,8 @@ export const analyticsGu = gujarati(analyticsEn, {
   'analytics.screen.cell-change-log': 'સેલ બદલાવ લૉગ',
   'analytics.screen.a7-footprint': 'A7 ફૂટપ્રિન્ટ',
   'analytics.screen.a8-age': 'A8 ઉંમર વિશ્લેષણ',
+  'analytics.screen.oem-analytics': 'ઓઈએમ વિશ્લેષણ',
+  'analytics.figure.oem-analytics': 'ઓઈએમ વિશ્લેષણ',
   'analytics.screen.machine-page': 'મશીનનું પાનું',
   'analytics.screen.breakdown-log': 'બ્રેકડાઉન લૉગ',
   'analytics.screen.a1-bd-pm': 'A1 બ્રેકડાઉન ટકા અને PM વિભાજન',
