@@ -16,6 +16,13 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 - TV icon on "Open TV view" (needs a plan/ change to ui/v2/icons.tsx). Board rows open the machine panel, not the ticket. Day-score items out per ADR 0050.
 - Dead old files only the dev gallery imports (ui/close-kit, counts-strip, detail-kit, tick-row, ticket-card, top-bar, side-nav, patterns/crud-list, crud-page, queue-table, ui/filter-chip, shims screens/analytics/Analytics.tsx, patterns/crud-actions.ts, form-sheet.tsx) can be deleted with their gallery pages in a plan/ PR.
 
+## In flight (26 Nov ~21:00, Nimish: "build the not-built items… all old stuff removed… a proper design language with components and kit")
+
+- Agent E `v2/desk-data`: sign-off outcomes, crew roles + paused jobs, ticket downtime vs machine average, searchable code lists with last 5 used (server + UI, Refs #803).
+- Agent F `v2/board-rows-ticket`: Board rows open the ticket side panel.
+- Agent G `plan/remove-old-ui`: delete ~125 old .tsx + old gallery pages, guard forbids any old .tsx, TV icon, docs/design/v2/KIT.md catalogue + DESIGN.md Components (protected files; Nimish's instruction is the authority).
+- Merge each when everything except loop-guard's test-edit rule is green (/private/tmp gate script logic: no other red, loop-guard reasons only 'existing test modified'). G is plan/ so loop-guard should pass.
+
 ## Next steps
 
 1. Nimish clicks through Desk, Ticket, Board, Floor and Settings on staging. 2. Plan the "not built" items above. 3. Floor segment tiles (ADR 0055 point 1).
