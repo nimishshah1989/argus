@@ -174,7 +174,7 @@ export function ProfileView() {
   });
   const row = rows.data?.[0];
   const top = row ? profileTakeaway(row) : null;
-  const set = top ? top.total - top.notSet.length : 0;
+  const set = top ? top.total - top.onDefault.length : 0;
   return (
     <CrudPage
       spec={analyticsProfileSpec}
@@ -183,8 +183,8 @@ export function ProfileView() {
           <>
             <Lead
               data={{
-                text: t('lists.profile.takeaway', { n: top.notSet.length, total: top.total }),
-                tone: top.notSet.length > 0 ? 'risk' : 'gain',
+                text: t('lists.profile.takeaway', { n: top.onDefault.length, total: top.total }),
+                tone: top.onDefault.length > 0 ? 'risk' : 'gain',
                 tag: t('lists.tag'),
               }}
             />

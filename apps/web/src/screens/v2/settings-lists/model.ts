@@ -1,4 +1,4 @@
-import { PROFILE_KEYS, type ProfileKey } from '@uptimo/shared/analytics';
+import { DEFAULT_PROFILE, PROFILE_KEYS, type ProfileKey } from '@uptimo/shared/analytics';
 import type { GlossaryReply } from '@uptimo/shared/plant-settings';
 import type { ProfileRow } from './analytics-profile-spec.js';
 import type { ListsPage } from './lists-specs.js';
@@ -9,8 +9,21 @@ export type ListCount = { page: ListsPage; n: number };
 export type ListsTakeaway = { page: ListsPage; n: number; total: number };
 /** Active glossary terms by the script they are written in (`direction`). */
 export type GlossaryTakeaway = { total: number; gu: number; guLatn: number; en: number };
-/** Profile numbers present on the row (money keys are absent for a login without money rights) and those not set. */
-export type ProfileTakeaway = { notSet: ProfileKey[]; total: number };
+/**
+ * The profile numbers still equal to the shipped default (ADR 0056), out of every number. The reply never
+ * carries null: the server stores the defaults on the first read and the route (head and admin) sends every key.
+ */
+export type ProfileTakeaway = { onDefault: ProfileKey[]; total: number };
+/** One list on the hub: its items once they arrive, and whether its read failed with nothing to show. */
+export type HubList = {
+  page: ListsPage;
+  items: readonly { active: boolean }[] | undefined;
+  failed: boolean;
+};
+/** A tile's count of active entries; null until the list arrives (never a false 0). */
+export type HubCount = { page: ListsPage; n: number | null };
+/** `error` when any list failed, else `loading` while any is missing, else `ready`. */
+export type HubState = { state: 'loading' | 'error' | 'ready'; counts: HubCount[] };
 
 /** Null when every list is empty; a tie goes to the list first in order. */
 export function listsTakeaway(counts: readonly ListCount[]): ListsTakeaway | null {
@@ -29,8 +42,16 @@ export function glossaryTakeaway(terms: readonly GlossaryReply[]): GlossaryTakea
   return { total: active.length, gu: of('gu'), guLatn: of('gu-Latn'), en: of('en') };
 }
 
-/** `notSet` in `PROFILE_KEYS` order; a key absent from the row is never counted. */
+/** `onDefault` in `PROFILE_KEYS` order; `total` is every profile number. */
 export function profileTakeaway(row: ProfileRow): ProfileTakeaway {
-  const present = PROFILE_KEYS.filter((key) => key in row && row[key] !== undefined);
-  return { notSet: present.filter((key) => row[key] === null), total: present.length };
+  void row;
+  void DEFAULT_PROFILE;
+  void PROFILE_KEYS;
+  throw new Error('not implemented');
+}
+
+/** The hub's state and one count per list, in the order given. */
+export function listsHub(lists: readonly HubList[]): HubState {
+  void lists;
+  throw new Error('not implemented');
 }
