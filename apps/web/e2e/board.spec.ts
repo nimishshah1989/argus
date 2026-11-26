@@ -94,7 +94,7 @@ test('the TV is dark, has no navigation, and shows the three oldest stops of a c
   await expect(page.getByRole('link')).toHaveCount(0);
   const notStarted = column(page, 'Nobody has started');
   await expect(notStarted.getByTestId('tile')).toHaveText([/VC-5/, /VC-4/, /VC-3/]);
-  await expect(notStarted).toContainText('and 2 more');
+  await expect(notStarted).toContainText('+2 more');
 
   await openBoard(page, false);
   await expect(notStarted.getByTestId('tile')).toHaveCount(5);

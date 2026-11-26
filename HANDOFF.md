@@ -14,6 +14,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 - Nimish approved merging PRs whose only red check is loop-guard "existing test modified on a build branch" (26 Nov). Protected files stay plan-only.
 - Branch v2/desk-data (Refs #803): the four S28/S29 items the server lacked are built server + UI: sign-off outcomes of the last 24 h on `/board/signoff`, `GET /state/crew` (crew roles, paused jobs under Working now), `machineAverage` on the ticket detail (engine MTTR in minutes, "no earlier breakdown" when none), `GET /tickets/recent-codes` + searchable code pickers (`CodePicker` in ui/v2/close-kit.tsx). No migration.
 - Branch v2/desk-data-2 (follow-up to #862): Team takeaway counts paused jobs by reason; paused jobs read "Paused · reason" (en + gu); e2e `desk-data.spec.ts` clicks a sign-off outcome row and the close-form code picker (machines SO-D, SO-E).
+- Branch v2/tv-board-fit (Nimish's staging screenshot, 26 Nov): the wall TV (`?kiosk=1`) no longer clips below 1920 by 1080. Cause: its type and spacing were fixed 1920 by 1080 pixels since #808 (not #853, #856, #860 or #861), so a smaller window squeezed the columns to nothing; `.board-tv` now rebinds the TV tokens to one unit of `min(100vw/1920, 100dvh/1080)`, the overflow line reads "+N more" (en + gu), e2e `board-tv-fit.spec.ts` checks five sizes by 0, 4 and 25 stops.
 
 ## Not built (server lacks data, or protected file)
 

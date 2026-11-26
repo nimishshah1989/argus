@@ -10,7 +10,7 @@ export const liveBoardGu = gujarati(liveBoardEn, {
   'live.column.notStarted': 'કોઈએ શરૂ નથી કર્યું',
   'live.column.repairing': 'રિપેર ચાલુ',
   'live.column.waiting': 'થોભાવેલું, રાહમાં',
-  'live.more': 'અને બીજાં {{count}}',
+  'live.more': '+{{count}} વધુ',
   'live.ages.title': 'ખુલ્લા બ્રેકડાઉન, કેટલા જૂના',
   'live.ages.overDayTitle': '1 દિવસથી વધુ ખુલ્લા',
   'live.ages.underHour': '1 કલાકથી ઓછું',

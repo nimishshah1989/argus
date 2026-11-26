@@ -1,6 +1,24 @@
 /* The live board's type and colour (S30). Tokens only: the phone and desktop use the v2 sizes, the wall TV the
    `--text-tv-*` scale (`.board-tv`). Layout is utility classes in View.tsx. */
 
+/* A TV cannot scroll, so its whole frame is the 1920 by 1080 design scaled to the screen: `--tv-u` is one design
+   pixel, and the type and spacing tokens are rebound here to their own design sizes times that unit. */
+.board-tv {
+  --tv-u: min(100vw / 1920, 100dvh / 1080);
+  --spacing: calc(4 * var(--tv-u));
+  --space-v2-gap: calc(16 * var(--tv-u));
+  --space-v2-inner: calc(12 * var(--tv-u));
+  --text-v2-label: calc(24 * var(--tv-u));
+  --text-v2-body: calc(32 * var(--tv-u));
+  --text-title1: calc(32 * var(--tv-u));
+  --text-tv-40: calc(40 * var(--tv-u));
+  --text-tv-48: calc(48 * var(--tv-u));
+  --text-tv-64: calc(64 * var(--tv-u));
+  --text-tv-80: calc(80 * var(--tv-u));
+  --text-tv-120: calc(120 * var(--tv-u));
+  --text-tv-160: calc(160 * var(--tv-u));
+}
+
 .board-card {
   background: var(--color-v2-panel);
   border-radius: var(--radius-card);
@@ -113,13 +131,50 @@
   font-weight: 800;
   line-height: 1;
 }
+/* One step under the code, so "23 h 59 min" and a seven-letter code share a row. */
+.board-tv .board-age {
+  font-size: var(--text-tv-40);
+}
 .board-tv .board-big {
   font-size: var(--text-tv-80);
 }
+/* The bottom row stays short: the stopped machines above it get the height. */
+.board-tv .board-foot {
+  padding-block: var(--space-v2-gap);
+}
+.board-tv [role='group'] .board-big {
+  font-size: var(--text-tv-64);
+}
 .board-day {
-  margin: var(--space-v2-gap) 0 0;
+  margin: var(--space-v2-inner) 0 0;
   color: var(--color-v2-ink-2);
   font-size: var(--text-title1);
+  line-height: 1.2;
+}
+/* Kit pieces on the TV: icons take their line's size, and the takeaway and its pill grow with the screen. */
+.board-tv .v2-icon {
+  flex: none;
+  width: 1em;
+  height: 1em;
+}
+.board-tv .board-stopped {
+  font-size: var(--text-tv-64);
+}
+.board-tv .board-machine {
+  font-size: var(--text-title1);
+}
+.board-tv .v2-pill {
+  flex: none;
+  gap: var(--spacing);
+  padding: var(--spacing) calc(var(--spacing) * 3);
+  line-height: 1.2;
+}
+.board-tv .v2-takeaway {
+  flex-wrap: nowrap;
+  /* A step above the sub-lines; the usual verdict still takes one line, a longer one splits evenly. */
+  font-size: calc(var(--text-title1) * 1.125);
+  line-height: 1.2;
+  text-wrap: balance;
 }
 
 /* The browser's ages card: one bar per bucket against the largest, the count after it; "Over 1 day" in loss. */
