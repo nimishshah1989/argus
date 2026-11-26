@@ -8,7 +8,7 @@ describe('S19 who is using this phone: edges', () => {
   it('does not reorder the list it was given, and keeps an empty list empty', () => {
     const people = [
       { id: 'b', name: 'Zeel' },
-      { id: 'a', name: 'Bhavin' },
+      { id: 'a', name: 'Brindo' },
     ];
     expect(whoChoices(people).map((p) => p.id)).toEqual(['a', 'b']);
     expect(people.map((p) => p.id)).toEqual(['b', 'a']);

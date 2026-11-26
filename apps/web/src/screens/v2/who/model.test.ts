@@ -8,7 +8,7 @@ describe('S19 who is using this phone: model', () => {
     const people = [
       { id: 'p2', name: 'Ravi' },
       { id: 'p1', name: 'Asha' },
-      { id: 'p3', name: 'Mehul' },
+      { id: 'p3', name: 'Neelo' },
     ];
     expect(whoChoices(people).map((p) => p.id)).toEqual(['p1', 'p3', 'p2']);
   });
