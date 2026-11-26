@@ -17,7 +17,13 @@ import {
   type ListsContext,
 } from './lists-adapter.js';
 import { EMPTY_OTHER_WORK, floorWaiting, otherWorkLocation, type OtherWorkForm } from './model.js';
-import { CancelSheetView, DisputeSheetView, MineView, PmJobsView } from './ListsView.js';
+import {
+  CancelSheetView,
+  DisputeSheetView,
+  MineView,
+  PmJobsView,
+  type SheetActions,
+} from './ListsView.js';
 import { FloorFrame, FloorWaitingView, OtherWorkView, ReportView } from './View.js';
 
 /**
@@ -149,6 +155,49 @@ function useListState(list: ReturnType<typeof tickets.useList>, online: boolean)
 
 type OpenSheet = { kind: 'dispute' | 'cancel'; ticketId: string } | null;
 
+const CONFIRMED = 'confirmed';
+const DISPUTED = 'disputed';
+const CANCEL = 'cancel';
+const DISPUTE = 'dispute';
+
+type SheetsProps = {
+  rows: Ticket[];
+  sheet: OpenSheet;
+  reason: string;
+  answered: { ticketId: string; refusal: Refusal | null } | null;
+  command: ReturnType<typeof useCommand>;
+  onClose: () => void;
+  onReason: (text: string) => void;
+  onDispute: (ticket: Ticket) => void;
+  onCancel: (ticket: Ticket) => void;
+};
+
+/** The one open sheet, if any. */
+function MineSheets(p: SheetsProps) {
+  const { t } = useTranslation();
+  const { sheet, command } = p;
+  const ticket = p.rows.find((row) => row.id === sheet?.ticketId);
+  if (!ticket) return null;
+  const on = (send: () => void): SheetActions => ({
+    open: true,
+    onOpenChange: (next) => (next ? undefined : p.onClose()),
+    reason: p.onReason,
+    send,
+  });
+  if (sheet?.kind === DISPUTE) {
+    const refusal = p.answered?.ticketId === ticket.id ? p.answered.refusal : null;
+    const input = { reason: p.reason, refusal, pending: command.pending };
+    return (
+      <DisputeSheetView model={disputeModel(ticket, input, t)} on={on(() => p.onDispute(ticket))} />
+    );
+  }
+  if (sheet?.kind !== CANCEL) return null;
+  const input = { reason: p.reason, error: command.error, pending: command.pending };
+  return (
+    <CancelSheetView model={cancelModel(ticket, input, t)} on={on(() => p.onCancel(ticket))} />
+  );
+}
+
 /** My complaints: the list, the answer to "Is it fixed?", and the two sheets (one open at a time). */
 function MineList({ data }: { data: FloorData }) {
   const { t } = useTranslation();
@@ -159,7 +208,6 @@ function MineList({ data }: { data: FloorData }) {
   const [answered, setAnswered] = useState<{ ticketId: string; refusal: Refusal | null } | null>(
     null,
   );
-  const ticket = list.rows.find((row) => row.id === sheet?.ticketId);
   const open = (next: OpenSheet) => {
     setReason('');
     setSheet(next);
@@ -175,59 +223,36 @@ function MineList({ data }: { data: FloorData }) {
   async function cancel(ticketId: string) {
     if (await command.run(ticketId, 'cancel', { reason: reason.trim() })) close();
   }
-  const sheetOn = (send: () => void) => ({
-    open: sheet !== null,
-    onOpenChange: (next: boolean) => (next ? undefined : close()),
-    reason: setReason,
-    send,
-  });
-  const mine = mineModel(
-    list.rows,
-    {
-      ...list.ctx,
-      me: data.me,
-      machines: data.config.machines,
-      // The ask's refusal note stays quiet while the Not fixed sheet shows it.
-      answer:
-        answered && sheet?.kind !== 'dispute' ? { ...answered, pending: command.pending } : null,
-    },
-    t,
-  );
+  // The ask's refusal note stays quiet while the Not fixed sheet shows it.
+  const answer_ =
+    answered && sheet?.kind !== DISPUTE ? { ...answered, pending: command.pending } : null;
+  const ctx = { ...list.ctx, me: data.me, machines: data.config.machines, answer: answer_ };
   return (
     <>
       <MineView
-        model={mine}
+        model={mineModel(list.rows, ctx, t)}
         on={{
           more: list.more,
           retry: list.retry,
-          cancel: (ticketId) => open({ kind: 'cancel', ticketId }),
-          yes: (ticketId) => void answer(ticketId, 'confirmed'),
+          cancel: (ticketId) => open({ kind: CANCEL, ticketId }),
+          yes: (ticketId) => void answer(ticketId, CONFIRMED),
           no: (ticketId) => {
             setAnswered(null);
-            open({ kind: 'dispute', ticketId });
+            open({ kind: DISPUTE, ticketId });
           },
         }}
       />
-      {ticket && sheet?.kind === 'dispute' ? (
-        <DisputeSheetView
-          model={disputeModel(
-            ticket,
-            {
-              reason,
-              refusal: answered?.ticketId === ticket.id ? answered.refusal : null,
-              pending: command.pending,
-            },
-            t,
-          )}
-          on={sheetOn(() => void answer(ticket.id, 'disputed', reason.trim()))}
-        />
-      ) : null}
-      {ticket && sheet?.kind === 'cancel' ? (
-        <CancelSheetView
-          model={cancelModel(ticket, { reason, error: command.error, pending: command.pending }, t)}
-          on={sheetOn(() => void cancel(ticket.id))}
-        />
-      ) : null}
+      <MineSheets
+        rows={list.rows}
+        sheet={sheet}
+        reason={reason}
+        answered={answered}
+        command={command}
+        onClose={close}
+        onReason={setReason}
+        onDispute={(row) => void answer(row.id, DISPUTED, reason.trim())}
+        onCancel={(row) => void cancel(row.id)}
+      />
     </>
   );
 }
@@ -235,7 +260,6 @@ function MineList({ data }: { data: FloorData }) {
 function PmList({ data }: { data: FloorData }) {
   const { t } = useTranslation();
   const list = useListState(
-    // eslint-disable-next-line i18next/no-literal-string -- query values, not copy
     tickets.useList({ channel: ['pm'], status: ['open', 'working'] }),
     useOnline(),
   );
