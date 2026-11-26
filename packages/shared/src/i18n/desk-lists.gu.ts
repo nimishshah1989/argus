@@ -47,6 +47,16 @@ export const deskListsGu = gujarati(deskListsEn, {
   'deskLists.tab.tasks': 'બાકી કામ ({{count}})',
   'deskLists.tab.work': 'વિનંતી ({{count}})',
   'deskLists.lists': 'ટિકિટની યાદીઓ',
+  'deskLists.longest': 'સૌથી લાંબું',
+  'deskLists.takeaway.breakdowns':
+    '{{machine}} {{time}} થી બંધ છે, કોઈએ શરૂ ન કરેલા બંધ મશીનોની સરેરાશ {{avg}} કરતાં લગભગ {{n}}× વધુ.',
+  'deskLists.takeaway.breakdownsOne':
+    '{{machine}} {{time}} થી બંધ છે, કોઈએ શરૂ ન કર્યું હોય તેવું એકમાત્ર બંધ મશીન.',
+  'deskLists.takeaway.tasks':
+    '{{machine}} નું બાકી કામ {{date}} સુધીમાં અપેક્ષિત છે, આજથી {{days}} દિવસ.',
+  'deskLists.takeaway.tasksLate':
+    '{{machine}} નું બાકી કામ {{date}} સુધીમાં અપેક્ષિત હતું, {{days}} દિવસ પહેલાં.',
+  'deskLists.takeaway.teamLongest': '{{name}} સૌથી લાંબા કામ પર છે: {{machine}} પર {{minutes}}.',
   'deskLists.notAvailable': 'તમારા માટે ઉપલબ્ધ નથી',
   'deskLists.notAvailable.body': 'તમારા લૉગિનમાં આ સ્ક્રીન નથી. જરૂર હોય તો તમારા એડમિનને પૂછો.',
   'deskLists.reportProblem': 'સમસ્યાની જાણ કરો',

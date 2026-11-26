@@ -5,18 +5,33 @@ import type { FormField, FormSheetProps } from '../../patterns/form-sheet.js';
 import { missingRequired, submitHeld } from './crud-model.js';
 import { DateField } from './date-field.js';
 import { Drawer } from './drawer.js';
+import { Segmented } from './segmented.js';
 import { SelectField } from './select-field.js';
 
-/** One labelled control: a menu for a choice, the browser's own pickers for day and time, a text box otherwise. */
-function Field(p: { field: FormField; value: string; onChange: (value: string) => void }) {
+/** One labelled control: a bar or a menu for a choice, the browser's own pickers for day and time, a text box otherwise. */
+export function Field(p: { field: FormField; value: string; onChange: (value: string) => void }) {
   const { field, value, onChange } = p;
+  const choices = field.choices ?? [];
+  // v1's rule (ADR 0053): up to four choices are a bar of buttons, more are a menu.
+  if (field.kind === 'choice' && choices.length <= 4)
+    return (
+      <div className="v2-crud-field">
+        <span aria-hidden="true">{field.label}</span>
+        <Segmented
+          label={field.label}
+          options={choices.map((c) => ({ key: c.value, label: c.label }))}
+          value={value}
+          onChange={onChange}
+        />
+      </div>
+    );
   if (field.kind === 'choice')
     return (
       <SelectField
         label={field.label}
         all=""
         value={value}
-        options={(field.choices ?? []).map((c) => ({ key: c.value, label: c.label }))}
+        options={choices.map((c) => ({ key: c.value, label: c.label }))}
         onChange={onChange}
       />
     );

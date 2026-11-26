@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { openShowDetail } from '../show-detail.js';
 
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 test.use({ trace: 'retain-on-failure' });
@@ -18,11 +19,12 @@ test('Problem Analysis: eight figures, two charts and the tables are up; a machi
   page,
 }) => {
   await open(page);
+  // The what-if figures sit behind their own fold (ADR 0049); the charts are kit pieces (ADR 0043).
+  await openShowDetail(page, page.getByRole('region', { name: 'Breakdowns studied', exact: true }));
   for (const label of ['Breakdowns studied', 'Repeat problems', 'Downtime saved', 'MTBF'])
     await expect(page.getByRole('region', { name: label, exact: true })).toBeVisible();
-  for (const chart of await page.locator('[data-chart-state]').all())
-    await expect(chart).toHaveAttribute('data-chart-state', 'ready');
-  await expect(page.locator('[data-chart-state]')).toHaveCount(2);
+  await expect(page.locator('ol.v2-ranked')).toBeVisible();
+  await expect(page.locator('svg.v2-quad')).toBeVisible();
   const repeats = page.getByRole('region', { name: 'Repeat offenders' });
   await expect(repeats.locator('tbody tr')).toHaveCount(10);
   await repeats.getByRole('button', { name: 'TC-5', exact: true }).first().click();

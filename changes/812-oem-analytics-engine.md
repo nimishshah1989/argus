@@ -1,0 +1,1 @@
+- The engine now computes the OEM Analytics figure: young machines against older peers, by make and model, faults that repeat, and every breakdown with the cause a person decided (Not decided when none); no keyword guess, no rupees.

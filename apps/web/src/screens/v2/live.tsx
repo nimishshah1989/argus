@@ -7,8 +7,9 @@ import { correctMove } from '../../api.js';
 import { ApiError, isOffline } from '../../data/index.js';
 import { ScreenStates } from '../../ui/v2/screen-states.js';
 import { correctionError } from '../analytics/machine-values.js';
-import { groupFor, type GroupId } from '../analytics/groups.js';
+import type { GroupId } from '../analytics/groups.js';
 import { AgeView } from './age/View.js';
+import { AnnualReportView } from './annual-report/View.js';
 import { BdPmView } from './bd-pm/View.js';
 import { CategoryCellView } from './category-cell/View.js';
 import { MttrMtbfView } from './mttr-mtbf/View.js';
@@ -24,6 +25,7 @@ import { ForecastLabView } from './forecast-lab/View.js';
 import { GuidePage } from './guide/View.js';
 import { FootprintView } from './footprint/View.js';
 import { ManpowerView } from './manpower/View.js';
+import { MonthlyReportView } from './monthly-report/View.js';
 import { MoneyMattersView } from './money-matters/View.js';
 import { RegistersView } from './machines-register/View.js';
 import { PmCalendarPage } from './pm-calendar/Page.js';
@@ -48,7 +50,7 @@ import type { SectionId } from '../analytics/shell/shell-data.js';
 
 /**
  * The v2 screens that are live: each renders at the URL its v1 page had, inside the v2 shell, with the data and the role
- * rules v1 used. `AnalyticsFace` asks here first and falls back to v1's page for any screen not listed.
+ * rules v1 used. `AnalyticsFace` renders exactly what `liveScreen` returns.
  */
 type Live = LiveEntry & { page: () => ReactElement };
 
@@ -355,6 +357,34 @@ const LIVE: readonly Live[] = [
     ),
   },
   {
+    group: 'reports',
+    section: 'reports',
+    screen: 'monthly-report',
+    page: () => (
+      <ModelPage
+        entry={screenOf('reports', 'reports', 'monthly-report')}
+        screen="monthly-report"
+        empty="analytics.notComputed"
+        title="analytics.screen.monthly-report"
+        draw={(model, shell) => <MonthlyReportView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'reports',
+    section: 'reports',
+    screen: 'annual-report',
+    page: () => (
+      <ModelPage
+        entry={screenOf('reports', 'reports', 'annual-report')}
+        screen="annual-report"
+        empty="analytics.notComputed"
+        title="analytics.screen.annual-report"
+        draw={(model, shell) => <AnnualReportView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
     group: 'cost',
     section: 'people',
     screen: 'money-matters',
@@ -372,29 +402,27 @@ const LIVE: readonly Live[] = [
 ];
 
 /**
- * The live v2 page for a group's screen (`?screen=`, or the group's first), or null when that screen is still v1's. A
- * Machines screen the group does not have (a bookmark, a typo, the machine page's id) goes to the register, the
- * group's first v2 screen: there is no v1 copy of it to fall back to. The Reliability and forecast group is v2 whole,
- * so an unknown `?screen=` there opens its first screen, Bottleneck.
+ * The live v2 page for a group's screen (`?screen=`, or the group's first). A screen the group does not have (a
+ * bookmark, a typo, the machine page's id) goes to the group's first v2 screen (ADR 0051).
  */
 export function liveScreen(group: string | undefined, screen: string | null): ReactElement | null {
-  // Today: an unknown ?screen= (or none) is the Dashboard, as in v1.
   const named = screen ?? FIRST[group ?? ''] ?? null;
+  // Every group but Machines lists its first v2 screen first, so a miss there draws it in place; Machines redirects.
   const found =
     LIVE.find((entry) => entry.group === group && entry.screen === named) ??
-    (WHOLE.has(group ?? '') ? LIVE.find((entry) => entry.group === group) : undefined);
+    (group !== 'machines' ? LIVE.find((entry) => entry.group === group) : undefined);
   if (found) return <Fragment key={`${found.group}:${found.screen}`}>{found.page()}</Fragment>;
-  return unknownMachinesScreen(group, named);
+  // Null only for a group that does not exist; `AnalyticsFace` sends those to Today.
+  return group !== undefined && group in FIRST ? fallbackScreen(group) : null;
 }
 
-/** A Machines screen the group does not have goes to the register; every other miss is the v1 page's. */
-function unknownMachinesScreen(
-  group: string | undefined,
-  named: string | null,
-): ReactElement | null {
-  return group === 'machines' && named !== null && !knownMachinesScreen(named) ? (
-    <Navigate to="/analytics/machines?screen=registers" replace />
-  ) : null;
+/**
+ * Where a miss in a known group goes (ADR 0051: no address renders a v1 page): `<Navigate replace>` to
+ * `/analytics/<group>?screen=<its first v2 screen>`, and that address must itself draw a v2 screen (no redirect loop).
+ * The rule `unknownMachinesScreen` applies to Machines today, made the rule for every group.
+ */
+export function fallbackScreen(group: string): ReactElement {
+  return <Navigate to={`/analytics/${group}?screen=${FIRST[group]}`} replace />;
 }
 
 /** The screen a group's address opens with no `?screen=`. */
@@ -403,16 +431,10 @@ const FIRST: Record<string, string> = {
   today: 'dashboard',
   breakdowns: 'breakdown-log',
   pm: 'pm-calendar',
+  reports: 'monthly-report',
   cost: 'money-matters',
   guide: 'guide',
+  [FORECAST]: 'a9-bottleneck-forecast',
 };
-/** Groups that are v2 whole: an unknown `?screen=` opens their first screen. */
-const WHOLE: ReadonlySet<string> = new Set([FORECAST, 'today', 'pm', 'breakdowns', 'cost']);
-
-function knownMachinesScreen(id: string): boolean {
-  return (groupFor('machines')?.screens ?? []).some(
-    (known) => known === id && known !== 'machine-page',
-  );
-}
 
 export { ModelFrame };

@@ -7,6 +7,17 @@ import { scopedId, signIn } from './fixtures.js';
  * list). A shared phone asks who is using it once, after sign-in; the server's "choose who is acting" and
  * "must change password" answers reopen their step from anywhere.
  */
+/**
+ * Open the floor while a stubbed refusal is live. The app sends itself to the step (`window.location.assign`) as soon
+ * as a call meets the stub, from the signed-in page still open or the new one, and that aborts this goto
+ * (ERR_ABORTED). Only that abort is accepted: the assertions after it prove the step opened.
+ */
+async function openFloorWhileRefused(page: Page): Promise<void> {
+  await page.goto('/floor').catch((error: Error) => {
+    if (!error.message.includes('net::ERR_ABORTED')) throw error;
+  });
+}
+
 async function signInShared(page: Page): Promise<void> {
   await page.goto('/login');
   await page.getByLabel('Username', { exact: true }).fill('cell-phone');
@@ -22,12 +33,12 @@ test('a shared phone asks who is using it once, then the floor works as that per
   await expect(page.getByText('Shared phone', { exact: false })).toBeVisible();
   const cont = page.getByRole('button', { name: 'Continue', exact: true });
   await expect(cont).toBeDisabled();
-  // A disabled primary must not look like a live one (T2 greys it out).
-  const fill = () => cont.evaluate((el) => getComputedStyle(el).backgroundColor);
-  const greyed = await fill();
+  // A disabled primary must not look like a live one (T2 greys it out; the v2 kit fades it, same fill).
+  const opacity = () => cont.evaluate((el) => Number(getComputedStyle(el).opacity));
+  expect(await opacity()).toBeLessThan(1);
   await page.getByLabel('Your name').selectOption({ label: 'Omi' });
   await expect(cont).toBeEnabled();
-  expect(await fill()).not.toBe(greyed);
+  expect(await opacity()).toBe(1);
   await cont.click();
   // Row 38: an operator's home is My complaints; the floor is still one tap away.
   await expect(page.getByRole('heading', { name: 'My complaints' })).toBeVisible();
@@ -52,8 +63,7 @@ test('the server asking again who is acting reopens the step', async ({ page }) 
       }),
     }),
   );
-  // The 403 sends the app to its step at once; that redirect can abort a goto waiting for 'load' (ERR_ABORTED flake).
-  await page.goto('/floor', { waitUntil: 'commit' });
+  await openFloorWhileRefused(page);
   await expect(page.getByRole('heading', { name: 'Who is using this phone?' })).toBeVisible();
 });
 
@@ -70,8 +80,7 @@ test('a login that must change its password goes to that step and checks the two
       }),
     }),
   );
-  // The 403 sends the app to its step at once; that redirect can abort a goto waiting for 'load' (ERR_ABORTED flake).
-  await page.goto('/floor', { waitUntil: 'commit' });
+  await openFloorWhileRefused(page);
   await expect(page.getByRole('heading', { name: 'Change your password' })).toBeVisible();
   await page.getByLabel('Current password').fill('correct-horse-battery');
   await page.getByLabel('New password (at least 8 characters)').fill('a-new-long-phrase');
@@ -227,7 +236,7 @@ test('a wrong current password keeps the phone signed in; the "other phones" lin
       body: JSON.stringify({ error: { code: 'must_change_password', message: 'x' } }),
     }),
   );
-  await page.goto('/floor');
+  await openFloorWhileRefused(page);
   await expect(page.getByRole('heading', { name: 'Change your password' })).toBeVisible();
   await expect(page.getByText('Your other phones and screens are signed out.')).toHaveCount(0);
   await page.getByLabel('Current password').fill('not-my-password');
@@ -263,7 +272,7 @@ test('a wrong current password answered 422 for "old" also keeps the phone signe
       body: JSON.stringify({ error: { code: 'must_change_password', message: 'x' } }),
     }),
   );
-  await page.goto('/floor');
+  await openFloorWhileRefused(page);
   await expect(page.getByRole('heading', { name: 'Change your password' })).toBeVisible();
   await page.route(/\/api\/v1\/auth\/password$/, (route) =>
     route.fulfill({

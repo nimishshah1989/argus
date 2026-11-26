@@ -1,6 +1,11 @@
 import { randomUUID } from 'node:crypto';
+import type { Page } from '@playwright/test';
 import { expect, test } from './test.js';
 import { FLOOR_GROUP, MACHINES, apiFetch, apiLogin, signIn } from './fixtures.js';
+
+/** The kit table shows ten rows a page (ADR 0036); the plant has more machines, so a journey searches for its own. */
+const find = (page: Page, code: string) =>
+  page.getByRole('searchbox', { name: 'Search code or type', exact: true }).fill(code);
 
 test('admin moves a machine to another cell and sets its criticality', async ({
   page,
@@ -16,6 +21,7 @@ test('admin moves a machine to another cell and sets its criticality', async ({
     await expect(page.getByRole('columnheader', { name: 'Criticality' })).toBeVisible();
   }
 
+  await find(page, machine.code);
   await page.getByRole('button', { name: `Edit ${machine.code}`, exact: true }).click();
   const form = page.getByRole('form', { name: `Edit ${machine.code}` });
   await form.getByLabel('Cell', { exact: true }).fill('9');
@@ -27,6 +33,7 @@ test('admin moves a machine to another cell and sets its criticality', async ({
   await expect(form).toBeHidden();
 
   await page.reload();
+  await find(page, machine.code);
   const row = page.getByRole('button', { name: `Edit ${machine.code}`, exact: true });
   await row.click();
   const reopened = page.getByRole('form', { name: `Edit ${machine.code}` });
@@ -78,6 +85,7 @@ test('a machine row shows its cell once, however the plant stored it', async ({ 
     });
   await signIn(page, 'admin');
   await page.goto('/settings/machines');
+  await find(page, legacy.code);
   // The plant stores a cell as its bare label; the row says it once.
   await expect(page.getByText('VMC · Cell 1', { exact: true }).first()).toBeVisible();
   await expect(page.getByText(/Cell Cell/)).toHaveCount(0);
@@ -85,6 +93,7 @@ test('a machine row shows its cell once, however the plant stored it', async ({ 
   // A row stored before that shape ("Cell-6") reads the same, never "Cell Cell-6".
   expect((await put('Cell-6')).ok).toBe(true);
   await page.reload();
+  await find(page, legacy.code);
   await expect(page.getByText('VMC · Cell 6', { exact: true }).first()).toBeVisible();
   await expect(page.getByText(/Cell Cell/)).toHaveCount(0);
   expect((await put(legacy.cell)).ok).toBe(true);
@@ -146,6 +155,7 @@ test('a failed criticality save still shows the cell move that was saved', async
   await page.route(`**/api/v1/machines/${machine.id}/criticality`, (route) =>
     route.fulfill({ status: 500, contentType: 'application/json', body: '{}' }),
   );
+  await find(page, machine.code);
   await page.getByRole('button', { name: `Edit ${machine.code}`, exact: true }).click();
   const form = page.getByRole('form', { name: `Edit ${machine.code}` });
   await form.getByLabel('Cell', { exact: true }).fill('8');
