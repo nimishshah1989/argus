@@ -1,4 +1,4 @@
-# ADR 0053: The kit CrudPage keeps a spec's switch, and its table sets the row order
+# ADR 0054: The kit CrudPage keeps a spec's switch, and its table sets the row order
 
 Date: 26 Nov 2026 · Decided by: planner (unattended, PR #826 red CI; assumption recorded here)
 
