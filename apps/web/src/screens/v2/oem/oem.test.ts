@@ -26,11 +26,11 @@ const platform: FiguresReply = {
 
 describe('OEM analytics', () => {
   it('is not in the engine’s reply yet, and the screen says so instead of drawing numbers', () => {
-    expect(oemModel(realReply(), t, { money: true })).toBeNull();
+    expect(oemModel(realReply(), t, { mayDecide: false })).toBeNull();
   });
 
   it('prints every figure of the platform’s own OEM page, each machine as a chip', () => {
-    const model = oemModel(platform, t, { money: true })!;
+    const model = oemModel(platform, t, { mayDecide: false })!;
     const shown = new Set(printed(model));
     for (const kpi of oem.pages[0]!.kpis) expect(shown, kpi.label).toContain(kpi.label);
     const machines = model.tables.find((table) => table.title === 'Machines')!;
@@ -42,22 +42,20 @@ describe('OEM analytics', () => {
   });
 
   it('opens with how many young machines broke down and how much of it looks like the maker’s', () => {
-    const model = oemModel(platform, t, { money: true })!;
+    const model = oemModel(platform, t, { mayDecide: false })!;
     expect(model.verdict.headline.map((seg) => seg.text).join('')).toContain(
       '24 machines under 300 days old have had 72 breakdowns; 33.3 hrs of the downtime',
     );
   });
 
-  it('shows rupees to a head, a plant head and an admin and to no one else', () => {
-    const rich = printed(oemModel(platform, t, { money: true })).join(' ');
-    const poor = printed(oemModel(platform, t, { money: false })).join(' ');
-    expect(rich).toContain('₹ 59,994 to claim');
-    expect(poor).not.toContain('₹');
-    expect(poor).toContain('56% of the hours');
+  it('prints no rupee for anyone, even where the platform’s page had one (ADR 0051)', () => {
+    const shown = printed(oemModel(platform, t, { mayDecide: true })).join(' ');
+    expect(shown).not.toContain('₹');
+    expect(shown).toContain('56% of the hours');
   });
 
   it('leaves out the cause drop-down, which holds nothing stored, and says nothing of it as a figure', () => {
-    const model = oemModel(platform, t, { money: true })!;
+    const model = oemModel(platform, t, { mayDecide: false })!;
     const every = model.tables.find((table) => table.title.startsWith('Every breakdown'))!;
     expect(every.header.map((h) => h.label)).not.toContain('Cause');
   });
