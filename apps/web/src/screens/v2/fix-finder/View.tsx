@@ -37,6 +37,7 @@ function columns(words: FixFinderWords['cases']): Column<FixCase>[] {
       key: 'down',
       label: c.down,
       numeric: true,
+      unit: 'hours',
       sortBy: (r) => r.down.value,
       cell: (r) => r.down.shown,
     },

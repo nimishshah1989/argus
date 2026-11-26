@@ -14,26 +14,7 @@ import { answerKey, realT } from './printed-page/test-support.js';
  * Both lists only shrink: a screen that gains a fixture builder leaves SKIP; a column given a look leaves UNDECLARED.
  * Never add to either.
  */
-const UNDECLARED = new Set<string>([
-  // bd-pm: the two month grids the engine prints with no title, so neither header nor title says BD or PM.
-  'bd-pm||Jan',
-  'bd-pm||Feb',
-  'bd-pm||Mar',
-  'bd-pm||Apr',
-  'bd-pm||May',
-  'bd-pm||Jun',
-  'bd-pm||Jul',
-  'bd-pm||Aug',
-  'bd-pm||Sep',
-  'bd-pm||Oct',
-  'bd-pm||Nov',
-  'bd-pm||Dec',
-  'bd-pm||Q1 Avg',
-  'bd-pm||Q2 Avg',
-  'bd-pm||Q3 Avg',
-  'bd-pm||Q4 Avg',
-  'bd-pm||Year 2026',
-]);
+const UNDECLARED = new Set<string>([]);
 
 /** Screens whose model needs the live server here (no frozen provider and no fixture builder yet). */
 const SKIP = new Set([

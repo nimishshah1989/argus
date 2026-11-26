@@ -22,6 +22,16 @@ export function readable(value: number, unit?: string): string {
   return withUnit(text, unit);
 }
 
+/** Durations read as `n min`, `h h mm min`, `d d h h` (DOMAIN.md §5, time rules). */
+export function formatMinutes(value: number | null | undefined): string {
+  if (value == null) return '—';
+  const minutes = Math.max(0, Math.round(value));
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} h ${minutes % 60} min`;
+  return `${Math.floor(hours / 24)} d ${hours % 24} h`;
+}
+
 /** Money: "₹ " then `readable(value)` ("₹ 1.20 cr", "₹ 45,000"). */
 export function rupees(value: number): string {
   return `₹ ${readable(value)}`;

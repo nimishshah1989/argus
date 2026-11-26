@@ -1,5 +1,5 @@
 import { isValidElement, Children, cloneElement, Fragment, type ReactNode } from 'react';
-import { exact } from './format.js';
+import { exact, formatMinutes } from './format.js';
 
 /**
  * How a table column colours itself (ADR 0061, Nimish 26 Nov: "no conditional formatting in any of them"):
@@ -78,16 +78,32 @@ export const scaled = (look: ColumnLook | undefined): look is ColumnTone =>
 
 const RAW = /^-?\d+\.\d{3,}$/;
 
+/** The unit a duration column's numbers are in (DOMAIN.md §5): its cells then read as time, "40 min", "2 h 26 min". */
+export type DurationUnit = 'hours' | 'minutes';
+
+const BARE = /^-?[\d,]*\.?\d+$/;
+
+/** A bare number (or numeric text) in `unit` as time; undefined for anything else (a dash, words, an element). */
+function durationOf(node: ReactNode, unit: DurationUnit): string | undefined {
+  const bare = typeof node === 'number' || (typeof node === 'string' && BARE.test(node.trim()));
+  if (!bare) return undefined;
+  return formatMinutes(Number(String(node).replace(/,/g, '')) * (unit === 'hours' ? 60 : 1));
+}
+
 /**
  * No raw float reaches a table (Nimish saw "0.6666666666666666" in the Breakdown log): a string or number cell that is
- * a bare number with three or more decimals prints through `exact` (Indian grouping, at most 2 decimals). Fragments
- * are walked; any other element is left alone.
+ * a bare number with three or more decimals prints through `exact` (Indian grouping, at most 2 decimals). In a
+ * duration column (`unit`) every bare number reads as time through `formatMinutes` ("0.67" hours is "40 min").
+ * Fragments are walked; any other element is left alone.
  */
-export function tidyCell(node: ReactNode): ReactNode {
+export function tidyCell(node: ReactNode, unit?: DurationUnit): ReactNode {
+  const tidy = (child: ReactNode) => tidyCell(child, unit);
+  const time = unit ? durationOf(node, unit) : undefined;
+  if (time !== undefined) return time;
   if (typeof node === 'number') return Number.isInteger(node) ? node : exact(node);
   if (typeof node === 'string') return RAW.test(node.trim()) ? exact(Number(node)) : node;
-  if (Array.isArray(node)) return node.map(tidyCell);
+  if (Array.isArray(node)) return node.map(tidy);
   if (isValidElement<{ children?: ReactNode }>(node) && node.type === Fragment)
-    return cloneElement(node, {}, ...Children.toArray(node.props.children).map(tidyCell));
+    return cloneElement(node, {}, ...Children.toArray(node.props.children).map(tidy));
   return node;
 }

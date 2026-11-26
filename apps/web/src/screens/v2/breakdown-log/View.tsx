@@ -87,7 +87,7 @@ function DoneBy({ row, words }: { row: LogRow; words: LogModel['words'] }) {
 
 /** The hours as printed; only the exceptions carry a tag, with an icon and a word (never colour alone). */
 function Hours({ row, words }: { row: LogRow; words: LogModel['words'] }) {
-  if (row.severity === null) return <>{tidyCell(row.hours)}</>;
+  if (row.severity === null) return <>{tidyCell(row.hours, 'hours')}</>;
   return (
     <span className="v2-num-tag" data-severity={row.severity}>
       <KeyPill
@@ -95,7 +95,7 @@ function Hours({ row, words }: { row: LogRow; words: LogModel['words'] }) {
         tone={row.severity === 'long' ? 'loss' : 'risk'}
         icon={row.severity === 'long' ? 'alert' : 'clock'}
       />
-      {tidyCell(row.hours)}
+      {tidyCell(row.hours, 'hours')}
     </span>
   );
 }
@@ -133,6 +133,7 @@ function columns(model: LogModel): Column<LogRow>[] {
       ...sortable('hours'),
       numeric: true,
       look: 'loss',
+      unit: 'hours',
       // The value scales the hours bar; the server still does the sorting.
       sortBy: (r) => Number(r.hours),
       cell: (r) => (r.severity === null ? r.hours : <Hours row={r} words={model.words} />),

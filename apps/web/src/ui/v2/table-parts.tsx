@@ -240,7 +240,7 @@ export function LookCell<R>({
   looks: Looks<R>;
 }) {
   const look = lookOf(column);
-  const content = tidyCell(column.cell(row));
+  const content = tidyCell(column.cell(row), column.unit);
   if (look === 'category' && typeof content === 'string' && /\p{L}/u.test(content))
     return <KeyPill text={content} tone="neutral" cat={catOf(content)} />;
   const bare = typeof content === 'string' || typeof content === 'number';
@@ -284,12 +284,12 @@ export function MeasureCell<R>({
   top?: boolean;
 }) {
   const m = column.meaning;
-  if (!m) return tidyCell(column.cell(row));
+  if (!m) return tidyCell(column.cell(row), column.unit);
   const share = barOf(m.value(row), largest, m.target?.value);
   return (
     <>
       <span className="v2-cellbar" data-tone={lookOf(column)} data-top={top ? '' : undefined}>
-        {tidyCell(column.cell(row))}
+        {tidyCell(column.cell(row), column.unit)}
         <span className="v2-cellbar-track" aria-hidden="true">
           <span style={{ width: `${(share * 100).toFixed(1)}%` }} />
         </span>

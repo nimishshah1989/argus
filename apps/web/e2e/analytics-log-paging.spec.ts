@@ -147,7 +147,7 @@ test('a sorted log keeps each ticket link right, puts dashes last and keeps its 
   await page.goto('/analytics/breakdowns');
 
   const rows = log(page).locator('tbody tr');
-  const downtime = log(page).getByRole('columnheader', { name: 'Downtime (hrs)' });
+  const downtime = log(page).getByRole('columnheader', { name: 'Downtime', exact: true });
   const sortButton = downtime.getByRole('button');
   await sortButton.click();
   // The v2 kit's tables sort the biggest first, then the smallest (v1 went smallest first); the dash is last either way.

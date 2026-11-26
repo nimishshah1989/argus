@@ -20,6 +20,9 @@ export type PairWords = {
   count: string;
 };
 
+/** One table of a pair, with the measure it holds ("BD %"): its month columns take their look from it, not the title. */
+export type Half = PageTable & { measure: string };
+
 /** Splits "BD % / PM %" into its two measures. */
 const measuresOf = (line: string): [string, string] | null => {
   const [a, b] = line.split(' / ');
@@ -43,7 +46,7 @@ function readPair(row: string[], next: string[]) {
  * The two aligned tables of a paired matrix, or null when the table is not one (every row is as wide as the header,
  * or a row the pairing cannot place). A row the engine printed one column short is the second line of the row above.
  */
-export function unpair(table: PageTable, words: PairWords): [PageTable, PageTable] | null {
+export function unpair(table: PageTable, words: PairWords): [Half, Half] | null {
   const width = table.header.length;
   const pairs: ReturnType<typeof readPair>[] = [];
   for (let at = 0; at < table.rows.length; at += 2) {
@@ -54,7 +57,7 @@ export function unpair(table: PageTable, words: PairWords): [PageTable, PageTabl
   if (pairs.length === 0) return null;
   const [one, two] = pairs.find((pair) => pair.measures)?.measures ?? words.fallback;
   const counted = pairs.some((pair) => pair.count !== '');
-  const build = (pick: 'first' | 'second', measure: string): PageTable => {
+  const build = (pick: 'first' | 'second', measure: string): Half => {
     const rows = pairs.map((pair) => {
       const cells = pair[pick];
       return counted ? [cells[0] ?? '', pair.count, ...cells.slice(1)] : cells;
@@ -63,6 +66,7 @@ export function unpair(table: PageTable, words: PairWords): [PageTable, PageTabl
     return {
       ...table,
       title: fill(words.title, { title: table.title, measure }),
+      measure,
       header: counted ? [head ?? '', words.count, ...rest] : table.header,
       rows,
       rowCount: rows.length,

@@ -27,6 +27,7 @@ function columns(words: WhyWhyWords, actions: WhyWhyActions | undefined): Column
       key: 'down',
       label: c.down,
       numeric: true,
+      unit: 'hours',
       sortBy: (r) => r.down.value,
       cell: (r) => r.down.shown,
     },

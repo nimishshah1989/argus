@@ -71,7 +71,7 @@ export const analyticsV2ReliabilityEn = {
   'v2r.ww.headline':
     '{n} breakdowns ran past the Why-Why limit: {done} have a Why-Why, {todo} are waiting.',
   'v2r.ww.worst': 'The longest was {machine} on {date}, {hours} hrs down. {problem}',
-  'v2r.ww.down': 'Down (hrs)',
+  'v2r.ww.down': 'Down',
   'v2r.ww.status': 'Status',
   'v2r.ww.todo': 'Not started',
   'v2r.ww.done': 'Completed',
