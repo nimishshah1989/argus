@@ -99,12 +99,14 @@ const warmSchema = z.object({
   v: z.literal(1),
   tenantId: z.string().uuid().optional(),
   asOf: z.string().optional(),
+  /** A `?years=` choice whose kept run went stale (ADR 0063); absent for the default read. */
+  years: z.string().optional(),
 });
 
 /** Ticket 606: with a plant and date, warm that one; without, warm every plant's today (the daily schedule). */
 async function warmJob(pool: Pool, data: unknown): Promise<void> {
-  const { tenantId, asOf } = warmSchema.parse(data);
-  if (tenantId && asOf) return warmServedRun(pool, { tenantId, asOf });
+  const { tenantId, asOf, years } = warmSchema.parse(data);
+  if (tenantId && asOf) return warmServedRun(pool, { tenantId, asOf, ...(years && { years }) });
   const errors: unknown[] = [];
   for (const id of tenantId ? [tenantId] : await jobTenantIds(pool))
     try {

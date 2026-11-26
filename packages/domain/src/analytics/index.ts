@@ -1,5 +1,6 @@
 export { run, runWith } from './engine.js';
 export { dataAsOf } from './as-of.js';
+export { recordedYears } from './availability.js';
 export { plantDay } from './plant-day.js';
 export { addMonths, endOfTerm } from './plant-date.js';
 export { COMPUTERS } from './computers.js';
