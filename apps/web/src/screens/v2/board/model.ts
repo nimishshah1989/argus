@@ -33,6 +33,8 @@ export interface BoardLink {
 export interface StopRowModel {
   /** The machine id. */
   id: string;
+  /** The breakdown that stopped it: the row opens this ticket. */
+  ticketId: string;
   code: string;
   /** The segment code, for the machine icon. */
   segment: string;

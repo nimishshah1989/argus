@@ -3,6 +3,7 @@ import { expect, test } from './test.js';
 import { MACHINES, apiFetch, apiLogin, raiseTicketViaApi, signIn } from './fixtures.js';
 
 interface OpenTicket {
+  id: string;
   machineId: string | null;
   ref: string;
   machineSnapshot: Record<string, unknown> | null;
@@ -118,6 +119,51 @@ test('sits in the Shell outside kiosk mode, and a wide screen opens the TV view'
   await tvView.click();
   await expect(page).toHaveURL(/\/desk\/board\?kiosk=1$/);
   await expect(page.getByRole('link')).toHaveCount(0);
+});
+
+/**
+ * S30 (wireframe approved 25 Nov): a stop row opens its ticket (S29) in the side panel beside the board, and the
+ * machine chip still opens the machine. A phone, which has no room beside, opens the ticket as its own page.
+ */
+test('a stop row opens its ticket beside the board; the machine chip opens the machine', async ({
+  page,
+  isMobile,
+}, testInfo) => {
+  const machine = boardMachine(testInfo.project.name);
+  const token = await apiLogin('asha');
+  const ticket = await breakdownOn(token, machine.id, machine.code);
+
+  await signIn(page, 'asha');
+  await openBoard(page, false);
+  const tile = column(page, 'Nobody has started')
+    .getByTestId('tile')
+    .filter({ hasText: machine.code });
+  // The sub-line is the row itself, away from the machine chip and the age link.
+  await tile.locator('small').click();
+  await expect(page).toHaveURL(new RegExp(`/desk/${ticket.id}$`));
+  if (isMobile) {
+    await expect(page.getByRole('heading', { name: new RegExp(ticket.ref) })).toBeVisible();
+    return;
+  }
+
+  const pane = page.getByRole('region', { name: 'Ticket' });
+  await expect(pane.getByRole('heading', { name: new RegExp(ticket.ref) })).toBeVisible();
+  await expect(tile).toHaveAttribute('data-selected', 'true');
+  await expect(page.getByRole('button', { name: 'Live', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await pane.getByRole('link', { name: /Open tickets/ }).click();
+  await expect(page).toHaveURL(/\/desk\/board$/);
+  await expect(pane).toHaveCount(0);
+
+  // The age is the row's keyboard link to the same ticket.
+  await tile.getByRole('link', { name: new RegExp(`Open the ticket for ${machine.code}`) }).click();
+  await expect(page).toHaveURL(new RegExp(`/desk/${ticket.id}$`));
+  await page.goto('/desk/board');
+
+  await tile.getByRole('button', { name: machine.code }).click();
+  await expect(page).toHaveURL(/\/desk\/board\?drawer=machine/);
 });
 
 const TODAY = {
