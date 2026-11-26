@@ -1,9 +1,13 @@
+import type { Page } from '@playwright/test';
 import { expect, test } from './test.js';
 import { MACHINES, apiFetch, apiLogin, signIn } from './fixtures.js';
 
 /** Ticket 77b: Settings -> Machines can leave a machine out of production data; the change is saved and survives a reload. */
 
 const SWITCH = (code: string) => `Not counted in production data: ${code}`;
+/** The kit table shows ten rows a page (ADR 0036); the plant has more machines, so a journey searches for its own. */
+const find = (page: Page, code: string) =>
+  page.getByRole('searchbox', { name: 'Search code or type', exact: true }).fill(code);
 
 test('an admin switches a machine out of production data and it stays out after a reload', async ({
   page,
@@ -20,6 +24,7 @@ test('an admin switches a machine out of production data and it stays out after 
     }),
   ).toBeVisible();
 
+  await find(page, machine.code);
   const toggle = page.getByRole('switch', { name: SWITCH(machine.code), exact: true });
   await expect(toggle).toHaveAttribute('aria-checked', 'false');
   const box = await toggle.boundingBox();
@@ -35,6 +40,7 @@ test('an admin switches a machine out of production data and it stays out after 
   ).toBeVisible();
 
   await page.reload();
+  await find(page, machine.code);
   const again = page.getByRole('switch', { name: SWITCH(machine.code), exact: true });
   await expect(again).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByText('Not in production data', { exact: true })).toHaveCount(1);
@@ -54,6 +60,7 @@ test('a failed save puts the switch back and says so', async ({ page }, testInfo
   );
   await signIn(page, 'admin');
   await page.goto('/settings/machines');
+  await find(page, machine.code);
   const toggle = page.getByRole('switch', { name: SWITCH(machine.code), exact: true });
   await toggle.click();
   await expect(page.getByRole('alert').filter({ hasText: machine.code })).toBeVisible();
