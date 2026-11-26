@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { group, machine, shift } from './fixture.js';
+import { group, machine, shift } from './fixture-rows.js';
 import { groupsTakeaway, machinesTakeaway, shiftHours, shiftsTakeaway } from './model.js';
 
 describe('S26-2 machines, groups, shifts model', () => {

@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { group, machine, shift } from '../settings-plant/fixture.js';
+import { group, machine, shift } from '../settings-plant/fixture-rows.js';
 import {
   groupsTakeaway,
   machinesTakeaway,
