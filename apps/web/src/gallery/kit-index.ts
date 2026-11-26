@@ -27,10 +27,12 @@ foundations | Base styles | v2.css | The .v2-app page base, focus ring and share
 foundations | Fonts | fonts/fonts.css | Self-hosted Inter (text), Geist (numbers) and Geist Mono (machine codes)
 foundations | Motion | motion.ts | The only animation: grow, draw, lift, reflow and ticking figures (with motion.css)
 foundations | Palette | palette.tsx | The Ctrl/Cmd K search dialog over the app's pages (not colours)
+foundations | Table looks | table-look.ts | How a column colours itself: meaning bars and top marks, category pills, no raw floats
 foundations | Number formatting | format.ts | readable, rupees and exact: Indian grouping, lakh and crore
 foundations | Icon | icons.tsx | The v2 icon set: one stroke weight, coloured like its text
 layout | Shell | shell.tsx | App frame: rail, header, search, alerts bell and right drawer
 layout | EntityShell | ../../screens/v2/entity/EntityShell.tsx | The Shell every screen uses, with the drawer driven by ?drawer= in the URL
+layout | OnThisPage | on-this-page.tsx | The page's sections as a sticky right rail (phone: a jump menu), current one marked
 layout | Drawer | drawer.tsx | Right-hand panel showing one selected thing beside the page
 layout | Panel | panel.tsx | A titled card with an optional quiet line and aside
 layout | Row | row.tsx | Two to four cards side by side with equal heights

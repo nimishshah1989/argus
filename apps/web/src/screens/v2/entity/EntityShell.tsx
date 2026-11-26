@@ -111,7 +111,7 @@ function useRowsDrawer(
     id: `figure:${figure}`,
     label: current.model?.label ?? t('common.loading'),
     onClose: close,
-    // The page that explains the figure, when it is not the page underneath (ADR 0058).
+    // The page that explains the figure, when it is not the page underneath (ADR 0060).
     ...(home ? { fullPage: home } : {}),
     content: (
       <RowsBehind

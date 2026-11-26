@@ -178,7 +178,106 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-v2-gap);
+  min-width: 0;
   padding: 20px 28px 40px;
+}
+
+/* "On this page" (on-this-page.tsx, ADR 0061): a sticky rail at the right from 1280 px, a jump menu at the top of the
+   page below that (and while the drawer takes the right). A heading lands below the sticky header. */
+.v2-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+.v2-body:has(> .v2-onpage-rail) {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+[data-section] {
+  scroll-margin-top: 76px;
+}
+.v2-onpage-rail {
+  position: sticky;
+  top: 76px;
+  align-self: start;
+  width: 208px;
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+  padding: 20px 20px 20px 0;
+}
+.v2-onpage-title {
+  margin: 0 0 8px 12px;
+  color: var(--color-v2-ink-3);
+  font-size: var(--text-v2-label);
+  font-weight: 600;
+}
+:is(.v2-onpage-rail, .v2-onpage-list) ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-left: 1px solid var(--color-v2-line);
+}
+:is(.v2-onpage-rail, .v2-onpage-list) a {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  margin-left: -1px;
+  padding: 4px 12px;
+  border-left: 2px solid transparent;
+  color: var(--color-v2-ink-2);
+  font-size: var(--text-v2-secondary);
+  text-decoration: none;
+}
+:is(.v2-onpage-rail, .v2-onpage-list) a::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+}
+:is(.v2-onpage-rail, .v2-onpage-list) a:hover {
+  color: var(--color-v2-ink);
+}
+:is(.v2-onpage-rail, .v2-onpage-list) a[aria-current='location'] {
+  border-left-color: var(--color-v2-accent);
+  color: var(--color-v2-ink);
+  font-weight: 600;
+}
+.v2-onpage-jump {
+  display: none;
+  min-width: 0;
+}
+/* The label sits above the menu, and the menu never runs wider than the page, however long a title is. */
+/* The title is drawn from data-title, so the page holds each title once as text (the link is named by aria-label). */
+:is(.v2-onpage-rail, .v2-onpage-list) a::before {
+  content: attr(data-title);
+}
+.v2-onpage-jump .v2-btn {
+  min-height: 44px;
+}
+.v2-onpage-list {
+  margin-top: 8px;
+  padding: 8px 0;
+  border: 1px solid var(--color-v2-line);
+  border-radius: 12px;
+  background: var(--color-v2-panel);
+}
+@media (max-width: 1279px) {
+  .v2-onpage-rail {
+    display: none;
+  }
+  .v2-body:has(> .v2-onpage-rail) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .v2-onpage-jump {
+    display: block;
+  }
+}
+.v2-frame[data-drawer='true'] .v2-onpage-rail {
+  display: none;
+}
+.v2-frame[data-drawer='true'] .v2-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+.v2-frame[data-drawer='true'] .v2-onpage-jump {
+  display: block;
 }
 
 /* The drawer: an overlay-level surface that floats, so glass; its content slides in from the right. */

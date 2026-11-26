@@ -40,3 +40,7 @@
   font-size: var(--text-v2-label);
   font-weight: 500;
 }
+.v2-quad-leader {
+  stroke: var(--color-v2-control-line);
+  stroke-width: 1;
+}

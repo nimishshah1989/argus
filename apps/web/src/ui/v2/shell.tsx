@@ -15,6 +15,14 @@ import { useTranslation } from 'react-i18next';
 import { Drawer, useDrawerFrame, type DrawerSpec } from './drawer.js';
 import { Icon, type IconName } from './icons.js';
 import { Palette } from './palette.js';
+import {
+  fixedZone,
+  jumpTo,
+  OnThisPage,
+  useCurrent,
+  useSections,
+  type PageSection,
+} from './on-this-page.js';
 import type { PaletteEntry } from './palette-match.js';
 
 export type NavItem = {
@@ -193,7 +201,9 @@ function useOverlays(hasSearch: boolean, at: string | undefined) {
   const go = useContext(NavigateContext);
   const pick = (to: string) => {
     setSearch(false);
-    go(to, { replace: to === at });
+    // A section of this page: jump once the search has closed and handed focus back.
+    if (to.startsWith('#')) window.setTimeout(() => jumpTo(to.slice(1)), 0);
+    else go(to, { replace: to === at });
   };
   return { menu, setMenu, search, setSearch, menuRef, searchRef, pick };
 }
@@ -286,6 +296,7 @@ export function Shell({
   const ui = useOverlays(search !== undefined, at);
   const { menu, setMenu } = ui;
   const { covered } = useDrawerFrame(drawer !== null);
+  const index = usePageIndex(search);
   return (
     <div
       className="v2-app v2-frame"
@@ -313,15 +324,69 @@ export function Shell({
           onSearch={search ? () => ui.setSearch(true) : undefined}
           onAlerts={onAlerts}
         />
-        <main className="v2-content">{children}</main>
+        <Body index={index}>{children}</Body>
       </div>
       <Drawer drawer={drawer} />
-      {ui.search && search ? (
-        <Palette entries={search} onClose={() => ui.setSearch(false)} onPick={ui.pick} />
-      ) : null}
+      <Search ui={ui} entries={index.entries} />
     </div>
   );
 }
+
+/** The search palette while it is open: the app's pages and this page's sections. */
+function Search({
+  ui,
+  entries,
+}: {
+  ui: ReturnType<typeof useOverlays>;
+  entries?: readonly PaletteEntry[];
+}) {
+  return ui.search && entries ? (
+    <Palette entries={entries} onClose={() => ui.setSearch(false)} onPick={ui.pick} />
+  ) : null;
+}
+
+/** The page's own index (ADR 0061): its sections, the one being read, and the search's entries with the sections added. */
+function usePageIndex(search: readonly PaletteEntry[] | undefined) {
+  const { t } = useTranslation();
+  const content = useRef<HTMLElement>(null);
+  const sections = useSections(
+    content,
+    typeof window !== 'undefined' && fixedZone(window.location.pathname),
+  );
+  const current = useCurrent(sections);
+  const entries = search && withSections(search, sections, t('ashell.onPage.title'));
+  return { content, sections, current, entries };
+}
+
+/** The page, with "On this page": its jump menu at the top, its rail at the right (CSS shows one or the other). */
+function Body({
+  index,
+  children,
+}: {
+  index: ReturnType<typeof usePageIndex>;
+  children: ReactNode;
+}) {
+  const { content, sections, current } = index;
+  return (
+    <div className="v2-body">
+      <main className="v2-content" ref={content}>
+        <OnThisPage sections={sections} current={current} place="jump" />
+        {children}
+      </main>
+      <OnThisPage sections={sections} current={current} place="rail" />
+    </div>
+  );
+}
+
+/** The search's entries, then this page's sections (typing "Repeat offenders" jumps there), each hinted "On this page". */
+const withSections = (
+  search: readonly PaletteEntry[],
+  sections: PageSection[],
+  hint: string,
+): PaletteEntry[] => [
+  ...search,
+  ...sections.map((s) => ({ to: `#${s.id}`, text: s.title, hint, match: s.title })),
+];
 
 /** On a phone, the page under the open menu is a button that closes it. */
 function ScrimButton({ onClose }: { onClose: () => void }) {

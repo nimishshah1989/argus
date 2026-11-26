@@ -11,7 +11,7 @@ import { LinkButton } from './button.js';
  * screen readers. Bars, lines and bubbles all draw from their spec; nothing is recomputed here. With a `drill`, a
  * button beside the title opens the rows the chart was drawn from. With `numbers`, the plotted numbers sit under the
  * chart behind "Show the numbers", as they did in v1. With no `drill` the card looks itself up in the destinations
- * map (ADR 0058), under its screen's default: its rows, or a link to the page that explains it, beside the title. The
+ * map (ADR 0060), under its screen's default: its rows, or a link to the page that explains it, beside the title. The
  * chart itself stays the reader's to hover (its tooltip and crosshair), so the control is the header button, not the
  * whole card.
  */

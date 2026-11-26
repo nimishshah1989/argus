@@ -1,4 +1,4 @@
-# 0058 — Every card goes somewhere: one destinations map, read by the kit
+# 0060 — Every card goes somewhere: one destinations map, read by the kit
 
 Date: 26 Nov 2026 · Decided by: Nimish ("we had aligned that each and every card will be clickable — most parts of the dashboard self-navigable between themselves — and that has not happened at all. None of the cards are clickable or expandable, or go to the page they're supposed to. We need a common system embedded across all pages, not page by page.")
 

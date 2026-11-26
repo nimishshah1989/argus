@@ -9,6 +9,7 @@ import {
 } from '../../../ui/v2/data-table.js';
 import { EntityChip, EntityOpenContext, type EntityChipProps } from '../entity-chip.js';
 import type { Meaning } from '../takeaway.js';
+import type { ColumnLook } from '../table-look.js';
 
 /** One cell of an engine table: what to print, what orders it, and the chips it holds (a machine, the people who did it). */
 export type PrintedCell = { text: string; sort: number | string; chips: EntityChipProps[] };
@@ -19,7 +20,8 @@ export type PrintedChip = { key: string; label: string; match?: { column: number
 /** An engine table ready to print: the engine's own header and cells, dates as DD-MMM-YYYY, codes and names as chips. */
 export type PrintedTable = {
   title: string;
-  header: { label: string; numeric: boolean }[];
+  /** `look`: how the column colours itself (ADR 0061), read from the engine's header by `lookOfHeader`. */
+  header: { label: string; numeric: boolean; look?: ColumnLook }[];
   rows: PrintedCell[][];
   chips: PrintedChip[];
   /** What the table counts and how to read it, in the platform's own words: one quiet line under its title. */
@@ -66,6 +68,7 @@ export function PrintedDataTable({
     key: String(at),
     label: h.label,
     numeric: h.numeric,
+    look: h.look,
     sortBy: h.label === '' ? undefined : (r) => r.cells[at]?.sort ?? '',
     ...(meaning?.column === at
       ? { meaning: { ...meaning, value: (r: Row) => Number(r.cells[at]?.sort) } }

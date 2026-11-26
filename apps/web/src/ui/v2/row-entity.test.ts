@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { entityOfRow } from './row-entity.js';
 
-describe('entityOfRow: the thing a table row is (ADR 0058)', () => {
+describe('entityOfRow: the thing a table row is (ADR 0060)', () => {
   it('reads the row’s own machine, chip, decision or entity', () => {
     expect(entityOfRow({ machine: { kind: 'machine', id: 'TC-1', label: 'TC-1' } })).toEqual({
       kind: 'machine',

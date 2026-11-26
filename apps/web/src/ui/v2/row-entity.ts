@@ -16,7 +16,7 @@ const firstOf = (list: unknown): EntityRef | undefined =>
   Array.isArray(list) ? list.map(refOf).find(Boolean) : undefined;
 
 /**
- * The thing a table row is (UX rule 18, ADR 0058), found the way the v2 models write it: the row's own `entity`,
+ * The thing a table row is (UX rule 18, ADR 0060), found the way the v2 models write it: the row's own `entity`,
  * `machine`, `chip` or `decision`, else its first `chips`, else the first chip in its `cells` (an engine or printed
  * table). Undefined for a row that names nothing: that row opens nothing.
  */
