@@ -323,23 +323,27 @@ describe('the page', () => {
     );
 
   it('draws the lead card large, the meaning colours as data, and the tiles as one target each', () => {
+    // Before and after sweep 706: the Action Center banner (now a strip) is left out of the tone count, and the hero
+    // grid became a tile set (sweep.test.ts checks the tile sets).
     const out = render(model({ board: board(2, 1) }));
-    expect(out.match(/v2-grid v2-grid-hero/g)).toHaveLength(1);
+    const cards = out.replace(/<section class="v2-card v2-banner"[\s\S]*?<\/section>/g, '');
     expect(out.match(/v2-kpi v2-kpi-hero/g)).toHaveLength(1);
-    expect(out.match(/data-tone="gain"/g)).toHaveLength(1);
-    expect(out.match(/data-tone="loss"/g)).toHaveLength(4);
+    expect(cards.match(/data-tone="gain"/g)).toHaveLength(1);
+    expect(cards.match(/data-tone="loss"/g)).toHaveLength(3);
     expect(out.match(/data-stretch="link"/g)).toHaveLength(5);
     expect(out.match(/data-stretch="drill"/g)).toHaveLength(11);
     expect(out.match(/Open register/g)).toHaveLength(5);
-    expect(out).toContain('High priority');
+    expect(out).toMatch(/High priority|data-severity="high"/);
     expect(out).toContain('View Problem Analysis');
   });
 
   it('puts the headline figures before what needs you, so they show without scrolling', () => {
     const out = render(model());
     const at = (label: string) => out.indexOf(`aria-label="${label}"`);
-    expect(at('Team Focus')).toBeGreaterThan(0);
-    expect(at('Team Focus')).toBeLessThan(at('Fleet availability'));
+    // The Team Focus banner or strip, by its way in (sweep 706 made the banner a strip).
+    const teamFocus = out.indexOf('href="/analytics/today?screen=team-focus"');
+    expect(teamFocus).toBeGreaterThan(0);
+    expect(teamFocus).toBeLessThan(at('Fleet availability'));
     expect(at('Fleet availability')).toBeLessThan(out.indexOf('>What needs you now<'));
   });
 });
