@@ -213,28 +213,8 @@ export const PHONE: [string, string[]][] = [
       'button: Export CSV',
     ],
   ],
-  [
-    '/settings/people',
-    [
-      ...SHELL,
-      'a: Settings',
-      'button: People',
-      'button: Logins',
-      'h2: People',
-      'button: Add person',
-    ],
-  ],
-  [
-    '/settings/logins',
-    [
-      ...SHELL,
-      'a: Settings',
-      'button: People',
-      'button: Logins',
-      'h2: Logins',
-      'button: Add login',
-    ],
-  ],
+  ['/settings/people', [...SHELL, 'a: Settings', 'h2: People', 'button: Add person']],
+  ['/settings/logins', [...SHELL, 'a: Settings', 'h2: Logins', 'button: Add login']],
   [
     '/settings/roster',
     [
