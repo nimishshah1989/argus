@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 // ADR 0059 (Nimish, 26 Nov): screens show people by name. The server swaps the engine's person codes for names on
 // the way out, so a v2 screen's fixture or the gallery's stored replies must never print a code where a name exists.
 const CODE = /\bP-[0-9a-f]{8}\b/;
-const here = new URL('.', import.meta.url);
+const here = new URL('../apps/web/src/screens/v2/', import.meta.url);
 
 /** Every fixture file of every v2 screen: a new screen's fixture joins the check with no list to edit. */
 const fixtures = readdirSync(here, { recursive: true, encoding: 'utf8' })
