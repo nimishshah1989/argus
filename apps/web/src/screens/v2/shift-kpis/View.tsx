@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { ChartCard } from '../../../ui/v2/chart-card.js';
 import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
 import { HeatMatrix } from '../../../ui/v2/domain/heat-matrix.js';
@@ -57,6 +58,7 @@ function SectionView({
   words: ShiftModel['words'];
   selected: string | undefined;
 }) {
+  const { t } = useTranslation();
   return (
     <Section
       title={section.title}
@@ -68,7 +70,7 @@ function SectionView({
       {section.charts.length > 0 ? (
         <Row cols={2}>
           {section.charts.map((chart) => {
-            const rows = paretoRows(chart.spec);
+            const rows = paretoRows(chart.spec, t('insight.rest'));
             return rows ? (
               <Panel key={chart.id} title={chart.spec.title} sub={chart.sub}>
                 <RankedBars rows={rows} label={chart.aria} />

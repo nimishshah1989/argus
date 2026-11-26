@@ -23,15 +23,21 @@ import type { RankedRow } from '../../../ui/v2/ranked-bars.js';
  * engine's own cumulative step and the half-the-hours divider counts against the whole plant. No rest row when the
  * line ends at 100 or more, has no finite value, or the sum is 0, and never for a `pareto` spec (it has no line).
  */
-export function paretoRows(spec: ChartSpec): RankedRow[] | null {
+export function paretoRows(spec: ChartSpec, restLabel: string): RankedRow[] | null {
   let bar;
   if (spec.kind === 'pareto') bar = spec.series[0];
   else if (spec.kind === 'mixed') bar = spec.bars[0];
   else return null;
-  return spec.categories.flatMap((category, at) => {
+  const rows: RankedRow[] = spec.categories.flatMap((category, at) => {
     const value = bar?.values[at];
     return value === undefined || !Number.isFinite(value)
       ? []
       : [{ key: category, label: category, value, valueText: exact(value) }];
   });
+  if (spec.kind !== 'mixed') return rows;
+  const last = spec.line?.values.filter(Number.isFinite).at(-1);
+  const sum = rows.reduce((total, row) => total + row.value, 0);
+  if (last === undefined || !(last > 0 && last < 100) || !(sum > 0)) return rows;
+  const value = Math.round(sum * (100 / last - 1) * 100) / 100;
+  return [...rows, { key: '__rest', label: restLabel, value, valueText: exact(value), rest: true }];
 }
