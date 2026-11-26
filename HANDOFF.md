@@ -7,7 +7,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 ## State
 
 - Merged today by this session: #823 (ADR 0050), #825 (#770 Desk Mine+Team), #824 (#790 Settings PM plans/registers/roster/ladder), #822 (#795 Desk settings, main 86d3705e). Staging served 47dea7fe at session end; 86d3705e was deploying: confirm `/api/v1/health`.
-- #826 (#789 Settings machines/groups/shifts) open, head 1d04cf45: one real red test, `settings-production-data.spec.ts:12` (switch "Not counted in production data: VC-7" missing after search). Planner job was running on it (log `…/8d81591a…/scratchpad/plan-789c.log`). loop-guard + loop-tests red are paperwork (seed files, `(#789` comment read as hex, handoff prettier).
+- #826 (#789 Settings machines/groups/shifts) open, head 1d04cf45, now CONFLICTING with main after #822 (merge main in a throwaway worktree, push without force): one real red test, `settings-production-data.spec.ts:12` (switch "Not counted in production data: VC-7" missing after search). Planner job was running on it (log `…/8d81591a…/scratchpad/plan-789c.log`). loop-guard + loop-tests red are paperwork (seed files, `(#789` comment read as hex, handoff prettier).
 - Board bug: /desk/board broken on a wide desktop window (side columns crushed, age numbers overlap). Planner was writing a new bug ticket + seed (log `…/scratchpad/plan-board.log`): check `gh issue list` for it, then build, merge.
 - ADR numbering: seeds 789 and 790 both made an ADR 0053; #789's was renamed 0054 on its PR branch.
 - Not started (no build session running; Nimish has not answered who builds): #791 #792 #793 #794 (one at a time, shared Plant.tsx/registry.ts), #812 #813 #814 #815 (OEM), #816 #817 #818, then #819 last.
