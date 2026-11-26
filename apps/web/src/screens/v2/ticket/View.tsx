@@ -59,7 +59,7 @@ function Header({ model, lockout }: { model: TicketModel; lockout: boolean }) {
       <Stack gap={2}>
         <h1 className="v2-title">
           {model.title}
-          {model.ref ? <span className="v2-sub"> {model.ref}</span> : null}
+          {model.ref ? <span className="v2-sub ml-2">{model.ref}</span> : null}
         </h1>
         <Inline gap={2}>
           {model.chips.map((chip) => (
