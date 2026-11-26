@@ -2,33 +2,31 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-26 11:20 IST · **By:** release session `local_abd659d2…` (context full) · **Goal (Nimish):** all screens live on the newest kit, nothing old remains · **Branch:** plan/handoff-s26b
+**Updated:** 2026-11-26 ~13:20 IST (after ADR 0055) · **By:** release session `8d81591a…` (context full) · **Goal (Nimish):** all screens live on the newest kit, nothing old remains · **Branch:** plan/handoff-s26b
 
 ## State
 
-- Staging serves a5c83744 = main (health checked). Merged 26 Nov: #805 #806 #808 #811 #804 #809 #820 #807 #821. Nimish merges some himself (#806 went in red; #811 fixed it).
-- Still old: Desk Mine + Team (#770), Settings sub-pages (#789-#795), OEM not live (#812-#815), /who, /password, analytics fallback, dead v1 code (#816-#819).
-- #822 (#795) open, conflicting: merge main and `origin/plan/t795` in a throwaway worktree (seed renamed `fixture.ts` to `fixture-rows.ts`).
-- OEM: ADR 0051. Seeds `plan/t812`-`t819` pushed. Order: #816 #817 #818, #812 #813, #814 (after #812), #815 (after #813 + #814), #819 last. Bhavin owes the claim-amount rule.
-- Merge rule: ADR 0050.
-- Tests: #811 #804 #809 #807 #821 passed test shards, static, secrets and critical-only review (#809, #807: `loop-guard` red, not critical). Screens not opened by eye.
+- Merged today by this session: #823 (ADR 0050), #825 (#770 Desk Mine+Team), #824 (#790 Settings PM plans/registers/roster/ladder), #822 (#795 Desk settings, main 86d3705e). Staging served 47dea7fe at session end; 86d3705e was deploying: confirm `/api/v1/health`.
+- #826 (#789 Settings machines/groups/shifts) open, head 1d04cf45, now CONFLICTING with main after #822 (merge main in a throwaway worktree, push without force): one real red test, `settings-production-data.spec.ts:12` (switch "Not counted in production data: VC-7" missing after search). Planner job was running on it (log `…/8d81591a…/scratchpad/plan-789c.log`). loop-guard + loop-tests red are paperwork (seed files, `(#789` comment read as hex, handoff prettier).
+- Board bug ticket #828 (seed plan/t828: kit `ui/v2/shell.css` + `shell.tsx` get a `.v2-frame` class; new `e2e/gallery/board-wide.spec.ts` at 1440/1920 px). Next: `loop prep 828`, `loop build 828` (Haiku, budget 1 file/60 lines), finish, CI, review, merge. Planner says 4 `board-settings-order` tests and one `v2-shell` rail-click test already fail locally on main: ticket them separately.
+- ADR numbering: seeds 789 and 790 both made an ADR 0053; #789's was renamed 0054 on its PR branch.
+- Not started, all seeded: #791 #792 #793 #794 (one at a time, shared Plant.tsx/registry.ts), #812 #813 #814 #815 (OEM), #816 #817 #818, then #819 last.
 
-## Next steps (RELEASE role: owns this file and all merges)
+## Decided by Nimish, 26 Nov (ADR 0055; no question open)
 
-1. Merge #823 (ADR 0050 + handoff; conflict with main resolved) when `gh pr checks` is green.
-2. Build session (or, if none, finish built work): #822, #789, #770, #790; then #791-#794 one at a time; then #812-#819.
-3. Review (critical-only), merge, confirm `/api/v1/health`, then `loop clean <N>`. Build handover: `~/Library/Application Support/Claude/side-session-notes/local_7710e647-bb9d-4008-ab43-c6a316dec3ff/build-handover.md`.
-4. Fold its "Don't repeat" into LESSONS.md. Older follow-ups: comment on #751, S26-1; #800's handoff says #782 merged with no review (no late one recorded).
+1. Floor: a plant with no machine groups (staging: 0 groups, 192 machines) shows its segments as tiles on step 1.
+2. Desk Open/Mine/Team, Board browser view and the ticket page move into the v2 `Shell` (Analytics frame); TV view and Floor keep their own. Needs new S28-S30 wireframes, then Nimish approves.
+3. Build-only: the next session builds and merges, back to back, with no new planning except items 1 and 2. Merge on green tests plus a critical-only review (ADR 0050). He wants it live ASAP and is tired of process: report in plain words, briefly.
 
-## Blocked
+## Next steps (one session builds everything; two lanes in parallel)
 
-- New building: the build session `local_975943c3…` stopped (context full) and its replacement card is not started. Release card `task_40f525ec` also not started.
+1. #828 Board fix (Haiku), then #826 (merge main, it CONFLICTS; one red test, see the planner log). Confirm `/api/v1/health` serves each merge.
+2. Lane A: #791, #792, #793, #794 in order. Lane B: #816, #817, #818, then #812, #813, #814, #815. Then #819.
+3. `loop plan` for ADR 0055 items 1 and 2 (Floor segment tiles ticket; S28-S30 wireframes in the Shell for Nimish to approve), then build them.
 
 ## Don't repeat
 
-- `loop ci` says "CI GREEN" with shards pending or GitHub unreachable: check `gh pr checks` and `mergeStateStatus`.
-- `engine-scale.test.ts` (20 s) fails on a busy Mac and burns a `loop finish` attempt. If the branch holds all of origin, push without force and let CI judge.
-- `loop finish` force-pushes: pull a behind build folder first. Never run `loop finish 763` again.
-- Deploy build crashes at random (`qemu` exit 132): `gh run rerun <id> --failed`. A handoff "Blocked" section in a builder note reads exactly `None.`.
-- Merge conflicts: throwaway worktree outside `.loop/wt`; never switch branches in the main checkout. New keys in a shipped namespace need Gujarati.
-- The app auto-archives sessions on PR close (setting on).
+- Rebuild of a PR whose build folder lags its remote: `loop prep <N> --fresh`, ticket "Don't" tells the builder to `git checkout origin/<PR branch> -- <files>` and `git rm` the v1 files (builders can't merge). Publish from a throwaway worktree: merge main, typecheck + unit tests (symlink node_modules from the main checkout), then `git merge -s ours origin/<PR branch>` and push without force (force-push is refused).
+- `loop ci` prints GREEN with checks still pending: wait until `gh pr checks` shows no pending.
+- zsh: `git show $b:apps/...` breaks (`:a` modifier); write `"${b}:apps/..."`.
+- Deploy image build crashes at random (qemu exit 132): `gh run rerun <id> --failed`, sometimes twice.
