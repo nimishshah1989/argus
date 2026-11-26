@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { expect, test } from './test.js';
+import { openShowDetail } from './show-detail.js';
 import { commandViaApi, getJson } from './fixtures-actions.js';
 import { apiLogin, raiseTicketViaApi, signIn } from './fixtures.js';
 
@@ -95,17 +96,20 @@ test('a head opens A10, sees its eight KPIs and both charts, sorts the groups an
   ).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('heading', { level: 1, name: 'Problem Analysis' })).toBeVisible();
 
-  // The 4 page KPIs and the 4 what-if KPIs, every label and value from the key.
+  // The 4 page KPIs and the 4 what-if KPIs, every label and value from the key (the folded ones behind Show detail).
+  await openShowDetail(
+    page,
+    page.getByRole('region', { name: PAGE.kpis[0]!.label, exact: true }).first(),
+  );
   for (const kpi of PAGE.kpis) {
     await expect(page.getByText(kpi.label, { exact: true })).toBeVisible();
     await expect(page.getByText(kpi.value, { exact: true }).first()).toBeVisible();
   }
 
-  // Both charts, drawn by the one chart kit, with the platform's card titles.
-  const charts = page.locator('[data-chart-state]');
-  await expect(charts).toHaveCount(2);
-  for (const chart of await charts.all())
-    await expect(chart).toHaveAttribute('data-chart-state', 'ready');
+  // Both charts as kit pieces (ADR 0043): the costliest problems as a ranked list, often-or-long as a quadrant,
+  // each under the platform's card title.
+  await expect(page.locator('ol.v2-ranked')).toBeVisible();
+  await expect(page.locator('svg.v2-quad')).toBeVisible();
   await expect(page.getByText('Which problems cost the most?', { exact: true })).toBeVisible();
   await expect(page.getByText('Often, or long?', { exact: true })).toBeVisible();
 

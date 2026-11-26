@@ -1,4 +1,5 @@
 import { fill } from '../../../i18n/fill.js';
+import { readable } from '../../../ui/v2/format.js';
 import { catOf, numberIn, type Translate } from '../figures/read.js';
 import { NO_VALUE } from './cards.js';
 import type { AgeBand, BubbleMachine, BubbleModel, PlantMachine } from './model.js';
@@ -37,7 +38,9 @@ function tipOf(p: BubblePoint, category: string | null, t: Translate): string[] 
     fill(t('v2d.bubble.tip.model'), { value: dash(p.model) }),
     fill(t('v2d.bubble.tip.age'), { value: dash(p.age) }),
     fill(t('v2d.bubble.tip.breakdowns'), { value: p.y }),
-    fill(t('v2d.bubble.tip.hours'), { value: twoDecimals.format(p.x) }),
+    fill(t('v2d.bubble.tip.hours'), {
+      value: p.x >= 100_000 ? readable(p.x) : twoDecimals.format(p.x),
+    }),
     fill(t('v2d.bubble.tip.mttr'), {
       value: p.mttr === null ? NO_VALUE : oneDecimal.format(p.mttr),
     }),

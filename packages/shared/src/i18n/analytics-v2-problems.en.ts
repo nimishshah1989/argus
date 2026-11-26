@@ -31,6 +31,7 @@ export const analyticsV2ProblemsEn = {
   // Problem Analysis.
   'v2p.pa.title': 'Problem Analysis',
   'v2p.pa.remove': 'Remove',
+  'v2p.pa.rest': 'All other groups',
   'v2p.pa.whatIf': 'What if the top problem group were cut',
   'v2p.pa.search': 'Search this table',
   'v2p.pa.barSub': 'Breakdown hours for each problem group, biggest first.',
