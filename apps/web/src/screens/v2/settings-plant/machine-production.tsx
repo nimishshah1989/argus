@@ -1,12 +1,12 @@
+/* eslint-disable i18next/no-literal-string -- query keys, roles and class names only; every visible word goes through t() */
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { MachineReply } from '@uptimo/shared/plant-settings';
-import { putMachineProduction } from '../../api.js';
-import { Ban, TriangleAlert } from '../../ui/icon.js';
-import { TONE_FILL, TONE_TEXT } from '../../ui/meaning.js';
+import { putMachineProduction } from '../../../api.js';
+import { KeyPill } from '../../../ui/v2/key-pill.js';
 
 /**
- * Ticket 77b: a machine can be left out of production data (BD %, MTTR, MTBF, availability) from Settings -> Machines.
+ * A machine can be left out of production data (BD %, MTTR, MTBF, availability) from Settings -> Machines.
  * The switch saves at once through `PUT /machines/:id/production-data`: the row flips first, and flips back with a
  * line saying so when the save fails.
  */
@@ -51,49 +51,31 @@ function useProductionSwitch(row: MachineReply) {
 export function ProductionTag({ row }: { row: MachineReply }) {
   const { t } = useTranslation();
   if (!row.excludedFromProduction) return null;
-  return (
-    <span
-      className={`mt-1 inline-flex h-chip items-center gap-1 whitespace-nowrap rounded-full px-3 text-caption font-semibold ${TONE_FILL.muted}`}
-    >
-      <Ban aria-hidden size={14} />
-      {t('plant.machines.production.tag')}
-    </span>
-  );
+  return <KeyPill text={t('plant.machines.production.tag')} tone="neutral" icon="stop" />;
 }
 
-/** The labelled switch: 44 px tall tap target around a 32 px pill, a real `switch` so keys and screen readers work. */
-export function ProductionSwitch({ row, boxed }: { row: MachineReply; boxed?: boolean }) {
+/** The labelled switch: a real `switch` so keys and screen readers work. */
+export function ProductionSwitch({ row }: { row: MachineReply }) {
   const { t } = useTranslation();
   const save = useProductionSwitch(row);
   const on = row.excludedFromProduction;
   return (
-    <div className={boxed ? 'flex flex-col' : 'flex flex-col pb-2'}>
+    <div className="v2-stack">
       <button
         type="button"
         role="switch"
         aria-checked={on}
         aria-busy={save.isPending}
         aria-label={t('plant.machines.production.switchFor', { name: row.code })}
+        className="v2-btn v2-btn-ghost"
         onClick={() => {
           if (!save.isPending) save.mutate(!on);
         }}
-        className="flex min-h-target-min w-full items-center justify-between gap-3 text-left"
       >
-        <span className="text-footnote font-medium">{t('plant.machines.production.switch')}</span>
-        <span
-          className={`relative block h-8 w-13 flex-none rounded-full transition-colors duration-(--motion-fast) ${on ? 'bg-accent-strong' : 'bg-neutral-500'}`}
-        >
-          <span
-            className={`absolute top-0.5 size-7 rounded-full bg-surface shadow-card transition-[left] duration-(--motion-fast) ${on ? 'left-5.5' : 'left-0.5'}`}
-          />
-        </span>
+        {t('plant.machines.production.switch')}
       </button>
       {save.isError ? (
-        <p
-          role="alert"
-          className={`flex items-start gap-2 text-footnote font-medium ${TONE_TEXT.danger}`}
-        >
-          <TriangleAlert aria-hidden size={16} className="mt-0.5 flex-none" />
+        <p role="alert" className="v2-seg v2-seg-loss">
           {t('plant.machines.production.error', { name: row.code })}
         </p>
       ) : null}
