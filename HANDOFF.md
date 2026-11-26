@@ -20,6 +20,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 2. Build session (or, if none, finish built work): #822, #789, #770, #790; then #791-#794 one at a time; then OEM / old-page tickets.
 3. Review (critical-only), merge, confirm `/api/v1/health` after each. Then `loop clean <N>`.
 4. Fold the build handover's "Don't repeat" into LESSONS.md. Review follow-ups are comments on each PR (#801-#821).
+5. Older follow-ups from #800's handoff: 4 items in a comment on #751, and S26-1 follow-ups. It also says #782 (Monthly Report) merged with no review; no late one is recorded.
 
 ## Don't repeat
 

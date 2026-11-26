@@ -58,4 +58,9 @@ export const reportFloorGu = gujarati(reportFloorEn, {
   'reportFloor.kindStopped': 'મશીન બંધ',
   'reportFloor.kindSupport': 'સપોર્ટ જોઈએ',
   'reportFloor.tabs': 'ફ્લોર',
+  'floor.lists.tagLongest': 'સૌથી વધુ રાહ જોઈ',
+  'floor.lists.mineLongest': '{{place}} સૌથી જૂની ખુલ્લી ફરિયાદ છે: {{wait}}, હજી હાથ પર લીધી નથી.',
+  'floor.lists.mineOf': '{{n}} માંથી હજી હાથ પર લીધી નથી',
+  'floor.lists.pmOldest': '{{place}} સૌથી જૂનું ખુલ્લું PM કામ છે: {{wait}} થી ખુલ્લું.',
+  'floor.lists.pmOf': '{{n}} ખુલ્લા PM કામમાંથી',
 });

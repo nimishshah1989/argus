@@ -18,4 +18,11 @@ export const liveBoardGu = gujarati(liveBoardEn, {
   'live.ages.fourToDay': '4 થી 24 કલાક',
   'live.ages.overDay': '1 દિવસથી વધુ',
   'live.ages.line': '{{label}}: {{count}}',
+  'live.longest': 'સૌથી લાંબું',
+  'live.offlineKept': 'ઑફલાઇન — છેલ્લા આંકડા રાખ્યા છે · ફરી જોડાઈ રહ્યું છે…',
+  'live.take.stops': '{{code}} સૌથી લાંબું રાહમાં છે: {{age}}, કોઈએ શરૂ નથી કર્યું',
+  'live.take.overDay_one': '{{count}} બ્રેકડાઉન 1 દિવસથી વધુ જૂનું છે',
+  'live.take.overDay_other': '{{count}} બ્રેકડાઉન 1 દિવસથી વધુ જૂનાં છે',
+  'live.take.noneOverDay': 'કોઈ બ્રેકડાઉન 1 દિવસથી વધુ જૂનું નથી',
+  'live.take.ages': '{{over}}; {{total}} માંથી {{under}} 1 કલાકથી ઓછાં છે',
 });

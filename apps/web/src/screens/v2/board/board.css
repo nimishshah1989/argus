@@ -1,0 +1,106 @@
+/* The live board's type and colour (S30). Tokens only: the phone and desktop use the v2 sizes, the wall TV the
+   `--text-tv-*` scale (`.board-tv`). Layout is utility classes in View.tsx. */
+
+.board-card {
+  background: var(--color-v2-panel);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-v2-rest);
+  padding: var(--space-v2-gap);
+}
+.board-tv .board-card {
+  padding: calc(var(--space-v2-gap) * 1.5);
+}
+.board-muted {
+  color: var(--color-v2-ink-3);
+}
+.board-row {
+  border-top: 1px solid var(--color-v2-line);
+}
+.board-sub {
+  margin: 0;
+  color: var(--color-v2-ink-3);
+  font-size: var(--text-v2-secondary);
+}
+.board-title {
+  margin: 0;
+  font-size: var(--text-v2-title);
+  font-weight: 700;
+}
+.board-hero {
+  font-size: var(--text-v2-kpi);
+  font-weight: 800;
+  line-height: 1;
+}
+.board-heroword,
+.board-code,
+.board-age {
+  font-size: var(--text-v2-title);
+  font-weight: 700;
+}
+.board-stopnum,
+.board-count,
+.board-big {
+  font-size: var(--text-v2-kpi);
+  font-weight: 800;
+  line-height: 1;
+}
+.board-stopword,
+.board-coltitle {
+  margin: 0;
+  font-size: var(--text-v2-body);
+  font-weight: 700;
+}
+.board-chip {
+  font-size: var(--text-v2-label);
+  font-weight: 600;
+}
+.board-clock {
+  margin: 0;
+  font-size: var(--text-tv-80);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.board-tv .board-sub {
+  font-size: var(--text-title1);
+  line-height: 1.2;
+}
+.board-tv .board-hero {
+  font-size: var(--text-tv-160);
+  letter-spacing: -0.02em;
+}
+.board-tv .board-heroword {
+  font-size: var(--text-tv-64);
+  line-height: 1;
+}
+.board-tv .board-stopnum {
+  font-size: var(--text-tv-120);
+}
+.board-tv .board-stopword {
+  font-size: var(--text-tv-48);
+}
+.board-tv .board-chip {
+  font-size: var(--text-title1);
+  font-weight: 700;
+}
+.board-tv .board-count {
+  font-size: var(--text-tv-64);
+}
+.board-tv .board-coltitle {
+  font-size: var(--text-tv-40);
+  line-height: 1.2;
+}
+.board-tv .board-code,
+.board-tv .board-age {
+  font-size: var(--text-tv-48);
+  font-weight: 800;
+  line-height: 1;
+}
+.board-tv .board-big {
+  font-size: var(--text-tv-80);
+}
+.board-day {
+  margin: var(--space-v2-gap) 0 0;
+  color: var(--color-v2-ink-2);
+  font-size: var(--text-title1);
+}

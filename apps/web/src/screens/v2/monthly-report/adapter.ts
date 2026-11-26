@@ -17,7 +17,7 @@ import type { MonthlyReportModel } from './model.js';
 /** The engine's figure this screen is built from. */
 export const FIGURE = 'monthly-report';
 
-const MONTHS = [
+export const MONTHS = [
   'January',
   'February',
   'March',
@@ -42,9 +42,16 @@ function monthBefore(asOf: string, back: number): { year: number; month: number 
 }
 
 /** The figure's own `asOf` when it carries one (the period it was computed for), else the reply's. */
-function asOfOf(reply: FiguresPart): string {
-  const value = figureOf(reply, FIGURE)?.value as { asOf?: unknown } | undefined;
+export function asOfOf(reply: FiguresPart, figure = FIGURE): string {
+  const value = figureOf(reply, figure)?.value as { asOf?: unknown } | undefined;
   return typeof value?.asOf === 'string' && PLANT_DATE.test(value.asOf) ? value.asOf : reply.asOf;
+}
+
+/** The annual period line: the year to the run date ("2026 to 11 November"). */
+export function annualPeriod(asOf: string, t: TFunction): string {
+  const [year = 0, month = 1, day = 1] = asOf.split('-').map(Number);
+  const date = `${day} ${MONTHS[month - 1] ?? ''}`;
+  return t('analytics.report.periodAnnual', { year, date }) as string;
 }
 
 /** The section id of a printed table (ADR 0035): the four rankings by their first column; '' for the blank form. */
@@ -114,7 +121,7 @@ function rankLine(table: PageTable | undefined, previous: string, say: Say): Tak
   const change = cell(row, 4);
   const tone = change.startsWith('▼') ? 'gain' : change.startsWith('▲') ? 'loss' : 'neutral';
   const values = { name: cell(row, 0), hours: cell(row, 2), change, previous };
-  return say('monthly-report.rank', values, tone);
+  return say(change === '—' ? 'monthly-report.rankOnly' : 'monthly-report.rank', values, tone);
 }
 
 function longestLine(table: PageTable | undefined, say: Say): TakeawayData | null {
@@ -233,6 +240,7 @@ export function monthlyReportModel(reply: FiguresPart, t: TFunction): MonthlyRep
         : tablesOf([table], words),
     ),
     drill: drillFor(reply, FIGURE, say_),
+    previous: MONTHS[monthBefore(asOf, 2).month - 1] ?? '',
     source,
     words,
     period,

@@ -3,12 +3,12 @@ import { CompareBox } from '../../../ui/v2/domain/compare-box.js';
 import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
 import { PrintedDataTable } from '../../../ui/v2/domain/printed-table.js';
 import { KeyPill } from '../../../ui/v2/key-pill.js';
-import { KpiCard } from '../../../ui/v2/kpi-card.js';
 import { Panel } from '../../../ui/v2/panel.js';
 import { Points } from '../../../ui/v2/points.js';
 import { Row } from '../../../ui/v2/row.js';
 import { Segmented } from '../../../ui/v2/segmented.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
+import { TileSet } from '../../../ui/v2/tile-set.js';
 import { Takeaway } from '../../../ui/v2/takeaway.js';
 import { TrendChart } from '../../../ui/v2/trend-chart.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
@@ -87,11 +87,8 @@ export function CompareView({
     <EntityShell nav={nav} title={title}>
       <Verdict verdict={model.verdict} whyLabel={model.words.why} />
       <Pickers model={model} onPick={onPick} />
-      <Row cols={3}>
-        {model.kpis.map((k) => (
-          <KpiCard key={k.id} kpi={k} />
-        ))}
-      </Row>
+      {/* The tiles are gaps with no number in them: n is NaN so the all-zero line never replaces them. */}
+      <TileSet items={model.kpis.map((kpi) => ({ kpi, n: Number.NaN }))} />
       <Row>
         <CompareBox box={model.boxes[0]} />
         <CompareBox box={model.boxes[1]} />
