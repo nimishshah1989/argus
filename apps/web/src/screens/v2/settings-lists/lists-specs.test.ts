@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ListItemReply } from '@uptimo/shared/plant-settings';
-import type { CrudCtx } from '../../patterns/crud-spec.js';
+import type { CrudCtx } from '../../../patterns/crud-spec.js';
 import { LIST_PAGES, glossarySpec, listMenu } from './lists-specs.js';
 
 /**

@@ -2,6 +2,7 @@ import type { ComponentType } from 'react';
 import type { PlantPage } from '../../settings/Plant.js';
 import { JobsView } from './JobsView.js';
 import { AuditView } from '../settings-audit/View.js';
+import { GlossaryView, ListsView, ProfileView } from '../settings-lists/View.js';
 import { LoginsView, PeopleView } from '../settings-people/View.js';
 import { GroupsView, MachinesView, ShiftsView } from '../settings-plant/View.js';
 import { LadderView, PmPlansView, RegistersView, RosterView } from '../settings-upkeep/View.js';
@@ -28,5 +29,8 @@ export const V2_VIEWS: Partial<Record<PlantPage, ComponentType>> = {
   // S26-5
   audit: AuditView,
   // S26-6
+  lists: ListsView,
+  glossary: GlossaryView,
+  'analytics-profile': ProfileView,
   // S26-7
 };

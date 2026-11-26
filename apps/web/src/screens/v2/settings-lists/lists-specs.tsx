@@ -4,7 +4,7 @@ import {
   type GlossaryReply,
   type ListItemReply,
 } from '@uptimo/shared/plant-settings';
-import type { CrudChoice, CrudCtx, CrudSpec, LabelKey } from '../../patterns/crud-spec.js';
+import type { CrudChoice, CrudCtx, CrudSpec, LabelKey } from '../../../patterns/crud-spec.js';
 
 /** The plant settings lists (ticket 23): each one is a `CrudPage` config over `/settings/lists/<name>`. */
 
@@ -41,7 +41,7 @@ const yesNo = (c: CrudCtx): CrudChoice[] => [
   { value: 'false', label: c.t('lists.flag.no') },
 ];
 
-const flagsOf = (row: ListItemReply, c: CrudCtx, flags: readonly Flag[]): string =>
+export const flagsOf = (row: ListItemReply, c: CrudCtx, flags: readonly Flag[]): string =>
   flags
     .filter((flag) => row[flag])
     .map((flag) => c.t(FLAG[flag].wordKey))
@@ -208,7 +208,7 @@ export const listMenu = (
     subKey,
   }));
 
-const DIRECTION: Record<GlossaryReply['direction'], LabelKey> = {
+export const DIRECTION: Record<GlossaryReply['direction'], LabelKey> = {
   gu: 'lists.glossary.direction.gu',
   'gu-Latn': 'lists.glossary.direction.gu-Latn',
   en: 'lists.glossary.direction.en',
@@ -237,10 +237,11 @@ export const glossarySpec: CrudSpec<GlossaryReply> = {
         })),
     },
   ],
-  look: (row, c) => ({
-    title: row.source,
-    sub: `${row.english} · ${c.t(DIRECTION[row.direction])}`,
-  }),
-  columns: [{ labelKey: 'lists.glossary.column', cell: (row) => row.english }],
+  // Their word / Our word / Written in: the table reads the three as columns, not as a sub line.
+  look: (row) => ({ title: row.source }),
+  columns: [
+    { labelKey: 'lists.glossary.column', cell: (row) => row.english },
+    { labelKey: 'lists.glossary.direction', cell: (row, c) => c.t(DIRECTION[row.direction]) },
+  ],
   search: { labelKey: 'lists.glossary.source', text: (row) => `${row.source} ${row.english}` },
 };

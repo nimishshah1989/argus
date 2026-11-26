@@ -69,4 +69,13 @@ export const listsEn = {
   'lists.glossary.direction.gu-Latn': 'Gujarati in Latin letters',
   'lists.glossary.direction.en': 'English',
   'lists.glossary.column': 'Our word',
+  'lists.tag': 'At a glance',
+  'lists.takeaway': '{{label}} is {{pct}}% ({{n}} of {{total}})',
+  'lists.glossary.takeaway': '{{pct}}% in Gujarati script',
+  'lists.profile.takeaway': '{{n}} of {{total}} numbers not set',
+  'lists.profile.progress': '{{n}} of {{total}} numbers set',
+  'lists.profile.set': 'Set',
+  'lists.profile.notSet': 'Not set',
+  'lists.col.list': 'List',
+  'lists.all.table': 'All entries',
 };
