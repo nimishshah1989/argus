@@ -87,7 +87,7 @@ const tabs = (page: Page) =>
 async function openA9(page: Page): Promise<void> {
   await page.goto(`/analytics/forecast-scorecard?screen=${SCREEN_A9}`);
   await expect(
-    tabs(page).getByRole('button', { name: 'A9 bottleneck and forecast', exact: true }),
+    tabs(page).getByRole('button', { name: 'Bottleneck and forecast', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('heading', { level: 1, name: A9.title })).toBeVisible();
   expect(A9.kpis).toHaveLength(14);
@@ -183,7 +183,7 @@ test('a head opens A9 and the Forecast Lab, sorts the risk table, reads both cha
 
   await openA9(page);
   await sortRisk(page);
-  await openMachineDrill(page, SCREEN_A9, /Show the rows behind A9 bottleneck and forecast/);
+  await openMachineDrill(page, SCREEN_A9, /Show the rows behind Bottleneck and forecast/);
 
   await openLab(page);
   await openMachineDrill(page, SCREEN_LAB, /Show the rows behind Forecast Lab/);
