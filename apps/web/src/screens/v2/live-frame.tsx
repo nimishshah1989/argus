@@ -164,6 +164,8 @@ export type ModelKey =
   | 'mttr-mtbf'
   | 'data-checklist'
   | 'team-focus'
+  | 'monthly-report'
+  | 'annual-report'
   | 'money-matters';
 
 export type PageConfig<K extends ModelKey> = {

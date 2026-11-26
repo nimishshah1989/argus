@@ -36,3 +36,13 @@ Length x Width, the smallest square floor that fits them with 1.0 m gaps, and wh
 | A cell map of the floor (the assumed "Footprint" idea: cells by where the lost hours are) | breakdown map in `a2-category-cell` ranks machines, cells, codes by hours | later: a figure that joins the cell hours to the floor area per cell; to decide with Nimish |
 | The packed floor drawn to scale (each machine's place in the square)                      | the engine packs the machines but sends no positions                      | later: positions from the packing                                                           |
 | Spare floor against planned machines                                                      | none stored                                                               | later: a plan of machines to add                                                            |
+
+## ADR 0036 kit rules (ticket #751, sweep #706 batch B)
+
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25. Rows from the builder's `docs/loop/handoff/751.md` and ticket #751.
+
+| Item                          | v2                                                                                                                            | Where in v2                                                                                                   |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| R1 TileSet + ShowDetail       | changed                                                                                                                       | the five KPI cards go through `TileSet`: four shown, Avg Footprint folds under Show detail; no figure dropped |
+| R6 Download Excel             | not applicable: not one of Bhavin's exports (ADR 0041)                                                                        | none                                                                                                          |
+| R11 readable / rupees / exact | not applicable: the page formats no lakh-scale number or money itself; engine-printed strings are never re-rounded (ADR 0041) | none                                                                                                          |

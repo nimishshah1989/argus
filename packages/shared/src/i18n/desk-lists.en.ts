@@ -45,6 +45,13 @@ export const deskListsEn = {
   'deskLists.tab.tasks': 'Tasks ({{count}})',
   'deskLists.tab.work': 'Work ({{count}})',
   'deskLists.lists': 'Ticket lists',
+  'deskLists.longest': 'Longest',
+  'deskLists.takeaway.breakdowns':
+    '{{machine}} has been down {{time}}, about {{n}}× the {{avg}} average of the stopped machines nobody started.',
+  'deskLists.takeaway.breakdownsOne':
+    '{{machine}} has been down {{time}}, the only stopped machine nobody started.',
+  'deskLists.takeaway.tasks': '{{machine}} task is expected {{date}}, {{days}} days from today.',
+  'deskLists.takeaway.tasksLate': '{{machine}} task was expected {{date}}, {{days}} days ago.',
   'deskLists.notAvailable': 'Not available to you',
   'deskLists.notAvailable.body':
     'Your login does not include this screen. If you need it, ask your admin.',

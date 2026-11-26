@@ -2,14 +2,55 @@
 import { useState, type MouseEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getMe, getToken, type Machine, type Ticket } from '../../api.js';
+import type { ActorContext } from '@uptimo/domain';
+import { getMe, getToken, type CommandAction, type Machine, type Ticket } from '../../api.js';
+import { quickSpec } from '../../components/actionSpecs.js';
 import { elapsedLabel, errorMessage, machineLabel } from '../../components/format.js';
+import { TicketCard } from '../../components/TicketCard.js';
 import { Banner } from '../../ui/banner.js';
 import { LoadingState } from '../../ui/elements/states.js';
-import { CardList, type CardContext } from './Board.js';
 import { Empty, Section, TicketRow, rowClass } from './parts.js';
 import { useTicketWindow } from './useTicketWindow.js';
 import { CLOSED_WINDOW_MS, closedLast30Days, dayReportHref, todayDate } from './views.js';
+
+export interface CardContext {
+  now: string;
+  machines: Machine[];
+  names: Record<string, string>;
+  actor: ActorContext | null;
+  pending: boolean;
+  onQuick: (ticket: Ticket, action: CommandAction) => void;
+}
+
+/** Ticket cards under a hint line, or what to say when there are none. */
+export function CardList({
+  tickets,
+  empty,
+  ctx,
+}: {
+  tickets: Ticket[];
+  empty: string;
+  ctx: CardContext;
+}) {
+  if (tickets.length === 0) return <p className="text-body text-neutral-600">{empty}</p>;
+  return (
+    <ul className="flex flex-col gap-3">
+      {tickets.map((ticket) => (
+        <li key={ticket.id}>
+          <TicketCard
+            ticket={ticket}
+            now={ctx.now}
+            machineCode={machineLabel(ticket, ctx.machines)}
+            names={ctx.names}
+            quick={ctx.actor ? quickSpec(ticket, ctx.actor) : null}
+            pending={ctx.pending}
+            onQuick={ctx.onQuick}
+          />
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 interface ListProps {
   title: string;

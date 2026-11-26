@@ -1,10 +1,12 @@
 /* eslint-disable i18next/no-literal-string -- sort keys, entity kinds and typed unions only; every visible word comes from the model */
-import { useContext, useState } from 'react';
+import { useContext } from 'react';
 import { Link } from 'react-router-dom';
+import { DOC_REF } from '@uptimo/shared/doc-ref';
+import type { Sheet } from '@uptimo/shared/xlsx';
 import { fill } from '../../../i18n/fill.js';
-import { Button } from '../../../ui/v2/button.js';
 import type { Column } from '../../../ui/v2/data-table.js';
 import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
+import { DownloadExcel } from '../../../ui/v2/download-excel.js';
 import { EntityChip, EntityOpenContext } from '../../../ui/v2/entity-chip.js';
 import { KeyPill } from '../../../ui/v2/key-pill.js';
 import { PagedTable, type SelectFilter } from '../../../ui/v2/paged-table.js';
@@ -154,24 +156,15 @@ function selectsOf(model: LogModel, change: (q: Partial<LogQuery>) => void): Sel
 }
 
 /** The export of the whole narrowed log, with its refusal said in place. */
-function ExportBar({ model, onExport }: { model: LogModel; onExport: () => Promise<void> }) {
-  const [failed, setFailed] = useState(false);
+function ExportBar({ model, sheets }: { model: LogModel; sheets: Sheet[] }) {
   if (model.matching === 0) return null;
   return (
     <div className="v2-table-selects">
-      <Button
-        onClick={() => {
-          setFailed(false);
-          onExport().catch(() => setFailed(true));
-        }}
-      >
-        {model.words.export}
-      </Button>
-      {failed ? (
-        <p role="alert" className="v2-sub">
-          {model.words.exportError}
-        </p>
-      ) : null}
+      <DownloadExcel
+        file={`breakdown-log-${new Date().toISOString().slice(0, 10)}`}
+        sheets={sheets}
+        docRef={DOC_REF.breakdowns}
+      />
     </div>
   );
 }
@@ -180,12 +173,12 @@ function LogTable({
   model,
   loading,
   onQuery,
-  onExport,
+  sheets,
 }: {
   model: LogModel;
   loading: boolean;
   onQuery: (query: LogQuery) => void;
-  onExport: () => Promise<void>;
+  sheets: Sheet[];
 }) {
   const open = useContext(EntityOpenContext);
   const { current } = useEntityParam();
@@ -211,7 +204,7 @@ function LogTable({
       words={model.words.table}
       selected={current?.kind === 'machine' ? current.id : undefined}
       onOpen={(r) => open({ kind: 'machine', id: r.machine.id })}
-      extra={<ExportBar model={model} onExport={onExport} />}
+      extra={<ExportBar model={model} sheets={sheets} />}
       foot={
         model.matching === model.count && model.truncated === null ? null : (
           <>
@@ -239,19 +232,19 @@ export function BreakdownLogView({
   nav,
   title,
   onQuery,
-  onExport,
+  sheets,
 }: {
   model: LogModel;
   loading?: boolean;
   nav: NavItem[];
   title: string;
   onQuery: (query: LogQuery) => void;
-  onExport: () => Promise<void>;
+  sheets: Sheet[];
 }) {
   return (
     <EntityShell nav={nav} title={title}>
       <Verdict verdict={model.verdict} whyLabel={model.words.why} />
-      <LogTable model={model} loading={loading} onQuery={onQuery} onExport={onExport} />
+      <LogTable model={model} loading={loading} onQuery={onQuery} sheets={sheets} />
       <SourceLine text={model.source} />
     </EntityShell>
   );
