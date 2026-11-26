@@ -38,3 +38,16 @@ One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not bui
 | R1 TileSet + ShowDetail       | changed                                                                                                                           | the six cards go through `TileSet`: four shown, Our side and Inside warranty fold under Show detail; no figure dropped |
 | R6 Download Excel             | not applicable: not one of Bhavin's exports (ADR 0041)                                                                            | none                                                                                                                   |
 | R11 readable / rupees / exact | not applicable: the engine prints the rupee line ("to claim"); the page formats no money itself and never re-rounds it (ADR 0041) | none                                                                                                                   |
+
+## ADR 0051: OEM comes into scope (26 Nov 2026)
+
+Nimish moved OEM into v1 as "facts now, people pick cause". This supersedes the "needs server" rows above:
+
+| Item                                                                                                                                           | v2                                                                                                | Ticket                            |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------- |
+| The `oem-analytics` figure (every fact above)                                                                                                  | built by the engine                                                                               | OEM-1                             |
+| The Cause column: a person picks OEM / build defect, Installation / commissioning, Our side, Not decided; starts Not decided; no keyword guess | stored as an `oem_cause` ticket event                                                             | OEM-2 (save), OEM-4 (picker)      |
+| Rupees (lost output, amount to claim)                                                                                                          | not shown to anyone until Bhavin's rule (N12)                                                     | none: the engine prints no rupees |
+| "Confirm all suggested causes", learned suggestions, the age box, Excel for the OEM                                                            | not built: there are no suggestions; age fixed at 300 days (ADR 0051 A2, A5)                      | none                              |
+| Chart: hours per machine stacked by cause                                                                                                      | not drawn (no chart in the approved wireframe); the Machines table's Main cause column carries it | none                              |
+| The screen live at `/analytics/machines?screen=oem-analytics`                                                                                  | live                                                                                              | OEM-3                             |

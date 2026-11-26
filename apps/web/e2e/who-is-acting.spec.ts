@@ -33,12 +33,12 @@ test('a shared phone asks who is using it once, then the floor works as that per
   await expect(page.getByText('Shared phone', { exact: false })).toBeVisible();
   const cont = page.getByRole('button', { name: 'Continue', exact: true });
   await expect(cont).toBeDisabled();
-  // A disabled primary must not look like a live one (T2 greys it out).
-  const fill = () => cont.evaluate((el) => getComputedStyle(el).backgroundColor);
-  const greyed = await fill();
+  // A disabled primary must not look like a live one (T2 greys it out; the v2 kit fades it, same fill).
+  const opacity = () => cont.evaluate((el) => Number(getComputedStyle(el).opacity));
+  expect(await opacity()).toBeLessThan(1);
   await page.getByLabel('Your name').selectOption({ label: 'Omi' });
   await expect(cont).toBeEnabled();
-  expect(await fill()).not.toBe(greyed);
+  expect(await opacity()).toBe(1);
   await cont.click();
   // Row 38: an operator's home is My complaints; the floor is still one tap away.
   await expect(page.getByRole('heading', { name: 'My complaints' })).toBeVisible();

@@ -1,4 +1,5 @@
-@theme {
+/* `static`: emit every token even when no class uses it; the gallery and charts read them through var(). */
+@theme static {
   --font-sans:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, 'Noto Sans Gujarati', sans-serif;
 

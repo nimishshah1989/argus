@@ -20,11 +20,6 @@ import { CompanyScreen } from './Company.js';
 import { analyticsProfileSpec } from './analytics-profile-spec.js';
 import { TranslationsScreen } from './Translations.js';
 import { GlossaryScreen, ListsScreen } from './Lists.js';
-import { ladderSpec } from './ladder-spec.js';
-import { groupsSpec, machinesSpec, shiftsSpec } from './plant-specs.js';
-import { pmPlansSpec } from './pm-plans-spec.js';
-import { registersSpec } from './registers-spec.js';
-import { RosterScreen } from './roster-spec.js';
 import { PeopleSettings, PEOPLE_PAGES } from './People.js';
 import { AuditSettings, AUDIT_PAGE } from './Audit.js';
 import { JOBS_PAGE } from './Jobs.js';
@@ -81,18 +76,13 @@ export interface PlantPageSpec {
  * place. `App.tsx` maps it to `/settings/<page>`, and the left menu and phone list read the same entries.
  */
 export const PLANT_PAGES: readonly PlantPageSpec[] = [
-  { page: 'machines', icon: Factory, key: 'plant.menu.machines', spec: machinesSpec as never },
-  { page: 'groups', icon: LayoutGrid, key: 'plant.menu.groups', spec: groupsSpec as never },
-  { page: 'shifts', icon: Clock, key: 'plant.menu.shifts', spec: shiftsSpec as never },
-  { page: 'pm-plans', icon: CalendarCheck, key: 'pm.menu.plans', spec: pmPlansSpec as never },
-  {
-    page: 'registers',
-    icon: ShieldCheck,
-    key: 'plant.menu.registers',
-    spec: registersSpec as never,
-  },
-  { page: 'roster', icon: CalendarClock, key: 'plant.menu.roster', screen: RosterScreen },
-  { page: 'ladder', icon: AlarmClock, key: 'plant.menu.ladder', spec: ladderSpec as never },
+  { page: 'machines', icon: Factory, key: 'plant.menu.machines' },
+  { page: 'groups', icon: LayoutGrid, key: 'plant.menu.groups' },
+  { page: 'shifts', icon: Clock, key: 'plant.menu.shifts' },
+  { page: 'pm-plans', icon: CalendarCheck, key: 'pm.menu.plans' },
+  { page: 'registers', icon: ShieldCheck, key: 'plant.menu.registers' },
+  { page: 'roster', icon: CalendarClock, key: 'plant.menu.roster' },
+  { page: 'ladder', icon: AlarmClock, key: 'plant.menu.ladder' },
   ...(PEOPLE_PAGES as readonly PlantPageSpec[]),
   { ...AUDIT_PAGE, spec: null as never },
   JOBS_PAGE,
