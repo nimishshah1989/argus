@@ -10,7 +10,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 - Nimish approved S28-desk, S29-ticket, S30-board (#850 merged).
 - Floor is on the v2 kit (`v2/floor-on-kit`): new `ui/v2/{floor-kit,wizard,bottom-sheet,account-sheet,alerts-card,drafts-list,status-pill}.tsx` + `floor.css`; Desk can swap to `ui/v2/account-sheet` / `drafts-list` / `status-pill` to drop the old ones. OLD_LEFT minus wizard-page, floor-pieces, ui/text.
 - Four agents building in worktrees, one PR each: A `v2/kit-settings-signin` (kit leftovers, Settings Company/Translations = #794, sign-in Notice, App wiring, #846 lists fixes); B `v2/floor-on-kit`; C `v2/desk-ticket-shell` (Desk + Ticket into the v2 Shell); D `v2/board-shell`.
-- D `v2/board-shell`: /desk/board in the v2 Shell (rail on Desk, Desk tabs, Report a problem, Open TV view); the TV keeps its own frame; Board uses only v2 pieces (new `ui/v2/sync-status.tsx`); `ui/machine-icon.tsx` off OLD_LEFT.
+- D: #853 merged (/desk/board in the v2 Shell, TV keeps its frame). `v2/board-shell-2` finishes S30: Desk tab counts Open (n) / Mine (n), browser pulse as KPI cards, columns as tables, ages as bars (no TV icon: icons.tsx is plan-only); day-score items out (ADR 0050).
 - #842 (audit trail fixes) builder was running via `loop build 842`; finish with `loop finish 842`. #819 is superseded by the guard.
 
 ## Next steps

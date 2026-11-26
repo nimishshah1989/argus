@@ -3,7 +3,17 @@ import type { ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { getBoardToday, getConfig, getMe, getState } from '../../../api.js';
+import {
+  getBoardToday,
+  getConfig,
+  getMe,
+  getState,
+  listTickets,
+  type Me,
+  type TicketListQuery,
+} from '../../../api.js';
+import { breakdownCount } from '../../desk/openLists.js';
+import { mineQuery } from '../desk/team-model.js';
 import { errorMessage } from '../../../components/format.js';
 import { useSyncStatus } from '../../../data/index.js';
 import { mayOpenDesk } from '../../../roles.js';
@@ -16,17 +26,32 @@ import { boardModel } from './adapter.js';
 import { REFETCH_MS } from './model.js';
 import { BoardView } from './View.js';
 
-/** The Desk's tabs, with the Live board pressed; a login that may not open the Desk sees only the board, so none. */
-function DeskTabs({ role }: { role: string | undefined }) {
+/**
+ * The Desk's tabs, with the Live board pressed, and how many are open ("Open (n)": the Desk's breakdown count) and
+ * mine ("Mine (n)": my jobs in progress or waiting, as the Mine screen lists them). A login that may not open the
+ * Desk sees only the board, so none.
+ */
+function DeskTabs({ me, open }: { me: Me | undefined; open: number | undefined }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  if (role === undefined || !mayOpenDesk(role)) return null;
+  const desk = me !== undefined && mayOpenDesk(me.role);
+  const query = { ...mineQuery(me), status: ['working', 'waiting'] } satisfies TicketListQuery;
+  const mine = useQuery({
+    queryKey: ['board-mine', query],
+    queryFn: () => listTickets({ ...query, limit: 200 }),
+    enabled: desk,
+    staleTime: REFETCH_MS,
+    refetchInterval: REFETCH_MS,
+  }).data?.items.length;
+  if (!desk) return null;
+  const counted = (label: string, count: number | undefined) =>
+    count === undefined ? label : t('live.tab.count', { label, count });
   return (
     <Segmented
       label={t('deskLists.tabs')}
       options={[
-        { key: '/desk', label: t('desk.tab.open') },
-        { key: '/desk/mine', label: t('desk.tab.mine') },
+        { key: '/desk', label: counted(t('desk.tab.open'), open) },
+        { key: '/desk/mine', label: counted(t('desk.tab.mine'), mine) },
         { key: '/desk/team', label: t('desk.tab.team') },
         { key: '/desk/board', label: t('deskLists.tab.live') },
       ]}
@@ -64,7 +89,8 @@ export function BoardPage(): ReactNode {
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig, ...live });
   // A refused or failed day score leaves the tiles on a dash; the board stays up.
   const today = useQuery({ queryKey: ['board-today'], queryFn: getBoardToday, ...live });
-  const role = useQuery({ queryKey: ['me'], queryFn: getMe, enabled: !tv }).data?.user.role;
+  const me = useQuery({ queryKey: ['me'], queryFn: getMe, enabled: !tv }).data?.user;
+  const role = me?.role;
   const nav = useNav('today', role).map((item) => ({ ...item, current: item.id === 'desk' }));
   const model =
     state.data && config.data
@@ -87,7 +113,11 @@ export function BoardPage(): ReactNode {
   return (
     <EntityShell nav={nav} title={t('board.title')}>
       {model ? (
-        <BoardView model={model} offline={offline} tabs={<DeskTabs role={role} />} />
+        <BoardView
+          model={model}
+          offline={offline}
+          tabs={<DeskTabs me={me} open={state.data && breakdownCount(state.data.open)} />}
+        />
       ) : (
         states
       )}

@@ -26,4 +26,10 @@ export const liveBoardEn = {
   'live.take.overDay_other': '{{count}} breakdowns are over a day old',
   'live.take.noneOverDay': 'No breakdown is over a day old',
   'live.take.ages': '{{over}}; {{under}} of {{total}} are under 1 h',
+  'live.kpi.of': 'of {{count}} machines ({{pct}}%)',
+  'live.kpi.split':
+    '{{notStarted}} not started · {{repairing}} being repaired · {{waiting}} waiting',
+  'live.kpi.longest': 'Longest {{code}}, {{age}}',
+  'live.refresh': 'refreshes every 30 s · same numbers as the wall TV',
+  'live.tab.count': '{{label}} ({{count}})',
 };

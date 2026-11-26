@@ -33,7 +33,7 @@ for (const width of WIDTHS) {
       const main = await box(page.locator('main'));
       expect(main.x + main.width).toBeLessThanOrEqual(width);
       const blocks = await page.locator('main > *').all();
-      expect(blocks.length).toBeGreaterThan(5);
+      expect(blocks.length).toBeGreaterThanOrEqual(5);
       for (const block of blocks) {
         const b = await box(block);
         const label = await block.evaluate((e) => e.outerHTML.slice(0, 80));
@@ -46,7 +46,7 @@ for (const width of WIDTHS) {
     test('the three status columns sit side by side across the page', async ({ page }) => {
       await openBoard(page, width);
       const main = await box(page.locator('main'));
-      const cols = await page.locator('main section:has(ul)').all();
+      const cols = await page.locator('main section:has(table)').all();
       expect(cols).toHaveLength(3);
       const [a, b, c] = await Promise.all(cols.map(box));
       expect(Math.abs(a!.y - b!.y)).toBeLessThan(2);
@@ -59,12 +59,12 @@ for (const width of WIDTHS) {
       const buckets = await Promise.all((await page.locator('main dl > div').all()).map(box));
       expect(buckets).toHaveLength(4);
       for (let i = 1; i < buckets.length; i++)
-        expect(buckets[i]!.x).toBeGreaterThanOrEqual(buckets[i - 1]!.x + buckets[i - 1]!.width);
+        expect(buckets[i]!.y).toBeGreaterThanOrEqual(buckets[i - 1]!.y + buckets[i - 1]!.height);
       for (const label of await page.locator('main dl dt').all()) {
         const line = await label.evaluate((e) => parseFloat(getComputedStyle(e).lineHeight));
         expect((await box(label)).height).toBeLessThan(line * 1.5);
       }
-      const tiles = await page.locator('main .board-card[role=group]').all();
+      const tiles = await page.locator('main .v2-kpi[role=group]').all();
       expect(tiles.length).toBeGreaterThan(1);
       for (const tile of tiles) expect((await box(tile)).width).toBeGreaterThan(200);
     });
