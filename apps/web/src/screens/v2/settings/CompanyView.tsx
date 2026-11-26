@@ -54,6 +54,7 @@ function CompanyFieldRow(p: {
         <label className="v2-select-field">
           {t(field.labelKey)}
           <select
+            aria-label={t(field.labelKey)}
             value={p.value}
             disabled={p.disabled}
             onChange={(e) => p.onChange(e.target.value)}
