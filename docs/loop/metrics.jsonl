@@ -55,3 +55,4 @@
 {"issue": 814, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-26T14:38:10"}
 {"issue": 814, "size": "standard", "model": "sonnet", "attempts": 2, "result": "pr", "ts": "2026-11-26T14:47:49"}
 {"issue": 793, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-26T15:52:59"}
+{"issue": 842, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-26T16:38:02"}
