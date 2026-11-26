@@ -57,7 +57,13 @@ test('an admin switches a machine out of production data and it stays out after 
     .click();
   await again.click(); // back in: leaves the plant as the other journeys expect it
   await expect(again).toHaveAttribute('aria-checked', 'false');
-  await expect(page.getByRole('button', { name: /not counted/ })).toHaveCount(0);
+  // The kit always draws the flag chip; back in, it reads the zero count.
+  await expect(
+    page.getByRole('button', { name: '1 machine not counted', exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: '0 machines not counted', exact: true }),
+  ).toBeVisible();
 });
 
 test('a failed save puts the switch back and says so', async ({ page }, testInfo) => {
