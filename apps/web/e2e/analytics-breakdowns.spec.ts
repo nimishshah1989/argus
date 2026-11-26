@@ -250,7 +250,7 @@ async function openLog(page: Page): Promise<void> {
     'Machine',
     'Problem',
     'Done by',
-    'Downtime (hrs)',
+    'Downtime',
     'Code',
   ])
     await expect(log.getByRole('columnheader', { name: column, exact: true })).toBeVisible();
@@ -259,7 +259,7 @@ async function openLog(page: Page): Promise<void> {
   ).toBeVisible();
   await expect(log.getByRole('cell', { name: '—', exact: true })).toBeVisible();
   // A stop over 1 hour carries its tag, so the cell's name is the tag's word and the hours the log printed.
-  await expect(log.getByRole('cell', { name: /^Over 1 h\s*1\.83$/ })).toBeVisible();
+  await expect(log.getByRole('cell', { name: /^Over 1 h\s*1 h 50 min$/ })).toBeVisible();
   await expect(
     page.getByText('1,343 rows · Records to 11-Nov-2026', { exact: true }),
   ).toBeVisible();

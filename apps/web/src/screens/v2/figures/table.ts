@@ -1,7 +1,7 @@
 import type { Cell, EngineTableWords, TableModel } from '../../../ui/v2/domain/engine-table.js';
 import type { RegisterTable } from './read.js';
 import { numberIn } from './read.js';
-import { lookOfHeader, type ColumnLook } from '../../../ui/v2/table-look.js';
+import { lookOfHeader } from '../../../ui/v2/table-look.js';
 
 export type { Cell, EngineTableWords, TableModel };
 
@@ -15,8 +15,6 @@ export type TableOptions = {
   chip?: Record<string, (cell: string, row: Record<string, string>) => Cell | null>;
   /** The column whose most common values become filter chips. */
   chipColumn?: string;
-  /** Looks a screen declares by header, for the columns it names itself (its words are translated, not the engine's). */
-  looks?: Record<string, ColumnLook>;
 };
 
 const NUMBER = /^-?\d[\d,]*(\.\d+)?\s?(?:%|y|yrs?|hrs?|m²|KVA|kW|x)?$/;
@@ -68,7 +66,7 @@ export function engineTable(table: RegisterTable, o: TableOptions): TableModel {
     header: shown.map(({ label }, i) => ({
       label,
       numeric: numeric[i] ?? false,
-      look: o.looks?.[label] ?? lookOfHeader(label, numeric[i] ?? false, o.title),
+      look: lookOfHeader(label, numeric[i] ?? false, o.title),
     })),
     rows,
     chips: at < 0 ? [] : commonValues(rows, at).map((key) => ({ key, label: key, column: at })),

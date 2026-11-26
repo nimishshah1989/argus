@@ -5,7 +5,7 @@ import { Button } from '../button.js';
 import { DataTable, type Column, type FilterChip, type TableWords } from '../data-table.js';
 import { EntityChip, EntityOpenContext, type EntityChipProps } from '../entity-chip.js';
 import type { Meaning } from '../takeaway.js';
-import type { ColumnLook, DurationUnit } from '../table-look.js';
+import type { ColumnLook } from '../table-look.js';
 
 /** One printed cell: what it says, what it sorts by, and the thing it names when it names one. */
 export type Cell = {
@@ -38,8 +38,6 @@ export type TableModel = {
     /** A column of buttons: not sorted. */ fixed?: boolean;
     /** How the column colours itself (ADR 0061), read from the engine's header by `lookOfHeader`. */
     look?: ColumnLook;
-    /** A duration column: its numbers read as time (`Column.unit`). */
-    unit?: DurationUnit;
   }[];
   rows: Cell[][];
   /** Filter chips after "All": each keeps the rows whose `column` says `key`. */
@@ -65,7 +63,6 @@ function columnsOf(table: TableModel, onAction?: (id: string) => void): Column<R
     label: h.label,
     numeric: h.numeric,
     look: h.look,
-    unit: h.unit,
     ...(h.fixed ? {} : { sortBy: (row: Row) => row.cells[i]?.sort ?? '' }),
     ...(meaning?.column === i
       ? { meaning: { ...meaning, value: (row: Row) => Number(row.cells[i]?.sort) } }
