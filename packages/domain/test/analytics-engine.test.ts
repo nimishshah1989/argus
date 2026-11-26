@@ -60,13 +60,20 @@ const DATA: EngineData = {
   lists: {},
 };
 
+/** The engine tickets ran 38 to 67; OEM analytics came later (ADR 0051) and is the one figure owned outside that range. */
+const OEM_OWNER = { owner: 812, key: 'oem-analytics' } as const;
+
 describe('the figure registry', () => {
   it('registers every figure once, with its owner and a drill target', () => {
     expect(new Set(FIGURE_KEYS).size).toBe(FIGURES.length);
     for (const figure of FIGURES) {
       expect(DRILL_TYPES, figure.key).toContain(figure.drill);
+      if (figure.owner === OEM_OWNER.owner) {
+        expect(figure.key).toBe(OEM_OWNER.key);
+        continue;
+      }
       expect(figure.owner, figure.key).toBeGreaterThanOrEqual(38);
-      expect(figure.owner, figure.key).toBeLessThanOrEqual(812);
+      expect(figure.owner, figure.key).toBeLessThanOrEqual(67);
     }
   });
 
