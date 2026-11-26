@@ -36,6 +36,7 @@ import { checkHandoverTarget } from './targets.js';
 import { loginInTicketCell, otherCellRefusal, reopenConflict } from './handback.js';
 import { checkLockout, holdStartForLockout, lockoutField } from './lockout.js';
 import { buildRaiseExtras, buildRaised, loadSeverityMatrix, refreshSeverity } from './severity.js';
+import { registerOemCauseRoutes } from './oem-cause-routes.js';
 import { registerWhyWhyRoutes } from './why-why-routes.js';
 import { registerPmRoutes } from './pm-routes.js';
 
@@ -393,5 +394,6 @@ export function registerTickets(app: FastifyInstance, config: AppConfig): void {
     );
   }
   registerWhyWhyRoutes(app, pool);
+  registerOemCauseRoutes(app, pool);
   registerPmRoutes(app, pool);
 }
