@@ -6,8 +6,8 @@ import { getActingChoices, getBrand, getMe } from '../../../api.js';
 import { useOnline } from '../../../data/index.js';
 import { actAs } from '../../../faces/signin/act-as.js';
 import { offlineNotice } from '../../../patterns/view-state.js';
-import { leaveThisPhone } from '../../../leave-phone.js';
 import { landingPath } from '../../../roles.js';
+import { leaveThisPhone, SignOutPrompt } from '../../../ui/v2/account-sheet.js';
 import { Button } from '../../../ui/v2/button.js';
 import { ErrorNotice } from '../../../ui/v2/notice.js';
 import { ErrorState } from '../../../ui/v2/screen-states.js';
@@ -43,13 +43,7 @@ function SignOutAsk({ onCancel }: { onCancel: () => void }): ReactElement {
   return (
     <section aria-label={t('account.signOutTitle')} className="v2-crud-form">
       <h2 className="v2-h3">{t('account.signOutTitle')}</h2>
-      <p className="v2-crud-hint">{t('account.signOutBody')}</p>
-      <div className="v2-crud-actions">
-        <Button onClick={onCancel}>{t('account.goBack')}</Button>
-        <Button primary onClick={() => void signOutNow()}>
-          {t('account.signOut')}
-        </Button>
-      </div>
+      <SignOutPrompt onCancel={onCancel} onConfirm={() => void signOutNow()} />
     </section>
   );
 }
