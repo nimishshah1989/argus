@@ -1,4 +1,5 @@
 /* eslint-disable i18next/no-literal-string -- icon names and typed unions only; every visible word comes in as a prop or t() */
+// lean-allow: the v2 kit table owns search, filters, sort, paging and the row drawer in one place; splitting it is its own change.
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fill } from '../../i18n/fill.js';
@@ -48,7 +49,7 @@ export type TableWords = {
   showing: string;
   noResults: string;
   /** The row action's name, e.g. "Open". */
-  open: string;
+  open?: string;
 };
 
 /** A table with more columns than this scrolls sideways inside its card instead of running past it. */
@@ -86,6 +87,8 @@ type TableProps<R> = {
    * shown only when something is chosen. Rows go through `applyFilters` before search and sort.
    */
   selects?: TableSelect<R>[];
+  /** Drawn under the pager only while the reader is on the last page (or the only one): e.g. a "load older" button. */
+  more?: ReactNode;
 };
 
 const rankedBy = <R,>(rows: R[], measure: Column<R>['meaning']) =>
@@ -401,6 +404,7 @@ export function DataTable<R>(props: TableProps<R>) {
           onPage={ask.setPage}
         />
       )}
+      {small || view.page >= view.pages ? props.more : null}
     </section>
   );
 }
