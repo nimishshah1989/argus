@@ -11,6 +11,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 - **Tables colour themselves, "On this page", bubble labels (ADR 0061, #869):** guard `screens/v2/table-look.test.ts`; 38 of 44 fixture tables colour.
 - **Multi-year (ADR 0063, #870):** forecasts, history figures and A1/A3 month trends read 2022–2026; one year picker (`?years=`); year-over-year lines. 2026 answer key unchanged.
 - **Data on staging:** 2026 log loaded 26 Nov (#865 job, snapshot `uptimo-pre-history-20261126155839`, batch `9aa60229…`); 2022–2025 was already there (4,220 reports, source of that load untraced). A1 Jan–Sep = answer key; Oct 0.43 vs 0.42 and Nov 0.12 vs 0.22 from earlier live-ticket imports.
+- **Live breakdowns in A1, report charts over every year (ADR 0064, branch plan/analytics-live-and-years):** A1 counts live tickets (key's November holds); monthly/annual report month charts read 2022–2026. Other figures still history-only.
 - Also merged: Desk/Ticket/Board in Shell, Floor on kit, Settings, real names (ADR 0059, #867), A-codes hidden (ADR 0062, #863), #803 Desk data (#862, #864), TV board fits any screen (#868).
 - Nimish approved merging PRs whose only red check is loop-guard "existing test modified on a build branch". Nimish chose "+N more" on the TV over the wireframe's "and N more" (26 Nov).
 

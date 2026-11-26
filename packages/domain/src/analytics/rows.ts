@@ -50,6 +50,31 @@ export const isNoDowntime = (row: SourcedReport): boolean => row.report.maintCod
 
 export const isHistory = (row: SourcedReport): boolean => row.ticket.source === 'history';
 
+const SHIFT_ALIASES: Record<string, string> = { '1ST': '1', '2ND': '2' };
+
+/**
+ * A report's shift as the settings spell it: `1ST` and `2ND` are shift 1 and shift 2 (R8). The shift split groups by
+ * this same key, so a row cannot count in one shift for one figure and another shift for the other.
+ */
+export function shiftKey(report: ReportRow): string {
+  const raw = report.shift.trim().toUpperCase();
+  return SHIFT_ALIASES[raw] ?? raw;
+}
+
+/** DATA-MAP section 2's own pair: machine, date, shift and downtime together. */
+export const reportKey = (report: ReportRow): string =>
+  `${report.machineId}|${report.date}|${shiftKey(report)}|${report.downtimeMin}`;
+
+/**
+ * The breakdown log A1 reads (ADR 0064): every history row, and every report closed live in the app, less a live report
+ * whose machine, date, shift and downtime equal a history row's: that is the same breakdown loaded twice.
+ */
+export function breakdownLog(data: EngineData): SourcedReport[] {
+  const rows = sourcedReports(data);
+  const held = new Set(rows.filter(isHistory).map((row) => reportKey(row.report)));
+  return rows.filter((row) => isHistory(row) || !held.has(reportKey(row.report)));
+}
+
 /** The machines the plant leaves out of breakdown hours; they stay in the fleet totals. */
 export function excludedMachineIds(data: EngineData): ReadonlySet<string> {
   return new Set(data.settings?.excludedMachineIds ?? []);

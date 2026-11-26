@@ -186,18 +186,21 @@ function dailyChart(
 
 /**
  * `ch-rp-12m`: the twelve months ending at the report month, leading empty months dropped. A month the plant recorded
- * nothing in (`data.gaps`) is `null`, never a bar of zero.
+ * nothing in (`data.gaps`) is `null`, never a bar of zero. Given `from`, the first month of every recorded year (ADR 0064),
+ * it starts there instead, so the chart draws year over year.
  */
 function yearChart(
   data: EngineData,
   profile: Pick<AnalyticsProfile, 'prodHrsPerDay' | 'workDaysPerYear'>,
   period: MonthPeriod,
+  from?: string,
 ): Chart {
   const entries = reportEntries(data);
   const machines = productionMachines(data);
   const index = period.current.year * 12 + period.current.month - 1;
+  const first = from === undefined ? index : Number(from.slice(0, 4)) * 12 + Number(from.slice(5, 7)) - 1;
   const months: Array<{ window: MonthWindow; stats: ReportStats }> = [];
-  for (let back = 11; back >= 0; back -= 1) {
+  for (let back = Math.max(11, index - first); back >= 0; back -= 1) {
     const at = index - back;
     const window = monthWindow(Math.floor(at / 12), (at % 12) + 1);
     months.push({
@@ -255,6 +258,7 @@ function pageOf(
   profile: AnalyticsProfile,
   period: MonthPeriod,
   stats: PageStats,
+  history?: EngineData,
 ): Page {
   const { current, previous, hasPrev } = stats;
   const { machines, machineKey, cellKey, categoryKey, codeKey } = reportKeys(data);
@@ -303,7 +307,7 @@ function pageOf(
     ],
     charts: [
       dailyChart(period, current.breakdowns, previous.breakdowns),
-      yearChart(data, profile, period),
+      yearChart(history ?? data, profile, period, history?.period?.from),
     ],
   };
 }
@@ -317,6 +321,7 @@ export function monthlyReport(
   loaded: EngineData,
   profile: AnalyticsProfile,
   asOf: string,
+  history?: EngineData,
 ): { value: FigureValue | null; drillIds: string[] } {
   const data = canonicalOrder(loaded);
   const machines = productionMachines(data);
@@ -332,7 +337,13 @@ export function monthlyReport(
     to: period.previous.end,
   });
   const hasPrev = previous.count > 0 || previous.pmCount > 0;
-  const page = pageOf(data, profile, period, { current, previous, hasPrev });
+  const page = pageOf(
+    data,
+    profile,
+    period,
+    { current, previous, hasPrev },
+    history && canonicalOrder(history),
+  );
   return {
     value: { screen: 'monthly-report', asOf, pages: [page] } as unknown as FigureValue,
     drillIds: current.breakdowns.map((row) => row.ticket.id),
@@ -340,5 +351,5 @@ export function monthlyReport(
 }
 
 /** The registered figure: `runWith` reads the same computation the PDF route calls directly. */
-export const monthlyReportFigure: Computer = ({ data, asOf, profile }) =>
-  monthlyReport(data, profile, asOf);
+export const monthlyReportFigure: Computer = ({ data, asOf, profile, history }) =>
+  monthlyReport(data, profile, asOf, history);

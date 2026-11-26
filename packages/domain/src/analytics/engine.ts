@@ -174,6 +174,8 @@ export function runWith(
             data: def.reads === 'history' && cutFrom ? asOfData : views.whole,
             asOf,
             profile,
+            // ADR 0064: the reports' month charts run over every recorded year too.
+            ...(history && def.reads === 'asOf' ? { history } : {}),
           });
     const ids = drillOf(def, computed, known[def.drill]);
     return { ...base, status: 'ready', value: computed.value, drill: { type: def.drill, ids } };

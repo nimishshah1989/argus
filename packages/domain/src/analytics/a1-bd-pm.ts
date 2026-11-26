@@ -25,7 +25,7 @@ import {
   withGaps,
 } from './a1-months.js';
 import { isProduction } from './machine-facts.js';
-import { effectiveHours, isHistory, isPm, sourcedReports } from './rows.js';
+import { breakdownLog, effectiveHours, isPm } from './rows.js';
 import type { Computer, EngineData, FigureValue, MachineRow, MoveRow } from './types.js';
 
 /**
@@ -55,10 +55,9 @@ function analysisEntries(
   period: Period,
 ): A1Entry[] {
   const byId = new Map(machines.map((machine) => [machine.id, machine]));
-  return sourcedReports(data)
+  return breakdownLog(data)
     .filter(
       (row) =>
-        isHistory(row) &&
         byId.has(row.report.machineId) &&
         row.report.date >= period.from &&
         row.report.date <= period.to,

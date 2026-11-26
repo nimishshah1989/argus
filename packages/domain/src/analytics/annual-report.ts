@@ -88,6 +88,30 @@ export function annualPeriod(asOf: string): AnnualPeriod {
   return { year, start: `${year}-01-01`, end: asOf, lastMonth: Number(asOf.slice(5, 7)) };
 }
 
+/**
+ * Every month from 1 January of the first recorded year (`history.period`) to the run date, each with its year, from
+ * the plant over every year (ADR 0064); null when that span starts in the report year, so the chart keeps its year.
+ */
+function historyPoints(
+  history: EngineData | undefined,
+  profile: AnalyticsProfile,
+  period: AnnualPeriod,
+): Array<MonthPoint & { year: number }> | null {
+  const first = Number(history?.period?.from.slice(0, 4) ?? period.year);
+  if (history === undefined || first >= period.year) return null;
+  const entries = reportEntries(history);
+  const machines = productionMachines(history);
+  const statsOf: StatsOf = (from, to) =>
+    reportStats(entries, machines, profile, windowOf(from, to, history.gaps));
+  const points: Array<MonthPoint & { year: number }> = [];
+  for (let year = first; year <= period.year; year += 1) {
+    const whole = year < period.year;
+    const span = whole ? { year, start: `${year}-01-01`, end: `${year}-12-31`, lastMonth: 12 } : period;
+    points.push(...monthPoints(span, statsOf).map((point) => ({ ...point, year })));
+  }
+  return points;
+}
+
 /** One window's stats: the report's entries and fleet over `from` to `to`, the run's gap months left out. */
 type StatsOf = (from: string, to: string) => ReportStats;
 
@@ -233,11 +257,18 @@ const chartOf = (
   datasets,
 });
 
-/** `ch-ry-month`: the year's breakdowns and hours by month, the partial month starred. */
-function monthChart(points: readonly MonthPoint[]): Chart {
+/**
+ * `ch-ry-month`: the year's breakdowns and hours by month, the partial month starred. Points over more than one year
+ * (`year` set, ADR 0064) are labelled `Mon YY`, so the chart draws year over year.
+ */
+function monthChart(points: ReadonlyArray<MonthPoint & { year?: number }>): Chart {
   return chartOf(
     'ch-ry-month',
-    points.map((point) => `${MONTHS_SHORT[point.index - 1]}${point.partial ? '*' : ''}`),
+    points.map((point) =>
+      point.year === undefined
+        ? `${MONTHS_SHORT[point.index - 1]}${point.partial ? '*' : ''}`
+        : `${MONTHS_SHORT[point.index - 1]} ${String(point.year).slice(2)}`,
+    ),
     [
       { label: 'Breakdowns', data: points.map(({ stats }) => (stats.gap ? null : stats.count)) },
       {
@@ -278,6 +309,7 @@ export function annualReport(
   loaded: EngineData,
   profile: AnalyticsProfile,
   asOf: string,
+  history?: EngineData,
 ): { value: FigureValue | null; drillIds: string[] } {
   const data = canonicalOrder(loaded);
   const machines = productionMachines(data);
@@ -312,7 +344,7 @@ export function annualReport(
       ),
     ],
     charts: [
-      monthChart(months),
+      monthChart(historyPoints(history && canonicalOrder(history), profile, period) ?? months),
       paretoChart(stats, new Map(data.machines.map((machine) => [machine.id, machine]))),
     ],
   };
@@ -323,5 +355,5 @@ export function annualReport(
 }
 
 /** The registered figure: `runWith` reads the same computation the PDF route calls directly. */
-export const annualReportFigure: Computer = ({ data, asOf, profile }) =>
-  annualReport(data, profile, asOf);
+export const annualReportFigure: Computer = ({ data, asOf, profile, history }) =>
+  annualReport(data, profile, asOf, history);

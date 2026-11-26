@@ -18,3 +18,4 @@ One page per irreversible or expensive-to-reverse decision. Each records the con
 - `0041-sweep-706-batch-map.md` — sweep #706 in four batch tickets: which kit piece goes on which page
 - `0043-sweep-706-addendum.md` — machine out of batch A, ranked bars mapped, the dashboard quadrant swap gated on Nimish's yes
 - `0063-every-year-feeds-trends-and-a-year-picker.md` — the data-from date keeps the headlines; forecasts, history figures and month trends read every year; `?years=` on the figures read; one `YearPicker` in the shell; kit lines draw year over year
+- `0064-live-breakdowns-count-and-report-charts-read-every-year.md` — A1 reads `breakdownLog` (history plus live, a live duplicate of a history row counted once); the monthly and annual report month charts read every recorded year

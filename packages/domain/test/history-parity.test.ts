@@ -13,7 +13,7 @@ import { COSMOS_FROM, HISTORY, withFrom } from './history-fixture.js';
 
 const AS_OF = '2026-11-11';
 const LEARNS = new Set(FIGURES.filter((f) => f.reads === 'history').map((f) => f.key));
-const TRENDS = new Set(['ch-a1-trend', 'ch-a3-planttrend']);
+const TRENDS = new Set(['ch-a1-trend', 'ch-a3-planttrend', 'ch-rp-12m', 'ch-ry-month']);
 
 type Page = { charts?: { id: string; labels: string[] }[] };
 const pagesOf = (figure: FigureResult | undefined): Page[] =>
@@ -65,6 +65,15 @@ describe('history parity (data-from date)', () => {
     expect(trend('a3-mttr-mtbf', 'ch-a3-planttrend')?.labels.at(-1)).toBe('Dec 26');
     const own = pagesOf(alone.figures.find((f) => f.key === 'a1-bd-pm'))[0]?.charts;
     expect(own?.find((chart) => chart.id === 'ch-a1-trend')?.labels[0]).toBe('Jan');
+  });
+
+  it('the reports month charts run over every recorded year, their tables on their own period (ADR 0064)', () => {
+    expect(trend('monthly-report', 'ch-rp-12m')?.labels[0]).toBe('Jan 22');
+    expect(trend('monthly-report', 'ch-rp-12m')?.labels.at(-1)).toBe('Oct 26');
+    expect(trend('annual-report', 'ch-ry-month')?.labels[0]).toBe('Jan 22');
+    expect(trend('annual-report', 'ch-ry-month')?.labels.at(-1)).toBe('Nov 26');
+    const own = pagesOf(alone.figures.find((f) => f.key === 'annual-report'))[0]?.charts;
+    expect(own?.find((chart) => chart.id === 'ch-ry-month')?.labels[0]).toBe('Jan');
   });
 
   it('the run names every recorded year, before the data-from cut', () => {
