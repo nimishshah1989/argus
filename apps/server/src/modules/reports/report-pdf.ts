@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { annualReport, canAnalytics, monthlyReport, type FigureValue } from '@uptimo/domain';
 import { apiError, calendarDay } from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
-import { requireAuth, tenantInfo } from '../identity/index.js';
+import { nameCodes, personNames, requireAuth, tenantInfo } from '../identity/index.js';
 import { actorOf, forbidden, plantToday } from '../plant/index.js';
 import { loadEngineData, readProfile } from '../analytics/index.js';
 import { esc } from './html.js';
@@ -208,7 +208,7 @@ async function loadReport(
     const tenant = await tenantInfo(tx, tenantId);
     const figure =
       screen === 'monthly' ? monthlyReport(data, profile, asOf) : annualReport(data, profile, asOf);
-    return { asOf, tenant, value: figure.value };
+    return { asOf, tenant, value: nameCodes(figure.value, await personNames(tx, tenantId)) };
   });
 }
 

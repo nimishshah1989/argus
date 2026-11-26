@@ -12,6 +12,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 - Board rows now open their ticket in the side panel (S30, same `EntityShell` drawer as the Desk); the machine chip still opens the machine; TV unchanged.
 - Nimish approved merging PRs whose only red check is loop-guard "existing test modified on a build branch" (26 Nov). Protected files stay plan-only.
 - Branch v2/desk-data (Refs #803): the four S28/S29 items the server lacked are built server + UI: sign-off outcomes of the last 24 h on `/board/signoff`, `GET /state/crew` (crew roles, paused jobs under Working now), `machineAverage` on the ticket detail (engine MTTR in minutes, "no earlier breakdown" when none), `GET /tickets/recent-codes` + searchable code pickers (`CodePicker` in ui/v2/close-kit.tsx). No migration.
+- Branch v2/real-names (ADR 0058, Nimish 26 Nov "Show real names"): analytics/drill/compare replies, monthly/annual PDFs, workbook and Why-Why PDF print people's names instead of `P-xxxxxxxx` codes (identity `personNames` + `nameCodes` at the server boundary); the engine and `kpi_snapshot` stay name-free; erased people keep their code.
 
 ## Not built (server lacks data, or protected file)
 

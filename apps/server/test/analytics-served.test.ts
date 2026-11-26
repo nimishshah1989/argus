@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { FIGURES } from '@uptimo/domain';
 import { withTenant } from '../src/kernel/index.js';
 import { runForTenant } from '../src/modules/analytics/service.js';
+import { nameCodes, personNames } from '../src/modules/identity/index.js';
 import { servedRun, STAMPED_TABLES, warmServedRun } from '../src/modules/analytics/served.js';
 import { A, M_FREE, M_USED, startFixture, type Fixture } from './plant-settings-fixture.js';
 
@@ -48,10 +49,15 @@ const computes = async <T>(read: () => Promise<T>) => {
   const answer = await read();
   return { answer, ran: runCalls.n - before };
 };
-/** What the engine says right now, computed from the tables with no store in between. */
+/** What the engine says right now, computed from the tables with no store in between, named as a reply is (ADR 0058). */
 const fresh = async (asOf = ASOF) => {
-  const result = await withTenant(f.db.app, A, (tx) => runForTenant(tx, { tenantId: A, asOf }));
-  return JSON.parse(JSON.stringify(result)) as { figures: unknown[]; rows: Record<string, number> };
+  const result = await withTenant(f.db.app, A, async (tx) =>
+    nameCodes(
+      JSON.parse(JSON.stringify(await runForTenant(tx, { tenantId: A, asOf }))),
+      await personNames(tx, A),
+    ),
+  );
+  return result as { figures: unknown[]; rows: Record<string, number> };
 };
 
 describe('figures served from the stored run (75a)', () => {

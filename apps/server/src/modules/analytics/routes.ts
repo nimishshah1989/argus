@@ -24,7 +24,7 @@ import {
   type EngineData,
 } from '@uptimo/domain';
 import { withTenant } from '../../kernel/index.js';
-import { requireAuth } from '../identity/index.js';
+import { nameCodes, personNames, requireAuth } from '../identity/index.js';
 import { actorOf, forbidden, plantToday, registerResource } from '../plant/index.js';
 import { registerCompareRoute } from './compare-route.js';
 import { registerFocusNoteRoutes } from './focus-notes.js';
@@ -86,15 +86,20 @@ async function figuresReply(input: {
   const result = await withTenant(pool, tenantId, async (tx) => {
     const asOf = asked ?? (await plantToday(tx, tenantId));
     const compute = () => runForTenant(tx, { tenantId, asOf, store });
-    return serve
-      ? servedRun(tx, { tenantId, asOf, compute, onStale: warmLater(boss, log) })
-      : compute();
+    const run = serve
+      ? await servedRun(tx, { tenantId, asOf, compute, onStale: warmLater(boss, log) })
+      : await compute();
+    return { run, names: await personNames(tx, tenantId) };
   });
-  return {
-    ...result,
-    profile: shownProfile(result.profile, money),
-    figures: result.figures.filter((figure) => money || !MONEY.has(figure.key)),
-  };
+  // The kept run stays name-free; the names go in on the way out (ADR 0058).
+  return nameCodes(
+    {
+      ...result.run,
+      profile: shownProfile(result.run.profile, money),
+      figures: result.run.figures.filter((figure) => money || !MONEY.has(figure.key)),
+    },
+    result.names,
+  );
 }
 
 /** 422 on an `asOf` that is not a real plant date; null when it was left empty. */
@@ -162,10 +167,11 @@ async function drillReply(
   const rows = await withTenant(pool, tenantId, async (tx) => {
     const data = await loadEngineData(tx, tenantId);
     const byId = new Map(drillRows(data, type).map((row) => [row.id, row]));
-    return ids.flatMap((id) => {
+    const asked = ids.flatMap((id) => {
       const row = byId.get(id);
       return row === undefined ? [] : [row];
     });
+    return nameCodes(asked, await personNames(tx, tenantId));
   });
   return { type, rows };
 }

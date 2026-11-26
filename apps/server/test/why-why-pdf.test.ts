@@ -81,7 +81,7 @@ afterAll(async () => {
 });
 
 describe('the Why-Why PDF', () => {
-  it('renders the record: machine, date, hours, the five whys, conclusion, author code and completion date', async () => {
+  it('renders the record: machine, date, hours, the five whys, conclusion, author name and completion date', async () => {
     const res = await pdf(f.tokens.head!);
     expect(res.statusCode, res.body).toBe(200);
     expect(res.headers['content-type']).toContain('application/pdf');
@@ -97,11 +97,13 @@ describe('the Why-Why PDF', () => {
       '10-11-2026',
       '13.00',
       ...WHYS.slice(1),
-      `P-${headPerson.slice(0, 8)}`,
+      // The author's name, not their code (ADR 0058).
+      'plant-a head',
       dmy(completedDate),
     ]) {
       expect(text, expected).toContain(flat(expected));
     }
+    expect(text).not.toContain(`P-${headPerson.slice(0, 8)}`);
     expect(text).toContain(flat('Spindle noise'));
     expect(pdfShows(res.rawPayload, `${WHYS[0]} ${CONCLUSION}`)).toBe(true);
   });

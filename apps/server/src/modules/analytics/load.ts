@@ -207,7 +207,7 @@ const shift = (row: Row): ShiftRow => ({
 const person = (row: Row): PersonRow => ({
   id: row.id as string,
   code: personCode(row.id as string),
-  // The engine holds no name: the live plant's printable form is its pseudonym, never the person's name.
+  // The engine holds no name: it prints the pseudonym, and replies swap in the name on the way out (ADR 0058).
   displayName: personCode(row.id as string),
   team: row.team as PersonRow['team'],
   active: row.active as boolean,

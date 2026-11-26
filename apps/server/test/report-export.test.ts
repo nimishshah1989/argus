@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { workbookSheets, type ExportSheet } from '@uptimo/domain';
 import { withTenant } from '@uptimo/db';
-import { tenantInfo } from '../src/modules/identity/index.js';
+import { nameCodes, personNames, tenantInfo } from '../src/modules/identity/index.js';
 import { loadEngineData, readProfile } from '../src/modules/analytics/index.js';
 import { pmReportsForExport } from '../src/modules/tickets/index.js';
 import { exportDataFor } from '../src/modules/reports/export-data.js';
@@ -54,8 +54,10 @@ async function buildExpected(): Promise<ExportSheet[]> {
     const tenant = await tenantInfo(tx, A);
     // The route's own PM read (50b): the expected sheets must be built the way the download builds them.
     const pmReports = await pmReportsForExport(tx, A);
-    return workbookSheets(
-      exportDataFor({ data, profile, tenant: tenant.name, asOf: AS_OF, pmReports }),
+    // The download prints real names for the codes (ADR 0058), as the route does.
+    return nameCodes(
+      workbookSheets(exportDataFor({ data, profile, tenant: tenant.name, asOf: AS_OF, pmReports })),
+      await personNames(tx, A),
     );
   });
 }
@@ -169,8 +171,8 @@ describe('the workbook download', () => {
       undone: ['p2'],
       readings: { meter: 1250 },
       comments: 'Chip conveyor cleaned',
-      // G1.2b (#553): the data column prints the coded name, never a person or plan id.
-      doneBy: `P-${doneBy.slice(0, 8)}`,
+      // G1.2b (#553): the data column prints the person's name (ADR 0058), never a person or plan id.
+      doneBy: 'plant-a technician',
     };
     expect(sheets['PM Reports']).toEqual([
       header('PM Reports'),
@@ -179,7 +181,7 @@ describe('the workbook download', () => {
         'VC-02',
         '2026-10-30',
         '2026-10-30',
-        `P-${doneBy.slice(0, 8)}`,
+        'plant-a technician',
         2,
         'p2',
         'meter 1250',

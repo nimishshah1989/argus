@@ -3,7 +3,7 @@ import type { Pool } from 'pg';
 import { compareQuerySchema, type CompareReply } from '@uptimo/shared';
 import { canAnalytics, canMoney, comparePair } from '@uptimo/domain';
 import { refuse, withTenant } from '../../kernel/index.js';
-import { requireAuth } from '../identity/index.js';
+import { nameCodes, personNames, requireAuth } from '../identity/index.js';
 import { actorOf, forbidden, plantToday } from '../plant/index.js';
 import { loadEngineData } from './load.js';
 import { readProfile } from './profile.js';
@@ -78,9 +78,10 @@ export function registerCompareRoute(app: FastifyInstance, pool: Pool): void {
         asOf,
         profile,
         result: comparePair({ data, asOf, profile }, a && b ? { a, b } : undefined),
+        names: await personNames(tx, ctx.tenantId),
       };
     });
-    const { asOf, profile, result } = out;
+    const { asOf, profile, result, names } = out;
     if (result.kind === 'unknown') {
       const { status, body } = refuse(
         422,
@@ -107,6 +108,6 @@ export function registerCompareRoute(app: FastifyInstance, pool: Pool): void {
       years: page ? result.years : null,
       rate: money ? profile.mmThroughput : null,
     };
-    reply.send(body as CompareReply);
+    reply.send(nameCodes(body, names) as CompareReply);
   });
 }

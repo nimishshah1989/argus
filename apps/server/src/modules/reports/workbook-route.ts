@@ -2,7 +2,13 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { canAnalytics, workbookSheets } from '@uptimo/domain';
 import { apiError, calendarDay } from '@uptimo/shared';
 import { withTenant } from '@uptimo/db';
-import { requireAuth, tenantInfo, tenantSlugFromHost } from '../identity/index.js';
+import {
+  nameCodes,
+  personNames,
+  requireAuth,
+  tenantInfo,
+  tenantSlugFromHost,
+} from '../identity/index.js';
 import { actorOf, forbidden, plantToday } from '../plant/index.js';
 import { loadEngineData, readProfile } from '../analytics/index.js';
 import { pmReportsForExport } from '../tickets/index.js';
@@ -44,7 +50,8 @@ async function buildWorkbook(
     // The PM sheets are the plant's own plans and closed jobs (50 R15), never the platform's frozen key.
     const pmReports = await pmReportsForExport(tx, tenantId);
     const exportData = exportDataFor({ data, profile, tenant: tenant.name, asOf, pmReports });
-    return { asOf, bytes: writeXlsx(workbookSheets(exportData)) };
+    const sheets = nameCodes(workbookSheets(exportData), await personNames(tx, tenantId));
+    return { asOf, bytes: writeXlsx(sheets) };
   });
 }
 
