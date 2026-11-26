@@ -51,7 +51,7 @@ He asked for each to be solved once, in the kit, so every page gets it.
    card's title; not one in a live message) into `OnThisPage`: a sticky rail at the right from 1280 px, a jump menu at
    the top of the page below that or while the drawer is open. Scroll-spy marks the part being read; a click scrolls,
    focuses the heading and writes `#part` into the address, and a pasted `#part` scrolls there on load. Pages with
-   fewer than three parts show nothing. The same titles join the ⌘ K search. No screen changes.
+   fewer than three parts show nothing. The floor, the desk and settings (`/floor`, `/desk`, `/settings`) get no index: the two-zone rule keeps their order and positions fixed (`fixedZone`). The same titles join the ⌘ K search. No screen changes.
 
 No new dependency: each piece is a few dozen lines on what the kit already had; a label-placement or scroll-spy
 library would bring more than it saves.

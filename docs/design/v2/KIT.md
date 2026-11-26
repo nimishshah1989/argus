@@ -75,7 +75,7 @@ How to read an entry: **For** is what the part does. **Pick it when** says when 
 
 ### `OnThisPage` — `on-this-page.tsx`
 
-- **For:** the page's own index (Nimish, 26 Nov: "it will be so hard for someone to even remember where is what"). From 1280 px a sticky rail at the right lists the sections, the one being read marked; below that, or while the drawer is open, a compact jump menu sits at the top of the page. A click scrolls there, focuses the heading and puts `#section` in the address, so a link to a section works. Under 3 sections it shows nothing.
+- **For:** the page's own index (Nimish, 26 Nov: "it will be so hard for someone to even remember where is what"). From 1280 px a sticky rail at the right lists the sections, the one being read marked; below that, or while the drawer is open, a compact jump menu sits at the top of the page. A click scrolls there, focuses the heading and puts `#section` in the address, so a link to a section works. Under 3 sections it shows nothing. Not on `/floor`, `/desk` or `/settings` (the two-zone rule, `fixedZone`).
 - **Pick it when:** never directly; the `Shell` draws it. `sectionsIn`, `useSections`, `useCurrent` and `jumpTo` are its parts.
 - **Key props:** `sections` (`PageSection`: `id`, `title`), `current`, `place` (`rail` or `jump`).
 - **Used by:** kit-internal: `shell.tsx`.

@@ -15,7 +15,14 @@ import { useTranslation } from 'react-i18next';
 import { Drawer, useDrawerFrame, type DrawerSpec } from './drawer.js';
 import { Icon, type IconName } from './icons.js';
 import { Palette } from './palette.js';
-import { jumpTo, OnThisPage, useCurrent, useSections, type PageSection } from './on-this-page.js';
+import {
+  fixedZone,
+  jumpTo,
+  OnThisPage,
+  useCurrent,
+  useSections,
+  type PageSection,
+} from './on-this-page.js';
 import type { PaletteEntry } from './palette-match.js';
 
 export type NavItem = {
@@ -342,7 +349,7 @@ function Search({
 function usePageIndex(search: readonly PaletteEntry[] | undefined) {
   const { t } = useTranslation();
   const content = useRef<HTMLElement>(null);
-  const sections = useSections(content);
+  const sections = useSections(content, fixedZone(window.location.pathname));
   const current = useCurrent(sections);
   const entries = search && withSections(search, sections, t('ashell.onPage.title'));
   return { content, sections, current, entries };

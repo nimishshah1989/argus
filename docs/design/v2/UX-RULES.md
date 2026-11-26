@@ -81,7 +81,7 @@ Motion is a second channel for information, not decoration. It lets a page hold 
 
 41. **[check]** Full width. No fixed max-width container on app screens; the grid stretches.
 42. A left icon rail (60 px) that opens on hover to about 212 px with the section names (the product's own sections). The header holds only the page title, search (Ctrl K / ⌘ K) and alerts.
-    42a. Every page with three or more titled parts has its own index, "On this page" (Nimish, 26 Nov: "how do we solve for that as navigation?"; ADR 0061): a sticky rail at the right from 1280 px, a jump menu at the top below that or while the drawer is open. The part being read is marked; a click scrolls there and puts `#part` in the address, so a link to a part works; ⌘ K finds parts by title. The Shell builds it from the page's titles; a screen adds nothing.
+    42a. Every page with three or more titled parts has its own index, "On this page" (Nimish, 26 Nov: "how do we solve for that as navigation?"; ADR 0061): a sticky rail at the right from 1280 px, a jump menu at the top below that or while the drawer is open. The part being read is marked; a click scrolls there and puts `#part` in the address, so a link to a part works; ⌘ K finds parts by title. The Shell builds it from the page's titles; a screen adds nothing. The floor, the desk and settings have none: their order never changes (two-zone rule).
 43. The drawer exists only while something is selected: 420 px, the page reflows to the rest (charts measure again), and ✕, Esc or the same item closes it.
 44. Density through layering, not shrinking: when a screen feels full, move detail into hover, expansion or the drawer; never shrink type or padding below the scale.
 

@@ -55,12 +55,12 @@ const same = (a: PageSection[], b: PageSection[]) =>
  * The sections of the page under `root`, kept up to date as the page renders (a table loads, a fold opens). The first
  * time a section named by the address's `#hash` appears, the page scrolls to it, so a link to a section works.
  */
-export function useSections(root: RefObject<HTMLElement | null>): PageSection[] {
+export function useSections(root: RefObject<HTMLElement | null>, off = false): PageSection[] {
   const [sections, setSections] = useState<PageSection[]>([]);
   const landed = useRef(false);
   useEffect(() => {
     const el = root.current;
-    if (!el) return;
+    if (!el || off) return;
     const read = () => {
       const now = sectionsIn(el);
       setSections((was) => (same(was, now) ? was : now));
@@ -74,9 +74,15 @@ export function useSections(root: RefObject<HTMLElement | null>): PageSection[] 
     const watch = new MutationObserver(read);
     watch.observe(el, { childList: true, subtree: true, characterData: true });
     return () => watch.disconnect();
-  }, [root]);
-  return sections;
+  }, [root, off]);
+  return off ? [] : sections;
 }
+
+/**
+ * The two-zone rule (DESIGN.md): the floor, the desk (board, TV, ticket) and settings never change order, position or
+ * words, so they get no index; only the analytics zone does.
+ */
+export const fixedZone = (path: string): boolean => /^\/(desk|floor|settings)(\/|$)/.test(path);
 
 /** Below the sticky header, the line a section must pass to be the one being read. */
 const READ_LINE = 120;
