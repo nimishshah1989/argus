@@ -9,6 +9,7 @@ import { ScreenStates } from '../../ui/v2/screen-states.js';
 import { correctionError } from '../analytics/machine-values.js';
 import { groupFor, type GroupId } from '../analytics/groups.js';
 import { AgeView } from './age/View.js';
+import { AnnualReportView } from './annual-report/View.js';
 import { BdPmView } from './bd-pm/View.js';
 import { CategoryCellView } from './category-cell/View.js';
 import { MttrMtbfView } from './mttr-mtbf/View.js';
@@ -366,6 +367,20 @@ const LIVE: readonly Live[] = [
         empty="analytics.notComputed"
         title="analytics.screen.monthly-report"
         draw={(model, shell) => <MonthlyReportView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'reports',
+    section: 'reports',
+    screen: 'annual-report',
+    page: () => (
+      <ModelPage
+        entry={screenOf('reports', 'reports', 'annual-report')}
+        screen="annual-report"
+        empty="analytics.notComputed"
+        title="analytics.screen.annual-report"
+        draw={(model, shell) => <AnnualReportView model={model} {...shell} />}
       />
     ),
   },
