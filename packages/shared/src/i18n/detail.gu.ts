@@ -50,4 +50,12 @@ export const detailGu = gujarati(detailEn, {
   'escalation.acknowledgedAfterBy': '{{time}} પછી સ્વીકાર્યું · {{who}}',
   'escalation.nobodyTold': 'એસ્કેલેશન બાકી, કોઈને જણાવ્યું નથી',
   'escalation.setLadder': 'લેડર સેટ કરો',
+  'detail.pdf': 'PDF ડાઉનલોડ કરો',
+  'detail.pdfFailed': 'PDF ડાઉનલોડ થઈ શક્યું નથી.',
+  'detail.signoff': 'પ્રોડક્શન સાઇન-ઓફ',
+  'detail.col.person': 'વ્યક્તિ',
+  'detail.col.role': 'ભૂમિકા',
+  'detail.col.joined': 'જોડાયા',
+  'detail.col.minutes': 'મિનિટ',
+  'detail.col.left': 'છોડી ગયા',
 });

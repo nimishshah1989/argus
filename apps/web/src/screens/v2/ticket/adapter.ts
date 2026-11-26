@@ -363,18 +363,32 @@ function peopleOf(c: Ctx, detail: TicketDetail): PersonLine[] {
     const minutes =
       ticket.figures?.perPerson[member.personId] ??
       own.reduce((sum, interval) => sum + intervalMinutes(interval, c.now), 0);
-    const role = t(ROLE_LABEL_KEYS[member.role] ?? member.role);
-    const sub = joined
-      ? t('detail.joined', { role, time: formatTime(joined, c.config?.timeZone) })
-      : role;
     return {
       key: member.personId,
       name: c.names[member.personId] ?? t('common.teamMember'),
-      sub: member.leftAt ? `${sub} · ${t('ticket.left')}` : sub,
       value: formatMinutes(minutes),
       minutes,
+      ...personColumns(c, member, joined),
     };
   });
+}
+
+/** The People row's role, joined and left, and the one line ("Lead · joined 10:55 · left") they make together. */
+function personColumns(
+  c: Ctx,
+  member: { role: string; leftAt: string | null },
+  joined: string | undefined,
+): Pick<PersonLine, 'sub' | 'role' | 'joined' | 'left'> {
+  const { t } = c;
+  const role = t(ROLE_LABEL_KEYS[member.role] ?? member.role);
+  const joinedAt = joined ? formatTime(joined, c.config?.timeZone) : null;
+  const sub = joinedAt ? t('detail.joined', { role, time: joinedAt }) : role;
+  return {
+    sub: member.leftAt ? `${sub} · ${t('ticket.left')}` : sub,
+    role,
+    joined: joinedAt,
+    left: member.leftAt ? formatTime(member.leftAt, c.config?.timeZone) : null,
+  };
 }
 
 /** Who, the text, the escalation line, the steps confirmed and the reason, joined with " · ". */

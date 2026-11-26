@@ -1,29 +1,28 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import type { CommandAction, CommandBody, Config, Me, TicketDetail } from '../../../api.js';
 import { actorFrom, crewFrom } from '../../../components/actionSpecs.js';
-import { AdminPanel } from '../../../components/AdminPanel.js';
 import { peopleNames } from '../../../components/format.js';
-import { LockoutCard } from '../../../components/LockoutCard.js';
-import { LockoutChip } from '../../../components/LockoutChip.js';
-import { LockoutGate } from './LockoutGate.js';
-import { PmReportCard } from '../../../components/PmReport.js';
-import { ReportControls } from '../../../components/ReportControls.js';
-import { SignoffPanel } from '../../../components/SignoffPanel.js';
-import { SlaTimerSummary } from '../../../components/SlaTimerSummary.js';
-import { TaskPanel } from '../../../components/TaskPanel.js';
-import { HistoryList, PersonRows } from '../../../ui/detail-kit.js';
-import { ChevronLeft } from '../../../ui/icon.js';
-import { Inline, Stack } from '../../../ui/layout.js';
-import type { StatusRef } from '../../../ui/meaning.js';
-import { StatusPill } from '../../../ui/status/status-pill.js';
 import { Panel } from '../../../ui/v2/panel.js';
-import { Takeaway, type TakeawayData } from '../../../ui/v2/takeaway.js';
-import { hasReportContext, lockoutFor, type TicketFact, type TicketModel } from './model.js';
+import { Row } from '../../../ui/v2/row.js';
+import { Takeaway } from '../../../ui/v2/takeaway.js';
+import { ReportControls } from './actions/ReportControls.js';
+import { LockoutGate } from './LockoutGate.js';
+import { hasReportContext, lockoutFor, type TicketModel } from './model.js';
+import { AdminCard } from './parts/AdminCard.js';
+import { DownloadPdfButton } from './parts/DownloadPdf.js';
+import { Facts } from './parts/Facts.js';
+import { LockoutCard } from './parts/LockoutCard.js';
+import { PmReportCard } from './parts/PmReportCard.js';
+import { PILL_TONE, LockoutTag, StatusTag } from './parts/StatusTag.js';
+import { SignoffCard, signoffWaiting } from './parts/SignoffCard.js';
+import { TaskCard } from './parts/TaskCard.js';
+import { SlaTimers } from './SlaTimers.js';
 
 export type TicketViewProps = {
   model: TicketModel;
-  /** The reply, config and login the re-hosted v1 parts take (TaskPanel, SignoffPanel, SlaTimerSummary, LockoutGate/Card, PmReport, AdminPanel, ReportControls). */
+  /** The reply, config and login the action parts take (tasks, sign-off, clocks, lockout, PM report, admin, actions). */
   detail: TicketDetail;
   config?: Config;
   me?: Me;
@@ -34,60 +33,75 @@ export type TicketViewProps = {
   onFlow: (mode: 'close' | 'late') => void;
 };
 
-const Pill = StatusPill as (props: StatusRef) => ReactNode;
-
-const takeaway = (data: TakeawayData | null) => (data ? <Takeaway data={data} /> : null);
-
-/** One `dt` and exactly one `dd` per fact; a note prints after the `dd`, never as a second one. */
-function Facts({ rows }: { rows: TicketFact[] }) {
+/**
+ * The verdict block: the takeaway as the lede, the chips, the machine line and problem, and who acknowledged. A
+ * `header` element: the e2e specs read the status words inside the last header on the page. The title and ref sit in
+ * the Shell's header, not here.
+ */
+function Head({ model, lockout }: { model: TicketModel; lockout: boolean }) {
+  const lede = model.takeaways['ticket.minutes'];
   return (
-    <dl className="v2-facts">
-      {rows.map((row) => (
-        <div key={row.label}>
-          <dt className="v2-sub">{row.label}</dt>
-          <dd className="v2-fact-value">{row.value}</dd>
-          {row.note ? <span className="v2-sub">{row.note}</span> : null}
-        </div>
-      ))}
-    </dl>
-  );
-}
-
-function Header({ model, lockout }: { model: TicketModel; lockout: boolean }) {
-  return (
-    <header>
-      <Stack gap={2}>
-        <h1 className="v2-title">
-          {model.title}
-          {model.ref ? <span className="v2-sub ml-2">{model.ref}</span> : null}
-        </h1>
-        <Inline gap={2}>
-          {model.chips.map((chip) => (
-            <Pill
-              key={`${chip.group}.${chip.id}`}
-              {...({ group: chip.group, id: chip.id } as StatusRef)}
-            />
-          ))}
-          {lockout ? <LockoutChip /> : null}
-        </Inline>
-        {model.machineLine ? <p className="v2-sub">{model.machineLine}</p> : null}
-        <p>{model.problem}</p>
-      </Stack>
+    <header className="v2-stack v2-ticket-gap-sm">
+      {lede ? <Takeaway data={lede} /> : null}
+      <div className="v2-ticket-chips">
+        {model.chips.map((chip) => (
+          <StatusTag key={`${chip.group}.${chip.id}`} status={chip} />
+        ))}
+        {lockout ? <LockoutTag /> : null}
+      </div>
+      {model.machineLine ? <p className="v2-sub">{model.machineLine}</p> : null}
+      <p className="v2-lede">{model.problem}</p>
+      {model.acknowledgedBy ? <p className="v2-sub">{model.acknowledgedBy}</p> : null}
     </header>
   );
 }
 
+/** The report form and the action bar, then Share on WhatsApp and Download PDF (outside the Actions region). */
+function Actions(props: TicketViewProps) {
+  const { model, detail, config, me, run, pending, error, onFlow } = props;
+  const { ticket, people } = detail;
+  const actor = me ? actorFrom(me) : null;
+  return (
+    <div className="v2-stack v2-ticket-gap-sm">
+      {hasReportContext(config, me) && actor !== null ? (
+        <ReportControls
+          ticket={ticket}
+          config={config!}
+          personId={me!.actingPersonId!}
+          actor={actor}
+          crew={crewFrom(people)}
+          command={(action, body) => run(ticket.id, action, body)}
+          pending={pending}
+          error={error}
+          onFlow={onFlow}
+        />
+      ) : null}
+      <div className="v2-ticket-buttons">
+        <a
+          href={model.share.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="v2-btn v2-btn-ghost"
+        >
+          {model.share.label}
+        </a>
+        {detail.report ? <DownloadPdfButton ticket={ticket} /> : null}
+      </div>
+    </div>
+  );
+}
+
+/** Downtime, hands-on and waiting: each value alone in its `dd`, the hint and yardstick outside it. */
 function Minutes({ model }: { model: TicketModel }) {
   const { minutes } = model;
   if (!minutes) return null;
   return (
     <Panel title={minutes.heading}>
-      {takeaway(model.takeaways['ticket.minutes'])}
       <dl className="v2-facts">
         {minutes.figures.map((figure) => (
           <div key={figure.id}>
             <dt className="v2-sub">{figure.label}</dt>
-            <dd className="v2-fact-value">{figure.value}</dd>
+            <dd className="v2-fact-value v2-num">{figure.value}</dd>
             {figure.hint ? <span className="v2-sub">{figure.hint}</span> : null}
             <span className="v2-yardstick">{figure.yardstick}</span>
           </div>
@@ -97,68 +111,83 @@ function Minutes({ model }: { model: TicketModel }) {
   );
 }
 
+/** Lead first, then the crew: role, joined, minutes and left; the person with the most time is marked. */
 function People({ model }: { model: TicketModel }) {
+  const { t } = useTranslation();
   const { people } = model;
+  const takeaway = model.takeaways['ticket.people'];
   return (
     <Panel title={people.heading}>
-      {takeaway(model.takeaways['ticket.people'])}
-      {people.rows.length === 0 ? <p className="v2-sub">{people.empty}</p> : null}
-      {people.rows.length > 0 ? <PersonRows rows={people.rows} /> : null}
-    </Panel>
-  );
-}
-
-function History({ model }: { model: TicketModel }) {
-  const { history } = model;
-  const items = history.rows.map(({ link, ...row }) => ({
-    ...row,
-    action: link ? (
-      <Link to={link.to} className="v2-btn v2-btn-ghost">
-        {link.label}
-      </Link>
-    ) : undefined,
-  }));
-  return (
-    <Panel title={history.heading}>
-      {items.length === 0 ? (
-        <p className="v2-sub">{history.empty}</p>
+      {takeaway ? <Takeaway data={takeaway} /> : null}
+      {people.rows.length === 0 ? (
+        <p className="v2-sub">{people.empty}</p>
       ) : (
-        <HistoryList items={items} />
+        <div className="v2-ticket-scroll">
+          <table className="v2-table">
+            <thead>
+              <tr>
+                <th scope="col">{t('detail.col.person')}</th>
+                <th scope="col">{t('detail.col.role')}</th>
+                <th scope="col">{t('detail.col.joined')}</th>
+                <th scope="col" className="v2-num-head">
+                  {t('detail.col.minutes')}
+                </th>
+                <th scope="col">{t('detail.col.left')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {people.rows.map((row) => (
+                <tr key={row.key} data-worst={row.key === takeaway?.outlier || undefined}>
+                  <td>{row.name}</td>
+                  <td>{row.role}</td>
+                  <td className="v2-num">{row.joined ?? '—'}</td>
+                  <td className="v2-num-cell">{row.value}</td>
+                  <td className="v2-num">{row.left ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </Panel>
   );
 }
 
-/** The report form and the action bar (v1's `Controls`). */
-function Controls({
-  detail,
-  config,
-  me,
-  run,
-  pending,
-  error,
-  onFlow,
-}: Omit<TicketViewProps, 'model'>) {
-  const { ticket, people } = detail;
-  const actor = me ? actorFrom(me) : null;
-  if (!hasReportContext(config, me) || actor === null) return null;
+/** Every event oldest first, a dot in its tone; "Set the ladder" under an escalation nobody was told about. */
+function History({ model }: { model: TicketModel }) {
+  const { history } = model;
   return (
-    <ReportControls
-      ticket={ticket}
-      config={config!}
-      personId={me!.actingPersonId!}
-      actor={actor}
-      crew={crewFrom(people)}
-      command={(action, body) => run(ticket.id, action, body)}
-      pending={pending}
-      error={error}
-      onFlow={onFlow}
-    />
+    <Panel title={history.heading}>
+      {history.rows.length === 0 ? (
+        <p className="v2-sub">{history.empty}</p>
+      ) : (
+        <ol className="v2-ticket-history">
+          {history.rows.map((row) => (
+            <li key={row.key} data-tone={PILL_TONE[row.tone]}>
+              <span className="v2-h3">{row.title}</span>
+              <span className="v2-sub">
+                <time dateTime={row.at}>{row.when}</time>
+                {row.detail ? ` · ${row.detail}` : null}
+              </span>
+              {row.link ? (
+                <Link to={row.link.to} className="v2-btn v2-btn-ghost">
+                  {row.link.label}
+                </Link>
+              ) : null}
+            </li>
+          ))}
+        </ol>
+      )}
+    </Panel>
   );
 }
 
-function ReportCard({ props, names }: { props: TicketViewProps; names: Record<string, string> }) {
-  const { model, detail } = props;
+/** The breakdown report's rows, or the PM job's report. */
+function Report({
+  model,
+  detail,
+  names,
+}: Pick<TicketViewProps, 'model' | 'detail'> & { names: Record<string, string> }) {
   if (model.report)
     return (
       <Panel title={model.report.heading}>
@@ -170,42 +199,44 @@ function ReportCard({ props, names }: { props: TicketViewProps; names: Record<st
   ) : null;
 }
 
-/** The ticket in v1's control order (gallery/desk-order.spec.ts); takeaways are plain text lines, never headings, links or buttons. */
+/**
+ * S29 Ticket body on the v2 kit (wireframe S29-ticket.html): the verdict, the action bar, the clocks and figures, then
+ * two columns (facts, people, lockout | history, sign-off, report, follow-up task, admin); one column on a phone in the
+ * same order. While production's OK is awaited, the sign-off card goes first. Takeaways are text lines, never headings.
+ */
 export function TicketView(props: TicketViewProps): ReactNode {
+  const { t } = useTranslation();
   const { model, detail, config, me } = props;
   const { ticket } = detail;
   const names = peopleNames(config?.people);
+  const signoffFirst = signoffWaiting(ticket);
   return (
     <LockoutGate key={ticket.id} ticketId={ticket.id} {...lockoutFor(detail, me)}>
-      <Stack gap={6}>
-        <Link to={model.back.to} className="v2-btn v2-btn-ghost">
-          <ChevronLeft aria-hidden size={20} />
-          {model.back.label}
-        </Link>
-        <Header model={model} lockout={Boolean(ticket.lockout)} />
-        <TaskPanel detail={detail} config={config} />
-        <SignoffPanel ticket={ticket} config={config} />
-        <SlaTimerSummary ticket={ticket} detailed config={config} />
-        {model.acknowledgedBy ? <p className="v2-sub">{model.acknowledgedBy}</p> : null}
-        <div className="v2-card v2-pad">
-          <Facts rows={model.facts} />
+      <div className="v2-stack v2-ticket">
+        {signoffFirst ? <SignoffCard ticket={ticket} config={config} /> : null}
+        <Head model={model} lockout={Boolean(ticket.lockout)} />
+        <Actions {...props} />
+        <Row>
+          <SlaTimers ticket={ticket} detailed config={config} />
+          <Minutes model={model} />
+        </Row>
+        <div className="v2-grid v2-grid-2 v2-ticket-columns">
+          <div className="v2-stack v2-ticket">
+            <Panel title={t('ticket.facts')}>
+              <Facts rows={model.facts} />
+            </Panel>
+            <People model={model} />
+            <LockoutCard names={names} timeZone={config?.timeZone} />
+          </div>
+          <div className="v2-stack v2-ticket">
+            <History model={model} />
+            {signoffFirst ? null : <SignoffCard ticket={ticket} config={config} />}
+            <Report model={model} detail={detail} names={names} />
+            <TaskCard detail={detail} config={config} />
+            <AdminCard ticket={ticket} config={config} me={me} />
+          </div>
         </div>
-        <LockoutCard names={names} timeZone={config?.timeZone} />
-        <ReportCard props={props} names={names} />
-        <a
-          href={model.share.href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="v2-btn v2-btn-ghost"
-        >
-          {model.share.label}
-        </a>
-        <Minutes model={model} />
-        <People model={model} />
-        <History model={model} />
-        <AdminPanel ticket={ticket} config={config} me={me} />
-        <Controls {...props} />
-      </Stack>
+      </div>
     </LockoutGate>
   );
 }

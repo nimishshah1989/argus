@@ -49,12 +49,13 @@ const esc = (text: string) =>
     .replace(/'/g, '&#x27;');
 
 describe('S29 ticket page (render smoke)', () => {
-  it('draws the h1 with the machine and its ref, the Open tickets link and a supervisor’s Actions bar', () => {
+  it('leaves the title, ref and back link to the Shell and Page, and draws the status chips in a header and a supervisor’s Actions bar', () => {
     const html = draw(SUPERVISOR);
-    const h1 = /<h1[^>]*>(.*?)<\/h1>/s.exec(html)?.[1] ?? '';
-    expect(h1).toContain('VC-17');
-    expect(h1).toContain('TKT-0413');
-    expect(html).toContain('href="/desk"');
+    expect(html).not.toContain('<h1');
+    expect(html).not.toContain('href="/desk"');
+    const header = /<header[^>]*>(.*?)<\/header>/s.exec(html)?.[1] ?? '';
+    const model = ticketModel(fixtureInput(), realT);
+    for (const chip of model.chips) expect(header).toContain(esc(chip.text));
     expect(html).toContain('aria-label="Actions"');
     expect(html).toContain('Write report and close');
   });

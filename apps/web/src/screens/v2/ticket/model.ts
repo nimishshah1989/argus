@@ -61,6 +61,10 @@ export type PersonLine = {
   /** Their minutes, e.g. "47 min". */
   value: string;
   minutes: number;
+  /** The People table's columns: "Lead", the time they joined and the time they left (null when not known / still on). */
+  role: string;
+  joined: string | null;
+  left: string | null;
 };
 
 /** One "Full history" entry, oldest first. */

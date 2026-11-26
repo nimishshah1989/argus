@@ -1,0 +1,124 @@
+/* The ticket page body (screens/v2/ticket, wireframe S29): sections 16 px apart, two columns wide, one on a phone. */
+.v2-ticket {
+  gap: var(--space-v2-gap);
+}
+.v2-ticket-gap {
+  gap: var(--space-v2-inner);
+}
+.v2-ticket-gap-sm {
+  gap: 8px;
+}
+/* Each column stacks its own cards, so a short card never stretches to its neighbour's height. */
+.v2-ticket-columns {
+  align-items: start;
+}
+.v2-ticket-chips,
+.v2-ticket-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.v2-ticket-chips > p {
+  margin: 0;
+}
+.v2-ticket-warn {
+  color: var(--color-v2-risk);
+}
+.v2-ticket-link {
+  color: var(--color-v2-plan);
+  font-weight: 600;
+}
+
+/* People: a plain table inside its card, scrolling sideways on a narrow phone rather than squeezing. */
+.v2-ticket-scroll {
+  overflow-x: auto;
+}
+.v2-ticket .v2-table th {
+  position: static;
+}
+.v2-ticket .v2-table tbody tr {
+  cursor: default;
+}
+
+/* Follow-up tasks: one tappable card per task. */
+.v2-ticket-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.v2-ticket-task {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 44px;
+  padding: var(--space-v2-inner);
+  border: 1px solid var(--color-v2-line);
+  border-radius: 12px;
+  color: var(--color-v2-ink);
+  text-decoration: none;
+}
+.v2-ticket-task:focus-visible {
+  outline: 2px solid var(--color-v2-focus);
+  outline-offset: 2px;
+}
+.v2-ticket-task-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* Timeline: a dot in the event's tone on a thin line, the title, then the time and who or what. */
+.v2-ticket-history {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.v2-ticket-history > li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 0 0 var(--space-v2-gap) 24px;
+}
+.v2-ticket-history > li::before {
+  content: '';
+  position: absolute;
+  top: 5px;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-v2-idle-fill);
+}
+.v2-ticket-history > li:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 19px;
+  bottom: 0;
+  left: 4px;
+  width: 2px;
+  background: var(--color-v2-line);
+}
+.v2-ticket-history > li[data-tone='loss']::before {
+  background: var(--color-v2-loss-fill);
+}
+.v2-ticket-history > li[data-tone='risk']::before {
+  background: var(--color-v2-risk-fill);
+}
+.v2-ticket-history > li[data-tone='plan']::before {
+  background: var(--color-v2-plan-fill);
+}
+.v2-ticket-history > li[data-tone='decide']::before {
+  background: var(--color-v2-decide-fill);
+}
+.v2-ticket-history > li[data-tone='gain']::before {
+  background: var(--color-v2-gain-fill);
+}
