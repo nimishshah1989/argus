@@ -1,5 +1,5 @@
 /* eslint-disable i18next/no-literal-string -- prop values, ids and routes only; every visible string goes through t() */
-import { Link, useParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
@@ -18,14 +18,10 @@ import { useCommand } from '../data/index.js';
 import { Drafts } from '../components/Drafts.js';
 import { OfflineBanner } from '../components/OfflineBanner.js';
 import { Banner } from '../ui/banner.js';
-import { Loading, Skeleton } from '../ui/loading.js';
-import { OpenLists, type CardContext } from './desk/Board.js';
-import { MinePanel } from './desk/MinePanel.js';
+import { MinePanel, type CardContext } from './desk/MinePanel.js';
 import { breakdownCount } from './desk/openLists.js';
 import { DeskFrame, NotAvailable, mayOpen, type DeskView } from './desk/Shell.js';
 import { TeamPanel } from './desk/TeamPanel.js';
-import { TwoPane } from './desk/TwoPane.js';
-import { useWide } from '../patterns/wide.js';
 
 /** Settings is an admin/head surface; other roles never see the link. */
 function SettingsLink({ role }: { role?: string }) {
@@ -56,18 +52,8 @@ function DeskBody({
   config?: Config;
   ctx: CardContext;
 }) {
-  const { t } = useTranslation();
   if (view === 'mine') return <MinePanel ctx={ctx} />;
-  if (view === 'team') return <TeamPanel state={state} config={config} machines={ctx.machines} />;
-  if (state.data) return <OpenLists state={state.data} ctx={ctx} config={config} />;
-  if (state.error) return <Banner tone="error" title={t('kit.pattern.error')} />;
-  return (
-    <Loading>
-      <Skeleton shape="tile" />
-      <Skeleton shape="row" />
-      <Skeleton shape="tile" />
-    </Loading>
-  );
+  return <TeamPanel state={state} config={config} machines={ctx.machines} />;
 }
 
 function cardContext(
@@ -101,8 +87,6 @@ export function Desk({ view }: { view: DeskView }) {
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
   const me = useQuery({ queryKey: ['me'], queryFn: getMe });
   const { run, error, pending } = useCommand();
-  const { id } = useParams();
-  const wide = useWide();
   const user = me.data?.user;
   if (user && !mayOpen(view, user.role))
     return <NotAvailable roleLabel={roleLabel(user.role, t)} />;
@@ -125,7 +109,7 @@ export function Desk({ view }: { view: DeskView }) {
       <OfflineBanner />
       <Drafts />
       {error ? <Banner tone="error" title={error} /> : null}
-      {view === 'open' && wide ? <TwoPane list={body} ticketId={id} /> : body}
+      {body}
     </DeskFrame>
   );
 }

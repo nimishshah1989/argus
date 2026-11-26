@@ -2,17 +2,19 @@
 import { useContext } from 'react';
 import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
 import { EntityOpenContext, type EntityRef } from '../../../ui/v2/entity-chip.js';
-import { KpiCard } from '../../../ui/v2/kpi-card.js';
-import { Row } from '../../../ui/v2/row.js';
+import { DownloadExcel } from '../../../ui/v2/download-excel.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
 import { Takeaway } from '../../../ui/v2/takeaway.js';
+import { TileSet } from '../../../ui/v2/tile-set.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
 import { EntityShell, type LocalEntity } from '../entity/EntityShell.js';
 import { useEntityParam } from '../entity/url.js';
+import { numberIn } from '../figures/read.js';
 import { NudgeDetail } from './NudgeDetail.js';
 import { NudgeTable } from './Nudges.js';
 import { RiskTable } from './Risk.js';
 import type { ActionCenterActions, ActionCenterModel } from './model.js';
+import { actionCenterSheets } from './sweep.js';
 
 /** A nudge opens in the drawer under `?drawer=decision:<id>`; one the board no longer holds is nothing, so the shell says not found. */
 function localNudge(
@@ -37,17 +39,16 @@ function Body({ model, acts }: { model: ActionCenterModel; acts: ActionCenterAct
   return (
     <>
       <Verdict verdict={model.verdict} whyLabel={words.why} />
-      <Row cols={4}>
-        {model.kpis.map((k) => (
-          <KpiCard key={k.id} kpi={k} />
-        ))}
-      </Row>
+      <TileSet items={model.kpis.map((kpi) => ({ kpi, n: numberIn(kpi.value) ?? Number.NaN }))} />
       {acts.failedKey && current?.kind !== 'decision' ? (
         <p role="alert" className="v2-sub v2-seg-loss">
           {words.saveFailed}
         </p>
       ) : null}
       {model.takeaways?.nudges ? <Takeaway data={model.takeaways.nudges} /> : null}
+      <div>
+        <DownloadExcel file="action-center" sheets={actionCenterSheets(model)} />
+      </div>
       <NudgeTable
         model={model}
         selected={current?.kind === 'decision' ? current.id : undefined}

@@ -1,3 +1,6 @@
+import { FigureTile } from '../../../ui/v2/figure-tile.js';
+import { Row } from '../../../ui/v2/row.js';
+import { ShowDetail } from '../../../ui/v2/show-detail.js';
 import { Takeaway } from '../../../ui/v2/takeaway.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
 import { PageBody } from '../printed-page/PageBody.js';
@@ -19,9 +22,20 @@ export function BdPmView({
 }) {
   return (
     <PageBody
-      model={model}
+      model={{ ...model, figures: model.figures.slice(0, 4) }}
       nav={nav}
       title={title}
+      after={
+        model.figures.length > 4 ? (
+          <ShowDetail>
+            <Row cols={2}>
+              {model.figures.slice(4).map((f) => (
+                <FigureTile key={f.id} figure={f} />
+              ))}
+            </Row>
+          </ShowDetail>
+        ) : undefined
+      }
       around={(table, drawn) => {
         const id = sectionOf(table.title);
         const takeaway = id === undefined ? null : (model.takeaways?.[id] ?? null);

@@ -6,6 +6,7 @@ import { EntityChip, EntityOpenContext } from '../../../ui/v2/entity-chip.js';
 import { FigureTile } from '../../../ui/v2/figure-tile.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
 import { Row } from '../../../ui/v2/row.js';
+import { ShowDetail } from '../../../ui/v2/show-detail.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
 import { EntityShell } from '../entity/EntityShell.js';
 import { useEntityParam } from '../entity/url.js';
@@ -100,10 +101,19 @@ export function FixFinderView({
     <EntityShell nav={nav} title={title}>
       <Verdict verdict={model.verdict} whyLabel={model.words.why} />
       <Row cols={4}>
-        {model.figures.map((figure) => (
+        {model.figures.slice(0, 4).map((figure) => (
           <FigureTile key={figure.id} figure={figure} />
         ))}
       </Row>
+      {model.figures.length > 4 ? (
+        <ShowDetail>
+          <Row cols={4}>
+            {model.figures.slice(4).map((figure) => (
+              <FigureTile key={figure.id} figure={figure} />
+            ))}
+          </Row>
+        </ShowDetail>
+      ) : null}
       <CasesTable model={model} />
       <SourceLine text={model.source} />
     </EntityShell>
