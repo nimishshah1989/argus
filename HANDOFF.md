@@ -2,29 +2,24 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-26 ~17:45 IST · **By:** Plan · **Model:** Opus 5.5
-**Milestone:** ADR 0055 (all screens live on the newest kit) · **Branch:** plan/s28-s30-shell-wireframes · **PR:** https://github.com/nimishshah1989/argus/pull/847 (CI green, not merged: the merge command was denied by the permission classifier)
+**Updated:** 2026-11-26 ~17:00 IST · **By:** session `c39914a2…` · **Goal (Nimish, ADR 0055):** all screens live on the newest kit, nothing old remains · **Mode (ADR 0057):** one organic session, no loop rounds · **Branch:** plan/old-ui-guard
 
 ## State
 
-- Tests: no code changed. `loop ci 847` GREEN (6 pass, 5 skipped). Three wireframes render in Chromium at 1440 px, no sideways scroll; phone width and dark mode not checked.
-- Last thing done: S28-desk, S29-ticket, S30-board redrawn in the v2 Shell (ADR 0055 point 2; assumptions in ADR 0056). Each has a Coverage table with every item of the 25 Nov approved wireframe and of #803. S30 TV frames copied unchanged. Their approvals are now void, on purpose.
-- Still open from before: #815 (ready: `loop prep 815`), #794, then #819; Nimish's written yes on S18 rupees (ADR 0051 A5); planner follow-ups on #826 coverage, OEM null figure, 29 Feb warranty date.
+- "What's left" is now measured: `tools/old-ui-left.test.ts` pins the old-design components the shipped app still renders (62 on 26 Nov). Done = the list is empty. Run it before answering Nimish.
+- Who pulls them: Desk (`screens/v2/desk`), Ticket (`screens/v2/ticket`) and browser Board need the S28–S30 Shell redraw (PR #847, ADR 0056); Nimish must approve S28-desk, S29-ticket, S30-board. Floor internals (AccountSheet, Drafts, ui/button/input/sheet/tab-bar/text/floor-pieces, patterns/frame, wizard-page). Settings (screens/settings/{Plant,Jobs,Company,Translations}). Sign-in/who/password (`faces/signin/parts.tsx` Notice). Kit itself (`ui/v2/crud-page`, `form-sheet` use `patterns/form-sheet`, `crud-actions`). App.tsx (UpdateBanner, ui/layout, Analytics.tsx and TicketRoute shims).
+- Open fix tickets: #842 (audit trail fixes; builder running), #846 (lists/profile "not set" bug). #819 is superseded by the guard.
 
-## Next step
+## Next steps
 
-Coordinator merges #847. Then Nimish approves S28-desk, S29-ticket, S30-board himself; then `loop plan` the build tickets (Shell move + #803 items). Floor segment tiles (ADR 0055 point 1) still to plan.
+1. Merge this guard. 2. Kit, Settings, sign-in, App wiring, Floor internals. 3. Desk/Ticket/Board once S28–S30 are approved. 4. Delete the old files and the dead gallery pages; the list reaches zero.
 
-## Blocked / open questions
+## Blocked
 
-- Nimish: phones lose the v1 bottom tab bar (tabs move to the top, Report becomes a button); ticket opens in a side panel on wide screens. Questions are in each wireframe.
+- All frontend work: S28-desk, S29-ticket, S30-board were redrawn (#847 merged, 929dca8e), which voids approvals; the hook blocks apps/web until Nimish runs `loop approve` for each. Asked him 26 Nov ~17:10.
 
-## Don't repeat
+## Don't repeat (details in LESSONS.md)
 
-- Never put the approve command text inside a Bash command (even in a heredoc or commit text): the guard blocks it. Write such files with the Write/Edit tools.
-- Builders: plain literal commands only; never `#NNN` in apps/web comments; `loop finish` GREEN with checks pending → confirm with `gh pr checks` (details in LESSONS.md).
-
-## Files touched this session
-
-- design/wireframes/S28-desk.html, S29-ticket.html, S30-board.html — redrawn in the v2 Shell
-- docs/adr/0056-desk-ticket-board-in-shell-wireframes.md — layout assumptions
+- Never answer "how much is left" from tickets or memory: run the guard.
+- Nimish merges green PRs before review; run checks before pushing.
+- Never `#NNN` in apps/web comments (hex guard). New API route → `REPLY_SCHEMAS` + route count in `reply-contract.test.ts`.
