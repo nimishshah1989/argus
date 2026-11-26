@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { useChart, type ChartSpec } from '../chart/use-chart.js';
 import { ChartNumbers } from './chart-numbers.js';
-import { useDestination, type Drill } from './drill.js';
+import { useContext } from 'react';
+import { DrillOpenContext, useDestination, type Drill } from './drill.js';
 import { DrillButton } from './drill-button.js';
 import { LinkButton } from './button.js';
 
@@ -28,9 +29,10 @@ export function ChartCard({
   numbers?: boolean;
 }) {
   const { t } = useTranslation();
-  // A chart has no id of its own: the map answers with the screen's default, under the short "See the rows".
+  const open = useContext(DrillOpenContext);
+  // A chart has no id of its own: the map answers with the screen's default. Its button reads "Show the rows" and is
+  // named in full aloud ("BD hours by cell: show the rows behind …"), so it is never mistaken for the page's own.
   const to = useDestination('', spec.title, { drill });
-  const rows = drill ?? (to.drill && { ...to.drill, label: t('analytics.drill.open') });
   const { ref, state } = useChart(
     spec.kind === 'scatter' ? spec : ({ ...spec, draw: true } as ChartSpec),
   );
@@ -41,8 +43,17 @@ export function ChartCard({
           <h2 className="v2-h2">{spec.title}</h2>
           <p className="v2-sub">{sub}</p>
         </div>
-        {rows ? (
-          <DrillButton drill={rows} />
+        {drill ? (
+          <DrillButton drill={drill} />
+        ) : to.drill ? (
+          <button
+            type="button"
+            className="v2-btn v2-btn-ghost"
+            aria-label={to.drill.label}
+            onClick={() => to.drill && open(to.drill)}
+          >
+            {t('v2m.dest.chartRows')}
+          </button>
         ) : to.link ? (
           <LinkButton href={to.link.href}>{to.link.label}</LinkButton>
         ) : null}

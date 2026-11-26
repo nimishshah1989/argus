@@ -160,7 +160,7 @@ How to read an entry: **For** is what the part does. **Pick it when** says when 
 
 ### `ChartCard` — `chart-card.tsx`
 
-- **For:** a chart the engine sent (bars, lines, bubbles) in a card with its title, one quiet line and a sentence for screen readers. Nothing is recomputed. With no `drill` it takes its screen's default from the destinations map (ADR 0058): "See the rows" or "Open <page>" beside the title. The control stays in the header, not the whole card, so the chart's own hover (tooltip, crosshair) keeps working.
+- **For:** a chart the engine sent (bars, lines, bubbles) in a card with its title, one quiet line and a sentence for screen readers. Nothing is recomputed. With no `drill` it takes its screen's default from the destinations map (ADR 0058): "Show the rows" (named in full aloud: "BD hours by cell: show the rows behind …") or "Open <page>" beside the title. The control stays in the header, not the whole card, so the chart's own hover (tooltip, crosshair) keeps working.
 - **Pick it when:** the engine gives a chart spec. Add `drill` to put a rows-behind button by the title and `numbers` to add "Show the numbers" under it.
 - **Key props:** `spec`, `sub`, `aria`, `drill`, `numbers`.
 - **Used by:** dashboard, energy, money-matters, monthly-report, printed-page, shift-kpis.

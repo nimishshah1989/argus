@@ -95,6 +95,7 @@ export const analyticsV2MachinesEn = {
   'v2m.rows.hours': '{n} h',
   'v2m.rows.open': 'Show the rows behind {figure}',
   'v2m.dest.rows': '{{card}}: show the rows behind {{figure}}',
+  'v2m.dest.chartRows': 'Show the rows',
   'v2m.dest.open': 'Open {{page}}',
   'v2m.rows.col.machine': 'Machine',
   'v2m.rows.col.cell': 'Cell',
