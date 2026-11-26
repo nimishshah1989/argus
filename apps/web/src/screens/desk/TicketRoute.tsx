@@ -2,9 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
 import { getMe } from '../../api.js';
 import { useWide } from '../../patterns/wide.js';
-import { Desk } from '../Desk.js';
 import { TicketDetail } from '../TicketDetail.js';
-import { mayOpen } from './Shell.js';
+import { DeskOpenPage } from '../v2/desk/Page.js';
+import { mayOpen } from '../v2/desk/model.js';
 
 /**
  * `/desk` is the Open list and `/desk/:id` a ticket: its own page on a phone, a pane beside the list from
@@ -20,5 +20,5 @@ export function TicketRoute() {
   // Until the role is known a wide screen shows nothing: the page, then the pane, would flash.
   if (id && wide && me.isPending) return null;
   // eslint-disable-next-line i18next/no-literal-string -- prop value, not copy
-  return !id || beside ? <Desk view="open" /> : <TicketDetail />;
+  return !id || beside ? <DeskOpenPage /> : <TicketDetail />;
 }

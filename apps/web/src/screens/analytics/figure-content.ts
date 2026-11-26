@@ -184,6 +184,7 @@ const PAGE_KEYS = new Set([
   'forecast-lab',
   'compare',
   'team-focus',
+  'annual-report',
   'monthly-report',
   'money-matters',
   'fix-finder',
