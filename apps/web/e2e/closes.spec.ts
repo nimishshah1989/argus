@@ -82,7 +82,7 @@ test('writes the report and closes: finish time, then the breakdown report', asy
 
   await test.step('step 1: moving the finish time earlier shortens the repair', async () => {
     await page.getByRole('button', { name: 'Write report and close', exact: true }).click();
-    await expect(page.getByRole('heading', { name: machine.code })).toBeVisible();
+    await expect(page.getByRole('heading', { name: machine.code, exact: true })).toBeVisible();
     await expect(page.getByText('When did you finish?')).toBeVisible();
     const shown = page.getByRole('status', { name: 'Finish time' });
     const before = await shown.textContent();
