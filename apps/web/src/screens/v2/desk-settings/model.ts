@@ -32,23 +32,36 @@ export type PausingReasons = { pausing: ListItem[]; total: number };
 
 /** Null when there is no machine. */
 export function criticalityTakeaway(machines: readonly Machine[]): CriticalityTakeaway | null {
-  void machines;
-  throw new Error('not implemented');
+  if (machines.length === 0) return null;
+  const out: CriticalityTakeaway = { total: machines.length, unset: 0, A: 0, B: 0, C: 0 };
+  for (const m of machines) {
+    if (m.criticality === null) out.unset += 1;
+    else out[m.criticality] += 1;
+  }
+  return out;
+}
+
+/** The severity one matrix cell is set to. */
+export function cellValue(matrix: SeverityMatrix, cell: MatrixCell): Severity {
+  if (cell === 'workRequest' || cell === 'urgentWorkRequest') return matrix[cell];
+  const [crit, kind] = cell.split('.') as [Criticality, 'stopped' | 'support'];
+  return matrix.default[crit][kind];
 }
 
 /** The cells set to `HIGH`, in `MATRIX_CELLS` order. */
 export function highCells(matrix: SeverityMatrix): MatrixCell[] {
-  void matrix;
-  throw new Error('not implemented');
+  return MATRIX_CELLS.filter((cell) => cellValue(matrix, cell) === HIGH);
 }
+
+const ORDER: readonly Severity[] = ['S1', 'S2', 'S3', 'S4'];
 
 /** The policies S1 → S4, without changing the input. */
 export function slaRows(policies: readonly SlaPolicy[]): SlaPolicy[] {
-  void policies;
-  throw new Error('not implemented');
+  return [...policies].sort((a, b) => ORDER.indexOf(a.severity) - ORDER.indexOf(b.severity));
 }
 
 export function pausingReasons(waitReasons: readonly ListItem[]): PausingReasons {
-  void waitReasons;
-  throw new Error('not implemented');
+  const active = waitReasons.filter((r) => r.active);
+  const pausing = active.filter((r) => r.pausesSla).sort((a, b) => a.sort - b.sort);
+  return { pausing, total: active.length };
 }

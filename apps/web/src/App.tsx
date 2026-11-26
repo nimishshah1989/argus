@@ -15,7 +15,7 @@ import {
   FloorPmPage,
   FloorReportPage,
 } from './screens/v2/floor/Page.js';
-import { Settings } from './screens/Settings.js';
+import { DeskSettingsView } from './screens/v2/desk-settings/View.js';
 import { TicketRoute } from './screens/desk/TicketRoute.js';
 import {
   ActionCenterRoute,
@@ -51,7 +51,7 @@ export function App() {
         <Route path="/desk/mine" element={<Desk view="mine" />} />
         <Route path="/desk/team" element={<Desk view="team" />} />
         <Route path="/desk/board" element={<BoardPage />} />
-        <Route path="/desk/settings" element={<Settings />} />
+        <Route path="/desk/settings" element={<DeskSettingsView />} />
         <Route path="/settings" element={<SettingsView page="home" />} />
         {PLANT_PAGES.map(({ page }) => (
           <Route key={page} path={`/settings/${page}`} element={<SettingsView page={page} />} />
