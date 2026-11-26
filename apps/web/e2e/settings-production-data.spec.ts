@@ -47,8 +47,14 @@ test('an admin switches a machine out of production data and it stays out after 
   await page.getByRole('button', { name: '1 machine not counted', exact: true }).click();
   await expect(page.getByRole('switch')).toHaveCount(1);
 
-  // Kit chips are radio-like (a pressed chip stays pressed), so 'All' clears the filter.
-  await page.getByRole('button', { name: /^All \d+$/ }).click();
+  // Kit chips are radio-like (a pressed chip stays pressed); with no filter the first chip is
+  // 'all', labelled only by its count, so take it by position in the chip row that holds the flag.
+  await page
+    .locator('.v2-chips')
+    .filter({ has: page.getByRole('button', { name: '1 machine not counted', exact: true }) })
+    .getByRole('button')
+    .first()
+    .click();
   await again.click(); // back in: leaves the plant as the other journeys expect it
   await expect(again).toHaveAttribute('aria-checked', 'false');
   await expect(page.getByRole('button', { name: /not counted/ })).toHaveCount(0);
