@@ -42,7 +42,9 @@ function ScreenTabs({ group, current }: { group: GroupId; current: string }) {
   const label =
     group === FORECAST
       ? t('ashell.tabs', { section: t('ashell.section.reliability') })
-      : t(named ?? 'analytics.menu');
+      : group === 'reports'
+        ? t('ashell.tabs', { section: t('ashell.section.reports') })
+        : t(named ?? 'analytics.menu');
   return (
     <Segmented
       label={label}
