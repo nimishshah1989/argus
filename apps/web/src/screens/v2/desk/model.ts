@@ -79,7 +79,6 @@ export type CardBlock<C> = { hint: string; empty: string; cards: C[] };
 export type OpenModel = {
   /** Breakdown count for the Open tab's badge. */
   badge: number;
-  settings: boolean;
   counts: CountTile[];
   /** "Showing machines down. Tap to show all." while a Down/Waiting/Support tile is pressed, else null. */
   showing: string | null;
