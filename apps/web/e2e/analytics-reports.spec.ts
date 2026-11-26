@@ -119,11 +119,21 @@ test('a head opens the reports, switches to the annual report, reads both keys a
     page.getByRole('link', { name: 'Export the whole data set (Excel)', exact: true }),
   ).toHaveAttribute('href', '/api/v1/reports/workbook.xlsx');
 
-  // The monthly key's first machine row, cell for cell (the first "Where the time went" table is the machines').
+  // The monthly key's first machine row (the first "Where the time went" table is the machines'). It opens on the
+  // wireframe's default columns, worst first: Machine, Hours, Against <previous month>, Breakdowns.
   const machines = page.getByRole('region', { name: MACHINE_RANK.title, exact: true }).first();
+  await expect(machines.getByRole('columnheader').nth(2)).toContainText('Against ');
   const firstMachine = machines.getByRole('row').nth(1);
+  for (const [index, label] of ['Machine', 'Hours', 'Change', 'Breakdowns'].entries())
+    await expect(firstMachine.getByRole('cell').nth(index)).toHaveText(
+      MACHINE_RANK.rows[0]![MACHINE_RANK.header.indexOf(label)]!,
+    );
+  // The whole table, Prev. hrs included, opens under the section's "Show detail": the same row, cell for cell.
+  const whole = machines.locator('xpath=following-sibling::details[1]');
+  await whole.getByText('Show detail', { exact: true }).click();
+  const firstWhole = whole.getByRole('table').getByRole('row').nth(1);
   for (const [index, cell] of MACHINE_RANK.rows[0]!.entries())
-    await expect(firstMachine.getByRole('cell').nth(index)).toHaveText(cell);
+    await expect(firstWhole.getByRole('cell').nth(index)).toHaveText(cell);
 
   // Switch to the annual report (the v2 printed page since ticket 765): its tab pressed, period line, title,
   // commentary and charts.
