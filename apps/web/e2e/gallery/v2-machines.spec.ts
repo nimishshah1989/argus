@@ -97,11 +97,9 @@ test('the register opens on CNC, switches register in the URL and says what a ma
   await expect(list.getByText(/^1–10 of 16$/)).toBeVisible();
 });
 
-test('no rupee on the OEM page for a login that is not a head, plant head or admin', async ({
-  page,
-}) => {
+test('no rupee on the OEM page for any login (ADR 0051)', async ({ page }) => {
   await open(page, 'v2-oem', 'OEM', { query: '&role=op' });
   await expect(page.locator('main')).not.toContainText('₹');
   await open(page, 'v2-oem', 'OEM');
-  await expect(page.locator('main')).toContainText('₹ 59,994 to claim');
+  await expect(page.locator('main')).not.toContainText('₹');
 });

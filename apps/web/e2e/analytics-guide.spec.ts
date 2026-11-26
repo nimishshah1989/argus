@@ -39,8 +39,9 @@ test('a head opens the Guide, reads the Reports entry and follows its figure lin
   await expect(page).toHaveURL(/\/analytics\/today\?screen=dashboard$/);
 
   await page.goto('/analytics/guide');
-  // 50c built the PM calendar, so its entry now explains the screen; OEM is still unbuilt and keeps the line.
+  // 50c built the PM calendar and ticket 814 built OEM, so both entries now explain their screen.
   await expect(page.locator('#guide-pm-calendar')).toContainText('preventive maintenance');
   await expect(page.locator('#guide-pm-calendar')).not.toContainText('not in this build yet');
-  await expect(page.locator('#guide-oem')).toContainText('not in this build yet');
+  await expect(page.locator('#guide-oem')).toContainText('machines under 300 days old');
+  await expect(page.locator('#guide-oem')).not.toContainText('not in this build yet');
 });
