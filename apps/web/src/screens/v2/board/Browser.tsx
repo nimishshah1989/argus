@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { EntityChip } from '../../../ui/v2/entity-chip.js';
-import { Icon } from '../../../ui/v2/icons.js';
 import { KeyPill } from '../../../ui/v2/key-pill.js';
 import { SyncStatus } from '../../../ui/v2/sync-status.js';
 import { Takeaway } from '../../../ui/v2/takeaway.js';
@@ -36,7 +35,6 @@ function Actions({ links, tabs }: { links: BoardModel['links']; tabs?: ReactNode
           link.wideOnly ? (
             <span key={link.to} className="hidden sm:block">
               <Link to={link.to} className="v2-btn">
-                <Icon name="tv" size={16} />
                 {link.label}
               </Link>
             </span>
