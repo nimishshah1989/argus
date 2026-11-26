@@ -70,6 +70,7 @@ export type {
   TaskRow,
   TicketRow,
   WhyWhyRow,
+  OemCauseRow,
 } from './types.js';
 export type { PlantEventRow } from './plant-events.js';
 export { comparePair, type ComparePair, type ComparePairResult } from './compare.js';

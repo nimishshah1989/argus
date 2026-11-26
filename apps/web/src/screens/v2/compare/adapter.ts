@@ -6,12 +6,14 @@ import type { Point, Seg } from '../../../ui/v2/points.js';
 import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { TrendData } from '../../../ui/v2/trend-chart.js';
 import type { VerdictData } from '../../../ui/v2/verdict.js';
+import { rupees } from '../../../ui/v2/format.js';
 import { takeawayFor, type Item } from '../insight.js';
 import { cellChip, machineChip, shortDate, type Page } from '../printed-page/printed.js';
 import { tablesOf } from '../printed-page/page-model.js';
 import { say, strong } from '../printed-page/segs.js';
 import { pageWords } from '../printed-page/words.js';
 import type { CompareModel } from './model.js';
+import { moneyText } from './sweep.js';
 
 /** A reply with a comparison in it. */
 export type ComparedReply = CompareReply & {
@@ -27,8 +29,6 @@ const NB = ' ';
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const h1 = (v: number) => `${v.toFixed(1)}${NB}h`;
-const lakh = (rupees: number) => `₹${NB}${(rupees / 100000).toFixed(2)}${NB}lakh`;
-const rupee = (rate: number) => `₹${NB}${rate.toLocaleString('en-IN')}`;
 const loss = (text: string): Seg => ({ text, tone: 'loss' });
 const gain = (text: string): Seg => ({ text, tone: 'gain' });
 const chip = (code: string): Seg => ({ text: code, entity: machineChip(code) });
@@ -80,7 +80,7 @@ function metrics(rate: number | null): Metric[] {
     },
   ];
   if (rate !== null) {
-    all.push({ id: 'money', get: (y) => y.hours * rate, show: lakh, mark: 'more' });
+    all.push({ id: 'money', get: (y) => y.hours * rate, show: moneyText, mark: 'more' });
   }
   return all;
 }
@@ -98,7 +98,7 @@ function figures(
     const r = none ? 1 : ratio(size(v[0]), size(v[1]));
     const hint =
       m.id === 'money' && rate !== null
-        ? t('v2cmp.fig.money.hint', { rate: rupee(rate) })
+        ? t('v2cmp.fig.money.hint', { rate: rupees(rate) })
         : t(`v2cmp.fig.${m.id}.hint`);
     const side = (mine: number, other: number, y: Year): CompareFigure => {
       const worse = m.lowerIsBetter === false ? mine < other : mine > other;
@@ -214,7 +214,7 @@ function verdictOf(worse: Year, better: Year, asOf: string, t: Words): VerdictDa
 const KPI = {
   hours: { icon: 'clock', show: h1 },
   count: { icon: 'alert', show: String },
-  money: { icon: 'rupee', show: lakh },
+  money: { icon: 'rupee', show: moneyText },
 } as const;
 
 /** One key figure: this year's gap, and how it moved against last year's gap. */
@@ -248,7 +248,7 @@ function kpisOf(worse: Year, better: Year, rate: number | null, t: Words): KpiDa
     kpi(t, 'count', count, t('v2cmp.kpi.count.more', counts)),
   ];
   if (rate !== null) {
-    const more = t('v2cmp.kpi.money.more', { rate: rupee(rate) });
+    const more = t('v2cmp.kpi.money.more', { rate: rupees(rate) });
     out.push(kpi(t, 'money', [hours[0] * rate, hours[1] * rate], more));
   }
   return out;
