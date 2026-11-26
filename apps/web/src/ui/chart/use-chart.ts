@@ -18,13 +18,14 @@ export type {
 
 let loader: ReturnType<typeof load> | null = null;
 
-/** The only place that loads ECharts: one cached import of the four modules we use. */
+/** The only place that loads ECharts: one cached import of the five modules we use. */
 async function load() {
-  const [core, charts, components, renderers] = await Promise.all([
+  const [core, charts, components, renderers, features] = await Promise.all([
     import('echarts/core'),
     import('echarts/charts'),
     import('echarts/components'),
     import('echarts/renderers'),
+    import('echarts/features'),
   ]);
   core.use([
     charts.BarChart,
@@ -40,6 +41,7 @@ async function load() {
     components.MarkPointComponent,
     components.DataZoomComponent,
     renderers.SVGRenderer,
+    features.LabelLayout,
   ]);
   return core;
 }
@@ -125,50 +127,23 @@ export function refresh(made: Instance, build: () => unknown): ChartState {
 }
 
 /**
- * Size the box for the spec held in `key` NOW (tilted category labels need height, and labels too many for the box's
- * width make it scroll sideways inside its card, when the card's wrapper says it can: `data-chart-scroll`, so no label
- * is ever dropped), and return the builder of its option, framed for the first draw of an instance or for a later
- * update. The box is sized before ECharts measures it.
+ * Size the box for the spec held in `key` NOW (tilted category labels, named rows and a wrapped legend need height),
+ * and return the builder of its option, framed for the first draw of an instance or for a later update. The box is
+ * sized before ECharts measures it. A v2 chart that needs more than the kit's own height is made taller; a box with a
+ * size of its own (the v1 chart's) keeps it. No chart is ever wider than its box (ADR 0065).
  */
 function optionFor(el: HTMLElement, key: string, first: boolean): () => unknown {
   const reduced = window.matchMedia(REDUCED).matches;
   const spec = JSON.parse(key) as ChartSpec;
-  el.style.minWidth = '';
   const palette = readPalette(el);
-  sizeBox(el, chartRoom(spec, palette.width));
-  return () => frameOption(chartOption(spec, palette), { first, reduced });
-}
-
-/**
- * Make the box the room its labels need. A v2 chart that needs more than the kit's own height (tilted names, a long
- * horizontal bar) is made taller, and one with too many labels for its width scrolls sideways inside its card; a box
- * with a size of its own (the v1 chart's) keeps it.
- */
-function sizeBox(el: HTMLElement, room: ReturnType<typeof chartRoom>): void {
+  const option = chartOption(spec, palette);
+  // Rows of legend past the first push the plot down: the box grows by the same, so the plot keeps its height.
+  const legend = option.legend ? (option.grid as { top: number }).top - 40 : 0;
+  const height = chartRoom(spec, palette.width).height + legend;
   el.style.minHeight =
-    el.classList.contains('v2-trend') && room.height > BASE_HEIGHT ? `${room.height}px` : '';
-  const scroller = el.parentElement?.hasAttribute('data-chart-scroll') ? el.parentElement : null;
-  if (room.scrollWidth !== undefined && scroller) el.style.minWidth = `${room.scrollWidth}px`;
+    el.classList.contains('v2-trend') && height > BASE_HEIGHT ? `${height}px` : '';
+  return () => frameOption(option, { first, reduced });
 }
-
-/**
- * After a draw: whether the box is a tab stop follows what it does NOW, not what was planned: it scrolls sideways
- * (`scrollWidth` past `clientWidth`) and is then a named group reachable from the keyboard, or it does not and is
- * neither a tab stop nor a name.
- */
-function markScroll(el: HTMLElement, title: string): void {
-  const scroller = el.parentElement?.hasAttribute('data-chart-scroll') ? el.parentElement : null;
-  if (scroller === null) return;
-  if (scroller.scrollWidth > scroller.clientWidth) {
-    scroller.setAttribute('tabindex', '0');
-    scroller.setAttribute('role', 'group');
-    scroller.setAttribute('aria-label', title);
-  } else {
-    for (const name of ['tabindex', 'role', 'aria-label']) scroller.removeAttribute(name);
-  }
-}
-
-const titleOf = (key: string): string => (JSON.parse(key) as ChartSpec).title;
 
 /**
  * Draws `spec` into the returned ref once ECharts has loaded; `error` if it never does. The instance is made once:
@@ -202,11 +177,9 @@ export function useChart(spec: ChartSpec): {
               const build = optionFor(el, latest.current, true);
               made.resize(); // the box may have grown for its labels since it was made
               made.setOption(build());
-              markScroll(el, titleOf(latest.current));
             },
             (made) => {
               setState(refresh(made, optionFor(el, latest.current, false)));
-              markScroll(el, titleOf(latest.current));
             },
           );
           chart.current = attached.made;
@@ -233,7 +206,6 @@ export function useChart(spec: ChartSpec): {
     const el = ref.current;
     if (!chart.current || !el) return;
     setState(refresh(chart.current, optionFor(el, key, false)));
-    markScroll(el, titleOf(key));
   }, [key]);
   return { ref, state };
 }

@@ -106,7 +106,9 @@ function historyPoints(
   const points: Array<MonthPoint & { year: number }> = [];
   for (let year = first; year <= period.year; year += 1) {
     const whole = year < period.year;
-    const span = whole ? { year, start: `${year}-01-01`, end: `${year}-12-31`, lastMonth: 12 } : period;
+    const span = whole
+      ? { year, start: `${year}-01-01`, end: `${year}-12-31`, lastMonth: 12 }
+      : period;
     points.push(...monthPoints(span, statsOf).map((point) => ({ ...point, year })));
   }
   return points;

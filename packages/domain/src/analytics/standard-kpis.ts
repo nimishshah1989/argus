@@ -52,7 +52,6 @@ export interface KpiTotals {
   machinesWithoutFailure: number;
 }
 
-
 /**
  * The failure set (R4): a non-PM report of a `stopped` ticket that is closed, on a production machine, history or
  * live. A live report whose four fields exactly equal a history report's is the same failure and drops; a same-day

@@ -8,14 +8,16 @@ const LABEL = /^([A-Z][a-z]{2}) (\d{2})$/;
 export type YearLine = ChartSeries & { year: number; source: number; current: boolean };
 
 /**
- * A line chart over calendar months that spans more than one year, redrawn year over year (ADR 0063): one line per
- * series and year on a shared Jan–Dec axis, each named `<series> <year>`, the latest year marked `current`. Null when the
- * categories are not all `Mon YY` month labels or no month of the year comes round twice, so every other line chart draws as it did.
+ * A line chart of ONE series over calendar months that spans more than one year, redrawn year over year (ADR 0063,
+ * 0065): one line per year on a shared Jan–Dec axis, each named `<series> <year>`, the latest year marked `current`.
+ * Null for two or more series (they stay one line each on the continuous months), or when the categories are not all
+ * `Mon YY` month labels or no month comes round twice, so every other line chart draws as it did.
  */
 export function yearOverYear(spec: Pick<LineSpec, 'categories' | 'series'>): {
   categories: string[];
   series: YearLine[];
 } | null {
+  if (spec.series.length !== 1) return null;
   const parsed = spec.categories.map((label) => {
     const match = LABEL.exec(label);
     const month = match ? MONTHS.indexOf(match[1]!) : -1;

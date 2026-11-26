@@ -38,7 +38,7 @@ export function TrendChart({ data }: { data: TrendData }) {
           <p className="v2-sub">{data.sub}</p>
         </div>
       </div>
-      <div className="v2-trend-scroll" data-chart-scroll>
+      <div className="v2-trend-box">
         <div
           ref={ref}
           className="v2-trend"

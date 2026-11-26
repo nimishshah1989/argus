@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { fixedZone, sectionsIn, slug } from './on-this-page.js';
 
 describe('On this page (ADR 0061)', () => {
-  it('reads every titled part, gives each a unique anchor, and skips live messages', () => {
+  it('lists each title once with a unique anchor, and skips live messages', () => {
     // No DOM here: headings stand in with the four things `sectionsIn` reads.
     const h2 = (text: string, live = false) => ({
       textContent: text,
@@ -14,13 +14,14 @@ describe('On this page (ADR 0061)', () => {
       h2('Often, or long?'),
       h2('Saved', true),
       h2('Repeat offenders'),
+      h2('Often, or long'),
       h2('  '),
     ];
     const root = { querySelectorAll: () => heads } as unknown as ParentNode;
     expect(sectionsIn(root)).toEqual([
       { id: 'repeat-offenders', title: 'Repeat offenders' },
       { id: 'often-or-long', title: 'Often, or long?' },
-      { id: 'repeat-offenders-2', title: 'Repeat offenders' },
+      { id: 'often-or-long-2', title: 'Often, or long' },
     ]);
     expect(heads[0]?.dataset.section).toBe('repeat-offenders');
   });

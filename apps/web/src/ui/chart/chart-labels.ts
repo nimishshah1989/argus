@@ -16,6 +16,8 @@ const TILT = Math.SQRT1_2;
 /** The height the kit gives a chart (`.v2-trend`), and what a horizontal bar needs per category. */
 export const BASE_HEIGHT = 220;
 const LANE = 24;
+/** A named lane of the scatter map: dots jitter inside it, so it is a little taller. */
+const MAP_LANE = 28;
 
 export interface LabelPlan {
   /** 0 when the labels fit side by side, else 45. */
@@ -26,13 +28,13 @@ export interface LabelPlan {
   wrap?: number;
   /** Down the side: how many lines a row's name takes at most. */
   lines?: number;
-  /** The width the chart needs when 45 degrees is still too tight for the box: the card scrolls sideways. */
-  scrollWidth?: number;
+  /** Print every `every`th name when even 45 degrees is too tight: the chart never scrolls sideways (ADR 0065). */
+  every?: number;
 }
 
 const wide = (label: string): number => [...label].length * CHAR;
 
-/** Side by side when they fit; tilted to 45 degrees when they do not; the box scrolls when even that is too tight. */
+/** Side by side when they fit; tilted to 45 degrees when they do not; thinned when even that is too tight. */
 export function labelPlan(
   categories: readonly string[],
   width: number | undefined,
@@ -47,7 +49,7 @@ export function labelPlan(
   const need = categories.length * TILTED;
   return need <= plot
     ? { rotate: 45, room }
-    : { rotate: 45, room, scrollWidth: Math.ceil(need + SIDE + reserve) };
+    : { rotate: 45, room, every: Math.ceil(need / Math.max(plot, TILTED)) };
 }
 
 /** The width a chart keeps at its right for what is not plot: a line's end labels, a second value axis. */
@@ -89,21 +91,18 @@ export function sidePlan(categories: readonly string[], width: number | undefine
   return { ...flat, wrap: cap, lines: Math.ceil(longest / cap) };
 }
 
-/** The box a chart needs: more height for tilted labels or a long horizontal bar, a scroll width when it is too tight. */
-export function chartRoom(
-  spec: ChartSpec,
-  width: number | undefined,
-): { height: number; scrollWidth?: number } {
-  if (spec.kind === 'scatter' || spec.kind === 'heatmap') return { height: BASE_HEIGHT };
+/** The box a chart needs: more height for tilted labels, a long horizontal bar or a scatter of many named rows. */
+export function chartRoom(spec: ChartSpec, width: number | undefined): { height: number } {
+  if (spec.kind === 'scatter')
+    return {
+      height: Math.max(BASE_HEIGHT, ((spec.yTickLabels?.length ?? -1) + 1) * MAP_LANE + 64),
+    };
+  if (spec.kind === 'heatmap') return { height: BASE_HEIGHT };
   if (spec.kind === 'bar' && spec.horizontal === true) {
     const lane = Math.max(LANE, (sidePlan(spec.categories, width).lines ?? 1) * LINE + 10);
     return { height: Math.max(BASE_HEIGHT, spec.categories.length * lane + 60) };
   }
-  const plan = planOf(spec, width);
-  return {
-    height: BASE_HEIGHT + plan.room,
-    ...(plan.scrollWidth === undefined ? {} : { scrollWidth: plan.scrollWidth }),
-  };
+  return { height: BASE_HEIGHT + planOf(spec, width).room };
 }
 
 /**

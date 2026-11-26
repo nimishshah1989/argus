@@ -4,9 +4,31 @@ import type { Palette } from './chart-palette.js';
 /** An ECharts option: plain data, built here and handed to `setOption` by the door. */
 export type Option = Record<string, unknown>;
 
+/** One legend row: ECharts' 14 px item and its 10 px gap. */
+const LEGEND_ROW = 24;
+
+/**
+ * The rows a legend wraps onto in a box `width` px wide (an item is its 25 px mark, 5 px, the name and a 10 px gap),
+ * estimated generously, so the plot always starts under the last row.
+ */
+export function legendRows(names: readonly string[], width: number | undefined): number {
+  if (width === undefined) return 1;
+  let rows = 1;
+  let used = 0;
+  for (const name of names) {
+    const item = 40 + [...name].length * 7;
+    if (used > 0 && used + item > width - 10) {
+      rows += 1;
+      used = 0;
+    }
+    used += item;
+  }
+  return rows;
+}
+
 /**
  * What every kind starts from. `animation` is false for every chart and so under reduced motion too (D27: the
- * ECharts default of 1 s broke the 300 ms rule); a legend takes a row above the plot.
+ * ECharts default of 1 s broke the 300 ms rule); a legend takes its rows above the plot and never prints over it.
  */
 export function baseOption(
   p: Palette,
@@ -19,7 +41,7 @@ export function baseOption(
     textStyle: { fontFamily: p.font, fontSize: 12, color: p.axis },
     grid: {
       left: 8,
-      top: legend ? 40 : 24,
+      top: legend ? 16 + legendRows(names, p.width) * LEGEND_ROW : 24,
       bottom: 8,
       right,
       containLabel: true,
@@ -59,8 +81,8 @@ export function withTitleRoom(option: Option, room = 0): Option {
 
 /**
  * The category axis; `title` (the spec's `categoryLabel`, asked for by `axisTitles`) names it under the labels. Every
- * label is drawn (`interval: 0`), never skipped for room: `plan` tilts them when they do not fit side by side, and the
- * title sits under the tilted labels.
+ * label is drawn while there is room: `plan` tilts them when they do not fit side by side and, when even that is too
+ * tight, prints every `every`th one (the tooltip names the rest). The title sits under the tilted labels.
  */
 export function categoryAxis(
   categories: string[],
@@ -92,7 +114,7 @@ export function categoryAxis(
     axisLine: { lineStyle: { color: p.grid } },
     axisLabel: {
       color: p.axis,
-      interval: 0,
+      interval: (plan.every ?? 1) - 1,
       hideOverlap: false,
       ...(plan.rotate === 0 ? {} : { rotate: plan.rotate }),
       ...(plan.wrap === undefined ? {} : { width: plan.wrap, overflow: 'break' as const }),

@@ -198,7 +198,8 @@ function yearChart(
   const entries = reportEntries(data);
   const machines = productionMachines(data);
   const index = period.current.year * 12 + period.current.month - 1;
-  const first = from === undefined ? index : Number(from.slice(0, 4)) * 12 + Number(from.slice(5, 7)) - 1;
+  const first =
+    from === undefined ? index : Number(from.slice(0, 4)) * 12 + Number(from.slice(5, 7)) - 1;
   const months: Array<{ window: MonthWindow; stats: ReportStats }> = [];
   for (let back = Math.max(11, index - first); back >= 0; back -= 1) {
     const at = index - back;
@@ -229,6 +230,8 @@ interface PageStats {
   current: ReportStats;
   previous: ReportStats;
   hasPrev: boolean;
+  /** Every recorded year, for the month-by-month chart (ADR 0064). */
+  history?: EngineData;
 }
 
 /** The machine map and the four group keys the time-went tables read. */
@@ -258,9 +261,8 @@ function pageOf(
   profile: AnalyticsProfile,
   period: MonthPeriod,
   stats: PageStats,
-  history?: EngineData,
 ): Page {
-  const { current, previous, hasPrev } = stats;
+  const { current, previous, hasPrev, history } = stats;
   const { machines, machineKey, cellKey, categoryKey, codeKey } = reportKeys(data);
   const names = new Map(data.people.map((person) => [person.code, person.displayName]));
   const groups = {
@@ -337,13 +339,12 @@ export function monthlyReport(
     to: period.previous.end,
   });
   const hasPrev = previous.count > 0 || previous.pmCount > 0;
-  const page = pageOf(
-    data,
-    profile,
-    period,
-    { current, previous, hasPrev },
-    history && canonicalOrder(history),
-  );
+  const page = pageOf(data, profile, period, {
+    current,
+    previous,
+    hasPrev,
+    history: history && canonicalOrder(history),
+  });
   return {
     value: { screen: 'monthly-report', asOf, pages: [page] } as unknown as FigureValue,
     drillIds: current.breakdowns.map((row) => row.ticket.id),

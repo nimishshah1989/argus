@@ -19,14 +19,18 @@ export const slug = (title: string): string =>
 
 /**
  * The page's sections, in order: every `h2` inside `root` (a `SectionHead`, a `Panel`, a table's or a chart card's
- * title), except one inside a form or a live message. Each heading is marked `data-section` with its anchor, made unique.
+ * title), except one inside a form or a live message. A title is listed once, at its first heading (a chart and the
+ * table under it share one entry, ADR 0065). Each listed heading is marked `data-section` with its anchor, made unique.
  * No per-screen work: whatever the kit titles is in the index.
  */
 export function sectionsIn(root: ParentNode): PageSection[] {
   const used = new Map<string, number>();
+  const listed = new Set<string>();
   return [...root.querySelectorAll<HTMLElement>('h2')].flatMap((h) => {
     const title = h.textContent?.trim() ?? '';
     if (!title || h.closest('form, [role="alert"], [role="status"], [role="dialog"]')) return [];
+    if (listed.has(title)) return [];
+    listed.add(title);
     const base = slug(title);
     const n = (used.get(base) ?? 0) + 1;
     used.set(base, n);

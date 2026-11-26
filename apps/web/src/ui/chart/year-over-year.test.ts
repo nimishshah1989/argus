@@ -29,11 +29,21 @@ describe('year over year (ADR 0063)', () => {
     expect(yearOverYear({ categories: ['VMC-01', 'VMC-02', 'VMC-03'], series })).toBeNull();
   });
 
-  it('drops a year with nothing recorded and keeps each line on its series axis', () => {
+  it('drops a year with nothing recorded', () => {
     const categories = across([2022, 2023, 2024]);
     const values = categories.map((label) => (label.endsWith('23') ? null : 1)) as number[];
     const out = yearOverYear({ categories, series: [{ name: 'MTTR', values }] });
     expect(out?.series.map((s) => s.year)).toEqual([2022, 2024]);
+  });
+
+  it('keeps a chart of several series as one line each on the continuous months (ADR 0065)', () => {
+    const categories = across([2022, 2023, 2024]);
+    const values = categories.map(() => 1);
+    const series = [
+      { name: 'MTTR', values },
+      { name: 'MTBF', values },
+    ];
+    expect(yearOverYear({ categories, series })).toBeNull();
     const option = lineOption(
       {
         kind: 'line',
@@ -41,19 +51,14 @@ describe('year over year (ADR 0063)', () => {
         categoryLabel: 'Month',
         categories,
         secondAxis: true,
-        series: [
-          { name: 'MTTR', values },
-          { name: 'MTBF', values },
-        ],
+        series,
       },
       { series: ['a', 'b', 'c'], axis: 'x', grid: 'y', font: 'f', width: 600 },
-    ) as { series: { name: string; yAxisIndex?: number }[]; legend?: unknown };
-    expect(option.legend).toBeDefined();
+    ) as { xAxis: { data: string[] }; series: { name: string; yAxisIndex?: number }[] };
+    expect(option.xAxis.data).toEqual(categories);
     expect(option.series.map((s) => [s.name, s.yAxisIndex ?? 0])).toEqual([
-      ['MTTR 2022', 0],
-      ['MTTR 2024', 0],
-      ['MTBF 2022', 1],
-      ['MTBF 2024', 1],
+      ['MTTR', 0],
+      ['MTBF', 1],
     ]);
   });
 });
