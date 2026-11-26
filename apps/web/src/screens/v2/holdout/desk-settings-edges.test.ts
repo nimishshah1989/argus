@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { MATRIX, policy, reason } from '../desk-settings/fixture.js';
+import { MATRIX, policy, reason } from '../desk-settings/fixture-rows.js';
 import { criticalityTakeaway, highCells, pausingReasons, slaRows } from '../desk-settings/model.js';
 
 describe('S26-8 desk settings: edges', () => {
