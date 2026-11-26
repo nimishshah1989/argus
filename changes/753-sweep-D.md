@@ -1,0 +1,1 @@
+- Compare, Shift KPIs, Energy, Forecast Lab, Manpower and the PM calendar now show four tiles with the rest under "Show detail", read lakh and crore sums the same way, rank the Shift KPIs breakdown charts as lists, and offer Download Excel on the Forecast Lab and the PM calendar.

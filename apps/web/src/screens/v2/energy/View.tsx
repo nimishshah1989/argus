@@ -5,6 +5,7 @@ import { HeatTiles } from '../../../ui/v2/domain/heat-tiles.js';
 import { DrillAction, Section } from '../../../ui/v2/drill-action.js';
 import { FigureTile } from '../../../ui/v2/figure-tile.js';
 import { Row } from '../../../ui/v2/row.js';
+import { ShowDetail } from '../../../ui/v2/show-detail.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
 import { Takeaway } from '../../../ui/v2/takeaway.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
@@ -50,11 +51,20 @@ export function EnergyView({
   return (
     <EntityShell nav={nav} title={title}>
       <Verdict verdict={model.verdict} whyLabel={model.words.why} />
-      <Row cols={model.figures.length === 4 ? 4 : 3}>
-        {model.figures.map((figure) => (
+      <Row cols={model.figures.length >= 4 ? 4 : 3}>
+        {model.figures.slice(0, 4).map((figure) => (
           <FigureTile key={figure.id} figure={figure} />
         ))}
       </Row>
+      {model.figures.length > 4 ? (
+        <ShowDetail>
+          <Row cols={4}>
+            {model.figures.slice(4).map((figure) => (
+              <FigureTile key={figure.id} figure={figure} />
+            ))}
+          </Row>
+        </ShowDetail>
+      ) : null}
       {model.drill ? (
         <div>
           <DrillAction drill={model.drill} />

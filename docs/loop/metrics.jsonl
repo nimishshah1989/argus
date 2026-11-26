@@ -26,3 +26,16 @@
 {"issue": 642, "size": "small", "model": "haiku", "attempts": 2, "result": "pr", "ts": "2026-11-24T16:36:22"}
 {"issue": 788, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-25T23:55:20"}
 {"issue": 788, "size": "standard", "model": "sonnet", "attempts": 2, "result": "pr", "ts": "2026-11-26T01:14:52"}
+{"issue": 751, "size": "standard", "model": "sonnet", "attempts": 2, "result": "pr", "ts": "2026-11-26T02:54:30"}
+{"issue": 752, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-26T04:06:33"}
+{"issue": 752, "size": "standard", "model": "sonnet", "attempts": 2, "result": "pr", "ts": "2026-11-26T04:51:43"}
+{"issue": 767, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-26T08:19:43"}
+{"issue": 753, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-26T08:29:29"}
+{"issue": 769, "size": "standard", "model": "sonnet", "attempts": 2, "result": "pr", "ts": "2026-11-26T08:34:19"}
+{"issue": 765, "size": "standard", "model": "sonnet", "attempts": 3, "result": "pr", "ts": "2026-11-26T08:41:34"}
+{"issue": 763, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-26T08:45:10"}
+{"issue": 772, "size": "standard", "model": "sonnet", "attempts": 2, "result": "pr", "ts": "2026-11-26T08:46:36"}
+{"issue": 768, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-26T09:35:10"}
+{"issue": 771, "size": "standard", "model": "sonnet", "attempts": 1, "result": "pr", "ts": "2026-11-26T10:20:47"}
+{"issue": 763, "size": "standard", "model": "sonnet", "attempts": 3, "result": "pr", "ts": "2026-11-26T10:32:13"}
+{"issue": 795, "size": "standard", "model": "sonnet", "attempts": 2, "result": "pr", "ts": "2026-11-26T10:35:17"}

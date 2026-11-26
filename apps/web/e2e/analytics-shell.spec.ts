@@ -4,7 +4,8 @@ import { signIn } from './fixtures.js';
 /**
  * Ticket 86a: the approved navigation map on the real analytics screens. The shell is a frame: the screens
  * inside keep their own journeys (the other analytics specs), so this one checks the frame alone. It stands on the
- * annual report, the last page still in this frame (ticket 765 moves it): the monthly report is v2 since ticket 763.
+ * annual report, the last page to leave the v1 frame (ticket 765): the v1 header's disabled Period picker went with it,
+ * and each report now prints its own period line (analytics-reports.spec.ts).
  */
 const SECTIONS = [
   'Today',
@@ -16,7 +17,7 @@ const SECTIONS = [
   'Guide',
 ];
 
-test('a head sees the six sections and the Guide, tabs inside a section, and a period it cannot change yet', async ({
+test('a head sees the six sections and the Guide, and tabs inside a section', async ({
   page,
 }, testInfo) => {
   const wide = testInfo.project.name === 'chromium';
@@ -32,10 +33,13 @@ test('a head sees the six sections and the Guide, tabs inside a section, and a p
     'page',
   );
 
-  // The header carries the period; the figures route takes no period yet, so the picker is shown and off.
-  const period = page.getByRole('combobox', { name: 'Period', exact: true });
-  await expect(period).toBeDisabled();
-  await expect(period).toHaveValue('This year so far');
+  // Reports marks its own tab on the annual report.
+  const reports = page.getByRole('group', { name: 'Screens in Reports', exact: true });
+  await expect(reports.getByRole('button')).toHaveText(['Monthly report', 'Annual report']);
+  await expect(reports.getByRole('button', { name: 'Annual report', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
 
   // A section's screens are tabs, and People & money marks its own tab on the Team Focus page.
   await menu.getByRole('link', { name: 'People & money', exact: true }).click();

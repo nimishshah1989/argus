@@ -2,23 +2,33 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-26 · **By:** Coordinator (Sonnet 5.5) · **Goal (Nimish):** all screens live on the newest kit · **Branch:** plan/handoff-s26b
+**Updated:** 2026-11-26 11:20 IST · **By:** release session `local_abd659d2…` (context full) · **Goal (Nimish):** all screens live on the newest kit, nothing old remains · **Branch:** plan/handoff-s26b
 
 ## State
 
-- MERGED: #783 sweep B (#751; reviewed PASS, CI green) and #782 Monthly Report (#763; merged by a parallel run/Nimish's account during a planner job — no reviewer pass in this session, UNVERIFIED; check its deploy and the deploy run on main).
-- Earlier: #796 S26-1 Settings shell + Jobs, #797 main repair, #781 sweep A.
-- Open: #799 (old handoff, superseded by this one — close it).
-- Not started: #765 S24 Annual, sweeps #752/#753, S26 tickets #789–#795 (any order; seeds `plan/t789`..`t795`). S27–S30 builds #767/#769 may sit in other sessions' `.loop/wt/`.
+- Staging serves a5c83744 = main (health checked). Merged 26 Nov: #805 #806 #808 #811 #804 #809 #820 #807 #821. Nimish merges some himself (#806 went in red; #811 fixed it).
+- Still old: Desk Mine + Team (#770), Settings sub-pages (#789-#795), OEM not live (#812-#815), /who, /password, analytics fallback, dead v1 code (#816-#819).
+- #822 (#795) open, conflicting: merge main and `origin/plan/t795` in a throwaway worktree (seed renamed `fixture.ts` to `fixture-rows.ts`).
+- OEM: ADR 0051. Seeds `plan/t812`-`t819` pushed. Order: #816 #817 #818, #812 #813, #814 (after #812), #815 (after #813 + #814), #819 last. Bhavin owes the claim-amount rule.
+- Merge rule: ADR 0050.
+- Tests: #811 #804 #809 #807 #821 passed test shards, static, secrets and critical-only review (#809, #807: `loop-guard` red, not critical). Screens not opened by eye.
 
-## Follow-ups (plan job needed)
+## Next steps (RELEASE role: owns this file and all merges)
 
-- #751 comment lists 4: Excel button empty workbook when figures cache empty (breakdown-log/Page.tsx:36); stale comment + unused `words.export` (View.tsx:158); figures 5+ render below tables via `after` slot (bd-pm, category-cell); export filename uses UTC date.
-- S26-1 follow-ups issue.
+1. Merge #823 (ADR 0050 + handoff; conflict with main resolved) when `gh pr checks` is green.
+2. Build session (or, if none, finish built work): #822, #789, #770, #790; then #791-#794 one at a time; then #812-#819.
+3. Review (critical-only), merge, confirm `/api/v1/health`, then `loop clean <N>`. Build handover: `~/Library/Application Support/Claude/side-session-notes/local_7710e647-bb9d-4008-ab43-c6a316dec3ff/build-handover.md`.
+4. Fold its "Don't repeat" into LESSONS.md. Older follow-ups: comment on #751, S26-1; #800's handoff says #782 merged with no review (no late one recorded).
+
+## Blocked
+
+- New building: the build session `local_975943c3…` stopped (context full) and its replacement card is not started. Release card `task_40f525ec` also not started.
 
 ## Don't repeat
 
-- A builder that edits an existing test fails loop-guard. Fix = `loop plan` puts the corrected test on the seed `plan/t<N>`, then merge main + seed into the PR branch from a throwaway worktree OUTSIDE `.loop/wt` (builders and coordinator are hook-blocked from merging there), hooks ON, then close/reopen the PR so loop-guard rereads `Plan-base:`.
-- `loop finish` says "CI GREEN" even when the PR is CONFLICTING and no CI ran. Check `gh pr view --json mergeStateStatus` before review.
-- `loop plan` jobs that merge + run CI can exceed 10 min; run them in background with a long timeout and check `gh pr list` before rerunning.
-- Never merge with red browser shards.
+- `loop ci` says "CI GREEN" with shards pending or GitHub unreachable: check `gh pr checks` and `mergeStateStatus`.
+- `engine-scale.test.ts` (20 s) fails on a busy Mac and burns a `loop finish` attempt. If the branch holds all of origin, push without force and let CI judge.
+- `loop finish` force-pushes: pull a behind build folder first. Never run `loop finish 763` again.
+- Deploy build crashes at random (`qemu` exit 132): `gh run rerun <id> --failed`. A handoff "Blocked" section in a builder note reads exactly `None.`.
+- Merge conflicts: throwaway worktree outside `.loop/wt`; never switch branches in the main checkout. New keys in a shipped namespace need Gujarati.
+- The app auto-archives sessions on PR close (setting on).
