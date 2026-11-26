@@ -8,7 +8,7 @@ export const liveBoardEn = {
   'live.column.notStarted': 'Nobody has started',
   'live.column.repairing': 'Being repaired',
   'live.column.waiting': 'Paused and waiting',
-  'live.more': 'and {{count}} more',
+  'live.more': '+{{count}} more',
   'live.ages.title': 'Open breakdowns by age',
   'live.ages.overDayTitle': 'Open over 1 day',
   'live.ages.underHour': 'Under 1 h',

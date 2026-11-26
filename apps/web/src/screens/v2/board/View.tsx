@@ -8,10 +8,11 @@ import type { BoardColumn, BoardModel, StopRowModel } from './model.js';
 import { AGE_INK, MachineTile, STATUS } from './parts.js';
 import './board.css';
 
+// Everything down to `BoardView` is the wall TV only; its sizes scale with the screen (`.board-tv` in board.css).
 function Pulse({ model }: { model: BoardModel }) {
-  const { pulse, tv } = model;
+  const { pulse } = model;
   return (
-    <section aria-label={pulse.aria} className="flex flex-wrap items-end gap-x-12 gap-y-3">
+    <section aria-label={pulse.aria} className="flex items-end gap-12 whitespace-nowrap">
       <div className="flex items-end gap-3">
         <span data-testid="count-running" className="board-hero">
           {pulse.running}
@@ -19,15 +20,15 @@ function Pulse({ model }: { model: BoardModel }) {
         <div>
           <p className="board-heroword v2-seg-gain inline-flex items-center gap-2">
             {/* eslint-disable-next-line i18next/no-literal-string -- an icon name, not copy */}
-            <Icon name="check" size={tv ? 56 : 18} />
+            <Icon name="check" />
             {pulse.runningWord}
           </p>
           <p className="board-sub">{pulse.of}</p>
         </div>
       </div>
-      <p className="board-fill-loss inline-flex items-center gap-2 rounded-xl px-3 py-2">
+      <p className="board-stopped board-fill-loss inline-flex items-center gap-2 rounded-xl px-3 py-2">
         {/* eslint-disable-next-line i18next/no-literal-string -- an icon name, not copy */}
-        <Icon name="stop" size={tv ? 58 : 20} />
+        <Icon name="stop" />
         <span data-testid="count-stopped" className="board-stopnum">
           {pulse.stopped}
         </span>
@@ -37,37 +38,36 @@ function Pulse({ model }: { model: BoardModel }) {
   );
 }
 
-function StopRow({ row, tv }: { row: StopRowModel; tv: boolean }) {
+function StopRow({ row }: { row: StopRowModel }) {
   const { t } = useTranslation();
-  const side = tv ? '' : 'row-span-2';
   return (
-    <li className="board-row flex items-center gap-3">
+    <li className="board-row">
       <div
         data-testid="tile"
-        className="grid min-h-16 min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 py-2"
+        className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 py-2"
       >
-        <span className={side}>
-          <MachineTile segment={row.segment} tv={tv} />
+        <span className="row-span-2">
+          <MachineTile segment={row.segment} tv />
         </span>
         <p className="board-code truncate">
           {
             row.code // ui-allow: entity-code the wall board prints plain text; the TV has no link
           }
         </p>
-        <p
-          className={`board-age whitespace-nowrap ${side} ${row.ageTone ? AGE_INK[row.ageTone] : ''}`}
-        >
+        <p className={`board-age whitespace-nowrap ${row.ageTone ? AGE_INK[row.ageTone] : ''}`}>
           {row.age}
         </p>
-        <p className={`board-sub col-start-2 ${tv ? 'col-span-2 mt-1' : 'truncate'}`}>{row.sub}</p>
+        <div className="col-span-2 col-start-2 mt-1 flex items-center justify-between gap-3">
+          <p className="board-sub truncate">{row.sub}</p>
+          {/* eslint-disable-next-line i18next/no-literal-string -- a tone and an icon name, not copy */}
+          {row.longest ? <KeyPill text={t('live.longest')} tone="loss" icon="alert" /> : null}
+        </div>
       </div>
-      {/* eslint-disable-next-line i18next/no-literal-string -- a tone and an icon name, not copy */}
-      {row.longest ? <KeyPill text={t('live.longest')} tone="loss" icon="alert" /> : null}
     </li>
   );
 }
 
-function Column({ column, tv }: { column: BoardColumn; tv: boolean }) {
+function Column({ column }: { column: BoardColumn }) {
   const { tone, icon } = STATUS[column.status];
   return (
     <section
@@ -76,9 +76,9 @@ function Column({ column, tv }: { column: BoardColumn; tv: boolean }) {
     >
       <div className="flex items-center justify-between">
         <span
-          className={`board-chip inline-flex min-h-chip items-center gap-2 rounded-full px-3 board-fill-${tone}`}
+          className={`board-chip inline-flex items-center gap-2 rounded-full px-3 board-fill-${tone}`}
         >
-          <Icon name={icon} size={tv ? 32 : 16} />
+          <Icon name={icon} />
           {column.chip}
         </span>
         <span className="board-count">{column.count}</span>
@@ -86,7 +86,7 @@ function Column({ column, tv }: { column: BoardColumn; tv: boolean }) {
       <h2 className="board-coltitle">{column.title}</h2>
       <ul>
         {column.rows.map((row) => (
-          <StopRow key={row.id} row={row} tv={tv} />
+          <StopRow key={row.id} row={row} />
         ))}
       </ul>
       {column.more ? <p className="board-sub">{column.more}</p> : null}
@@ -94,67 +94,31 @@ function Column({ column, tv }: { column: BoardColumn; tv: boolean }) {
   );
 }
 
-function Columns({ model }: { model: BoardModel }) {
-  const { tv } = model;
-  return (
-    <div
-      className={
-        tv ? 'grid min-h-0 flex-1 grid-cols-3 gap-6' : 'grid gap-4 lg:grid-cols-3 lg:items-start'
-      }
-    >
-      {model.columns.map((column) => (
-        <Column key={column.column} column={column} tv={tv} />
-      ))}
-    </div>
-  );
-}
-
-function Ages({ model }: { model: BoardModel }) {
-  const { ages, tv, takeaways } = model;
+/** The bottom row: open over 1 day with the other buckets in a line, then the two day tiles. */
+function Foot({ model }: { model: BoardModel }) {
+  const { ages, today } = model;
   const overDay = ages.buckets.find((b) => b.key === 'overDay');
-  const tone = (b: { tone: 'muted' | 'danger' | null }) =>
-    b.tone === 'muted' ? 'board-muted' : b.tone === 'danger' ? AGE_INK.danger : '';
-  if (tv && overDay)
-    return (
-      <section aria-label={ages.title} className="board-card flex items-center gap-6">
-        <p data-testid="age-overDay" className={`board-big ${tone(overDay)}`}>
-          {overDay.count}
+  const tone =
+    overDay?.tone === 'muted' ? 'board-muted' : overDay?.tone === 'danger' ? AGE_INK.danger : '';
+  return (
+    <div className="grid grid-cols-3 gap-4">
+      <section aria-label={ages.title} className="board-card board-foot flex items-center gap-6">
+        <p data-testid="age-overDay" className={`board-big ${tone}`}>
+          {overDay?.count}
         </p>
         <div>
           <p className="board-sub">{ages.overDayTitle}</p>
           <p className="board-sub">{ages.line}</p>
         </div>
       </section>
-    );
-  return (
-    <section aria-label={ages.title} className="board-card flex flex-col gap-2">
-      <h2 className="board-stopword">{ages.title}</h2>
-      {takeaways['board.ages'] ? <Takeaway data={takeaways['board.ages']} /> : null}
-      <dl className="m-0 grid grid-cols-2 gap-2 lg:grid-cols-4">
-        {ages.buckets.map((bucket) => (
-          <div key={bucket.key} className="flex flex-col-reverse">
-            <dt className="board-sub">{bucket.label}</dt>
-            <dd data-testid={`age-${bucket.key}`} className={`board-big m-0 ${tone(bucket)}`}>
-              {bucket.count}
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </section>
-  );
-}
-
-function DayTiles({ today }: { today: BoardModel['today'] }) {
-  return (
-    <>
       {today.map((tile) => (
-        <div key={tile.id} role="group" aria-label={tile.label} className="board-card">
+        <div key={tile.id} role="group" aria-label={tile.label} className="board-card board-foot">
           <p className="board-sub">{tile.label}</p>
           <p className="board-big m-0">{tile.value}</p>
           <p className="board-sub">{tile.note ?? ' '}</p>
         </div>
       ))}
-    </>
+    </div>
   );
 }
 
@@ -176,31 +140,31 @@ export function BoardView({
   const { t } = useTranslation();
   const { tv, takeaways } = model;
   const stops = takeaways['board.stops'];
-  const columns = <Columns model={model} />;
   if (tv)
     return (
-      <main className="board-tv v2-app flex h-dvh flex-col gap-6 overflow-hidden p-8">
+      <main className="board-tv v2-app flex h-dvh flex-col gap-4 overflow-hidden p-6">
         <div className="flex items-start justify-between gap-12">
           <Pulse model={model} />
-          <header className="text-right">
+          <header className="whitespace-nowrap text-right">
             <h1 className="sr-only">{model.title}</h1>
             <p className="board-clock">{model.clock?.time}</p>
             <p className="board-day">
               {model.clock?.day} · {model.updated}
             </p>
+            {offline ? (
+              <p role="status" className="board-sub">
+                {t('live.offlineKept')}
+              </p>
+            ) : null}
           </header>
         </div>
         {stops ? <Takeaway data={stops} /> : null}
-        {columns}
-        <div className="grid grid-cols-3 gap-6">
-          <Ages model={model} />
-          <DayTiles today={model.today} />
+        <div className="grid min-h-0 flex-1 grid-cols-3 gap-4">
+          {model.columns.map((column) => (
+            <Column key={column.column} column={column} />
+          ))}
         </div>
-        {offline ? (
-          <p role="status" className="board-sub">
-            {t('live.offlineKept')}
-          </p>
-        ) : null}
+        <Foot model={model} />
       </main>
     );
   return <BrowserBoard model={model} tabs={tabs} />;
