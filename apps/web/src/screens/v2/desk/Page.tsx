@@ -21,7 +21,7 @@ import { Banner } from '../../../ui/banner.js';
 import { Loading, Skeleton } from '../../../ui/loading.js';
 import type { ChipFilter } from '../../desk/openLists.js';
 import { DeskFrame, NotAvailable } from '../../desk/Shell.js';
-import { TicketDetail } from '../../TicketDetail.js';
+import { TicketPage } from '../ticket/Page.js';
 import { openModel } from './adapter.js';
 import { mayOpen, showsSettings, type OpenModel, type Segment } from './model.js';
 import { OpenView } from './View.js';
@@ -52,14 +52,14 @@ type BodyProps = {
   onQuick: (ticket: Ticket, action: CommandAction) => void;
 };
 
-/** Wide (>= 1024 px): the chosen ticket (v1 `TicketDetail embedded`, until S29) beside the list; a phone has no pane. */
+/** Wide (>= 1024 px): the chosen ticket (`TicketPage embedded`) beside the list; a phone has no pane. */
 function OpenBody({ state, model, ...rest }: BodyProps) {
   const { t } = useTranslation();
   const { id } = useParams();
   const wide = useWide();
   if (model && state.data) {
     let pane: ReactNode;
-    if (wide) pane = id ? <TicketDetail embedded /> : null;
+    if (wide) pane = id ? <TicketPage embedded /> : null;
     return (
       <OpenView
         {...rest}

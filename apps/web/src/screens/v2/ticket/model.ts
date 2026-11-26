@@ -1,6 +1,11 @@
 import type { Config, Me, TicketDetail } from '../../../api.js';
-import type { ActionSpec } from '../../../components/actionSpecs.js';
-import type { LockoutView } from '../../../components/lockout.js';
+import {
+  actionSpecs,
+  actorFrom,
+  crewFrom,
+  type ActionSpec,
+} from '../../../components/actionSpecs.js';
+import { lockoutView, type LockoutView } from '../../../components/lockout.js';
 import type { StatusRef } from '../../../ui/meaning.js';
 import type { Tone } from '../../../ui/status/index.js';
 import type { TakeawayData, Takeaways } from '../../../ui/v2/takeaway.js';
@@ -27,7 +32,12 @@ export type TicketInput = {
 export type TicketChip = StatusRef & { text: string };
 
 /** One row of a facts list: a `dt` and exactly one `dd`. A note never becomes a second `dd`. */
-export type TicketFact = { label: string; value: string };
+export type TicketFact = {
+  label: string;
+  value: string;
+  /** "(running)" beside a working ticket's Work time; printed after the `dd`, never in it. */
+  note?: string;
+};
 
 /** One "Minutes" figure. `hint` ("stopped", "hands on", the wait reason) and `yardstick` print outside the `dd`. */
 export type MinuteFigure = {
@@ -104,9 +114,8 @@ export type TicketQuery = { id: string };
  * acting person, an unknown role or the board login, and on a closed or cancelled ticket.
  */
 export function allowedActions(detail: TicketDetail, me: Me | undefined): ActionSpec[] {
-  void detail;
-  void me;
-  throw new Error('not implemented');
+  const actor = me ? actorFrom(me) : null;
+  return actor ? actionSpecs(detail.ticket, crewFrom(detail.people), actor) : [];
 }
 
 /** What `LockoutGate` needs: the acting person and `lockoutView` over the offered actions (moved from v1 TicketDetail). */
@@ -114,20 +123,34 @@ export function lockoutFor(
   detail: TicketDetail,
   me: Me | undefined,
 ): { personId: string; view: LockoutView | null } {
-  void detail;
-  void me;
-  throw new Error('not implemented');
+  const { ticket, people } = detail;
+  const personId = me?.actingPersonId ?? '';
+  if (!personId || !me || !actorFrom(me)) return { personId, view: null };
+  const onCrew =
+    ticket.leadPersonId === personId ||
+    people.some((member) => member.personId === personId && !member.leftAt);
+  const offered = allowedActions(detail, me).map((spec) => spec.action);
+  return {
+    personId,
+    view: lockoutView({
+      lockout: ticket.lockout,
+      status: ticket.status,
+      personId,
+      onCrew,
+      offered,
+    }),
+  };
 }
 
 /** A closed breakdown or support ticket has its report ('with') or still needs it ('needs'); otherwise null. */
 export function reportState(detail: TicketDetail): 'with' | 'needs' | null {
-  void detail;
-  throw new Error('not implemented');
+  const { ticket, report } = detail;
+  if (ticket.status !== 'closed' || ticket.kind === 'general') return null;
+  if (report || ticket.closeKind === 'report') return 'with';
+  return ticket.closeKind === 'no_report' ? 'needs' : null;
 }
 
 /** Whether the page shows the report form's context (a config and an acting person), as v1's `Controls` did. */
 export function hasReportContext(config: Config | undefined, me: Me | undefined): boolean {
-  void config;
-  void me;
-  throw new Error('not implemented');
+  return Boolean(config && me?.actingPersonId);
 }
