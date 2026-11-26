@@ -105,7 +105,7 @@ function Section({
     <>
       {takeaway ? <Takeaway data={takeaway} /> : null}
       <PrintedDataTable table={compact} words={model.words.table} selected={selected} />
-      {more > 0 || table.header.length > DEFAULT ? (
+      {more > 0 || table.header.length > opened.header.length ? (
         <ShowDetail label={more > 0 ? fill(t('monthly-report.more'), { n: more }) : undefined}>
           <PrintedDataTable
             table={{ ...table, title: '' }}
