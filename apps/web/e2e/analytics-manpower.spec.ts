@@ -5,7 +5,7 @@ import { getJson, commandViaApi } from './fixtures-actions.js';
 import { MACHINES, apiLogin, floorMachine, raiseTicketViaApi, signIn } from './fixtures.js';
 
 /**
- * 41e-1: the A4 manpower and A5 energy screens. A head opens A4, sees the key's three KPIs, five tables and
+ * 41e-1: the Manpower and A5 energy screens. A head opens A4, sees the key's three KPIs, five tables and
  * chart, sorts the Manpower table by a numeric column and back (mouse then keyboard), toggles the Specialization
  * card to the honest code view and back, and drills to the ticket rows. Then A5: its two heat grids and the
  * per-machine average grid, every clickable tile filtering the figure's machine drill reply by its cell or
@@ -77,7 +77,7 @@ test.beforeAll(async () => {
   for (const ticket of [first, second])
     await commandViaApi(token, ticket.id, 'cancel', {
       personId: me.user.actingPersonId,
-      reason: 'A4 manpower spec',
+      reason: 'Manpower spec',
     });
   tickets = { first, second };
 });
@@ -232,7 +232,7 @@ async function firstManpowerName(page: Page): Promise<string> {
 async function openA4(page: Page): Promise<void> {
   await page.goto('/analytics/breakdowns?screen=a4-manpower');
   const tabs = page.getByRole('group', { name: 'Breakdowns screens', exact: true });
-  await expect(tabs.getByRole('button', { name: 'A4 manpower', exact: true })).toHaveAttribute(
+  await expect(tabs.getByRole('button', { name: 'Manpower', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
@@ -323,9 +323,10 @@ async function toggleSpecialization(page: Page): Promise<void> {
 async function openA5(page: Page): Promise<void> {
   await page.goto('/analytics/machines?screen=a5-energy');
   const tabs = page.getByRole('group', { name: 'Machines screens', exact: true });
-  await expect(
-    tabs.getByRole('button', { name: 'A5 energy heatmap', exact: true }),
-  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(tabs.getByRole('button', { name: 'Energy heatmap', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
   await expect(page.getByRole('heading', { level: 1, name: 'Energy Heatmap' })).toBeVisible();
   for (const title of [
     'Load by Cell — Connected & Running',
@@ -379,7 +380,7 @@ test('a head opens A4, sorts and toggles it, then A5 and drills every tile and a
   await toggleSpecialization(page);
   await personOpensDrawer(page);
   // The page action opens the tickets the figure counted, in the drawer; Back closes them.
-  await page.getByRole('button', { name: /Show the rows behind A4 manpower/ }).click();
+  await page.getByRole('button', { name: /Show the rows behind Manpower/ }).click();
   await expect(page).toHaveURL(/[?&]drawer=figure:a4-manpower$/);
   await expect(
     page.locator('aside.v2-drawer').getByRole('link', { name: tickets.first.ref, exact: true }),
@@ -414,7 +415,7 @@ test('a head opens A4, sorts and toggles it, then A5 and drills every tile and a
 
   // The page action opens every machine the figure counted.
   await page.goto('/analytics/machines?screen=a5-energy');
-  await page.getByRole('button', { name: /Show the rows behind A5 energy heatmap/ }).click();
+  await page.getByRole('button', { name: /Show the rows behind Energy heatmap/ }).click();
   await expect(page).toHaveURL(/[?&]drawer=figure:a5-energy$/);
   await expect(
     page.locator('aside.v2-drawer').getByText(new RegExp(`of ${A5_MACHINE_IDS.length}$`)),

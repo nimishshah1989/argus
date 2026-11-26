@@ -342,11 +342,11 @@ async function openA1(page: Page): Promise<void> {
   await page.goto('/analytics/breakdowns');
   await page
     .getByRole('group', { name: 'Breakdowns screens', exact: true })
-    .getByRole('button', { name: 'A1 breakdown percent and PM split', exact: true })
+    .getByRole('button', { name: 'Breakdowns vs PM', exact: true })
     .click();
   await expect(page).toHaveURL(/screen=a1-bd-pm/);
   await expect(
-    tabs(page).getByRole('button', { name: 'A1 breakdown percent and PM split', exact: true }),
+    tabs(page).getByRole('button', { name: 'Breakdowns vs PM', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('heading', { level: 1, name: 'BD % and PM split' })).toBeVisible();
   expect(A1.kpis).toHaveLength(6);
@@ -383,11 +383,11 @@ async function openA2(page: Page): Promise<void> {
   await page.goto('/analytics/breakdowns');
   await page
     .getByRole('group', { name: 'Breakdowns screens', exact: true })
-    .getByRole('button', { name: 'A2 category and cell', exact: true })
+    .getByRole('button', { name: 'Category and cell', exact: true })
     .click();
   await expect(page).toHaveURL(/screen=a2-category-cell/);
   await expect(
-    tabs(page).getByRole('button', { name: 'A2 category and cell', exact: true }),
+    tabs(page).getByRole('button', { name: 'Category and cell', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('heading', { level: 1, name: 'Category and cell' })).toBeVisible();
   for (const title of ['By Category — Detail', 'By Cell — Detail', 'Machine-Level Detail'])
@@ -415,11 +415,11 @@ async function openA3(page: Page): Promise<void> {
   await page.goto('/analytics/breakdowns');
   await page
     .getByRole('group', { name: 'Breakdowns screens', exact: true })
-    .getByRole('button', { name: 'A3 MTTR and MTBF', exact: true })
+    .getByRole('button', { name: 'MTTR and MTBF', exact: true })
     .click();
   await expect(page).toHaveURL(/screen=a3-mttr-mtbf/);
   await expect(
-    tabs(page).getByRole('button', { name: 'A3 MTTR and MTBF', exact: true }),
+    tabs(page).getByRole('button', { name: 'MTTR and MTBF', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('heading', { level: 1, name: 'MTTR and MTBF' })).toBeVisible();
   for (const title of [

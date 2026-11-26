@@ -52,7 +52,7 @@ export const analyticsGuideEn = {
   'analytics.guide.mttr-mtbf.body1':
     'MTTR is the mean time to repair: downtime hours divided by the number of breakdowns in the period. MTBF is the mean time between failures: the fleet’s available hours minus those downtime hours, divided by the same count. Both print to two decimals.',
   'analytics.guide.mttr-mtbf.body2':
-    'PM is not a breakdown, and a period with no breakdown has no MTTR — it prints —. The A3 page applies the same rules to the plant, a cell, a category and an age band.',
+    'PM is not a breakdown, and a period with no breakdown has no MTTR — it prints —. The MTTR and MTBF page applies the same rules to the plant, a cell, a category and an age band.',
   'analytics.guide.mttr-mtbf.body3':
     'The shift split groups breakdowns by the shift recorded on the report, never by re-reading the clock, and each shift divides by its own share of the plant’s working hours: the day’s minutes split 629 and 631 with the overlap minute on the later shift, so the counts, BD hours, PM hours and working hours of the rows add to the plant exactly. The plant’s own MTTR, MTBF and availability are recomputed from those summed totals, never averaged from the rows, and a code the Settings have no window for keeps its row with dashes where a denominator is missing.',
   'analytics.guide.mttr-mtbf.body4':

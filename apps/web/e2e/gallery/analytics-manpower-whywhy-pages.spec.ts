@@ -118,7 +118,7 @@ test('Manpower: its tab is pressed, the figures, chart and tables are up, the nu
   await expect(
     page
       .getByRole('group', { name: 'Breakdowns screens', exact: true })
-      .getByRole('button', { name: 'A4 manpower', exact: true }),
+      .getByRole('button', { name: 'Manpower', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('heading', { level: 1, name: 'Manpower' })).toBeVisible();
   for (const label of ['Total Breakdowns', 'Total BD Hours', 'Team Members Tracked'])
