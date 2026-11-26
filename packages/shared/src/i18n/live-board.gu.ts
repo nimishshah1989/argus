@@ -25,4 +25,9 @@ export const liveBoardGu = gujarati(liveBoardEn, {
   'live.take.overDay_other': '{{count}} બ્રેકડાઉન 1 દિવસથી વધુ જૂનાં છે',
   'live.take.noneOverDay': 'કોઈ બ્રેકડાઉન 1 દિવસથી વધુ જૂનું નથી',
   'live.take.ages': '{{over}}; {{total}} માંથી {{under}} 1 કલાકથી ઓછાં છે',
+  'live.kpi.of': '{{count}} મશીનમાંથી ({{pct}}%)',
+  'live.kpi.split': '{{notStarted}} શરૂ નથી · {{repairing}} રિપેર ચાલુ · {{waiting}} રાહમાં',
+  'live.kpi.longest': 'સૌથી લાંબું {{code}}, {{age}}',
+  'live.refresh': 'દર 30 સેકન્ડે તાજું થાય છે · વૉલ ટીવી જેવા જ આંકડા',
+  'live.tab.count': '{{label}} ({{count}})',
 });

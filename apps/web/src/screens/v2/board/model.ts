@@ -95,6 +95,15 @@ export interface BoardModel {
     /** "of 12 machines". */
     of: string;
     stoppedWord: string;
+    /** The browser's KPI cards: "Running" / "Stopped". */
+    runningLabel: string;
+    stoppedLabel: string;
+    /** "of 48 machines (85%)"; without the percent when there are no machines. */
+    share: string;
+    /** "3 not started · 3 being repaired · 1 waiting". */
+    split: string;
+    /** "Longest PR-02, 5 h 10 min" when someone waits unstarted, else null. */
+    longest: string | null;
   };
   columns: BoardColumn[];
   ages: {
