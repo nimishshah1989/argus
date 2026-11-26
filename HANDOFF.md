@@ -16,7 +16,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 ## Blocked
 
-None.
+- All frontend work: S28-desk, S29-ticket, S30-board were redrawn (#847 merged, 929dca8e), which voids approvals; the hook blocks apps/web until Nimish runs `loop approve` for each. Asked him 26 Nov ~17:10.
 
 ## Don't repeat (details in LESSONS.md)
 
