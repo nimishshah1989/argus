@@ -1,14 +1,18 @@
 /* eslint-disable i18next/no-literal-string -- prop values and ids only; every visible word comes from the model */
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { PatternFrame, StateNotice } from '../../../patterns/frame.js';
-import { Button } from '../../../ui/button.js';
-import { MachineCard } from '../../../ui/floor-pieces.js';
-import { Label, Textarea } from '../../../ui/input.js';
-import { Grid, Stack } from '../../../ui/layout.js';
-import { Sheet } from '../../../ui/sheet.js';
-import { StatusPill } from '../../../ui/status/status-pill.js';
-import { Text } from '../../../ui/text.js';
+import { BottomSheet } from '../../../ui/v2/bottom-sheet.js';
+import { Button } from '../../../ui/v2/button.js';
+import {
+  Actions,
+  FieldLabel,
+  FloorPanel,
+  FloorStates,
+  Line,
+  MachineCard,
+  TextArea,
+} from '../../../ui/v2/floor-kit.js';
+import { StatusPill } from '../../../ui/v2/status-pill.js';
 import { Takeaway } from '../../../ui/v2/takeaway.js';
 import type {
   CancelModel,
@@ -25,8 +29,8 @@ import type {
  * Draws the floor lists inside #767's `FloorFrame` (tabs, Account, Drafts). Page order is pinned by
  * `e2e/gallery/floor-order-lists.ts` (`MINE`, `MINE_TECH`, `DISPUTE`, `CANCEL`, `PM`): title `h2`, then per card
  * Cancel, then `h3` "Is it fixed?" with "Yes, it is fixed" / "Not fixed"; no `h1`, no extra button or link.
- * Reuses `MachineCard` (`ui/floor-pieces`), `StatusPill`, `Button`, `Sheet`, `Label`/`Textarea`, `PatternFrame`/`StateNotice`,
- * and the kit `Takeaway` (`ui/v2/takeaway`).
+ * Built from the v2 kit: `ui/v2/floor-kit` (panel, card, states, fields), `StatusPill`, `Button`, `BottomSheet`,
+ * and the `Takeaway`.
  */
 
 export type MineActions = {
@@ -48,20 +52,20 @@ function Pill({ pill }: { pill: ListPill }) {
 function Opening({ takeaway }: { takeaway: ListTakeaway | null }) {
   if (!takeaway) return null;
   return (
-    <Stack gap={1}>
+    <div className="flex flex-col gap-1">
       <Takeaway data={takeaway} />
-      <Text size="footnote" tone="secondary">
-        {takeaway.yardstick}
-      </Text>
-    </Stack>
+      <Line quiet>{takeaway.yardstick}</Line>
+    </div>
   );
 }
 
 function LoadMore({ more, onMore }: { more: More; onMore: () => void }) {
   return more ? (
-    <Button variant="secondary" disabled={more.busy} onClick={onMore}>
-      {more.label}
-    </Button>
+    <Actions>
+      <Button disabled={more.busy} onClick={onMore}>
+        {more.label}
+      </Button>
+    </Actions>
   ) : null;
 }
 
@@ -71,50 +75,40 @@ function Signoff(p: { id: string; signoff: SignoffModel; on: Pick<MineActions, '
     return (
       <>
         {signoff.lines.map((line) => (
-          <Text
-            key={line.text}
-            size={line.quiet ? 'footnote' : undefined}
-            tone={line.quiet ? 'secondary' : undefined}
-          >
+          <Line key={line.text} quiet={line.quiet}>
             {line.text}
-          </Text>
+          </Line>
         ))}
       </>
     );
   return (
-    <Stack gap={3}>
-      <Text as="h3" weight="bold">
-        {signoff.title}
-      </Text>
-      {signoff.body ? <Text>{signoff.body}</Text> : null}
-      {signoff.error ? <Text tone="danger">{signoff.error}</Text> : null}
-      <Grid columns={2} gap={2}>
-        <Button disabled={signoff.busy} onClick={() => p.on.yes(p.id)}>
+    <div className="flex flex-col gap-3">
+      <h3 className="v2-h3">{signoff.title}</h3>
+      {signoff.body ? <Line>{signoff.body}</Line> : null}
+      {signoff.error ? <Line bad>{signoff.error}</Line> : null}
+      <Actions pair>
+        <Button primary disabled={signoff.busy} onClick={() => p.on.yes(p.id)}>
           {signoff.yes}
         </Button>
-        <Button variant="secondary" onClick={() => p.on.no(p.id)}>
-          {signoff.no}
-        </Button>
-      </Grid>
-    </Stack>
+        <Button onClick={() => p.on.no(p.id)}>{signoff.no}</Button>
+      </Actions>
+    </div>
   );
 }
 
 function Complaint({ card, on }: { card: MineModel['cards'][number]; on: MineActions }) {
   return (
     <MachineCard code={card.place} status={<Pill pill={card.pill} />}>
-      <Text size="footnote" weight="bold" tone={card.stopped ? 'danger' : 'secondary'}>
-        {card.kindLine}
-      </Text>
-      <Text>{card.problem}</Text>
-      <Text size="footnote" tone="secondary">
-        {card.reported}
-      </Text>
+      {card.stopped ? <Line bad>{card.kindLine}</Line> : <Line quiet>{card.kindLine}</Line>}
+      <Line>{card.problem}</Line>
+      <Line quiet>{card.reported}</Line>
       {card.signoff ? <Signoff id={card.id} signoff={card.signoff} on={on} /> : null}
       {card.cancel ? (
-        <Button variant="quiet-danger" onClick={() => on.cancel(card.id)}>
-          {card.cancel}
-        </Button>
+        <Actions>
+          <Button danger onClick={() => on.cancel(card.id)}>
+            {card.cancel}
+          </Button>
+        </Actions>
       ) : null}
     </MachineCard>
   );
@@ -124,11 +118,11 @@ function Complaint({ card, on }: { card: MineModel['cards'][number]; on: MineAct
 export function MineView(p: { model: MineModel; on: MineActions }): ReactNode {
   const { model, on } = p;
   return (
-    <PatternFrame title={model.title} quietOnline>
+    <FloorPanel title={model.title} quietOnline>
       {model.state === 'ready' ? (
-        <Stack gap={3}>
+        <div className="flex flex-col gap-3">
           <Opening takeaway={model.takeaway} />
-          <ul className="flex flex-col gap-3">
+          <ul className="v2-floor-list">
             {model.cards.map((card) => (
               <li key={card.id}>
                 <Complaint card={card} on={on} />
@@ -136,11 +130,11 @@ export function MineView(p: { model: MineModel; on: MineActions }): ReactNode {
             ))}
           </ul>
           <LoadMore more={model.more} onMore={on.more} />
-        </Stack>
+        </div>
       ) : (
-        <StateNotice state={model.state} empty={model.empty} onRetry={on.retry ?? on.more} />
+        <FloorStates state={model.state} empty={model.empty} onRetry={on.retry ?? on.more} />
       )}
-    </PatternFrame>
+    </FloorPanel>
   );
 }
 
@@ -151,14 +145,12 @@ export function PmJobsView(p: {
 }): ReactNode {
   const { model, on } = p;
   return (
-    <PatternFrame title={model.title} quietOnline>
+    <FloorPanel title={model.title} quietOnline>
       {model.state === 'ready' ? (
-        <Stack gap={3}>
+        <div className="flex flex-col gap-3">
           <Opening takeaway={model.takeaway} />
-          <Text size="footnote" tone="secondary">
-            {model.hint}
-          </Text>
-          <ul className="flex flex-col gap-3">
+          <Line quiet>{model.hint}</Line>
+          <ul className="v2-floor-list">
             {model.cards.map((card) => (
               <li key={card.id}>
                 <Link to={card.href}>
@@ -167,21 +159,19 @@ export function PmJobsView(p: {
                     detail={card.ref}
                     status={<Pill pill={card.pill} />}
                   >
-                    <Text>{card.title}</Text>
-                    <Text size="footnote" tone="secondary">
-                      {card.reported}
-                    </Text>
+                    <Line>{card.title}</Line>
+                    <Line quiet>{card.reported}</Line>
                   </MachineCard>
                 </Link>
               </li>
             ))}
           </ul>
           <LoadMore more={model.more} onMore={on.more} />
-        </Stack>
+        </div>
       ) : (
-        <StateNotice state={model.state} empty={model.empty} onRetry={on.retry ?? on.more} />
+        <FloorStates state={model.state} empty={model.empty} onRetry={on.retry ?? on.more} />
       )}
-    </PatternFrame>
+    </FloorPanel>
   );
 }
 
@@ -196,47 +186,39 @@ export type SheetActions = {
 export function DisputeSheetView(p: { model: DisputeModel; on: SheetActions }): ReactNode {
   const { model, on } = p;
   return (
-    <Sheet open={on.open} onOpenChange={on.onOpenChange} title={model.title}>
-      <Stack gap={3}>
-        {model.refused ? (
-          <>
-            <Text weight="bold">{model.refused.title}</Text>
-            {model.refused.reported ? (
-              <Text size="footnote" tone="secondary">
-                {model.refused.reported}
-              </Text>
-            ) : null}
-            <Text size="footnote" tone="secondary">
-              {model.refused.body}
-            </Text>
-          </>
-        ) : (
-          <Text>{model.note}</Text>
-        )}
-        <Label htmlFor={model.reasonId}>{model.reasonLabel}</Label>
-        <Textarea
+    <BottomSheet open={on.open} onOpenChange={on.onOpenChange} title={model.title}>
+      {model.refused ? (
+        <>
+          <Line strong>{model.refused.title}</Line>
+          {model.refused.reported ? <Line quiet>{model.refused.reported}</Line> : null}
+          <Line quiet>{model.refused.body}</Line>
+        </>
+      ) : (
+        <Line>{model.note}</Line>
+      )}
+      <div className="v2-floor-field-group">
+        <FieldLabel htmlFor={model.reasonId}>{model.reasonLabel}</FieldLabel>
+        <TextArea
           id={model.reasonId}
           maxLength={model.maxLength}
           onChange={(e) => on.reason(e.target.value)}
         />
-        <Text size="footnote" tone="secondary">
-          {model.hint}
-        </Text>
-        {model.error ? <Text tone="danger">{model.error}</Text> : null}
+        <Line quiet>{model.hint}</Line>
+      </div>
+      {model.error ? <Line bad>{model.error}</Line> : null}
+      <Actions>
         {model.refused ? (
           <Button onClick={() => on.onOpenChange(false)}>{model.back}</Button>
         ) : (
           <>
-            <Button disabled={!model.ready} onClick={on.send}>
+            <Button primary disabled={!model.ready} onClick={on.send}>
               {model.send}
             </Button>
-            <Button variant="quiet" onClick={() => on.onOpenChange(false)}>
-              {model.cancel}
-            </Button>
+            <Button onClick={() => on.onOpenChange(false)}>{model.cancel}</Button>
           </>
         )}
-      </Stack>
-    </Sheet>
+      </Actions>
+    </BottomSheet>
   );
 }
 
@@ -244,15 +226,17 @@ export function DisputeSheetView(p: { model: DisputeModel; on: SheetActions }): 
 export function CancelSheetView(p: { model: CancelModel; on: SheetActions }): ReactNode {
   const { model, on } = p;
   return (
-    <Sheet open={on.open} onOpenChange={on.onOpenChange} title={model.title}>
-      <Stack gap={3}>
-        <Label htmlFor={model.reasonId}>{model.reasonLabel}</Label>
-        <Textarea id={model.reasonId} onChange={(e) => on.reason(e.target.value)} />
-        {model.error ? <Text tone="danger">{model.error}</Text> : null}
-        <Button disabled={!model.ready} onClick={on.send}>
+    <BottomSheet open={on.open} onOpenChange={on.onOpenChange} title={model.title}>
+      <div className="v2-floor-field-group">
+        <FieldLabel htmlFor={model.reasonId}>{model.reasonLabel}</FieldLabel>
+        <TextArea id={model.reasonId} onChange={(e) => on.reason(e.target.value)} />
+      </div>
+      {model.error ? <Line bad>{model.error}</Line> : null}
+      <Actions>
+        <Button danger disabled={!model.ready} onClick={on.send}>
           {model.submit}
         </Button>
-      </Stack>
-    </Sheet>
+      </Actions>
+    </BottomSheet>
   );
 }
