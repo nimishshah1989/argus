@@ -5,9 +5,28 @@
   border-top: 3px solid var(--color-v2-line);
 }
 
-/* The whole card is the target: the value button, or the link at the foot, stretches to the card's edges. */
+/* The whole card is the target: the value button, or the link at the foot, stretches to the card's edges. It lifts on
+   hover (UX rule 2), and the focus ring of its one control is drawn round the whole card. */
 .v2-kpi[data-open] {
   cursor: pointer;
+}
+.v2-kpi[data-open]:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-v2-raised);
+}
+.v2-kpi[data-open]:has(:focus-visible) {
+  outline: 2px solid var(--color-v2-focus);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-v2-raised);
+}
+.v2-kpi[data-stretch] .v2-drill-value:focus-visible,
+.v2-kpi[data-stretch] .v2-kpi-link:focus-visible {
+  outline: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .v2-kpi[data-open]:hover {
+    transform: none;
+  }
 }
 .v2-kpi[data-stretch='drill'] .v2-drill-value {
   position: static;

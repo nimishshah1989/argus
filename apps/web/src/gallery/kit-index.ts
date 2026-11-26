@@ -79,6 +79,7 @@ inputs | DrillAction | drill-action.tsx | Page-level rows-behind control; also S
 inputs | DownloadExcel | download-excel.tsx | Builds an .xlsx in the browser from exact values
 inputs | TickRow | tick-row.tsx | A 52 px checkbox row for one step on a ticket
 inputs | FinishTime | close-kit.tsx | Ticket close screen parts: finish time, footer, fields, fact rows, tiles
+inputs | CodePicker | close-kit.tsx | Searchable code list, this login's last 5 codes first (ticket close)
 inputs | AccountSheet | account-sheet.tsx | Account panel off the Shell: person, language, alerts, password, sign out
 inputs | DraftsList | drafts-list.tsx | Offline actions the server refused, each with why and Dismiss
 feedback | ScreenStates | screen-states.tsx | Loading, error, offline, refused, empty; renders the screen when ready

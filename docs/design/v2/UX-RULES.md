@@ -23,6 +23,7 @@ The source of truth for how a v2 screen behaves, adapted for Argus from the rule
 9. Summary on screen, detail on demand. Three levels at most: card → drawer or expanded row → full page.
 10. Detail opens in the right drawer by default (keeps context). A full page only when the detail is its own workflow (the machine page).
 11. Every aggregate opens to what it is made of: a cell's hours → its machines → the machine.
+    **[check]** Every KPI card, figure tile and chart card goes somewhere (Nimish, 26 Nov 2026; ADR 0058): the rows behind its figure in the drawer, or the page that explains it. The whole card is the one control (a chart keeps its header button, so its hover still reads), it lifts on hover (rule 2) and its focus ring goes round the card. Where it goes comes from the one map, `screens/v2/destinations.ts`, which the kit reads itself; `destinations.test.ts` fails a card with no destination that is not on its shrinking exception list.
 12. A tooltip on every chart point and every abbreviation (MTTR, MTBF, PM). No glossary hunting.
 13. Never hide what someone needs to act safely (a machine down, stale figures, a missed PM) behind a click.
 
@@ -32,7 +33,7 @@ The source of truth for how a v2 screen behaves, adapted for Argus from the rule
 15. Every table has search, sort on each meaningful column (the order shown), and filter chips for the 2 to 4 most useful dimensions (state, cell, type). Column choice and CSV export go in an overflow menu when a screen needs them.
 16. Sticky header. Numbers right-aligned in Geist with tabular figures; text left-aligned.
 17. Each row tells its story at a glance: identity (code in its type's colour + name + cell), one or two status tags, the key number, a trend (sparkline or delta). Secondary columns go into the drawer.
-18. Rows are clickable → drawer. Row actions show on hover, and are always reachable from the keyboard.
+18. Rows are clickable → drawer. A kit `DataTable` whose screen wired no row action opens the machine, cell, person or decision the row names (`entityOfRow`, ADR 0058). Row actions show on hover, and are always reachable from the keyboard.
     **A code is always a chip.** A machine, cell, person or decision named anywhere (a row, a table cell, a sentence, the drawer itself) is an `EntityChip`: its icon and its name, a machine in its type's colour. Pressing it opens that thing in the drawer. A chip inside a clickable row opens its own thing, never the row's. **The drawer lives in the URL** (`?drawer=machine:TC-12`): Back closes it, Forward reopens it, a pasted link opens it. Opening from closed is one history step; swapping to another item replaces it, so one Back closes however many were visited; ✕, Esc or the same chip closes it without leaving a dead Back entry. Every drawer ends in "Open full page" where the thing has a page. **[check]** `pnpm ui:check` fails a hand-drawn code, a code printed as text, a code inside a fixture sentence, and a screen View that uses `Shell` instead of `EntityShell`.
 19. Empty, loading (skeleton), error and "no results for this filter" states are designed, never blank.
 

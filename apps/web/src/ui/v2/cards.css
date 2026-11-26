@@ -65,7 +65,7 @@
     box-shadow var(--motion-v2-fast) var(--ease-v2),
     transform var(--motion-v2-fast) var(--ease-v2);
 }
-.v2-kpi:hover,
+/* UX rule 2: only a card that goes somewhere lifts on hover (kpi-tone.css); a card that goes nowhere only shows its focus. */
 .v2-kpi:focus-visible {
   box-shadow: var(--shadow-v2-raised);
 }

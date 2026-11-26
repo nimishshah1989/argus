@@ -27,11 +27,20 @@ for (const scheme of ['light', 'dark'] as const) {
     const machines = page.getByRole('region', { name: 'Total machines', exact: true });
     await expect(machines).toBeVisible();
 
-    await machines.getByRole('button', { name: /Show the rows behind Total machines/ }).click();
+    await expect(
+      machines.getByRole('button', { name: /Show the rows behind Total machines/ }),
+    ).toBeVisible();
+    // ADR 0058: the whole card is the control, not only its value.
+    await machines.click();
     await expect(page).toHaveURL(/[?&]drawer=figure:dashboard\.total-machines/);
     const drawer = page.locator('aside.v2-drawer');
     await expect(drawer).not.toHaveAttribute('inert', '');
     await expect(drawer.getByText(/machines counted/)).toBeVisible();
+    // The page that explains the figure, in the drawer's footer.
+    await expect(drawer.getByRole('link', { name: /^Open / })).toHaveAttribute(
+      'href',
+      /screen=registers/,
+    );
 
     // The pointer still rests on the card, so its hint is fading in; axe reads contrast at the settled colour.
     await page.evaluate(() =>

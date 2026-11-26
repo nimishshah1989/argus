@@ -9,6 +9,7 @@ import type { EntityRef } from '../../../ui/v2/entity-chip.js';
 import { SavedCopyNotice, ScreenStates, type Loaded } from '../../../ui/v2/screen-states.js';
 import { ACTION_CENTER_PATH } from '../../analytics/groups.js';
 import { ChromeContext, EntityShell, type LocalEntity } from '../entity/EntityShell.js';
+import { DestinationScope } from '../live-frame.js';
 import { useNav } from '../nav.js';
 import { SectionTabs } from '../section-tabs.js';
 import { useScreenModel } from '../data.js';
@@ -83,24 +84,26 @@ export function ActionCenterPage() {
     </>
   );
   return (
-    <ChromeContext.Provider value={chrome}>
-      {model ? (
-        <ActionCenterView model={model} nav={nav} title={title} {...acts} />
-      ) : (
-        <EntityShell
-          nav={nav}
-          title={title}
-          local={(ref) => waiting(ref, loaded, t('common.loading'))}
-        >
-          {loaded.state === 'refused' ? (
-            <Refused />
-          ) : (
-            <ScreenStates loaded={loaded} emptyText={t('analytics.actionCenter.emptyOpen')}>
-              {() => null}
-            </ScreenStates>
-          )}
-        </EntityShell>
-      )}
-    </ChromeContext.Provider>
+    <DestinationScope screen="action-center">
+      <ChromeContext.Provider value={chrome}>
+        {model ? (
+          <ActionCenterView model={model} nav={nav} title={title} {...acts} />
+        ) : (
+          <EntityShell
+            nav={nav}
+            title={title}
+            local={(ref) => waiting(ref, loaded, t('common.loading'))}
+          >
+            {loaded.state === 'refused' ? (
+              <Refused />
+            ) : (
+              <ScreenStates loaded={loaded} emptyText={t('analytics.actionCenter.emptyOpen')}>
+                {() => null}
+              </ScreenStates>
+            )}
+          </EntityShell>
+        )}
+      </ChromeContext.Provider>
+    </DestinationScope>
   );
 }
