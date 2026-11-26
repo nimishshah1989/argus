@@ -6,6 +6,8 @@ import type { Takeaways } from '../../ui/v2/takeaway.js';
 import { realReply } from './figures/real-reply.js';
 import { answerKey, realT } from './printed-page/test-support.js';
 import { shiftKpisModel } from './shift-kpis/adapter.js';
+import { boardModel } from './board/adapter.js';
+import { fixtureConfig, fixtureState, fixtureToday } from './board/fixture.js';
 import { openModel } from './desk/adapter.js';
 import { deskFixture } from './desk/fixture.js';
 import { monthlyReportModel } from './monthly-report/adapter.js';
@@ -61,6 +63,8 @@ const SECTIONS: Record<string, string[]> = {
   ],
   // ADR 0033: shift-kpis.compare opens with the verdict, not a takeaway that would repeat it.
   'shift-kpis': ['shift-kpis.shift-split', 'shift-kpis.backlog', 'shift-kpis.breakdown-map'],
+  // Ticket 772 (S30): the top verdict over the columns and the line over the ages card.
+  board: ['board.stops', 'board.ages'],
   // ADR 0045 T3 (S28-A): the desk's Open screen, Breakdowns and Tasks lines (scope desk.md "More intelligent").
   desk: ['desk.breakdowns', 'desk.tasks'],
   // Ticket 767 (S27-A): the report wizard has no table, chart or figure tile, so no takeaway; T2 (#768) adds
@@ -90,6 +94,11 @@ const MODELS: Record<string, () => Promise<WithTakeaways>> = {
   'annual-report': async () =>
     annualReportModel(answerKey('annual-report', 'annual-report', 42), realT),
   'shift-kpis': async () => shiftKpisModel(realReply(), realT),
+  board: async () =>
+    boardModel(
+      { state: fixtureState, config: fixtureConfig, today: fixtureToday, tv: false },
+      realT,
+    ),
   desk: async () => openModel(deskFixture, realT),
   'monthly-report': async () =>
     monthlyReportModel(answerKey('monthly-report', 'monthly-report', 42), realT),
