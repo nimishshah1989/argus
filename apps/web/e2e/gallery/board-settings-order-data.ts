@@ -4,7 +4,7 @@
  * S26-settings): they now sit in the v2 kit shell (`SHELL` first, as on every v2 screen); the wide menu gains its
  * Desk and Plant group headings; the phone home is the page list with sub-lines, then "Back to desk" (no Plant
  * heading). Every page body keeps its old order, except where a page moves onto the kit `CrudPage` table: Machines and
- * Shifts (#789, ADR 0053) list the table's sort headers, then each row's own column controls before its Edit and
+ * Shifts (#789, ADR 0054) list the table's sort headers, then each row's own column controls before its Edit and
  * switch buttons, and a list under 10 rows has no search box (ADR 0036 R13); no other control is dropped.
  */
 export const SHELL = [
