@@ -3,7 +3,7 @@
  * screens before the 88b restyle; the Settings screens re-read for S26-1 (ADR 0046 d2, ADR 0047, wireframe
  * S26-settings): they now sit in the v2 kit shell (`SHELL` first, as on every v2 screen); the wide menu gains its
  * Desk and Plant group headings; the phone home is the page list with sub-lines, then "Back to desk" (no Plant
- * heading). Every page body keeps its old order. S26-8 (#795) puts /desk/settings in the shell too: each machine
+ * heading). Every page body keeps its old order. S26-8 (ticket 795) puts /desk/settings in the shell too: each machine
  * code becomes an EntityChip button, and the read-only Restore clock pauses card (link to Lists) follows SLA policies.
  */
 export const SHELL = [

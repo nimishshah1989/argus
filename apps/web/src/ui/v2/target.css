@@ -1,7 +1,9 @@
-/* A 52 px tap target (UX-RULES: fields and buttons) for a bare select, a number field, a checkbox row or a link doing
-   a button's job. `.v2-link.v2-target` outranks the link's 44 px floor whatever order the sheets load in. */
+/* A 52 px tap target (UX-RULES: fields and buttons) for a bare select, a number field, a checkbox row, a link doing
+   a button's job, or a v2 button that is a form's main action. `.v2-link.v2-target` and `.v2-btn.v2-target` outrank
+   their 44 px floors whatever order the sheets load in. */
 .v2-target,
-.v2-link.v2-target {
+.v2-link.v2-target,
+.v2-btn.v2-target {
   display: inline-flex;
   align-items: center;
   gap: var(--space-v2-inner);
