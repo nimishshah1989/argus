@@ -16,7 +16,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 ## Next steps (RELEASE role: owns this file and all merges)
 
-1. Confirm staging serves main; merge this branch's PR (ADR 0050 + handoff) when green.
+1. Confirm staging serves main; merge this branch's PR #823 (ADR 0050 + handoff); it CONFLICTS with main in HANDOFF.md: merge main in first.
 2. Build session (or, if none, finish built work): #822, #789, #770, #790; then #791-#794 one at a time; then OEM / old-page tickets.
 3. Review (critical-only), merge, confirm `/api/v1/health` after each. Then `loop clean <N>`.
 4. Fold the build handover's "Don't repeat" into LESSONS.md. Review follow-ups are comments on each PR (#801-#821).
