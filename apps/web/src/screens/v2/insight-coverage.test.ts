@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import { annualReportModel } from './annual-report/adapter.js';
 import { FROZEN, PROVIDERS } from './data.js';
 import { hasYardstick, tilesIn } from './insight.js';
 import type { Takeaways } from '../../ui/v2/takeaway.js';
 import { realReply } from './figures/real-reply.js';
-import { realT } from './printed-page/test-support.js';
+import { answerKey, realT } from './printed-page/test-support.js';
 import { shiftKpisModel } from './shift-kpis/adapter.js';
 import { openModel } from './desk/adapter.js';
 import { deskFixture } from './desk/fixture.js';
-import { answerKey } from './printed-page/test-support.js';
 import { monthlyReportModel } from './monthly-report/adapter.js';
 
 /**
@@ -46,6 +46,19 @@ const NOT_YET = new Set([
 
 /** Each finished screen's sections, written out so a section added later without a takeaway fails here. */
 const SECTIONS: Record<string, string[]> = {
+  'annual-report': [
+    'months',
+    'quarters',
+    'machines',
+    'cells',
+    'causes',
+    'categories',
+    'age',
+    'team',
+    'pm',
+    'long',
+    'added',
+  ],
   // ADR 0033: shift-kpis.compare opens with the verdict, not a takeaway that would repeat it.
   'shift-kpis': ['shift-kpis.shift-split', 'shift-kpis.backlog', 'shift-kpis.breakdown-map'],
   // ADR 0045 T3 (S28-A): the desk's Open screen, Breakdowns and Tasks lines (scope desk.md "More intelligent").
@@ -74,6 +87,8 @@ type WithTakeaways = {
 } | null;
 /** A finished screen's model, when its frozen provider needs params or it has none (a test-support file builds it). */
 const MODELS: Record<string, () => Promise<WithTakeaways>> = {
+  'annual-report': async () =>
+    annualReportModel(answerKey('annual-report', 'annual-report', 42), realT),
   'shift-kpis': async () => shiftKpisModel(realReply(), realT),
   desk: async () => openModel(deskFixture, realT),
   'monthly-report': async () =>
