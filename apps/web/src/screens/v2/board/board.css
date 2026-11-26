@@ -21,10 +21,27 @@
   color: var(--color-v2-ink-3);
   font-size: var(--text-v2-secondary);
 }
-.board-title {
-  margin: 0;
-  font-size: var(--text-v2-title);
-  font-weight: 700;
+/* A status on its tint (the stopped count, a column's chip); the word beside it says it, never the colour alone. */
+.board-fill-loss {
+  background: var(--color-v2-loss-tint);
+  color: var(--color-v2-loss);
+}
+.board-fill-plan {
+  background: var(--color-v2-plan-tint);
+  color: var(--color-v2-plan);
+}
+.board-fill-risk {
+  background: var(--color-v2-risk-tint);
+  color: var(--color-v2-risk);
+}
+/* A machine's tile: its segment's colour (`data-seg` sets --v2-cat), grey for a segment the kit does not know. */
+.board-machine {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-v2-well);
+  color: var(--v2-cat, var(--color-v2-ink-2));
 }
 .board-hero {
   font-size: var(--text-v2-kpi);

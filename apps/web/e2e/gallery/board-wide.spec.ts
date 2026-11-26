@@ -64,7 +64,7 @@ for (const width of WIDTHS) {
         const line = await label.evaluate((e) => parseFloat(getComputedStyle(e).lineHeight));
         expect((await box(label)).height).toBeLessThan(line * 1.5);
       }
-      const tiles = await page.locator('main [role=group]').all();
+      const tiles = await page.locator('main .board-card[role=group]').all();
       expect(tiles.length).toBeGreaterThan(1);
       for (const tile of tiles) expect((await box(tile)).width).toBeGreaterThan(200);
     });
