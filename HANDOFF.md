@@ -11,8 +11,10 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 - **plan/remove-old-ui:** every old-design .tsx deleted (shipped or dead), the gallery index is now the v2 kit index, `old-ui-left.test.ts` fails on any old .tsx on disk or any gallery import of one; `docs/design/v2/KIT.md` catalogues the kit; "Open TV view" has its TV icon.
 - **plan/clickable-cards (ADR 0058, Nimish 26 Nov "each and every card will be clickable"):** one destinations map (`screens/v2/destinations.ts`) read by KpiCard, FigureTile and ChartCard; kit DataTable rows open the entity they name; `destinations.test.ts` guard (cards with a destination 24 of 171 → 171 of 171, `NO_DESTINATION` empty); KIT.md also lists `CodePicker`.
 - Board rows now open their ticket in the side panel (S30, same `EntityShell` drawer as the Desk); the machine chip still opens the machine; TV unchanged.
+- Analytics screens show plain names, no A1–A10 codes (en + gu; Nimish 26 Nov); URL screen ids and engine files keep them. Branch v2/drop-a-codes.
 - Nimish approved merging PRs whose only red check is loop-guard "existing test modified on a build branch" (26 Nov). Protected files stay plan-only.
 - Branch v2/desk-data (Refs #803): the four S28/S29 items the server lacked are built server + UI: sign-off outcomes of the last 24 h on `/board/signoff`, `GET /state/crew` (crew roles, paused jobs under Working now), `machineAverage` on the ticket detail (engine MTTR in minutes, "no earlier breakdown" when none), `GET /tickets/recent-codes` + searchable code pickers (`CodePicker` in ui/v2/close-kit.tsx). No migration.
+- Branch v2/desk-data-2 (follow-up to #862): Team takeaway counts paused jobs by reason; paused jobs read "Paused · reason" (en + gu); e2e `desk-data.spec.ts` clicks a sign-off outcome row and the close-form code picker (machines SO-D, SO-E).
 
 ## Not built (server lacks data, or protected file)
 
@@ -20,7 +22,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 ## In flight (26 Nov ~21:00, Nimish: "build the not-built items… all old stuff removed… a proper design language with components and kit")
 
-- Agent E `v2/desk-data`: sign-off outcomes, crew roles + paused jobs, ticket downtime vs machine average, searchable code lists with last 5 used (server + UI, Refs #803).
+- Agent E `v2/desk-data-2`: #862 follow-up (paused wording, Team paused takeaway, e2e for outcomes and code picker).
 - Agent F `v2/board-rows-ticket`: Board rows open the ticket side panel.
 - Agent G `plan/remove-old-ui`: delete ~125 old .tsx + old gallery pages, guard forbids any old .tsx, TV icon, docs/design/v2/KIT.md catalogue + DESIGN.md Components (protected files; Nimish's instruction is the authority).
 - Merge each when everything except loop-guard's test-edit rule is green (/private/tmp gate script logic: no other red, loop-guard reasons only 'existing test modified'). G is plan/ so loop-guard should pass.

@@ -112,7 +112,7 @@ test('BD % and PM split: its tab is pressed, the six figures, five tables and tw
   await stub(page);
   await open(page, SCREEN_A1);
   await expect(
-    tabs(page).getByRole('button', { name: 'A1 breakdown percent and PM split', exact: true }),
+    tabs(page).getByRole('button', { name: 'Breakdowns vs PM', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
   const first = A1;
   await expect(page.getByRole('heading', { level: 1, name: 'BD % and PM split' })).toBeVisible();
@@ -153,7 +153,7 @@ test('Category and cell: eight charts, the two summary tables, and the machines 
   await stub(page);
   await open(page, SCREEN_A2);
   await expect(
-    tabs(page).getByRole('button', { name: 'A2 category and cell', exact: true }),
+    tabs(page).getByRole('button', { name: 'Category and cell', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('heading', { level: 1, name: 'Category and cell' })).toBeVisible();
   for (const title of ['By Category — Detail', 'By Cell — Detail', 'Machine-Level Detail'])
@@ -178,7 +178,7 @@ test('MTTR and MTBF: seven charts, the six tables with the key’s dash, and the
   await stub(page);
   await open(page, SCREEN_A3);
   await expect(
-    tabs(page).getByRole('button', { name: 'A3 MTTR and MTBF', exact: true }),
+    tabs(page).getByRole('button', { name: 'MTTR and MTBF', exact: true }),
   ).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('heading', { level: 1, name: 'MTTR and MTBF' })).toBeVisible();
   for (const title of [
