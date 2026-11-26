@@ -7,12 +7,14 @@ export type LoginsTakeaway = { total: number; shared: number };
 
 /** Null when there is no active person. */
 export function peopleTakeaway(rows: readonly PersonAdmin[]): PeopleTakeaway | null {
-  void rows;
-  throw new Error('not implemented');
+  const active = rows.filter((row) => row.active);
+  if (active.length === 0) return null;
+  return { total: active.length, noPhone: active.filter((row) => !row.phone?.trim()).length };
 }
 
 /** Null when there is no active login. */
 export function loginsTakeaway(rows: readonly LoginAdmin[]): LoginsTakeaway | null {
-  void rows;
-  throw new Error('not implemented');
+  const active = rows.filter((row) => row.active);
+  if (active.length === 0) return null;
+  return { total: active.length, shared: active.filter((row) => row.shared).length };
 }
