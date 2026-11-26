@@ -3,13 +3,14 @@ import { useQueries, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { GlossaryReply, ListItemReply } from '@uptimo/shared/plant-settings';
-import { defineResource } from '../../../data/index.js';
+import { defineResource, useOnline } from '../../../data/index.js';
 import { CrudPage } from '../../../ui/v2/crud-page.js';
 import { DataTable, type Column } from '../../../ui/v2/data-table.js';
+import { ErrorState, OfflineState } from '../../../ui/v2/screen-states.js';
 import { Takeaway, type TakeawayData } from '../../../ui/v2/takeaway.js';
 import { analyticsProfileSpec, type ProfileRow } from './analytics-profile-spec.js';
 import { LIST_PAGES, glossarySpec, listMenu, type ListsPage } from './lists-specs.js';
-import { glossaryTakeaway, listsTakeaway, profileTakeaway } from './model.js';
+import { glossaryTakeaway, listsHub, listsTakeaway, profileTakeaway } from './model.js';
 
 const pct = (n: number, total: number) => Math.round((n / total) * 100);
 
@@ -52,7 +53,6 @@ function AllEntries({
       rows={entries}
       rowKey={(row) => `${row.page}-${row.id}`}
       columns={columns}
-      headed
       filters={[]}
       text={(row) => `${row.label} ${row.code} ${titleOf(row.page)}`}
       words={{
@@ -76,12 +76,22 @@ function ListsHub() {
       select: (items: ListItemReply[]) => items.map((item): Entry => ({ ...item, page })),
     })),
   });
+  const online = useOnline();
+  const hub = listsHub(
+    LIST_PAGES.map(({ page }, i) => ({
+      page,
+      items: lists[i]!.data,
+      failed: lists[i]!.isError && lists[i]!.data === undefined,
+    })),
+  );
   const entries = lists.flatMap((list) => (list.data ?? []).filter((item) => item.active));
-  const counts = LIST_PAGES.map(({ page }) => ({
-    page,
-    n: entries.filter((entry) => entry.page === page).length,
-  }));
-  const top = lists.some((list) => list.data === undefined) ? null : listsTakeaway(counts);
+  const top =
+    hub.state === 'ready'
+      ? listsTakeaway(hub.counts.map(({ page, n }) => ({ page, n: n ?? 0 })))
+      : null;
+  const retry = () => {
+    for (const list of lists) if (list.isError) void list.refetch();
+  };
   const titleOf = (page: ListsPage) => t(LIST_PAGES.find((p) => p.page === page)!.titleKey);
   const menu = listMenu(LIST_PAGES);
   return (
@@ -110,12 +120,23 @@ function ListsHub() {
             <Link to={row.to} className="v2-link">
               <strong>{t(row.titleKey)}</strong>
               <span className="v2-crud-sub">{t(row.subKey)}</span>
-              <span className="v2-sub">{counts[index]!.n}</span>
+              {hub.counts[index]!.n === null ? null : (
+                <span className="v2-sub">{hub.counts[index]!.n}</span>
+              )}
             </Link>
           </li>
         ))}
       </ul>
-      {entries.length > 0 ? <AllEntries entries={entries} titleOf={titleOf} /> : null}
+      {hub.state === 'error' ? (
+        online ? (
+          <ErrorState onRetry={retry} />
+        ) : (
+          <OfflineState onRetry={retry} />
+        )
+      ) : null}
+      {hub.state === 'ready' && entries.length > 0 ? (
+        <AllEntries entries={entries} titleOf={titleOf} />
+      ) : null}
     </div>
   );
 }

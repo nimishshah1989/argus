@@ -44,14 +44,22 @@ export function glossaryTakeaway(terms: readonly GlossaryReply[]): GlossaryTakea
 
 /** `onDefault` in `PROFILE_KEYS` order; `total` is every profile number. */
 export function profileTakeaway(row: ProfileRow): ProfileTakeaway {
-  void row;
-  void DEFAULT_PROFILE;
-  void PROFILE_KEYS;
-  throw new Error('not implemented');
+  return {
+    onDefault: PROFILE_KEYS.filter((key) => row[key] === DEFAULT_PROFILE[key]),
+    total: PROFILE_KEYS.length,
+  };
 }
 
 /** The hub's state and one count per list, in the order given. */
 export function listsHub(lists: readonly HubList[]): HubState {
-  void lists;
-  throw new Error('not implemented');
+  const counts = lists.map(({ page, items }) => ({
+    page,
+    n: items ? items.filter((item) => item.active).length : null,
+  }));
+  const state = lists.some((l) => l.failed)
+    ? 'error'
+    : lists.some((l) => l.items === undefined)
+      ? 'loading'
+      : 'ready';
+  return { state, counts };
 }
