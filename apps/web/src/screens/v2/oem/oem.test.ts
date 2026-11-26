@@ -53,10 +53,4 @@ describe('OEM analytics', () => {
     expect(shown).not.toContain('₹');
     expect(shown).toContain('56% of the hours');
   });
-
-  it('leaves out the cause drop-down, which holds nothing stored, and says nothing of it as a figure', () => {
-    const model = oemModel(platform, t, { mayDecide: false })!;
-    const every = model.tables.find((table) => table.title.startsWith('Every breakdown'))!;
-    expect(every.header.map((h) => h.label)).not.toContain('Cause');
-  });
 });

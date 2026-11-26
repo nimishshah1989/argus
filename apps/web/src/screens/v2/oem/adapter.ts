@@ -21,6 +21,16 @@ const machines = (cell: string): Cell => {
   return { text: cell, sort: cell, chips: codes.map((code) => machineChip(code)) };
 };
 
+/**
+ * One row's Cause cell in "Every breakdown on a young machine: decide the cause" (ADR 0051): the cause's label as text,
+ * sorted by it; a reader who may decide gets `action: 'cause:<ticketId>'` (EngineTable draws it as a button that opens
+ * the picker). No ticket id for the row, or a reader who may not decide: plain text, no action.
+ */
+export function causeCell(label: string, ticketId: string | undefined, mayDecide: boolean): Cell {
+  void [label, ticketId, mayDecide];
+  throw new Error('not implemented');
+}
+
 function tableOf(table: RegisterTable, c: CommonWords): TableModel {
   const title = table.title ?? '';
   return engineTable(table, {
