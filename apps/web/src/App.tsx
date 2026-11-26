@@ -6,9 +6,9 @@ import { UpdateBanner } from './components/UpdateBanner.js';
 import { Page } from './ui/layout.js';
 import { BoardPage } from './screens/v2/board/Page.js';
 import { DeskMinePage, DeskTeamPage } from './screens/v2/desk/Page.js';
-import { ChangePassword } from './faces/signin/password.js';
-import { Who } from './faces/signin/who.js';
+import { PasswordView } from './screens/v2/password/View.js';
 import { SignInView } from './screens/v2/sign-in/View.js';
+import { WhoView } from './screens/v2/who/View.js';
 import {
   FloorMinePage,
   FloorOtherPage,
@@ -42,8 +42,8 @@ export function App() {
       <UpdateBanner auto={kiosk} />
       <Routes>
         <Route path="/login" element={<SignInView />} />
-        <Route path="/who" element={<Who />} />
-        <Route path="/password" element={<ChangePassword />} />
+        <Route path="/who" element={<WhoView />} />
+        <Route path="/password" element={<PasswordView />} />
         <Route path="/floor" element={<FloorReportPage />} />
         <Route path="/floor/other" element={<FloorOtherPage />} />
         <Route path="/floor/mine" element={<FloorMinePage />} />

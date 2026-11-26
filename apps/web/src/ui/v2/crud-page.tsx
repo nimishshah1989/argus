@@ -107,7 +107,20 @@ function RowActions<Row extends CrudRow>(p: PageProps<Row> & { row: Row }) {
       >
         {t('kit.crud.edit')}
       </button>
-      {spec.toggle === false ? null : (
+      {spec.toggle ? (
+        // A spec's own switch stays a real switch (v1's crud-list): its state is read, not guessed from a word.
+        <button
+          type="button"
+          role="switch"
+          className="v2-switch"
+          aria-checked={spec.toggle.inverted ? !row.active : row.active}
+          disabled={c.update.isPending}
+          aria-label={label}
+          onClick={() => void c.toggle(row)}
+        >
+          <span aria-hidden className="v2-switch-track" />
+        </button>
+      ) : spec.toggle === false ? null : (
         <button
           type="button"
           className="v2-btn v2-btn-ghost"
@@ -315,7 +328,14 @@ function Sheets<Row extends CrudRow>(p: PageProps<Row> & { add: string }) {
 }
 
 /** A settings page generated from one `CrudSpec`, the kit's look: list, add, edit, switch off and on; never delete. */
-export function CrudPage<Row extends CrudRow>({ spec }: { spec: CrudSpec<Row> }): ReactNode {
+export function CrudPage<Row extends CrudRow>({
+  spec,
+  lead,
+}: {
+  spec: CrudSpec<Row>;
+  /** The page's takeaway, drawn under its heading. */
+  lead?: ReactNode;
+}): ReactNode {
   const { t } = useTranslation();
   const c = useCrud(spec);
   const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
@@ -326,6 +346,7 @@ export function CrudPage<Row extends CrudRow>({ spec }: { spec: CrudSpec<Row> })
     <div className="v2-crud">
       {/* The page heads itself, so an empty list keeps its heading; the table under it does not repeat it. */}
       <h2 className="v2-h2">{t(spec.titleKey)}</h2>
+      {lead}
       {spec.introKey ? <p className="v2-crud-hint">{t(spec.introKey)}</p> : null}
       {spec.addable !== false ? (
         <button type="button" className="v2-btn v2-btn-primary" onClick={() => c.saving.open(null)}>
