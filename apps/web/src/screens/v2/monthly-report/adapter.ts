@@ -114,7 +114,7 @@ function rankLine(table: PageTable | undefined, previous: string, say: Say): Tak
   const change = cell(row, 4);
   const tone = change.startsWith('▼') ? 'gain' : change.startsWith('▲') ? 'loss' : 'neutral';
   const values = { name: cell(row, 0), hours: cell(row, 2), change, previous };
-  return say('monthly-report.rank', values, tone);
+  return say(change === '—' ? 'monthly-report.rankOnly' : 'monthly-report.rank', values, tone);
 }
 
 function longestLine(table: PageTable | undefined, say: Say): TakeawayData | null {
@@ -233,6 +233,7 @@ export function monthlyReportModel(reply: FiguresPart, t: TFunction): MonthlyRep
         : tablesOf([table], words),
     ),
     drill: drillFor(reply, FIGURE, say_),
+    previous: MONTHS[monthBefore(asOf, 2).month - 1] ?? '',
     source,
     words,
     period,
