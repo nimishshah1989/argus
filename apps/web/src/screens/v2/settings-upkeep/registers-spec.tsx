@@ -7,8 +7,8 @@ import {
   type MachineReply,
 } from '@uptimo/shared/plant-settings';
 import type { Person } from '@uptimo/shared/config';
-import { http, type Transport } from '../../data/index.js';
-import type { CrudCtx, CrudSpec, LabelKey } from '../../patterns/crud-spec.js';
+import { http, type Transport } from '../../../data/index.js';
+import type { CrudCtx, CrudSpec, LabelKey } from '../../../patterns/crud-spec.js';
 
 /**
  * The plant's asset register (ticket 51a, R6): AMC, warranty, legal tests and calibrations in one generated list.

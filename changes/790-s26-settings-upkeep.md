@@ -1,0 +1,1 @@
+Settings → PM plans, Asset registers, Duty roster and Escalation ladder now draw on the new look, each with a one-line summary above the list (what is overdue, what ends soon, where the roster has gaps, how a High ticket escalates).

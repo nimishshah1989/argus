@@ -64,6 +64,8 @@ type TableProps<R> = {
   words: TableWords;
   initialSort?: SortState;
   selected?: string;
+  /** The page above already draws the title as its heading: the table keeps it as its label and draws no second one. */
+  headed?: boolean;
   /** Beside the title. */
   aside?: ReactNode;
   /** What a row opens in the drawer; a table whose rows open nothing leaves it out and its rows are not buttons. */
@@ -354,7 +356,7 @@ export function DataTable<R>(props: TableProps<R>) {
   return (
     <section className="v2-card v2-table-card" aria-label={words.title}>
       <TableBar
-        title={words.title}
+        title={props.headed ? '' : words.title}
         sub={words.sub}
         aside={props.aside}
         search={words.search}

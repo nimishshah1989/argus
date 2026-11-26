@@ -1,6 +1,6 @@
 import { pmNextDue, pmPlanReplySchema, type PmPlanReply } from '@uptimo/shared/pm';
 import type { MachineReply } from '@uptimo/shared/plant-settings';
-import type { CrudCtx, CrudSpec } from '../../patterns/crud-spec.js';
+import type { CrudCtx, CrudSpec } from '../../../patterns/crud-spec.js';
 
 /** The one next-due rule (50 R2), shared with the calendar and the server; 49a's name stays for its screen. */
 export const pmPlanNextDue = pmNextDue;
