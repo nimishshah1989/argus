@@ -28,6 +28,7 @@ import { ManpowerView } from './manpower/View.js';
 import { MonthlyReportView } from './monthly-report/View.js';
 import { MoneyMattersView } from './money-matters/View.js';
 import { RegistersView } from './machines-register/View.js';
+import { OemView } from './oem/View.js';
 import { PmCalendarPage } from './pm-calendar/Page.js';
 import { ProblemAnalysisView } from './problem-analysis/View.js';
 import { ShiftKpisView } from './shift-kpis/View.js';
@@ -160,6 +161,19 @@ const LIVE: readonly Live[] = [
         screen="age"
         title="v2m.title.age"
         draw={(model, shell) => <AgeView model={model} {...shell} />}
+      />
+    ),
+  },
+  {
+    group: 'machines',
+    section: 'machines',
+    screen: 'oem-analytics',
+    page: () => (
+      <ModelPage
+        entry={screenOf('machines', 'machines', 'oem-analytics')}
+        screen="oem"
+        title="v2m.title.oem"
+        draw={(model, shell) => <OemView model={model} {...shell} />}
       />
     ),
   },

@@ -28,7 +28,7 @@ export interface GuideEntry {
 export const NOT_BUILT: MessageKey = 'analytics.guide.notBuilt';
 
 /** The four features this build does not have, each with the entry id it fills. */
-const UNBUILT: ReadonlySet<string> = new Set(['oem', 'learning', 'no-code', 'amc-legal']);
+const UNBUILT: ReadonlySet<string> = new Set(['learning', 'no-code', 'amc-legal']);
 
 interface EntryOptions {
   readonly figures?: readonly string[];
@@ -50,6 +50,7 @@ function entry(
         titleKey,
         bodyKeys,
         figures,
+        built: true,
         ...(options.formula === undefined ? {} : { formulaKey: options.formula }),
       };
 }
@@ -278,7 +279,9 @@ export const GUIDE_ENTRIES: readonly GuideEntry[] = [
   entry('pm-calendar', 'analytics.guide.pm-calendar.title', ['analytics.guide.pm-calendar.body1'], {
     figures: ['pm-compliance'],
   }),
-  entry('oem', 'analytics.guide.oem.title', []),
+  entry('oem', 'analytics.guide.oem.title', ['analytics.guide.oem.body1'], {
+    figures: ['oem-analytics'],
+  }),
   entry('learning', 'analytics.guide.learning.title', []),
   entry('no-code', 'analytics.guide.no-code.title', []),
   entry('amc-legal', 'analytics.guide.amc-legal.title', []),

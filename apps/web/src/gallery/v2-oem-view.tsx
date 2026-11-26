@@ -1,5 +1,4 @@
 /* eslint-disable i18next/no-literal-string -- screen keys and catalogue keys, not copy */
-import { mayReadMoney } from '../screens/v2/figures/read.js';
 import { oemModel } from '../screens/v2/oem/adapter.js';
 import { OemView } from '../screens/v2/oem/View.js';
 import { MachinesScreen } from './v2-machines-screen.js';
@@ -10,7 +9,7 @@ export default function V2OemView() {
     <MachinesScreen
       screen="oem"
       title="v2m.title.oem"
-      build={(reply, t, viewer) => oemModel(reply, t, { money: mayReadMoney(viewer.role) })}
+      build={(reply, t) => oemModel(reply, t, { mayDecide: false })}
     >
       {(model, shell) => <OemView model={model} {...shell} />}
     </MachinesScreen>

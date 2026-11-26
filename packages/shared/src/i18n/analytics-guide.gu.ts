@@ -5,6 +5,8 @@ import { analyticsGuideEn } from './analytics-guide.en.js';
 export const analyticsGuideGu = gujarati(analyticsGuideEn, {
   'analytics.guide.heading': 'દરેક આંકડા પાછળનો નિયમ',
   'analytics.guide.all': 'બધા',
+  'analytics.guide.oem.body1':
+    'ઓઈએમ વિશ્લેષણ 300 દિવસથી ઓછા જૂના મશીનો, તે જ મોડેલના જૂના મશીનોની સરખામણીમાં તેમના બ્રેકડાઉન અને દરેક માટે વ્યક્તિએ નક્કી કરેલું કારણ બતાવે છે; તેમાં પૈસા દેખાતા નથી.',
   'analytics.guide.unbuilt': 'હજી બન્યું નથી',
   'analytics.guide.group.basics': 'મૂળભૂત',
   'analytics.guide.group.overview': 'ઝાંખી',

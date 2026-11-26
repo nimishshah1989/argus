@@ -23,6 +23,7 @@ import { dataChecklist } from './data-checklist.js';
 import { footprint } from './footprint.js';
 import { isProduction } from './machine-facts.js';
 import { machinePage } from './machine-page.js';
+import { oemAnalyticsFigure } from './oem.js';
 import { plantEventMinutes, plantEventsFigure } from './plant-events.js';
 import { pmComplianceFigure } from './pm-compliance.js';
 import { isHistory, isNoDowntime, isPm, sourcedReports, type SourcedReport } from './rows.js';
@@ -252,6 +253,7 @@ const registerComputers: Readonly<Record<string, Computer>> = {
   'cell-change-log': cellChangeLog,
   'a7-footprint': footprint,
   'a8-age': ageAnalysis,
+  'oem-analytics': oemAnalyticsFigure,
   'machine-page': machinePage,
 };
 

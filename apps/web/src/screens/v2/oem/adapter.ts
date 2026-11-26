@@ -33,11 +33,11 @@ function tableOf(table: RegisterTable, c: CommonWords): TableModel {
   });
 }
 
-/** The OEM screen from the engine's `oem-analytics` figure; null while the engine does not compute it (it is deferred). Money shows only when the reader may read money. */
+/** The OEM screen from the engine's `oem-analytics` figure; null while the engine has not computed it. The figure carries no rupee (ADR 0051); `mayDecide` is drawn by #815. */
 export function oemModel(
   reply: FiguresReply,
   t: Translate,
-  reader: { money: boolean },
+  _reader: { mayDecide: boolean },
 ): OemModel | null {
   const page = pagesOf(reply, 'oem-analytics')?.[0];
   if (!page) return null;
@@ -45,7 +45,7 @@ export function oemModel(
   const source = sourceLine(c.source, reply.asOf);
   const kpis = page.kpis.map((kpi) => ({
     ...kpi,
-    sub: reader.money || kpi.sub === null ? kpi.sub : withoutMoney(kpi.sub),
+    sub: kpi.sub === null ? kpi.sub : withoutMoney(kpi.sub),
   }));
   const [young, breakdowns, , oem] = kpis;
   const headline =

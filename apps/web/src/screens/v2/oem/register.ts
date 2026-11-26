@@ -10,12 +10,14 @@ declare module '../data.js' {
 export const screen: ScreenEntry<'oem'> = {
   key: 'oem',
   provider: async (_, { client }) => {
-    const [{ liveReply, liveRole, catalogue }, { mayReadMoney }, { oemModel }] = await Promise.all([
+    const [{ liveReply, catalogue }, { oemModel }, { requireComputed }] = await Promise.all([
       import('../figures/live.js'),
-      import('../figures/read.js'),
       import('./adapter.js'),
+      import('../figures/computed.js'),
     ]);
-    const [reply, role] = await Promise.all([liveReply(client), liveRole(client)]);
-    return oemModel(reply, catalogue, { money: mayReadMoney(role) });
+    const reply = await liveReply(client);
+    requireComputed(reply, 'oem-analytics');
+    // #815 wires the role; until then nobody may decide.
+    return oemModel(reply, catalogue, { mayDecide: false });
   },
 };
