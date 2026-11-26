@@ -5,6 +5,8 @@ import type { Takeaways } from '../../ui/v2/takeaway.js';
 import { realReply } from './figures/real-reply.js';
 import { realT } from './printed-page/test-support.js';
 import { shiftKpisModel } from './shift-kpis/adapter.js';
+import { openModel } from './desk/adapter.js';
+import { deskFixture } from './desk/fixture.js';
 import { answerKey } from './printed-page/test-support.js';
 import { monthlyReportModel } from './monthly-report/adapter.js';
 
@@ -46,6 +48,8 @@ const NOT_YET = new Set([
 const SECTIONS: Record<string, string[]> = {
   // ADR 0033: shift-kpis.compare opens with the verdict, not a takeaway that would repeat it.
   'shift-kpis': ['shift-kpis.shift-split', 'shift-kpis.backlog', 'shift-kpis.breakdown-map'],
+  // ADR 0045 T3 (S28-A): the desk's Open screen, Breakdowns and Tasks lines (scope desk.md "More intelligent").
+  desk: ['desk.breakdowns', 'desk.tasks'],
   // Ticket 767 (S27-A): the report wizard has no table, chart or figure tile, so no takeaway; T2 (#768) adds
   // My complaints' line ("Waiting longest") here when its list joins the floor.
   floor: [],
@@ -71,6 +75,7 @@ type WithTakeaways = {
 /** A finished screen's model, when its frozen provider needs params or it has none (a test-support file builds it). */
 const MODELS: Record<string, () => Promise<WithTakeaways>> = {
   'shift-kpis': async () => shiftKpisModel(realReply(), realT),
+  desk: async () => openModel(deskFixture, realT),
   'monthly-report': async () =>
     monthlyReportModel(answerKey('monthly-report', 'monthly-report', 42), realT),
 };
