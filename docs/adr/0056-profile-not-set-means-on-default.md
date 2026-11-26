@@ -4,7 +4,7 @@ Date: 26 Nov 2026 · Decided by: planner (unattended, post-merge review of #843;
 
 ## Context
 
-The S26 Analytics profile screen (ticket 793, PR #843) leads with "n of 33 numbers not set", a progress bar and a Set / Not set tag. It counted a number as not set when the reply held `null`. The reply never holds `null`:
+The S26 Analytics profile screen (ticket 793, PR #843) leads with "n of 34 numbers not set", a progress bar and a Set / Not set tag. It counted a number as not set when the reply held `null`. The reply never holds `null`:
 
 - the first read stores the whole `DEFAULT_PROFILE` in the plant's `setting` row (`ensureSettingRow`), and any number missing later is filled from it (`settingRowStore`);
 - `profileReplySchema` is strict and non-nullable;
