@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { duty, plan, register, rule, shift } from '../settings-upkeep/fixture.js';
+import { duty, plan, register, rule, shift } from '../settings-upkeep/fixture-rows.js';
 import { ladderSteps, pmTakeaway, registerTakeaway, rosterGaps } from '../settings-upkeep/model.js';
 
 const today = '2026-11-25';
