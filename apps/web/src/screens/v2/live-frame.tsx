@@ -200,7 +200,7 @@ export function LiveFrame({
   );
 }
 
-/** Every card inside finds where it goes in the one destinations map, scoped to this screen (ADR 0058). */
+/** Every card inside finds where it goes in the one destinations map, scoped to this screen (ADR 0060). */
 export function DestinationScope({ screen, children }: { screen: string; children: ReactNode }) {
   const { t } = useTranslation();
   const destination = useCallback(

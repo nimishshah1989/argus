@@ -14,7 +14,7 @@ export type FigureData = {
   sub: string;
   /** What the figure is measured against: previous period, target or peer ("Last month 3.4 h"). ADR 0026 §4. */
   yardstick?: string;
-  /** The rows behind the figure: when given, the value is a button that opens them and the whole tile presses it. Absent: the tile looks itself up in the destinations map (ADR 0058). */
+  /** The rows behind the figure: when given, the value is a button that opens them and the whole tile presses it. Absent: the tile looks itself up in the destinations map (ADR 0060). */
   drill?: Drill;
   /** Where the whole tile goes when pressed (the page that explains it), when it has no rows of its own. */
   link?: { href: string; label: string };

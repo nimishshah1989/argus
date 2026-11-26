@@ -411,7 +411,7 @@ for (const [screen, heading, control] of [
   });
 }
 
-// ADR 0058: a card the page's model did not wire still opens something; on Age a band card opens the page's rows.
+// ADR 0060: a card the page's model did not wire still opens something; on Age a band card opens the page's rows.
 test('Age: pressing a band card anywhere opens the rows behind the age figure', async ({
   page,
 }) => {

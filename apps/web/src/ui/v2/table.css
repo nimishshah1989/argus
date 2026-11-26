@@ -179,3 +179,57 @@ td.v2-row-action .v2-icon-btn:focus-visible {
     transition: none;
   }
 }
+
+/* Tables colour themselves (ADR 0061): a column's meaning sets its tone; bars and tints scale to the column; the
+   ranked column's top rows wear the tone strongly (colour and weight, never colour alone). Tokens only. */
+:is(.v2-cellbar, .v2-celltint)[data-tone] {
+  --v2-tone: var(--color-v2-ink-2);
+  --v2-tone-fill: var(--color-v2-mark);
+}
+:is(.v2-cellbar, .v2-celltint)[data-tone='loss'] {
+  --v2-tone: var(--color-v2-loss);
+  --v2-tone-fill: var(--color-v2-loss-fill);
+}
+:is(.v2-cellbar, .v2-celltint)[data-tone='gain'] {
+  --v2-tone: var(--color-v2-gain);
+  --v2-tone-fill: var(--color-v2-gain-fill);
+}
+:is(.v2-cellbar, .v2-celltint)[data-tone='risk'] {
+  --v2-tone: var(--color-v2-risk);
+  --v2-tone-fill: var(--color-v2-risk-fill);
+}
+:is(.v2-cellbar, .v2-celltint)[data-tone='plan'] {
+  --v2-tone: var(--color-v2-plan);
+  --v2-tone-fill: var(--color-v2-plan-fill);
+}
+.v2-cellbar[data-tone] .v2-cellbar-track > span {
+  background: color-mix(in srgb, var(--v2-tone-fill) 45%, var(--color-v2-track));
+}
+.v2-cellbar[data-top] {
+  color: var(--v2-tone);
+  font-weight: 600;
+}
+.v2-cellbar[data-top] .v2-cellbar-track > span {
+  background: var(--v2-tone-fill);
+}
+/* A wide table (many number columns) tints each cell by its share instead: ink stays the text colour. */
+.v2-celltint {
+  display: inline-block;
+  min-width: 48px;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--v2-tone-fill) calc(var(--v2-share, 0) * 30%), transparent);
+}
+.v2-celltint[data-top] {
+  border-color: var(--v2-tone-fill);
+  font-weight: 600;
+}
+/* A category word: a neutral pill with a dot of the category's fixed colour. */
+.v2-pill[data-pill-cat]::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--v2-cat);
+}

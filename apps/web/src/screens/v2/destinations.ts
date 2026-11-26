@@ -7,7 +7,7 @@ import type { Translate } from './figures/read.js';
 import { figureName } from './rows-behind/model.js';
 
 /**
- * Where every card goes (Nimish, 26 Nov 2026; ADR 0058): one table, read by the kit itself through
+ * Where every card goes (Nimish, 26 Nov 2026; ADR 0060): one table, read by the kit itself through
  * `DestinationContext`, so a KPI card, a figure tile or a chart card that its screen's model did not wire still opens
  * something. A way is `rows` (an engine figure key: the drawer opens the rows behind it at `?drawer=figure:<key>`, the
  * rows `GET /analytics/drill` answers for that figure's drill type) or `home` (an engine screen id: the card links to

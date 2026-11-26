@@ -18,7 +18,7 @@ export const DrillOpenContext = createContext<(drill: Drill) => void>(() => {});
 export type Destination = { drill?: Drill; link?: { href: string; label: string } };
 
 /**
- * The destinations map, as the kit reads it (ADR 0058): given a card's id and its label, where that card goes. The
+ * The destinations map, as the kit reads it (ADR 0060): given a card's id and its label, where that card goes. The
  * screen's frame provides it (`screens/v2/destinations.ts`, scoped to the screen on show); with none around, as in a
  * test or the gallery, a card goes only where its own model says.
  */

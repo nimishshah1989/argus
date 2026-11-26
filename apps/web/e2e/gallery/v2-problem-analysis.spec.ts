@@ -46,6 +46,47 @@ test('Problem Analysis: the groups table sorts by hours and the family chips nar
   await expect(groups.locator('tbody tr').first()).toContainText('Fluids and chips');
 });
 
+test('Problem Analysis: "On this page" lists the parts, jumps to one, marks it and puts it in the address', async ({
+  page,
+}) => {
+  await open(page);
+  const rail = page.getByRole('navigation', { name: 'On this page' });
+  await expect(rail).toBeVisible();
+  const link = rail.getByRole('link', { name: 'Repeat offenders', exact: true });
+  await expect(link).toHaveAttribute('href', '#repeat-offenders');
+  await link.focus();
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/#repeat-offenders$/);
+  await expect(link).toHaveAttribute('aria-current', 'location');
+  const heading = page.getByRole('heading', { level: 2, name: 'Repeat offenders' });
+  await expect(heading).toBeFocused();
+  await expect.poll(async () => (await heading.boundingBox())?.y ?? -1).toBeLessThan(200);
+  // A pasted link to the part lands on it.
+  await page.goto('/gallery?view=v2-problem-analysis#repeat-offenders');
+  await expect.poll(async () => (await heading.boundingBox())?.y ?? -1).toBeLessThan(200);
+  // The same part is in the search.
+  await page.keyboard.press('Control+k');
+  await page.getByRole('combobox').fill('Repeat offenders');
+  await expect(page.getByRole('option', { name: /Repeat offenders/ })).toBeVisible();
+});
+
+test('Problem Analysis: on a phone the parts are a menu at the top of the page', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/gallery?view=v2-problem-analysis');
+  await expect(page.getByRole('navigation', { name: 'On this page' })).toBeHidden();
+  const jump = page.getByRole('button', { name: 'On this page' });
+  await expect(jump).toHaveAttribute('aria-expanded', 'false');
+  await jump.click();
+  const list = page.getByRole('navigation', { name: 'On this page' });
+  await list.getByRole('link', { name: 'Repeat offenders', exact: true }).click();
+  await expect(page).toHaveURL(/#repeat-offenders$/);
+  // The menu closes once it has taken the reader there.
+  await expect(jump).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByRole('heading', { level: 2, name: 'Repeat offenders' })).toBeFocused();
+});
+
 for (const theme of ['light', 'dark']) {
   test(`Problem Analysis: axe finds nothing in ${theme}`, async ({ page }) => {
     await open(page, theme);

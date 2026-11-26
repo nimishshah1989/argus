@@ -1,6 +1,7 @@
 import type { Cell, EngineTableWords, TableModel } from '../../../ui/v2/domain/engine-table.js';
 import type { RegisterTable } from './read.js';
 import { numberIn } from './read.js';
+import { lookOfHeader } from '../../../ui/v2/table-look.js';
 
 export type { Cell, EngineTableWords, TableModel };
 
@@ -62,7 +63,11 @@ export function engineTable(table: RegisterTable, o: TableOptions): TableModel {
   return {
     id: o.id,
     title: o.title,
-    header: shown.map(({ label }, i) => ({ label, numeric: numeric[i] ?? false })),
+    header: shown.map(({ label }, i) => ({
+      label,
+      numeric: numeric[i] ?? false,
+      look: lookOfHeader(label, numeric[i] ?? false, o.title),
+    })),
     rows,
     chips: at < 0 ? [] : commonValues(rows, at).map((key) => ({ key, label: key, column: at })),
     words: o.words,

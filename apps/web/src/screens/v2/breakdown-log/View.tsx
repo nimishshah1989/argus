@@ -1,4 +1,5 @@
 /* eslint-disable i18next/no-literal-string -- sort keys, entity kinds and typed unions only; every visible word comes from the model */
+import { tidyCell } from '../../../ui/v2/table-look.js';
 import { useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { DOC_REF } from '@uptimo/shared/doc-ref';
@@ -86,7 +87,7 @@ function DoneBy({ row, words }: { row: LogRow; words: LogModel['words'] }) {
 
 /** The hours as printed; only the exceptions carry a tag, with an icon and a word (never colour alone). */
 function Hours({ row, words }: { row: LogRow; words: LogModel['words'] }) {
-  if (row.severity === null) return <>{row.hours}</>;
+  if (row.severity === null) return <>{tidyCell(row.hours)}</>;
   return (
     <span className="v2-num-tag" data-severity={row.severity}>
       <KeyPill
@@ -94,7 +95,7 @@ function Hours({ row, words }: { row: LogRow; words: LogModel['words'] }) {
         tone={row.severity === 'long' ? 'loss' : 'risk'}
         icon={row.severity === 'long' ? 'alert' : 'clock'}
       />
-      {row.hours}
+      {tidyCell(row.hours)}
     </span>
   );
 }
@@ -121,14 +122,21 @@ function columns(model: LogModel): Column<LogRow>[] {
   const c = model.words.columns;
   const sortable = (key: LogSortKey) => ({ key, label: c[key], sortBy: () => 0 });
   return [
-    { ...sortable('srNo'), numeric: true, cell: (r) => r.srNo },
+    { ...sortable('srNo'), numeric: true, look: 'plain', cell: (r) => r.srNo },
     { ...sortable('ticket'), cell: (r) => <TicketLink row={r} label={model.words.openTicket} /> },
     { ...sortable('date'), cell: (r) => r.date },
-    { ...sortable('shift'), cell: (r) => r.shift },
+    { ...sortable('shift'), look: 'category', cell: (r) => r.shift },
     { ...sortable('machine'), cell: (r) => <EntityChip {...r.machine} /> },
     { ...sortable('problem'), cell: (r) => r.problem },
     { ...sortable('doneBy'), cell: (r) => <DoneBy row={r} words={model.words} /> },
-    { ...sortable('hours'), numeric: true, cell: (r) => <Hours row={r} words={model.words} /> },
+    {
+      ...sortable('hours'),
+      numeric: true,
+      look: 'loss',
+      // The value scales the hours bar; the server still does the sorting.
+      sortBy: (r) => Number(r.hours),
+      cell: (r) => (r.severity === null ? r.hours : <Hours row={r} words={model.words} />),
+    },
     { ...sortable('code'), cell: (r) => <CodeBadge row={r} words={model.words} /> },
   ];
 }
