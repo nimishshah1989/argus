@@ -19,7 +19,7 @@ import {
   workRequests,
 } from '../../desk/openLists.js';
 import { tagOf } from '../insight.js';
-import { plantToday, showsSettings } from './model.js';
+import { plantToday } from './model.js';
 import type {
   CountTile,
   OpenCard,
@@ -248,7 +248,6 @@ export function openModel(input: OpenInput, t: TFunction): OpenModel {
 
   return {
     badge: breakdownTotal,
-    settings: showsSettings(me?.role),
     counts: countTiles(counts, filter, t),
     showing: showingText(filter, t),
     teamNow: teamNowText(open, t),

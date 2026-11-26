@@ -5,7 +5,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { UpdateBanner } from './components/UpdateBanner.js';
 import { Page } from './ui/layout.js';
 import { BoardPage } from './screens/v2/board/Page.js';
-import { Desk } from './screens/Desk.js';
+import { DeskMinePage, DeskTeamPage } from './screens/v2/desk/Page.js';
 import { ChangePassword } from './faces/signin/password.js';
 import { Who } from './faces/signin/who.js';
 import { SignInView } from './screens/v2/sign-in/View.js';
@@ -48,8 +48,8 @@ export function App() {
         <Route path="/floor/other" element={<FloorOtherPage />} />
         <Route path="/floor/mine" element={<FloorMinePage />} />
         <Route path="/floor/pm" element={<FloorPmPage />} />
-        <Route path="/desk/mine" element={<Desk view="mine" />} />
-        <Route path="/desk/team" element={<Desk view="team" />} />
+        <Route path="/desk/mine" element={<DeskMinePage />} />
+        <Route path="/desk/team" element={<DeskTeamPage />} />
         <Route path="/desk/board" element={<BoardPage />} />
         <Route path="/desk/settings" element={<Settings />} />
         <Route path="/settings" element={<SettingsView page="home" />} />

@@ -3,11 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import type { TFunction } from 'i18next';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getMe } from '../../api.js';
-import { AccountButton, AccountSheet } from '../../components/AccountSheet.js';
-import { DESK_ROLES, readsAnalytics } from '../../roles.js';
-import { SyncStatus } from '../../patterns/sync-status.js';
-import { useWide } from '../../patterns/wide.js';
+import { getMe } from '../../../api.js';
+import { AccountButton, AccountSheet } from '../../../components/AccountSheet.js';
+import { readsAnalytics } from '../../../roles.js';
+import { SyncStatus } from '../../../patterns/sync-status.js';
+import { useWide } from '../../../patterns/wide.js';
 import {
   CirclePlus,
   FlaskConical,
@@ -17,11 +17,20 @@ import {
   Users,
   Wrench,
   type IconComponent,
-} from '../../ui/icon.js';
-import { SideNav } from '../../ui/side-nav.js';
-import { useSystemTheme } from '../../ui/system-theme.js';
-import { TabBar } from '../../ui/tab-bar.js';
-import { TopBar } from '../../ui/top-bar.js';
+} from '../../../ui/icon.js';
+import { SideNav } from '../../../ui/side-nav.js';
+import { useSystemTheme } from '../../../ui/system-theme.js';
+import { TabBar } from '../../../ui/tab-bar.js';
+import { TopBar } from '../../../ui/top-bar.js';
+import type { DeskView } from './model.js';
+
+export const rowClass =
+  'flex min-h-target items-center justify-between gap-3 rounded-card bg-surface px-4 py-3 shadow-card';
+
+/** The small capitals over a group of cards or rows. */
+export function ListHeading({ children }: { children: ReactNode }) {
+  return <h2 className="v2-h2">{children}</h2>;
+}
 
 function TopTrailing({ person }: { person: ReactNode }) {
   return (
@@ -31,22 +40,6 @@ function TopTrailing({ person }: { person: ReactNode }) {
     </div>
   );
 }
-
-export type DeskView = 'open' | 'mine' | 'team';
-
-const DESK: readonly string[] = DESK_ROLES;
-/** DOMAIN §3: Mine is for people who work tickets; the plant head sees Open and Team only. */
-const MAY_OPEN: Record<DeskView, readonly string[]> = {
-  open: DESK,
-  mine: DESK.filter((role) => role !== 'plant_head'),
-  team: DESK,
-};
-
-export function mayOpen(view: DeskView, role: string): boolean {
-  return MAY_OPEN[view].includes(role);
-}
-
-export { useSystemTheme };
 
 /** Header with the sync pill, the screen, and the five desk destinations: a bottom tab bar, or the left menu from 1024 px. */
 function deskTabs(t: TFunction, badge: number) {
@@ -104,7 +97,7 @@ export function DeskFrame({
   const sheet = <AccountSheet open={account} onOpenChange={setAccount} />;
   if (wide)
     return (
-      <div className="flex min-h-dvh bg-neutral-100 text-neutral-900">
+      <div className="flex min-h-dvh bg-v2-page">
         <div className="sticky top-0 h-dvh">
           <SideNav
             label={t('deskLists.tabs')}
@@ -123,7 +116,7 @@ export function DeskFrame({
       </div>
     );
   return (
-    <div className="flex min-h-dvh flex-col bg-neutral-100 text-neutral-900">
+    <div className="flex min-h-dvh flex-col bg-v2-page">
       {top}
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-4 p-4">{children}</main>
       <TabBar label={t('deskLists.tabs')} tabs={tabs} current={here} />
@@ -137,25 +130,18 @@ export function NotAvailable({ roleLabel }: { roleLabel: string }) {
   const { t } = useTranslation();
   useSystemTheme();
   return (
-    <div className="flex min-h-dvh flex-col bg-neutral-100 text-neutral-900">
+    <div className="flex min-h-dvh flex-col bg-v2-page">
       <TopBar
         title={t('desk.title')}
-        trailing={
-          <span className="rounded-full bg-muted-tint px-2.5 py-1 text-caption font-bold text-muted-ink">
-            {roleLabel}
-          </span>
-        }
+        trailing={<span className="v2-pill v2-pill-neutral">{roleLabel}</span>}
       />
       <main className="mx-auto flex w-full max-w-xl flex-col items-center gap-4 px-4 pt-32 text-center">
-        <span className="flex h-18 w-18 items-center justify-center rounded-full bg-neutral-200">
+        <span className="flex h-18 w-18 items-center justify-center rounded-full bg-v2-well">
           <Lock aria-hidden size={32} />
         </span>
-        <h2 className="text-title2 font-extrabold">{t('deskLists.notAvailable')}</h2>
-        <p className="text-body text-neutral-600">{t('deskLists.notAvailable.body')}</p>
-        <Link
-          to="/floor"
-          className="mt-8 flex min-h-target w-full items-center justify-center rounded-xl bg-accent-strong px-4 text-body font-semibold text-accent-ink"
-        >
+        <h2 className="v2-h2">{t('deskLists.notAvailable')}</h2>
+        <p className="v2-sub">{t('deskLists.notAvailable.body')}</p>
+        <Link to="/floor" className="v2-btn v2-btn-primary mt-8 w-full">
           {t('deskLists.reportProblem')}
         </Link>
       </main>

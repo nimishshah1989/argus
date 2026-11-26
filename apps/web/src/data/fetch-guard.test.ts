@@ -14,7 +14,7 @@ interface Exception {
 
 /** Dated, shrinking: an exception whose file is clean is itself an error. */
 const EXCEPTIONS: Exception[] = [
-  { file: 'screens/desk/MinePanel.tsx', until: 'ticket 18: the day-report PDF is a blob' },
+  { file: 'screens/v2/desk/Page.tsx', until: 'ticket 18: the day-report PDF is a blob' },
 ];
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), '..');
