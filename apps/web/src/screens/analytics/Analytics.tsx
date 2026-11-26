@@ -1,10 +1,8 @@
 import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { ACTION_CENTER_PATH, groupFor } from './groups.js';
 import { ActionCenterPage } from '../v2/action-center/Page.js';
-import { GroupPage } from './GroupPage.js';
 import { MachinePage } from '../v2/machine/Page.js';
 import { LiveFrame } from '../v2/live-frame.js';
-import { AnalyticsShell } from './shell/AnalyticsShell.js';
 import { liveScreen } from '../v2/live.js';
 
 /** The data checklist's own route, inside the Today group's shell. */
@@ -43,11 +41,5 @@ export function AnalyticsFace() {
   if (!found) return <Navigate to="/analytics/today" replace />;
   const own = ownRoute(group, params.get('screen'));
   if (own) return own;
-  const live = liveScreen(group, params.get('screen'));
-  if (live) return live;
-  return (
-    <AnalyticsShell>
-      <GroupPage group={found} />
-    </AnalyticsShell>
-  );
+  return liveScreen(group, params.get('screen'));
 }
