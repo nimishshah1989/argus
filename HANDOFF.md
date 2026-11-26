@@ -2,35 +2,25 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-25 · **By:** Plan (Opus 5.5) · **Model:** Opus 5.5
+**Updated:** 2026-11-26 ~14:55 IST · **By:** build session `d2fcfc9d…` (context full) · **Goal (Nimish, ADR 0055):** all screens live on the newest kit, nothing old remains · **Branch:** plan/handoff-s27
 
 ## State
 
-- LIVE on main: #762 S25 Guide (PR #779 + fix #784; reviewer PASS on #784, CI green, `loop clean 762` done). Late fix cause: the e2e needs the Guide's figure label as its own `<span>` text node (v1 had it, commit 88c957cf). Reviewer notes, not done: add a unit test for `withDesk` / the label span in `apps/web/src/screens/v2/guide`; if another screen needs the Desk link, move `withDesk` into LiveFrame; `docs/loop/handoff/762.md` omits the span/h1/Desk fixes.
-- S27–S30 wireframes ALL APPROVED. Builds in other sessions' `.loop/wt/`: #767 (commit 8c70eae3, session local_bfc6fd20) and #769 (commit 0614a320, session local_77555ba6); no PRs yet, hidden tests and e2e never run.
-- Open PRs, rebased with `gh pr update-branch` onto the new main, CI not yet re-read: #781 sweep A (#750), #782 Monthly (#763), #783 sweep B (#751). Known cause before rebase: loop-guard flags `#<n>` / "(#763)" text in code comments as raw colour/size.
-- S26-1..S26-8 Settings: designed, NOT ticketed (context budget). ADR 0047 in PR #786 (docs only; also brings ADR 0044 + 0046 to main) holds all eight designs. Next: merge #786 when green, then ONE `loop plan "Write the S26-1..S26-8 issues and light seeds from ADR 0047; no new decisions"`. S26-1 first; S26-2..8 after it merges.
-- Tests: none run by me this session beyond CI on #784 (all green). `.loop.json` commands (setup/test/typecheck/lint) were NOT re-verified.
-- Not started: #765 S24 Annual, sweeps #752/#753.
-- Flakes seen: who-is-acting.spec.ts:219, detail-downtime.spec.ts:7, desk lifecycle 409, desk-lists.spec.ts:11 (phone).
+- Merged this session (main ≥ 089ff752): #829 (#828 Board fix), #826 (#789 Settings machines), #830 (#816 /who), #831 (#812 OEM figure), #833 (#818 v1 analytics pages gone), #834 (#791 Settings people/logins), #835 (#813 OEM cause save), #836 + #837 (#817 /password, with error fix), #838 (#832 /who error fix), #839 (#792 Settings audit). Confirm staging `/api/v1/health` serves main.
+- Nimish merges green PRs himself, often before review (#826 #830 #833 #834 #836 #837 #839). #839 got no review yet: run a post-merge critical review.
+- **#840 (#814 OEM screen) open, head cdb83574, 3 red:** old e2e tests still expect v1 OEM: `e2e/gallery/v2-machines.spec.ts:100` expects "₹ 59,994 to claim"; `e2e/analytics-guide.spec.ts:10` expects `#guide-oem` "not in this build yet". Next: `loop plan` to update both on `plan/t814` (no rupees, ADR 0051; OEM now built), then merge the seed into the PR branch in a throwaway worktree, set PR body `Plan-base:` to the new seed head BEFORE pushing, review, merge.
+- Not started: #815 (after #814), #793 then #794 (share Plant.tsx/registry.ts; after #839, now merged), then #819 last.
+- Follow-ups for the planner: #826 coverage rows say "same" but per-segment machine count (Groups) and segment on each machine row were dropped; OEM figure returns null when young machines have no breakdowns; 29 Feb warranty date prints wrong.
 
-## Next step
+## Next steps
 
-1. `loop ci 781`, `loop ci 782`, `loop ci 783`. For loop-guard reds: rewrite the `#<n>` comments (do NOT loosen `.github/loop/check_pr.py`). Merge one PR at a time (all touch live.tsx/Analytics.tsx), `gh pr update-branch` the rest after each.
-2. `loop finish 767`, `loop finish 769` etc. in the sessions' folders, one at a time, then reviewer and merge.
-3. Merge PR #786, run the S26 seed plan job (line above), build S26-1 then S26-2..8; then #765 S24, #752, #753.
+1. Fix #840 seed as above → merge. 2. #815 and #793 in parallel (no shared files), then #794, then #819. 3. ADR 0055 items (Floor segment tiles; S28–S30 wireframes in the Shell for Nimish) via `loop plan`.
 
-## Blocked / open questions
+## Don't repeat (details in LESSONS.md)
 
-None. Nimish: `design/approved.json` has uncommitted S27–S30 approvals in this checkout; commit on a plan branch.
-
-## Don't repeat
-
-- `loop build N` reads the issue BODY, not comments: put fix notes in the body (`gh issue edit`) before `loop prep`. `loop finish` commits leftover builder work itself.
-- NEVER run `loop finish N` twice without a code change. `loop prep N` on a finished ticket needs `gh issue reopen N` first. `loop finish` removes `.loop/wt/N`.
-- Re-running `/loop:init` overwrites `.github/loop/check_pr.py` with the stock file (drops ADR 0035/0038/0040 carve-outs) and writes machine paths into `.claude/settings.json`: `git checkout` both. Branch protection on main was NOT enabled.
-- Hooks block `git -C .loop/wt/N` for the coordinator and holdout paths for builders. New v2 page needs a `PAGE_KEYS` entry in figure-content.ts; v2 page title is the screen's own name. Builders cannot run prettier: use builder-small.
-
-## Files touched this session
-
-HANDOFF.md only (committed). `docs/loop/metrics.jsonl` modified by the loop, uncommitted.
+- Builders: plain literal commands only (no `{a,b}`, loops, heredocs, `python3 -`, `cd &&`, `VAR=` prefix); `git rm`; one-line commits; `## Blocked` = exactly `None.`; prettier the handoff. Every ticket's Don't now says so; add it to new tickets.
+- Never `#NNN` in comments of apps/web files (guard reads hex). New API route → `REPLY_SCHEMAS` + route count in `reply-contract.test.ts`.
+- Seed fix on an open PR: planner pushes `plan/t<N>`; coordinator merges it into the PR branch in a scratch worktree, edits PR body `Plan-base:` first, then pushes (guard reads the body from the push event).
+- Conflict in a test-data file: never `git checkout --theirs` blindly; check the other side equals main first.
+- `loop finish` prints GREEN with checks pending: confirm with `gh pr checks`. Run local checks one ticket at a time.
+- Rebuild after a seed fix: `git branch -f backup-t<N> <build branch>`, `loop prep <N> --fresh`, ticket Don't lists literal paths to `git checkout backup-t<N> -- …`.

@@ -16,6 +16,7 @@ import type {
 import {
   isBreakdownChannel,
   resolveFailureCode,
+  oemCausePayloadSchema,
   whyWhyPayloadSchema,
   type FailureCodeIndex,
 } from '@uptimo/shared';
@@ -40,6 +41,7 @@ import {
   plantEventLines,
   reportsForEngine,
   ticketsForEngine,
+  oemCauseEventRows,
   whyWhyEventRows,
 } from '../tickets/index.js';
 import { readNudgeAcks } from './nudges.js';
@@ -312,6 +314,7 @@ export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineDa
   const lists = await listsForEngine(tx);
   const failureIndex = await failureCodeIndexOf(tx, tenantId);
   const savedWhyWhy = await whyWhyEventRows(tx);
+  const savedOemCauses = await oemCauseEventRows(tx);
   const plantLines = await plantEventLines(tx);
   const nudgeAcks = await readNudgeAcks(tx);
   const registers = await assetRegistersForEngine(tx, tenantId);
@@ -348,6 +351,10 @@ export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineDa
     whyWhy: savedWhyWhy.flatMap((row) => {
       const record = whyWhyRow(row);
       return record ? [record] : [];
+    }),
+    oemCauses: savedOemCauses.flatMap((row) => {
+      const parsed = oemCausePayloadSchema.safeParse(row.payload);
+      return parsed.success ? [{ ticketId: row.ticketId, cause: parsed.data.cause }] : [];
     }),
     // The Action Center's saved acks. The figure echoes them whole and the board gives each nudge its status.
     settings: {

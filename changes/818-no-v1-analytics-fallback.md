@@ -1,0 +1,1 @@
+- An unknown or old analytics address now opens that group's first new screen instead of an old page; the old analytics pages are removed.

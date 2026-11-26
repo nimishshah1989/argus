@@ -83,4 +83,8 @@ export const peopleEn = {
     'A personal login needs a person and no cell. A shared phone needs a cell and no person.',
   'people.login.off.hint': 'Switching a login off signs its devices out.',
   'people.login.switchOn.hint': 'Switching on needs a new temporary password.',
+  'people.takeaway.noPhone': '{{noPhone}} of {{total}} have no phone.',
+  'people.takeaway.shared': '{{shared}} of {{total}} logins are shared.',
+  'people.phone.none': 'No phone',
+  'people.login.sharedCol': 'Shared',
 };

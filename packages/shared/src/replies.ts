@@ -56,6 +56,7 @@ import { SUPPORT_ACCESS_REPLIES } from './support-access.js';
 import { AUDIT_REPLIES } from './audit.js';
 import { COMMAND_ACTIONS } from './ticket.js';
 import { whyWhyPayloadSchema } from './why-why.js';
+import { oemCausePayloadSchema } from './oem-cause.js';
 import {
   escalationStateSchema,
   isoDateTimeSchema,
@@ -268,6 +269,7 @@ export const REPLY_SCHEMAS: Readonly<Record<string, z.ZodTypeAny | null>> = {
   [`GET ${P}/tickets/:id`]: ticketDetailSchema,
   [`GET ${P}/tickets/:id/why-why`]: whyWhyPayloadSchema.nullable(),
   [`PUT ${P}/tickets/:id/why-why`]: whyWhyPayloadSchema,
+  [`PUT ${P}/tickets/:id/oem-cause`]: oemCausePayloadSchema,
   [`GET ${P}/tickets/:id/pdf`]: null,
   [`GET ${P}/tickets/:id/why-why.pdf`]: null,
   [`GET ${P}/reports/day.pdf`]: null,

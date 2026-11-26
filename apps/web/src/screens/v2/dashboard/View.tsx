@@ -1,22 +1,27 @@
 /* eslint-disable i18next/no-literal-string -- icon names, typed unions; every visible word comes from the model */
+import { useTranslation } from 'react-i18next';
+import { ActionStrips } from '../../../ui/v2/action-strip.js';
 import { Banner } from '../../../ui/v2/banner.js';
 import { ChartCard } from '../../../ui/v2/chart-card.js';
 import { LinkButton } from '../../../ui/v2/button.js';
 import { EngineTable } from '../../../ui/v2/domain/engine-table.js';
 import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
 import { DrillButton } from '../../../ui/v2/drill-button.js';
-import { KpiCard } from '../../../ui/v2/kpi-card.js';
 import { MoreToggle } from '../../../ui/v2/more-toggle.js';
 import { Panel } from '../../../ui/v2/panel.js';
 import { Segs } from '../../../ui/v2/points.js';
-import { Row } from '../../../ui/v2/row.js';
+import { RankedBars } from '../../../ui/v2/ranked-bars.js';
 import { SectionHead } from '../../../ui/v2/section-head.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
+import { ShowDetail } from '../../../ui/v2/show-detail.js';
+import { TileSet } from '../../../ui/v2/tile-set.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
 import { WhyToggle } from '../../../ui/v2/why-toggle.js';
 import { EntityShell } from '../entity/EntityShell.js';
+import { numberIn } from '../figures/read.js';
 import { Bubble } from './BubbleChart.js';
 import type { CostliestModel, DashboardModel, NeedsModel, WarningModel } from './model.js';
+import { costliestRows } from './sweep.js';
 
 /** What needs a person now: the table of tickets, or the plain line that nothing does, or that it could not be read. */
 function Needs({ needs }: { needs: NeedsModel }) {
@@ -35,13 +40,22 @@ function Needs({ needs }: { needs: NeedsModel }) {
 }
 
 function Costliest({ costliest }: { costliest: CostliestModel }) {
+  const { t } = useTranslation();
   const aside = (
     <>
       {costliest.drill ? <DrillButton drill={costliest.drill} /> : null}
       <LinkButton href={costliest.link.href}>{costliest.link.label}</LinkButton>
     </>
   );
-  if (costliest.table) return <EngineTable table={costliest.table} aside={aside} />;
+  if (costliest.table)
+    return (
+      <Panel title={costliest.title} sub={costliest.sub} aside={aside}>
+        <RankedBars
+          rows={costliestRows(costliest, (key, values) => t(key, { ...values }) as string)}
+          label={costliest.title}
+        />
+      </Panel>
+    );
   return (
     <Panel title={costliest.title} sub={costliest.sub} aside={aside}>
       <p>{costliest.empty}</p>
@@ -84,26 +98,12 @@ export function ActionCenter({ note }: { note: DashboardModel['actionCenter'] })
   );
 }
 
-/** This month's Team Focus plan: how many actions are open, the top one, and the way in; nothing when none is open. */
-function TeamFocus({ note }: { note: DashboardModel['teamFocus'] }) {
-  if (!note) return null;
-  return (
-    <Banner tone={note.tone} icon="check" title={note.title} href={note.href} action={note.open}>
-      {note.text}
-    </Banner>
-  );
-}
-
-/** A group of cards under its heading; the first card of a hero group is the lead figure, the rest beside it. */
+/** A group of cards under its heading; the lead card of the hero group keeps its `hero` mark. */
 function Cards({ section }: { section: DashboardModel['sections'][number] }) {
   return (
     <section className="v2-stack v2-gap-12" aria-label={section.title}>
       <SectionHead title={section.title} sub={section.sub} />
-      <Row hero={section.hero} cols={3}>
-        {section.kpis.map((kpi) => (
-          <KpiCard key={kpi.id} kpi={kpi} />
-        ))}
-      </Row>
+      <TileSet items={section.kpis.map((kpi) => ({ kpi, n: numberIn(kpi.value) ?? Number.NaN }))} />
     </section>
   );
 }
@@ -117,17 +117,16 @@ function Body({ model }: { model: DashboardModel }) {
   return (
     <>
       <Verdict verdict={model.verdict} whyLabel={model.words.why} />
-      {model.actionCenter || model.teamFocus ? (
-        <Row cols={2}>
-          <ActionCenter note={model.actionCenter} />
-          <TeamFocus note={model.teamFocus} />
-        </Row>
-      ) : null}
+      <ActionStrips strips={model.strips} />
       {headline ? <Cards section={headline} /> : null}
       <Needs needs={model.needs} />
-      {rest.map((section) => (
-        <Cards key={section.id} section={section} />
-      ))}
+      {rest.length > 0 ? (
+        <ShowDetail>
+          {rest.map((section) => (
+            <Cards key={section.id} section={section} />
+          ))}
+        </ShowDetail>
+      ) : null}
       {model.costliest ? <Costliest costliest={model.costliest} /> : null}
       {model.warning ? <Warning warning={model.warning} /> : null}
       {model.charts.map((chart) =>

@@ -25,11 +25,14 @@ export function PageBody({
   title,
   after,
   around,
+  fold,
 }: {
   model: PrintedPageModel;
   nav: NavItem[];
   title: string;
   after?: ReactNode;
+  /** Drawn right under the figure tiles (a Show detail for the figures that do not fit above the fold). */
+  fold?: ReactNode;
   /** A screen's own frame for one table (Manpower's Specialization toggle); it is handed the table as drawn. */
   around?: (table: PrintedTable, drawn: ReactElement) => ReactElement;
 }) {
@@ -50,6 +53,7 @@ export function PageBody({
           ))}
         </Row>
       ) : null}
+      {fold}
       {model.charts.length > 0 ? (
         <Row cols={2}>
           {model.charts.map((chart) => (
