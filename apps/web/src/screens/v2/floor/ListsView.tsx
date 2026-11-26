@@ -5,6 +5,7 @@ import { BottomSheet } from '../../../ui/v2/bottom-sheet.js';
 import { Button } from '../../../ui/v2/button.js';
 import {
   Actions,
+  DangerButton,
   FieldLabel,
   FloorPanel,
   FloorStates,
@@ -105,9 +106,7 @@ function Complaint({ card, on }: { card: MineModel['cards'][number]; on: MineAct
       {card.signoff ? <Signoff id={card.id} signoff={card.signoff} on={on} /> : null}
       {card.cancel ? (
         <Actions>
-          <Button danger onClick={() => on.cancel(card.id)}>
-            {card.cancel}
-          </Button>
+          <DangerButton onClick={() => on.cancel(card.id)}>{card.cancel}</DangerButton>
         </Actions>
       ) : null}
     </MachineCard>
@@ -233,9 +232,9 @@ export function CancelSheetView(p: { model: CancelModel; on: SheetActions }): Re
       </div>
       {model.error ? <Line bad>{model.error}</Line> : null}
       <Actions>
-        <Button danger disabled={!model.ready} onClick={on.send}>
+        <DangerButton disabled={!model.ready} onClick={on.send}>
           {model.submit}
-        </Button>
+        </DangerButton>
       </Actions>
     </BottomSheet>
   );

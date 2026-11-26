@@ -242,6 +242,20 @@ export function CheckRow({ label, ...rest }: Omit<Bare<'input'>, 'type'> & { lab
   );
 }
 
+/** A quiet button that ends or removes something (Cancel ticket, Sign out): its words in the loss colour. */
+export function DangerButton(p: { disabled?: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      className="v2-btn v2-btn-danger"
+      disabled={p.disabled}
+      onClick={p.onClick}
+    >
+      {p.children}
+    </button>
+  );
+}
+
 /** Full-width buttons, one under another (`pair` puts two side by side). */
 export function Actions(p: { pair?: boolean; children: ReactNode }) {
   return <div className={p.pair ? 'v2-floor-pair' : 'v2-floor-actions'}>{p.children}</div>;
