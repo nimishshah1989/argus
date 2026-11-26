@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { actorFrom, quickSpec } from '../../../components/actionSpecs.js';
 import { realT } from '../printed-page/test-support.js';
 import { mineModel, teamModel } from './team-adapter.js';
-import { ME, mineFixture, teamFixture } from './team-fixture.js';
+import { ME, mineFixture, STATE, teamFixture } from './team-fixture.js';
 import { mineQuery } from './team-model.js';
 
 /**
@@ -68,8 +68,8 @@ describe('Team over the frozen plant', () => {
       ['TKT-0414', 'CNC-02', 'Tech B', 'Lead', 'In progress', '2 h 0 min'],
       ['TKT-0414', 'CNC-02', 'Tech A', 'Support', 'In progress', '0 min'],
       ['TKT-0412', 'VC-03', 'Tech B', 'Lead', 'In progress', '30 min'],
-      ['TKT-0395', 'VC-17', 'Tech B', 'Lead', 'Waiting · vendor_visit', '30 min'],
-      ['TKT-0390', 'GRD-07', 'Tech B', 'Lead', 'Waiting · Spare part', '30 min'],
+      ['TKT-0395', 'VC-17', 'Tech B', 'Lead', 'Paused · vendor_visit', '30 min'],
+      ['TKT-0390', 'GRD-07', 'Tech B', 'Lead', 'Paused · Spare part', '30 min'],
     ]);
     expect([...working, ...paused].map((r) => r.paused)).toEqual([
       false,
@@ -146,5 +146,26 @@ describe('Team over the frozen plant', () => {
     expect(line!.text).toContain('2 h 24 min');
     expect(line!.text).toContain('LT-08');
     expect(line!.tag.length).toBeGreaterThan(0);
+  });
+
+  it('then counts the paused jobs by reason, the most common reason first', () => {
+    expect(team().takeaways['desk.team']!.text).toBe(
+      'Tech A is on the longest job: 2 h 24 min on LT-08. 1 job is paused for vendor_visit; 1 for Spare part.',
+    );
+    const spares = STATE.open.map((x) =>
+      x.status === 'waiting' ? { ...x, waitReason: 'spare' } : x,
+    );
+    const line = teamModel({ ...teamFixture, state: { ...STATE, open: spares } }, realT).takeaways[
+      'desk.team'
+    ]!.text;
+    expect(line).toContain('2 jobs are paused for Spare part.');
+  });
+
+  it('says nothing about paused jobs when none are paused', () => {
+    const open = STATE.open.filter((x) => x.status !== 'waiting');
+    const line = teamModel({ ...teamFixture, state: { ...STATE, open } }, realT).takeaways[
+      'desk.team'
+    ]!.text;
+    expect(line).not.toContain('paused');
   });
 });

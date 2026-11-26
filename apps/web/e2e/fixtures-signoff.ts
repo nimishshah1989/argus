@@ -2,16 +2,22 @@ import { SEGMENT, TENANT, scopedId, type MachineFixture, type SeedStatement } fr
 
 const PROJECTS = ['chromium', 'phone', 'gujarati'];
 
-/** Three machines per project for the sign-off spec (ticket 34), lettered so no floor search by number finds them. */
-const SIGNOFF_MACHINES: MachineFixture[] = Array.from({ length: 9 }, (_, i) => ({
+/**
+ * Five machines per project, lettered so no floor search by number finds them: A to C for the sign-off spec (ticket
+ * 34), D and E for the desk-data spec (sign-off outcomes, the close form's code picker).
+ */
+const SIGNOFF_MACHINES: MachineFixture[] = Array.from({ length: 15 }, (_, i) => ({
   id: scopedId(`10000000-0000-0000-0002-${String(i).padStart(12, '0')}`),
-  code: `SO-${'ABC'[Math.floor(i / 3)]}${i % 3}`,
+  code: `SO-${'ABCDE'[Math.floor(i / 3)]}${i % 3}`,
   category: 'VMC',
   cell: 'Cell-6',
 }));
 
 /** SO-<A to C><project>: one machine per sign-off test per project, so nothing else raises on them. */
-export function signoffMachine(test: 'A' | 'B' | 'C', projectName: string): MachineFixture {
+export function signoffMachine(
+  test: 'A' | 'B' | 'C' | 'D' | 'E',
+  projectName: string,
+): MachineFixture {
   const code = `SO-${test}${Math.max(0, PROJECTS.indexOf(projectName))}`;
   const machine = SIGNOFF_MACHINES.find((m) => m.code === code);
   if (!machine) throw new Error(`No sign-off machine ${code}`);
