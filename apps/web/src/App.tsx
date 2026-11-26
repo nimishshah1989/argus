@@ -4,15 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { UpdateBanner } from './components/UpdateBanner.js';
 import { Page } from './ui/layout.js';
-import { Board } from './screens/Board.js';
+import { BoardPage } from './screens/v2/board/Page.js';
 import { Desk } from './screens/Desk.js';
 import { ChangePassword } from './faces/signin/password.js';
 import { Who } from './faces/signin/who.js';
 import { SignInView } from './screens/v2/sign-in/View.js';
 import { MyComplaints } from './faces/floor/my-complaints.js';
-import { OtherWork } from './faces/floor/other-work.js';
 import { PmJobs } from './faces/floor/pm-jobs.js';
-import { Report } from './faces/floor/report.js';
+import { FloorOtherPage, FloorReportPage } from './screens/v2/floor/Page.js';
 import { Settings } from './screens/Settings.js';
 import { TicketRoute } from './screens/desk/TicketRoute.js';
 import {
@@ -21,7 +20,8 @@ import {
   DataChecklistPage,
   MachinePageRoute,
 } from './screens/analytics/Analytics.js';
-import { PlantSettings, PLANT_PAGES } from './screens/settings/Plant.js';
+import { PLANT_PAGES } from './screens/settings/Plant.js';
+import { SettingsView } from './screens/v2/settings/View.js';
 
 // Decided at build time: in a production build without VITE_GALLERY=on this is `false`, so the
 // bundler drops the gallery (D20).
@@ -41,17 +41,17 @@ export function App() {
         <Route path="/login" element={<SignInView />} />
         <Route path="/who" element={<Who />} />
         <Route path="/password" element={<ChangePassword />} />
-        <Route path="/floor" element={<Report />} />
-        <Route path="/floor/other" element={<OtherWork />} />
+        <Route path="/floor" element={<FloorReportPage />} />
+        <Route path="/floor/other" element={<FloorOtherPage />} />
         <Route path="/floor/mine" element={<MyComplaints />} />
         <Route path="/floor/pm" element={<PmJobs />} />
         <Route path="/desk/mine" element={<Desk view="mine" />} />
         <Route path="/desk/team" element={<Desk view="team" />} />
-        <Route path="/desk/board" element={<Board />} />
+        <Route path="/desk/board" element={<BoardPage />} />
         <Route path="/desk/settings" element={<Settings />} />
-        <Route path="/settings" element={<PlantSettings page="home" />} />
+        <Route path="/settings" element={<SettingsView page="home" />} />
         {PLANT_PAGES.map(({ page }) => (
-          <Route key={page} path={`/settings/${page}`} element={<PlantSettings page={page} />} />
+          <Route key={page} path={`/settings/${page}`} element={<SettingsView page={page} />} />
         ))}
         <Route path="/analytics" element={<Navigate to="/analytics/today" replace />} />
         <Route path="/analytics/today/checklist" element={<DataChecklistPage />} />

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { plantToday } from './TasksList.js';
+import { plantToday } from '../v2/desk/model.js';
 
 describe('plantToday (ticket 19)', () => {
   it('rolls the day where the plant is, not where the server is', () => {
