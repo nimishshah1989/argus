@@ -163,7 +163,9 @@ export type ModelKey =
   | 'category-cell'
   | 'mttr-mtbf'
   | 'data-checklist'
-  | 'team-focus';
+  | 'team-focus'
+  | 'monthly-report'
+  | 'money-matters';
 
 export type PageConfig<K extends ModelKey> = {
   entry: LiveEntry;

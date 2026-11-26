@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import { expect, test } from './test.js';
+import { openShowDetail } from './show-detail.js';
 import { MACHINES, signIn } from './fixtures.js';
 
 /**
@@ -90,6 +91,10 @@ async function openA9(page: Page): Promise<void> {
   ).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('heading', { level: 1, name: A9.title })).toBeVisible();
   expect(A9.kpis).toHaveLength(14);
+  await openShowDetail(
+    page,
+    page.getByRole('region', { name: A9.kpis[0]!.label, exact: true }).first(),
+  );
   // Each figure is a region named by its label; the same words also sit in the answer's Why list and in table filters.
   for (const kpi of A9.kpis) {
     const tile = page.getByRole('region', { name: kpi.label, exact: true }).first();
@@ -151,13 +156,14 @@ async function openLab(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { level: 1, name: FL.title })).toBeVisible();
   const method = page.getByRole('region', { name: METHOD.title, exact: true });
   await expect(method).toBeVisible();
-  await expect(method.getByText(range(METHOD.rows.length))).toBeVisible();
+  // Under 10 rows a table has no pager (ADR 0036 R13): every row of the key is drawn, under its one header row.
+  await expect(method.getByRole('row')).toHaveCount(METHOD.rows.length + 1);
   for (const heading of METHOD.header.filter((label) => label !== ''))
     await expect(method.getByRole('columnheader', { name: heading, exact: true })).toBeVisible();
   await expect(method.getByText('1.85', { exact: true }).first()).toBeVisible();
   const months = page.getByRole('region', { name: MONTHS.title, exact: true });
   await expect(months).toBeVisible();
-  await expect(months.getByText(range(MONTHS.rows.length))).toBeVisible();
+  await expect(months.getByRole('row')).toHaveCount(MONTHS.rows.length + 1);
   await expect(months.getByRole('cell', { name: '194.4', exact: true })).toBeVisible();
   const charts = page.locator('[data-chart-state]');
   await expect(charts).toHaveCount(1);

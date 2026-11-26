@@ -38,16 +38,11 @@ Live at `/analytics/breakdowns?screen=shift-kpis`. v1's branch and the multi-fig
 
 ## ADR 0036 kit rules (ticket #753, sweep #706 batch D)
 
-One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25.
+One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25. Rows from the builder's `docs/loop/handoff/753.md` and ticket #753.
 
-| Rule                          | Status         | Where, or why not                                                                                                                                       |
-| ----------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1 / R10 TileSet + ShowDetail | done           | `View.tsx`: the first 4 figures per section, the rest in `ShowDetail`                                                                                   |
-| R2 ActionStrips               | not applicable | dashboard only; no other page has counts with a way in (ADR 0041)                                                                                       |
-| R4 PeriodToggle               | not applicable | the engine serves one period only (`figuresReplySchema`); a toggle would compute figures it did not print (ADR 0041)                                    |
-| R5 ReviewMarker               | not applicable | no model carries a held-for-review count and there is no review-tray route (ADR 0041)                                                                   |
-| R6 Download Excel             | not applicable | not one of Bhavin's exports (ADR 0041)                                                                                                                  |
-| R11 readable / rupees / exact | not applicable | the page formats no lakh-scale number or money itself; engine-printed strings are never re-rounded (ADR 0041)                                           |
-| R17 ReasonChips               | not applicable | only the Action Center risk table carries reasons; other repeat columns are engine-printed counts (ADR 0041)                                            |
-| R20 RankedBars                | done           | the four breakdown-map Paretos (sent as `kind: 'mixed'`) are `RankedBars` lists (`paretoRows`); the running-total line is dropped, the spec titles stay |
-| R21 Quadrant                  | not applicable | no bubble chart on this page (ADR 0041)                                                                                                                 |
+| Rule                          | Status         | Where, or why not                                                                                                                                                                                      |
+| ----------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| R1 TileSet + ShowDetail       | done           | first 4 figures of a section in its row, the rest under Show detail                                                                                                                                    |
+| R6 Download Excel             | not applicable | not one of Bhavin's exports (ADR 0041)                                                                                                                                                                 |
+| R11 readable / rupees / exact | not applicable | the page formats no lakh-scale number or money itself (ADR 0041)                                                                                                                                       |
+| R20 RankedBars                | done           | the four breakdown-map Paretos (machine, cell, code, shift; sent as `mixed` specs) are ranked lists in a `Panel`, bars kept, running-total line dropped; each keeps its title and the section takeaway |

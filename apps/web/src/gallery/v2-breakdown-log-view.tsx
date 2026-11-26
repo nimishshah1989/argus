@@ -6,7 +6,7 @@ import { BreakdownLogView } from '../screens/v2/breakdown-log/View.js';
 import { everyMatchOf } from '../screens/v2/breakdown-log/live.js';
 import { EMPTY_QUERY, type LogModel, type LogQuery } from '../screens/v2/breakdown-log/model.js';
 import { workbookLog } from '../screens/v2/breakdown-log/source.js';
-import { downloadCsv, logCsv } from '../screens/v2/breakdown-log/csv.js';
+import { logSheets } from '../screens/v2/breakdown-log/sweep.js';
 import { EntityShell } from '../screens/v2/entity/EntityShell.js';
 import { useScreenModel } from '../screens/v2/data.js';
 import { useNav } from '../screens/v2/nav.js';
@@ -41,11 +41,7 @@ export default function V2BreakdownLogView() {
       nav={nav}
       title={title}
       onQuery={setQuery}
-      onExport={() => {
-        const { header, rows } = everyMatchOf(workbookLog, query, i18n.t.bind(i18n));
-        downloadCsv(logCsv(header, rows));
-        return Promise.resolve();
-      }}
+      sheets={logSheets(everyMatchOf(workbookLog, query, i18n.t.bind(i18n)), model.words)}
     />
   );
 }

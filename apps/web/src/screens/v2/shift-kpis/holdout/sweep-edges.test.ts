@@ -11,24 +11,30 @@ const mixed = (categories: string[], values: (number | undefined)[]): ChartSpec 
   categoryLabel: 'Code',
   categories,
   bars: [{ name: 'BD hours', values }],
-  line: { name: 'Cumulative %', values: values.map(() => 50) },
+  line: { name: 'Cumulative %', values: values.map(() => 100) },
 });
 
 describe('paretoRows at the edges', () => {
   it('leaves out a category with no value or a value that is not finite', () => {
-    const rows = paretoRows(mixed(['E', 'M', 'X', 'Y'], [5, undefined, Number.NaN, Infinity]));
+    const rows = paretoRows(
+      mixed(['E', 'M', 'X', 'Y'], [5, undefined, Number.NaN, Infinity]),
+      'All the others',
+    );
     expect(rows!.map((r) => r.key)).toEqual(['E']);
   });
 
   it('is empty for a Pareto with no categories or no bar series', () => {
-    expect(paretoRows(mixed([], []))).toEqual([]);
+    expect(paretoRows(mixed([], []), 'All the others')).toEqual([]);
     expect(
-      paretoRows({ kind: 'mixed', title: 'P', categoryLabel: 'C', categories: ['A'], bars: [] }),
+      paretoRows(
+        { kind: 'mixed', title: 'P', categoryLabel: 'C', categories: ['A'], bars: [] },
+        'All the others',
+      ),
     ).toEqual([]);
   });
 
   it('keeps the spec’s order and never re-rounds the engine’s number', () => {
-    const rows = paretoRows(mixed(['small', 'big'], [0.125, 123456.789]))!;
+    const rows = paretoRows(mixed(['small', 'big'], [0.125, 123456.789]), 'All the others')!;
     expect(rows.map((r) => [r.key, r.value, r.valueText])).toEqual([
       ['small', 0.125, '0.13'],
       ['big', 123456.789, '1,23,456.79'],
@@ -37,13 +43,16 @@ describe('paretoRows at the edges', () => {
   });
 
   it('keeps a zero bar, and ignores the running-total line entirely', () => {
-    const rows = paretoRows({
-      kind: 'mixed',
-      title: 'P',
-      categoryLabel: 'C',
-      categories: ['A', 'B'],
-      bars: [{ name: 'BD hours', values: [0, 2] }],
-    })!;
+    const rows = paretoRows(
+      {
+        kind: 'mixed',
+        title: 'P',
+        categoryLabel: 'C',
+        categories: ['A', 'B'],
+        bars: [{ name: 'BD hours', values: [0, 2] }],
+      },
+      'All the others',
+    )!;
     expect(rows.map((r) => r.valueText)).toEqual(['0', '2']);
   });
 
@@ -55,15 +64,18 @@ describe('paretoRows at the edges', () => {
       categories: ['Jan'],
       series: [{ name: 'h', values: [1] }],
     };
-    expect(paretoRows(line)).toBeNull();
+    expect(paretoRows(line, 'All the others')).toBeNull();
     expect(
-      paretoRows({
-        kind: 'heatmap',
-        title: 'H',
-        categoryLabel: 'M',
-        categories: ['A'],
-        series: [{ name: 'Jan', values: [1] }],
-      }),
+      paretoRows(
+        {
+          kind: 'heatmap',
+          title: 'H',
+          categoryLabel: 'M',
+          categories: ['A'],
+          series: [{ name: 'Jan', values: [1] }],
+        },
+        'All the others',
+      ),
     ).toBeNull();
   });
 });

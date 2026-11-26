@@ -47,6 +47,8 @@ export const insightEn = {
   'insight.filter.all': 'All {label}',
   'insight.filter.reset': 'Reset filters',
   'insight.half': 'Half the hours',
+  // Ticket 753: the last row of a ranked list the engine cut short (top 15 machines), so shares stay shares of the whole.
+  'insight.rest': 'All the others',
   // ADR 0041/0043: the four Quadrant names; each page maps "often" and "long" onto its own axes.
   'insight.quad.often-long': 'Often and long',
   'insight.quad.often-short': 'Often, short',

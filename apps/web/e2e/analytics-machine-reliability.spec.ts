@@ -255,7 +255,8 @@ test('a head reads one machine’s fit, its parts, and drills from each', async 
   ).toBeVisible();
   await expect(spares.getByRole('cell', { name: 'Break Rectifier 2 amp' })).toBeVisible();
   await expect(spares.getByRole('cell', { name: '03-Oct-2026', exact: true })).toHaveCount(2);
-  await expect(spares.getByRole('cell', { name: '4.0', exact: true })).toBeVisible();
+  // Downtime h is the table's measure (ticket 643): the worst part's hours carry the takeaway's Loss pill.
+  await expect(spares.getByRole('cell', { name: '4.0 Loss', exact: true })).toBeVisible();
   await expect(spares.getByRole('cell', { name: '3.0', exact: true })).toBeVisible();
   await expect(spares.getByRole('cell', { name: '0.0', exact: true })).toHaveCount(2);
   await expect(spares.getByText('4 parts, 4 shown', { exact: true })).toHaveCount(0);
@@ -295,7 +296,7 @@ test('a machine with too little history and a machine with no spare say so', asy
   // Its spares list is the top five of fifteen.
   const parts = region(page, 'Critical spares');
   await expect(parts.getByRole('cell', { name: 'Seal 20422243', exact: true })).toBeVisible();
-  await expect(parts.getByRole('cell', { name: '13.3', exact: true })).toBeVisible();
+  await expect(parts.getByRole('cell', { name: '13.3 Loss', exact: true })).toBeVisible();
   await expect(parts.getByText('15 parts, 5 shown', { exact: true })).toBeVisible();
 
   // No failure and no part: "not enough history" and the empty spares line, with no link at all.

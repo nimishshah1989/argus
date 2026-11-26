@@ -369,10 +369,24 @@ async function openShiftKpis(page: Page): Promise<void> {
   await expect(page.getByText(/462\.0 hrs between breakdowns/)).toBeVisible();
 }
 
-/** The map: four heat grids, a named worst machine, its hours and its half-the-hours point. */
+/**
+ * The map: three heat grids and one ranked list, a named worst machine, its hours and its half-the-hours point. The
+ * cell grid is mostly dashes (18 of 33 cells), so it is drawn as each cell's total, largest first (ADR 0036 R22).
+ */
 async function readMap(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Breakdown map', exact: true })).toBeVisible();
-  await expect(page.locator('[data-heat="matrix"]')).toHaveCount(4);
+  await expect(page.locator('[data-heat="matrix"]')).toHaveCount(3);
+  const cells = page.getByRole('list', { name: 'By cell — BD hours by month', exact: true });
+  // One row per cell (the half-the-hours marker is a list item too, so the rows are counted by their class).
+  const ranked = cells.locator('.v2-ranked-row');
+  await expect(ranked).toHaveCount(3);
+  await expect(ranked.first()).toContainText('Cell 7');
+  await expect(ranked.first()).toContainText('776.78 · 39%');
+  // A cell in the list still opens its drawer; Back closes it.
+  await cells.getByRole('button', { name: 'Cell 7', exact: true }).click();
+  await expect(page).toHaveURL(/[?&]drawer=cell:Cell(%20| )7$/);
+  await page.goBack();
+  await expect(page).not.toHaveURL(/drawer=/);
   const machines = page.getByRole('table', { name: /^By machine/ });
   await expect(machines.getByRole('button', { name: 'TMC-2', exact: true })).toBeVisible();
   await expect(machines.getByRole('cell', { name: '307.58', exact: true })).toBeVisible();
@@ -385,9 +399,10 @@ async function readMap(page: Page): Promise<void> {
   await expect(
     machines.getByRole('cell', { name: 'TMC-2, Mar: no hours', exact: true }),
   ).not.toHaveAttribute('data-level', /.+/);
-  // Sweep 706 (ADR 0043): the four Paretos are ranked bar lists now, each under its own title; no chart is left.
+  // Sweep 706 (ADR 0043): the four Paretos are ranked bar lists now, each under its own title; no chart is left. Five
+  // lists: the four Paretos plus the cell map above (ADR 0036 R22).
   await expect(page.locator('[data-chart-state]')).toHaveCount(0);
-  await expect(page.locator('ol.v2-ranked')).toHaveCount(4);
+  await expect(page.locator('ol.v2-ranked')).toHaveCount(5);
   await expect(
     page.getByRole('heading', { name: 'BD hours by machine — Pareto', exact: true }),
   ).toBeVisible();
