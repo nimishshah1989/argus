@@ -254,7 +254,7 @@ describe('the register as EngineData.amc/legal', () => {
     expect(lineOf(amc, ids.blankAmc).type).toBe('AMC');
     expect(lineOf(amc, ids.blankWarranty).type).toBe('Warranty');
     const redacted = lineOf(amc, ids.redacted).type;
-    expect(redacted).toMatch(/^Service for \[P\d+\]$/);
+    expect(redacted).toMatch(/^Service for \[P-\d+:\d+\]$/);
     expect(JSON.stringify(data)).not.toContain('plant-a technician');
   });
 

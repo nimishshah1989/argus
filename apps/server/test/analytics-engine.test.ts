@@ -323,7 +323,7 @@ describe('the data loader', () => {
     const text = JSON.stringify(data);
     expect(text).not.toMatch(/plant-a|plant-b/);
     expect(text).not.toMatch(/phone/i);
-    expect(data.reports[0]!.problem).toMatch(/^Spindle noise, told \[P\d+\]$/);
+    expect(data.reports[0]!.problem).toMatch(/^Spindle noise, told \[P-\d+:\d+\]$/);
     expect(data.timeZone).toBe('Asia/Kolkata');
     // Ticket 50b: the channel and the planned job's scheduled day reach the engine; a live ticket has neither day.
     expect(data.tickets.find((row) => row.ref === 'BD-0001')).toMatchObject({

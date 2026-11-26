@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withTenant } from '@uptimo/db';
-import { redactionTerms } from '../src/modules/identity/index.js';
+import { personCode, redactionCodes, redactionTerms } from '../src/modules/identity/index.js';
 import { startTestDb, type TestDb } from './harness.js';
 
 const A = '61000000-0000-4000-8000-00000000000a';
@@ -57,5 +57,29 @@ describe('identity redactionTerms', () => {
       expect(all).not.toContain(other);
     }
     expect(terms.tenantName).toBe('Test Plant A');
+  });
+
+  it('gives the engine each live person’s own terms with their code, and leaves out a shared term and other plants', async () => {
+    const ids = (
+      await db.admin.query(
+        `INSERT INTO person (tenant_id, name, short_name, active) VALUES
+           ($1, 'Bina Two', 'Bina', true) RETURNING id`,
+        [B],
+      )
+    ).rows.map((row) => row.id as string);
+    await db.admin.query(
+      `INSERT INTO login (tenant_id, username, password_hash, role, person_id) VALUES
+         ($1, 'bina.two', 'hash', 'technician', $2)`,
+      [B, ids[0]],
+    );
+    const fake = (
+      await db.admin.query(`SELECT id FROM person WHERE tenant_id = $1 AND name = 'Bina Fake'`, [B])
+    ).rows[0].id as string;
+    const codes = await withTenant(db.app, B, (tx) => redactionCodes(tx, B));
+    expect(Object.fromEntries(codes)).toEqual({
+      'bina fake': personCode(fake),
+      'bina two': personCode(ids[0]!),
+      'bina.two': personCode(ids[0]!),
+    });
   });
 });

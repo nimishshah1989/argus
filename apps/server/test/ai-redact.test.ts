@@ -69,4 +69,19 @@ describe('createRedactor', () => {
     expect(redactor.leaks('R pump')).toBe(false);
     expect(Object.keys(redactor)).toEqual(['redact', 'leaks']);
   });
+
+  it('writes a person’s own placeholder only when given codes (the engine), and keeps [P1] for the AI', () => {
+    const codes = new Map([
+      ['ravi fake', 'P-3f412b54'],
+      ['ravi.f', 'P-3f412b54'],
+    ]);
+    const text = 'Ravi Fake and ravi.f told Mina Fake on +919000000101 at Test Plant A';
+    const engine = createRedactor(terms(), codes);
+    expect(engine.redact(text)).toBe(
+      '[P-16193:11092] and [P-16193:11092] told [P1] on [PHONE] at [PLANT]',
+    );
+    expect(engine.leaks(engine.redact(text) as string)).toBe(false);
+    const ai = createRedactor(terms());
+    expect(ai.redact(text)).toBe('[P1] and [P2] told [P3] on [PHONE] at [PLANT]');
+  });
 });

@@ -24,9 +24,9 @@ import {
   createRedactor,
   peopleForEngine,
   personCode,
+  redactionCodes,
   redactionTerms,
   tenantInfo,
-  type Redactor,
 } from '../identity/index.js';
 import {
   assetRegistersForEngine,
@@ -143,10 +143,12 @@ const sparesOf = (value: unknown, clean: Cleaner): string[] => {
         .filter((part) => part !== '');
 };
 
-const cleanerOf =
-  (redactor: Redactor): Cleaner =>
-  (value) =>
-    redactor.redact(value) as string;
+/** A named person becomes their own placeholder, which a reply turns back into the name (ADR 0059 addendum). */
+async function cleanerOf(tx: Db, tenantId: string): Promise<Cleaner> {
+  const terms = await redactionTerms(tx, tenantId);
+  const redactor = createRedactor(terms, await redactionCodes(tx, tenantId));
+  return (value) => redactor.redact(value) as string;
+}
 
 const codes = (ids: unknown): string[] => (ids as string[]).map(personCode);
 
@@ -305,7 +307,7 @@ const registerLegal = (row: Row, clean: Cleaner): LegalLine => {
 export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineData> {
   // One connection runs one query at a time, so these are read in turn.
   const { time_zone: timeZone } = await tenantInfo(tx, tenantId);
-  const clean = cleanerOf(createRedactor(await redactionTerms(tx, tenantId)));
+  const clean = await cleanerOf(tx, tenantId);
   const machines = await machinesForEngine(tx);
   const moves = await movesForEngine(tx);
   const shifts = await shiftsForEngine(tx, tenantId);

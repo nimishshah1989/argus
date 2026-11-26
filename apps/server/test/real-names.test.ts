@@ -11,6 +11,8 @@ const AS_OF = '2026-11-11';
 const KEY = ['real', 'names', 'test'].join('-').padEnd(40, 'x');
 const ERASED_NAME = 'Zorbo Quixle Erased';
 const CODE = /P-[0-9a-f]{8}/g;
+/** A named person as redacted free text carries them to the engine. */
+const PLACEHOLDER = /\[P-\d+:\d+\]/;
 
 let f: Fixture;
 let technicianCode: string;
@@ -48,9 +50,9 @@ beforeAll(async () => {
   const report = (
     await f.admin.query(
       `INSERT INTO breakdown_report
-         (tenant_id, ticket_id, machine_id, date, shift_code, problem, downtime_min, breakdown_category)
-       VALUES ($1, $2, $3, '2026-11-05', 'DAY', 'Spindle noise', 90, 'M') RETURNING id`,
-      [A, ticket, M_USED],
+         (tenant_id, ticket_id, machine_id, date, shift_code, problem, root_cause, downtime_min, breakdown_category)
+       VALUES ($1, $2, $3, '2026-11-05', 'DAY', 'Spindle noise, told plant-a technician', $4, 90, 'M') RETURNING id`,
+      [A, ticket, M_USED, `${ERASED_NAME} left the belt loose`],
     )
   ).rows[0].id as string;
   await f.admin.query(
@@ -92,6 +94,14 @@ describe('people by name (ADR 0059)', () => {
     expect(res.body).not.toMatch(/zorbo|former staff/i);
   });
 
+  it('names a person the free text mentions, though the engine read a placeholder (ADR 0059 addendum)', async () => {
+    const res = await f.call('GET', `/api/v1/analytics/figures?asOf=${AS_OF}`, f.tokens.head!);
+    expect(res.statusCode, res.body).toBe(200);
+    expect(res.body).toContain('Spindle noise, told plant-a technician');
+    expect(res.body).not.toMatch(PLACEHOLDER);
+    expect(res.body).not.toMatch(/zorbo|former staff/i);
+  });
+
   it('keeps the stored run name-free: kpi_snapshot holds codes, never names', async () => {
     const run = await f.call('POST', '/api/v1/analytics/run', f.tokens.head!, { asOf: AS_OF });
     expect(run.statusCode, run.body).toBe(200);
@@ -101,6 +111,9 @@ describe('people by name (ADR 0059)', () => {
     );
     expect(stored).toContain(technicianCode);
     expect(stored).not.toContain('plant-a technician');
+    // The free text is kept as the engine read it: the person's own placeholder, never the name.
+    expect(stored).toMatch(/Spindle noise, told \[P-\d+:\d+\]/);
+    expect(stored).not.toMatch(/zorbo/i);
   });
 
   it('names people in the compare and drill replies too', async () => {
