@@ -2,35 +2,33 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-25 · **By:** Plan (Opus 5.5) · **Model:** Opus 5.5
+**Updated:** 2026-11-26 11:20 IST · **By:** release session `local_abd659d2…` (context full) · **Goal (Nimish):** all screens live on the newest kit, nothing old remains · **Branch:** plan/handoff-s26b
 
 ## State
 
-- LIVE on main: #762 S25 Guide (PR #779 + fix #784; reviewer PASS on #784, CI green, `loop clean 762` done). Late fix cause: the e2e needs the Guide's figure label as its own `<span>` text node (v1 had it, commit 88c957cf). Reviewer notes, not done: add a unit test for `withDesk` / the label span in `apps/web/src/screens/v2/guide`; if another screen needs the Desk link, move `withDesk` into LiveFrame; `docs/loop/handoff/762.md` omits the span/h1/Desk fixes.
-- S27–S30 wireframes ALL APPROVED. Builds in other sessions' `.loop/wt/`: #767 (commit 8c70eae3, session local_bfc6fd20) and #769 (commit 0614a320, session local_77555ba6); no PRs yet, hidden tests and e2e never run.
-- Open PRs, rebased with `gh pr update-branch` onto the new main, CI not yet re-read: #781 sweep A (#750), #782 Monthly (#763), #783 sweep B (#751). Known cause before rebase: loop-guard flags `#<n>` / "(#763)" text in code comments as raw colour/size.
-- S26-1..S26-8 Settings: designed, NOT ticketed (context budget). ADR 0047 in PR #786 (docs only; also brings ADR 0044 + 0046 to main) holds all eight designs. Next: merge #786 when green, then ONE `loop plan "Write the S26-1..S26-8 issues and light seeds from ADR 0047; no new decisions"`. S26-1 first; S26-2..8 after it merges.
-- Tests: none run by me this session beyond CI on #784 (all green). `.loop.json` commands (setup/test/typecheck/lint) were NOT re-verified.
-- Not started: #765 S24 Annual, sweeps #752/#753.
-- Flakes seen: who-is-acting.spec.ts:219, detail-downtime.spec.ts:7, desk lifecycle 409, desk-lists.spec.ts:11 (phone).
+- Staging serves a5c83744 = main (health checked). Merged 26 Nov: #805 #806 #808 #811 #804 #809 #820 #807 #821. Nimish merges some himself (#806 went in red; #811 fixed it).
+- Still old: Desk Mine + Team (#770), Settings sub-pages (#789-#795), OEM not live (#812-#815), /who, /password, analytics fallback, dead v1 code (#816-#819).
+- #822 (#795) open, conflicting: merge main and `origin/plan/t795` in a throwaway worktree (seed renamed `fixture.ts` to `fixture-rows.ts`).
+- OEM: ADR 0051. Seeds `plan/t812`-`t819` pushed. Order: #816 #817 #818, #812 #813, #814 (after #812), #815 (after #813 + #814), #819 last. Bhavin owes the claim-amount rule.
+- Merge rule: ADR 0050.
+- Tests: #811 #804 #809 #807 #821 passed test shards, static, secrets and critical-only review (#809, #807: `loop-guard` red, not critical). Screens not opened by eye.
 
-## Next step
+## Next steps (RELEASE role: owns this file and all merges)
 
-1. `loop ci 781`, `loop ci 782`, `loop ci 783`. For loop-guard reds: rewrite the `#<n>` comments (do NOT loosen `.github/loop/check_pr.py`). Merge one PR at a time (all touch live.tsx/Analytics.tsx), `gh pr update-branch` the rest after each.
-2. `loop finish 767`, `loop finish 769` etc. in the sessions' folders, one at a time, then reviewer and merge.
-3. Merge PR #786, run the S26 seed plan job (line above), build S26-1 then S26-2..8; then #765 S24, #752, #753.
+1. Merge #823 (ADR 0050 + handoff; conflict with main resolved) when `gh pr checks` is green.
+2. Build session (or, if none, finish built work): #822, #789, #770, #790; then #791-#794 one at a time; then #812-#819.
+3. Review (critical-only), merge, confirm `/api/v1/health`, then `loop clean <N>`. Build handover: `~/Library/Application Support/Claude/side-session-notes/local_7710e647-bb9d-4008-ab43-c6a316dec3ff/build-handover.md`.
+4. Fold its "Don't repeat" into LESSONS.md. Older follow-ups: comment on #751, S26-1; #800's handoff says #782 merged with no review (no late one recorded).
 
-## Blocked / open questions
+## Blocked
 
-None. Nimish: `design/approved.json` has uncommitted S27–S30 approvals in this checkout; commit on a plan branch.
+- New building: the build session `local_975943c3…` stopped (context full) and its replacement card is not started. Release card `task_40f525ec` also not started.
 
 ## Don't repeat
 
-- `loop build N` reads the issue BODY, not comments: put fix notes in the body (`gh issue edit`) before `loop prep`. `loop finish` commits leftover builder work itself.
-- NEVER run `loop finish N` twice without a code change. `loop prep N` on a finished ticket needs `gh issue reopen N` first. `loop finish` removes `.loop/wt/N`.
-- Re-running `/loop:init` overwrites `.github/loop/check_pr.py` with the stock file (drops ADR 0035/0038/0040 carve-outs) and writes machine paths into `.claude/settings.json`: `git checkout` both. Branch protection on main was NOT enabled.
-- Hooks block `git -C .loop/wt/N` for the coordinator and holdout paths for builders. New v2 page needs a `PAGE_KEYS` entry in figure-content.ts; v2 page title is the screen's own name. Builders cannot run prettier: use builder-small.
-
-## Files touched this session
-
-HANDOFF.md only (committed). `docs/loop/metrics.jsonl` modified by the loop, uncommitted.
+- `loop ci` says "CI GREEN" with shards pending or GitHub unreachable: check `gh pr checks` and `mergeStateStatus`.
+- `engine-scale.test.ts` (20 s) fails on a busy Mac and burns a `loop finish` attempt. If the branch holds all of origin, push without force and let CI judge.
+- `loop finish` force-pushes: pull a behind build folder first. Never run `loop finish 763` again.
+- Deploy build crashes at random (`qemu` exit 132): `gh run rerun <id> --failed`. A handoff "Blocked" section in a builder note reads exactly `None.`.
+- Merge conflicts: throwaway worktree outside `.loop/wt`; never switch branches in the main checkout. New keys in a shipped namespace need Gujarati.
+- The app auto-archives sessions on PR close (setting on).

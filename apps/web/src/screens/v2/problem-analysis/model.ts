@@ -18,6 +18,8 @@ export type ProblemAnalysisWords = {
   context: string;
   /** The row of four figures that answer "what if the top problem were cut". */
   whatIf: string;
+  /** The bar row that stands for every group the chart does not draw. */
+  rest: string;
   table: TableWords;
   /** `{n}`: how many bars or bubbles the chart draws. */
   charts: { bar: { sub: string; aria: string }; scatter: { sub: string; aria: string } };

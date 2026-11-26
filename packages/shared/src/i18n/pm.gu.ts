@@ -2,6 +2,10 @@ import { gujarati } from './blank.js';
 import { pmEn } from './pm.en.js';
 
 export const pmGu = gujarati(pmEn, {
+  'pm.jobs.title': 'PM કામ',
+  'pm.jobs.tab': 'PM કામ',
+  'pm.jobs.empty': 'હમણાં કોઈ PM કામ નથી.',
+  'pm.jobs.sub': 'યોજના પર ટિક કરો, રીડિંગ નોંધો અને પૂરું કરો',
   'pm.calendar.moveDate': 'તારીખ પર ખસેડો',
   'pm.calendar.moveDateFor': 'તારીખ પર ખસેડો, {{machine}}',
   'pm.calendar.moveSheet.title': '{{machine}} ને તારીખ પર ખસેડો',

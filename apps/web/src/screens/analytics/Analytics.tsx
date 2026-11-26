@@ -4,7 +4,6 @@ import { ActionCenterPage } from '../v2/action-center/Page.js';
 import { GroupPage } from './GroupPage.js';
 import { MachinePage } from '../v2/machine/Page.js';
 import { LiveFrame } from '../v2/live-frame.js';
-import { ReportsPage } from './ReportsPage.js';
 import { AnalyticsShell } from './shell/AnalyticsShell.js';
 import { liveScreen } from '../v2/live.js';
 
@@ -48,7 +47,7 @@ export function AnalyticsFace() {
   if (live) return live;
   return (
     <AnalyticsShell>
-      {found.id === 'reports' ? <ReportsPage group={found} /> : <GroupPage group={found} />}
+      <GroupPage group={found} />
     </AnalyticsShell>
   );
 }
