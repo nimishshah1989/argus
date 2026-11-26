@@ -62,12 +62,16 @@ export const PHONE: [string, string[]][] = [
   [
     '/desk/settings',
     [
-      'h1: Settings',
+      ...SHELL,
       'a: Back to desk',
       'h2: Machine crit',
+      'button: CNC-01',
       'select: Criticality ',
+      'button: CNC-02',
       'select: Criticality ',
+      'button: DRL-04',
       'select: Criticality ',
+      'button: GRD-07',
       'select: Criticality ',
       'h2: Severity mat',
       'select: A Machine st',
@@ -93,6 +97,8 @@ export const PHONE: [string, string[]][] = [
       'input: ',
       'input: ',
       'button: Save SLA pol',
+      'h2: Restore cloc',
+      'a: Edit wait re',
     ],
   ],
   [
@@ -263,12 +269,16 @@ export const WIDE: [string, string[]][] = [
   [
     '/desk/settings',
     [
-      'h1: Settings',
+      ...SHELL,
       'a: Back to desk',
       'h2: Machine crit',
+      'button: CNC-01',
       'select: Criticality ',
+      'button: CNC-02',
       'select: Criticality ',
+      'button: DRL-04',
       'select: Criticality ',
+      'button: GRD-07',
       'select: Criticality ',
       'h2: Severity mat',
       'select: A Machine st',
@@ -294,6 +304,8 @@ export const WIDE: [string, string[]][] = [
       'input: ',
       'input: ',
       'button: Save SLA pol',
+      'h2: Restore cloc',
+      'a: Edit wait re',
     ],
   ],
   [
