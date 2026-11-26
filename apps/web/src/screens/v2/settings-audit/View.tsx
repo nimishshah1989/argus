@@ -154,7 +154,7 @@ function Values({ row }: { row: AuditRow }) {
 }
 
 /** The takeaway counts a whole 7 days, so it stays quiet while a filter or an unloaded page makes that partial. */
-function Lead({
+export function Lead({
   rows,
   hasMore,
   filtered,

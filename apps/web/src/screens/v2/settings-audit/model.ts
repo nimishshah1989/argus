@@ -41,6 +41,16 @@ function top(
   return key === undefined || !found ? null : { key, count: found.count };
 }
 
+/** What the table's search reads for one change: what, area, by and the reason; a change with no reason adds nothing. */
+export function searchText(
+  _what: string,
+  _area: string,
+  _by: string,
+  _reason: string | undefined,
+): string {
+  throw new Error('not implemented');
+}
+
 /** Only the admin exports the CSV; the head reads. */
 export function mayExport(role: string | undefined): boolean {
   return role === 'admin';

@@ -86,6 +86,8 @@ type TableProps<R> = {
    * shown only when something is chosen. Rows go through `applyFilters` before search and sort.
    */
   selects?: TableSelect<R>[];
+  /** Drawn under the pager only while the reader is on the last page (or the only one): e.g. a "load older" button. */
+  more?: ReactNode;
 };
 
 const rankedBy = <R,>(rows: R[], measure: Column<R>['meaning']) =>
