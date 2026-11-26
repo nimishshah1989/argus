@@ -417,6 +417,16 @@ export function liveScreen(group: string | undefined, screen: string | null): Re
   return unknownMachinesScreen(group, named);
 }
 
+/**
+ * Where a miss in a known group goes (ADR 0051: no address renders a v1 page): `<Navigate replace>` to
+ * `/analytics/<group>?screen=<its first v2 screen>`, and that address must itself draw a v2 screen (no redirect loop).
+ * The rule `unknownMachinesScreen` applies to Machines today, made the rule for every group.
+ */
+export function fallbackScreen(group: string): ReactElement {
+  void group;
+  throw new Error('not implemented');
+}
+
 /** A Machines screen the group does not have goes to the register; every other miss is the v1 page's. */
 function unknownMachinesScreen(
   group: string | undefined,
