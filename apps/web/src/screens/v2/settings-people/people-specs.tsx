@@ -1,3 +1,4 @@
+/* eslint-disable i18next/no-literal-string -- prop values only; every visible string goes through t() */
 import {
   LOGIN_ROLES,
   loginAdminSchema,
@@ -6,9 +7,11 @@ import {
   type PersonAdmin,
 } from '@uptimo/shared/people';
 import { type ShiftReply } from '@uptimo/shared/plant-settings';
-import { formatDateTime } from '../../components/format.js';
-import { defineResource } from '../../data/index.js';
-import type { CrudChoice, CrudCtx, CrudSpec } from '../../patterns/crud-spec.js';
+import { formatDateTime } from '../../../components/format.js';
+import { defineResource } from '../../../data/index.js';
+import type { CrudChoice, CrudCtx, CrudSpec } from '../../../patterns/crud-spec.js';
+import { EntityChip } from '../../../ui/v2/entity-chip.js';
+import { KeyPill } from '../../../ui/v2/key-pill.js';
 
 const people = defineResource<PersonAdmin, PersonAdmin>({ key: 'people', path: '/api/v1/people' });
 const signOut = defineResource<{ ended: number }>({
@@ -32,8 +35,8 @@ const kindOf = (c: CrudCtx, id: string): string => {
 };
 const cellText = (cell: string | null, c: CrudCtx) =>
   cell ? c.t('people.cellN', { cell }) : c.t('people.cell.none');
-const shiftText = (code: string | null, c: CrudCtx) =>
-  code ? c.t('people.shiftCode', { code }) : c.t('people.shift.none');
+const shiftText = (shift: string | null, c: CrudCtx) =>
+  shift ? c.t('people.shiftCode', { code: shift }) : c.t('people.shift.none');
 /** A last sign-in reads as a plant date and time, the same day the audit filters use. */
 const signInText = (iso: string | null, c: CrudCtx) =>
   iso ? formatDateTime(iso, c.timeZone, true) : c.t('people.never');
@@ -45,8 +48,9 @@ const personChoices = (c: CrudCtx): CrudChoice[] =>
   (c.lookups.people as PersonAdmin[])
     .filter((person) => person.active)
     .map((person) => ({ value: person.id, label: person.name }));
-const personName = (c: CrudCtx, id: string | null) =>
-  id ? ((c.lookups.people as PersonAdmin[]).find((p) => p.id === id)?.name ?? '') : '';
+const personOf = (c: CrudCtx, id: string | null) =>
+  id ? (c.lookups.people as PersonAdmin[]).find((p) => p.id === id) : undefined;
+const personName = (c: CrudCtx, id: string | null) => personOf(c, id)?.name ?? '';
 
 export const peopleSpec: CrudSpec<PersonAdmin> = {
   key: 'people',
@@ -138,6 +142,26 @@ export const peopleSpec: CrudSpec<PersonAdmin> = {
   }),
   columns: [
     {
+      labelKey: 'people.team',
+      cell: (row, c) => teamOf(row, c),
+      sortKey: (row, c) => teamOf(row, c),
+    },
+    {
+      labelKey: 'people.jobTitle',
+      cell: (row) => row.title ?? '',
+      sortKey: (row) => row.title ?? '',
+    },
+    {
+      labelKey: 'people.phone',
+      cell: (row, c) =>
+        row.phone?.trim() ? (
+          row.phone
+        ) : (
+          <KeyPill text={c.t('people.phone.none')} tone="risk" icon="alert" />
+        ),
+      sortKey: (row) => row.phone ?? '',
+    },
+    {
       labelKey: 'people.role',
       cell: (row, c) => roleText(c, row.id),
       sortKey: (row, c) => roleText(c, row.id),
@@ -172,8 +196,6 @@ export const peopleSpec: CrudSpec<PersonAdmin> = {
 };
 
 const loginRoleText = (row: LoginAdmin, c: CrudCtx) => c.t(`people.role.${row.role}`);
-const loginKindText = (row: LoginAdmin, c: CrudCtx) =>
-  c.t(row.shared ? 'people.login.shared' : 'people.login.personal');
 
 export const loginsSpec: CrudSpec<LoginAdmin> = {
   key: 'logins',
@@ -232,13 +254,29 @@ export const loginsSpec: CrudSpec<LoginAdmin> = {
       cell: (row, c) => loginRoleText(row, c),
       sortKey: (row, c) => loginRoleText(row, c),
     },
-    { labelKey: 'people.login.kind', cell: (row, c) => loginKindText(row, c) },
+    {
+      labelKey: 'people.login.sharedCol',
+      cell: (row, c) =>
+        row.shared ? <KeyPill text={c.t('people.login.shared')} tone="neutral" /> : '',
+      sortKey: (row) => (row.shared ? '0' : '1'),
+    },
     {
       labelKey: 'people.person',
-      cell: (row, c) => personName(c, row.personId),
+      cell: (row, c) => {
+        const person = personOf(c, row.personId);
+        return person ? <EntityChip kind="person" id={person.id} label={person.name} /> : '';
+      },
       sortKey: (row, c) => personName(c, row.personId),
     },
-    { labelKey: 'people.cell', cell: (row, c) => (row.shared ? cellText(row.cell, c) : '') },
+    {
+      labelKey: 'people.cell',
+      cell: (row, c) =>
+        row.shared && row.cell ? (
+          <EntityChip kind="cell" id={row.cell} label={cellText(row.cell, c)} />
+        ) : (
+          ''
+        ),
+    },
     {
       labelKey: 'people.lastSignIn',
       cell: (row, c) => signInText(row.lastSignInAt, c),
