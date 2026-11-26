@@ -1,22 +1,58 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { SyncStatus } from '../../../patterns/sync-status.js';
-import { CircleCheck, OctagonX, Tv } from '../../../ui/icon.js';
-import { MachineIcon } from '../../../ui/machine-icon.js';
-import { TONE_FILL, TONE_TEXT, statusMeaning } from '../../../ui/meaning.js';
+import { Icon, type IconName } from '../../../ui/v2/icons.js';
 import { KeyPill } from '../../../ui/v2/key-pill.js';
+import { SyncStatus } from '../../../ui/v2/sync-status.js';
 import { Takeaway } from '../../../ui/v2/takeaway.js';
-import type { BoardColumn, BoardModel, StopRowModel } from './model.js';
+import type { AgeTone, BoardColumn, BoardModel, StopRowModel } from './model.js';
 import './board.css';
 
-function Nav({ links }: { links: BoardModel['links'] }) {
+/** A column's status as the v2 kit says it: its tint and its icon, beside the chip's word. */
+const STATUS: Record<BoardColumn['status'], { tone: 'loss' | 'plan' | 'risk'; icon: IconName }> = {
+  stopped: { tone: 'loss', icon: 'stop' },
+  in_progress: { tone: 'plan', icon: 'wrench' },
+  waiting: { tone: 'risk', icon: 'pause' },
+};
+
+/** Red where nobody has started, amber while waiting, plain while repaired. */
+const AGE_INK: Record<NonNullable<AgeTone>, string> = {
+  danger: 'v2-seg-loss',
+  hold: 'v2-seg-risk',
+};
+
+/** Plant segment codes to the v2 segment colours (ADR 0036 R23); a code the map does not know stays grey. */
+const SEGMENT: Record<string, string> = {
+  cnc: 'cnc',
+  conventional: 'conv',
+  process: 'process',
+  utility: 'util',
+  dg: 'dg',
+  robot: 'robot',
+};
+
+/** A machine's tile: the colour is its segment, never good or bad. Decorative: the row names the machine. */
+function MachineTile({ segment, tv }: { segment: string; tv: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      data-machine={segment}
+      data-seg={SEGMENT[segment.toLowerCase()]}
+      className={`board-machine ${tv ? 'h-14 w-14 rounded-2xl' : 'h-10 w-10 rounded-xl'}`}
+    >
+      {/* eslint-disable-next-line i18next/no-literal-string -- an icon name, not copy */}
+      <Icon name="machines" size={tv ? 32 : 22} />
+    </span>
+  );
+}
+
+function Nav({ links, tabs }: { links: BoardModel['links']; tabs?: ReactNode }) {
   return (
     <nav className="flex flex-wrap items-center gap-2">
+      {tabs}
       {links.map((link) => {
         const item = (
           <Link to={link.to} className="v2-btn v2-btn-ghost">
-            {link.wideOnly ? <Tv aria-hidden size={20} /> : null}
             {link.label}
           </Link>
         );
@@ -41,15 +77,17 @@ function Pulse({ model }: { model: BoardModel }) {
           {pulse.running}
         </span>
         <div>
-          <p className={`board-heroword inline-flex items-center gap-2 ${TONE_TEXT.ok}`}>
-            <CircleCheck aria-hidden size={tv ? 56 : 18} strokeWidth={2.5} />
+          <p className="board-heroword v2-seg-gain inline-flex items-center gap-2">
+            {/* eslint-disable-next-line i18next/no-literal-string -- an icon name, not copy */}
+            <Icon name="check" size={tv ? 56 : 18} />
             {pulse.runningWord}
           </p>
           <p className="board-sub">{pulse.of}</p>
         </div>
       </div>
-      <p className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 ${TONE_FILL.danger}`}>
-        <OctagonX aria-hidden size={tv ? 58 : 20} strokeWidth={2.5} />
+      <p className="board-fill-loss inline-flex items-center gap-2 rounded-xl px-3 py-2">
+        {/* eslint-disable-next-line i18next/no-literal-string -- an icon name, not copy */}
+        <Icon name="stop" size={tv ? 58 : 20} />
         <span data-testid="count-stopped" className="board-stopnum">
           {pulse.stopped}
         </span>
@@ -59,7 +97,7 @@ function Pulse({ model }: { model: BoardModel }) {
   );
 }
 
-function StopRow({ row, tv, column }: { row: StopRowModel; tv: boolean; column: BoardColumn }) {
+function StopRow({ row, tv }: { row: StopRowModel; tv: boolean }) {
   const { t } = useTranslation();
   const side = tv ? '' : 'row-span-2';
   return (
@@ -69,7 +107,7 @@ function StopRow({ row, tv, column }: { row: StopRowModel; tv: boolean; column: 
         className="grid min-h-16 min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 py-2"
       >
         <span className={side}>
-          <MachineIcon segment={row.segment} status={column.status} size={tv ? 'lg' : 'md'} />
+          <MachineTile segment={row.segment} tv={tv} />
         </span>
         <p className="board-code truncate">
           {
@@ -77,7 +115,7 @@ function StopRow({ row, tv, column }: { row: StopRowModel; tv: boolean; column: 
           }
         </p>
         <p
-          className={`board-age whitespace-nowrap ${side} ${row.ageTone ? TONE_TEXT[row.ageTone] : ''}`}
+          className={`board-age whitespace-nowrap ${side} ${row.ageTone ? AGE_INK[row.ageTone] : ''}`}
         >
           {row.age}
         </p>
@@ -90,7 +128,7 @@ function StopRow({ row, tv, column }: { row: StopRowModel; tv: boolean; column: 
 }
 
 function Column({ column, tv }: { column: BoardColumn; tv: boolean }) {
-  const { tone, icon: Icon } = statusMeaning({ group: 'ticket', id: column.status });
+  const { tone, icon } = STATUS[column.status];
   return (
     <section
       aria-label={column.title}
@@ -98,9 +136,9 @@ function Column({ column, tv }: { column: BoardColumn; tv: boolean }) {
     >
       <div className="flex items-center justify-between">
         <span
-          className={`board-chip inline-flex min-h-chip items-center gap-2 rounded-full px-3 ${TONE_FILL[tone]}`}
+          className={`board-chip inline-flex min-h-chip items-center gap-2 rounded-full px-3 board-fill-${tone}`}
         >
-          <Icon aria-hidden size={tv ? 32 : 16} />
+          <Icon name={icon} size={tv ? 32 : 16} />
           {column.chip}
         </span>
         <span className="board-count">{column.count}</span>
@@ -108,7 +146,7 @@ function Column({ column, tv }: { column: BoardColumn; tv: boolean }) {
       <h2 className="board-coltitle">{column.title}</h2>
       <ul>
         {column.rows.map((row) => (
-          <StopRow key={row.id} row={row} tv={tv} column={column} />
+          <StopRow key={row.id} row={row} tv={tv} />
         ))}
       </ul>
       {column.more ? <p className="board-sub">{column.more}</p> : null}
@@ -135,7 +173,7 @@ function Ages({ model }: { model: BoardModel }) {
   const { ages, tv, takeaways } = model;
   const overDay = ages.buckets.find((b) => b.key === 'overDay');
   const tone = (b: { tone: 'muted' | 'danger' | null }) =>
-    b.tone === 'muted' ? 'board-muted' : b.tone === 'danger' ? TONE_TEXT.danger : '';
+    b.tone === 'muted' ? 'board-muted' : b.tone === 'danger' ? AGE_INK.danger : '';
   if (tv && overDay)
     return (
       <section aria-label={ages.title} className="board-card flex items-center gap-6">
@@ -181,10 +219,20 @@ function DayTiles({ today }: { today: BoardModel['today'] }) {
 }
 
 /**
- * The board drawn from its model: phone/desktop (nav, h1, "Updated", sync pill, pulse card, columns, ages card, day
- * tiles) or the TV (no link at all, sr-only h1, clock, 16:9 frame). `offline` adds the TV's "last numbers kept" line.
+ * The board drawn from its model: in the browser the inside of the Shell, whose header carries the title (the Desk
+ * tabs and links, "Updated" and the sync pill, pulse card, columns, ages card, day tiles), or the TV's own frame (no
+ * link at all, sr-only h1, clock, 16:9). `offline` adds the TV's "last numbers kept" line.
  */
-export function BoardView({ model, offline }: { model: BoardModel; offline?: boolean }): ReactNode {
+export function BoardView({
+  model,
+  offline,
+  tabs,
+}: {
+  model: BoardModel;
+  offline?: boolean;
+  /** The Desk's tabs, first in the row of links (browser only). */
+  tabs?: ReactNode;
+}): ReactNode {
   const { t } = useTranslation();
   const { tv, takeaways } = model;
   const stops = takeaways['board.stops'];
@@ -216,15 +264,12 @@ export function BoardView({ model, offline }: { model: BoardModel; offline?: boo
       </main>
     );
   return (
-    <main className="v2-app mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4">
-      <Nav links={model.links} />
-      <header className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="board-title">{model.title}</h1>
-          <p className="board-sub">{model.updated}</p>
-        </div>
+    <>
+      <Nav links={model.links} tabs={tabs} />
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="board-sub">{model.updated}</p>
         <SyncStatus />
-      </header>
+      </div>
       <section className="board-card">
         <Pulse model={model} />
       </section>
@@ -234,6 +279,6 @@ export function BoardView({ model, offline }: { model: BoardModel; offline?: boo
       <div className="grid grid-cols-2 gap-4">
         <DayTiles today={model.today} />
       </div>
-    </main>
+    </>
   );
 }

@@ -100,13 +100,18 @@ test('the TV is dark, has no navigation, and shows the three oldest stops of a c
   await expect(notStarted).not.toContainText('more');
 });
 
-test('keeps the app navigation outside kiosk mode, and a wide screen opens the TV view', async ({
+test('sits in the Shell outside kiosk mode, and a wide screen opens the TV view', async ({
   page,
 }, testInfo) => {
   await signIn(page, 'asha');
   await openBoard(page, false);
-  await expect(page.getByRole('link', { name: 'Desk', exact: true })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Report', exact: true })).toBeVisible();
+  // ADR 0055/0056 (S30): the rail's Desk link, the Desk tabs with Live pressed, and Report a problem.
+  await expect(page.getByRole('link', { name: 'Desk', exact: true })).toBeAttached();
+  await expect(page.getByRole('button', { name: 'Live', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(page.getByRole('link', { name: 'Report a problem' })).toBeVisible();
   const tvView = page.getByRole('link', { name: 'Open TV view' });
   if (testInfo.project.name !== 'chromium') return expect(tvView).toBeHidden();
   await tvView.click();

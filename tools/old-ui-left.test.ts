@@ -59,7 +59,6 @@ const OLD_LEFT = [
   'ui/input.tsx',
   'ui/layout.tsx',
   'ui/loading.tsx',
-  'ui/machine-icon.tsx',
   'ui/segmented-bar.tsx',
   'ui/sheet.tsx',
   'ui/side-nav.tsx',
