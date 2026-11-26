@@ -42,7 +42,7 @@ export type Column<R> = {
    */
   meaning?: Meaning & { value: (row: R) => number };
   /**
-   * How the column colours itself (ADR 0060): a meaning bars its numbers and marks its top rows, `category` makes its
+   * How the column colours itself (ADR 0061): a meaning bars its numbers and marks its top rows, `category` makes its
    * words pills, `plain` leaves an id, a date or a count alone. Absent: plain, or the measure's own meaning.
    */
   look?: ColumnLook;
@@ -82,7 +82,7 @@ type TableProps<R> = {
   aside?: ReactNode;
   /**
    * What a row opens in the drawer. Left out, a row that names a machine, cell, person or decision (`entityOfRow`)
-   * opens that in the drawer (UX rule 18, ADR 0058); a table whose rows name nothing has rows that are not buttons.
+   * opens that in the drawer (UX rule 18, ADR 0060); a table whose rows name nothing has rows that are not buttons.
    */
   onOpen?: (row: R) => void;
   /** The line the table opens with, under its title (UX rule 60). */

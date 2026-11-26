@@ -50,7 +50,7 @@ How to read an entry: **For** is what the part does. **Pick it when** says when 
 
 ### Table looks — `table-look.ts`
 
-- **For:** how a table column colours itself (ADR 0060). `ColumnLook` is a meaning (`loss`, `gain`, `risk`, `plan`, `neutral`), `category` or `plain`. `lookOfHeader(label, numeric, title)` reads it from an engine header (the builders in `printed-page/table.ts` and `figures/table.ts` call it); `catOf(word)` gives a word its fixed category colour (1 to 5); `tidyCell(node)` makes sure no raw float ("0.6666666666666666") reaches a cell, printing it through `exact`.
+- **For:** how a table column colours itself (ADR 0061). `ColumnLook` is a meaning (`loss`, `gain`, `risk`, `plan`, `neutral`), `category` or `plain`. `lookOfHeader(label, numeric, title)` reads it from an engine header (the builders in `printed-page/table.ts` and `figures/table.ts` call it); `catOf(word)` gives a word its fixed category colour (1 to 5); `tidyCell(node)` makes sure no raw float ("0.6666666666666666") reaches a cell, printing it through `exact`.
 - **Pick it when:** a screen builds `Column`s or a `TableModel` header with translated labels: give each number column a `look` (the kit cannot read a translated header). `table-look.test.ts` fails on a number column without one.
 - **Used by:** kit: `table-parts.tsx`, `data-table.tsx`, `paged-table.tsx`, `domain/engine-table.tsx`, `domain/printed-table.tsx`; dashboard, breakdown-log.
 
@@ -71,7 +71,7 @@ How to read an entry: **For** is what the part does. **Pick it when** says when 
 - **Pick it when:** never directly in a screen; screens use `EntityShell` (below), which wraps `Shell` and wires the drawer to the URL. `Shell` is the plain frame for a preview or test.
 - **Key props:** `nav` (rail items: `id`, `label`, `icon`, `href`, `current`, `end` for the foot of the rail), `title`, `plant`, `search` (pages for the search; none means no search box), `at` (current address, closes menus on change), `alerts` and `onAlerts`, `drawer` (a `DrawerSpec` or null).
 - **Used by:** entity (through `EntityShell`). Also exports `NavigateContext`, which routes rail and search links without a page reload.
-- **On this page (ADR 0060):** the Shell reads every titled part of the page (each `h2` inside it: a `SectionHead`, a `Panel`, a table's or a chart card's title) into `OnThisPage`, and adds them to the ⌘ K search ("Repeat offenders" jumps there). Nothing to pass.
+- **On this page (ADR 0061):** the Shell reads every titled part of the page (each `h2` inside it: a `SectionHead`, a `Panel`, a table's or a chart card's title) into `OnThisPage`, and adds them to the ⌘ K search ("Repeat offenders" jumps there). Nothing to pass.
 
 ### `OnThisPage` — `on-this-page.tsx`
 
@@ -139,14 +139,14 @@ How to read an entry: **For** is what the part does. **Pick it when** says when 
 
 ### `KpiCard` — `kpi-card.tsx`
 
-- **For:** a key figure: the value (ticks in), its change against a stated period, what it means, an optional trend line, and one more line on hover. Every card goes somewhere (ADR 0058): the whole card is one control, the rows behind its figure in the drawer or a link to the page that explains it, with a focus ring round the card and the hover lift UX rule 2 keeps for clickable cards. Its own `drill` or `link` wins; with neither, the card looks its `id` up in the destinations map (`screens/v2/destinations.ts`, through `DestinationContext`).
+- **For:** a key figure: the value (ticks in), its change against a stated period, what it means, an optional trend line, and one more line on hover. Every card goes somewhere (ADR 0060): the whole card is one control, the rows behind its figure in the drawer or a link to the page that explains it, with a focus ring round the card and the hover lift UX rule 2 keeps for clickable cards. Its own `drill` or `link` wins; with neither, the card looks its `id` up in the destinations map (`screens/v2/destinations.ts`, through `DestinationContext`).
 - **Pick it when:** a headline number with a comparison. A figure with no change to compare is a `FigureTile`; a set of these that may run past four is a `TileSet`.
 - **Key props:** `kpi` (`KpiData`): `label`, `icon`, `value`, `delta {text, up, good, flat}`, `period`, `meaning`, `more`, `trend`, `drill`, `tone`, `hero` + `meter`, `yardstick`, `link`, `status`, `unit`, `basis`, `exact`.
 - **Used by:** machine; kit: `tile-set.tsx` (so every TileSet screen).
 
 ### `FigureTile` — `figure-tile.tsx`
 
-- **For:** a figure the engine printed with its own line under it and no change to compare. It goes somewhere exactly as a `KpiCard` does (ADR 0058): its own `drill` or `link`, else its `id` in the destinations map; the whole tile is the control.
+- **For:** a figure the engine printed with its own line under it and no change to compare. It goes somewhere exactly as a `KpiCard` does (ADR 0060): its own `drill` or `link`, else its `id` in the destinations map; the whole tile is the control.
 - **Pick it when:** the number has no "vs last period". If it has one, use `KpiCard`.
 - **Key props:** `figure` (`FigureData`): `label`, `value`, `sub`, `yardstick`, `drill`, `link`, `status`.
 - **Used by:** bd-pm, bottleneck, category-cell, energy, fix-finder, forecast-lab, manpower, money-matters, mttr-mtbf, pm-calendar, printed-page, problem-analysis, shift-kpis.
@@ -174,7 +174,7 @@ How to read an entry: **For** is what the part does. **Pick it when** says when 
 
 ### `ChartCard` — `chart-card.tsx`
 
-- **For:** a chart the engine sent (bars, lines, bubbles) in a card with its title, one quiet line and a sentence for screen readers. Nothing is recomputed. With no `drill` it takes its screen's default from the destinations map (ADR 0058): "Show the rows" (named in full aloud: "BD hours by cell: show the rows behind …") or "Open <page>" beside the title. The control stays in the header, not the whole card, so the chart's own hover (tooltip, crosshair) keeps working.
+- **For:** a chart the engine sent (bars, lines, bubbles) in a card with its title, one quiet line and a sentence for screen readers. Nothing is recomputed. With no `drill` it takes its screen's default from the destinations map (ADR 0060): "Show the rows" (named in full aloud: "BD hours by cell: show the rows behind …") or "Open <page>" beside the title. The control stays in the header, not the whole card, so the chart's own hover (tooltip, crosshair) keeps working.
 - **Pick it when:** the engine gives a chart spec. Add `drill` to put a rows-behind button by the title and `numbers` to add "Show the numbers" under it.
 - **Key props:** `spec`, `sub`, `aria`, `drill`, `numbers`.
 - **Used by:** dashboard, energy, money-matters, monthly-report, printed-page, shift-kpis.
@@ -230,8 +230,8 @@ How to read an entry: **For** is what the part does. **Pick it when** says when 
 
 ### `DataTable` — `data-table.tsx`
 
-- **For:** the kit's table when all rows are in the browser: search, filter chips, optional dropdown filters, sort, ten rows a page, sticky header, numbers right-aligned. A row opens the drawer: its screen's `onOpen`, or, left out, the machine, cell, person or decision the row names (`row-entity.ts`, `entityOfRow`: the row's `entity`, `machine`, `chip` or `decision`, its first `chips`, or the first chip in its `cells`; UX rule 18, ADR 0058). Rows re-flow when filters change. Under 10 rows it drops search and pager. It can open with a takeaway line, expand a row in place, and carry a total footer.
-- **Colours itself (ADR 0060):** each `Column`'s `look` decides its cells. A number column with a meaning gets a bar scaled to the column (a tint in a table with more than eight of them, a month grid); the column the table is ranked by (the chosen sort, else the measure, else the coloured column the rows already run down) marks its top three rows in the meaning's colour and weight (loss red, gain green). A `category` column's words are pills in their fixed colour. `plain` (and no look) stays as it is. No raw float prints.
+- **For:** the kit's table when all rows are in the browser: search, filter chips, optional dropdown filters, sort, ten rows a page, sticky header, numbers right-aligned. A row opens the drawer: its screen's `onOpen`, or, left out, the machine, cell, person or decision the row names (`row-entity.ts`, `entityOfRow`: the row's `entity`, `machine`, `chip` or `decision`, its first `chips`, or the first chip in its `cells`; UX rule 18, ADR 0060). Rows re-flow when filters change. Under 10 rows it drops search and pager. It can open with a takeaway line, expand a row in place, and carry a total footer.
+- **Colours itself (ADR 0061):** each `Column`'s `look` decides its cells. A number column with a meaning gets a bar scaled to the column (a tint in a table with more than eight of them, a month grid); the column the table is ranked by (the chosen sort, else the measure, else the coloured column the rows already run down) marks its top three rows in the meaning's colour and weight (loss red, gain green). A `category` column's words are pills in their fixed colour. `plain` (and no look) stays as it is. No raw float prints.
 - **Pick it when:** any list of rows the page already holds. If the server pages the rows, use `PagedTable`; if the engine printed the table, use `domain/EngineTable` or `domain/PrintedDataTable`, which wrap this one.
 - **Key props:** `rows`, `rowKey`, `rowLabel`, `columns` (`Column`), `filters` (`FilterChip`), `text` (what search matches), `words`, `initialSort`, `selected`, `headed`, `aside`, `onOpen`, `takeaway`, `expand`, `total`, `selects`, `more`.
 - **Used by:** action-center, data-checklist, fix-finder, pm-calendar, settings-audit, settings-lists, team-focus, why-why; kit: `crud-page.tsx`, `domain/engine-table.tsx`, `domain/machine-table.tsx`, `domain/printed-table.tsx`, `domain/rows-behind.tsx`.
@@ -403,7 +403,7 @@ How to read an entry: **For** is what the part does. **Pick it when** says when 
 
 ### `DrillButton` — `drill-button.tsx` (with `drill.ts`)
 
-- **For:** the small control by a table or chart that opens the rows behind its figure in the drawer. `drill.ts` defines a `Drill` (`figure` key and spoken `label`) and `DrillOpenContext`, which `EntityShell` fills; and the destinations seam (ADR 0058): `Destination` (`drill` or `link`), `DestinationContext` (filled by `LiveFrame`'s `DestinationScope` from `screens/v2/destinations.ts`), `useDestination` (a card's own drill or link wins, else the map) and `stretchOf`.
+- **For:** the small control by a table or chart that opens the rows behind its figure in the drawer. `drill.ts` defines a `Drill` (`figure` key and spoken `label`) and `DrillOpenContext`, which `EntityShell` fills; and the destinations seam (ADR 0060): `Destination` (`drill` or `link`), `DestinationContext` (filled by `LiveFrame`'s `DestinationScope` from `screens/v2/destinations.ts`), `useDestination` (a card's own drill or link wins, else the map) and `stretchOf`.
 - **Pick it when:** a chart or table's figure can show its rows. On a KPI, figure tile, Pareto bar or bullet bar, pass `drill` to that part instead.
 - **Key props:** `drill`.
 - **Used by:** dashboard; kit: `chart-card.tsx`.

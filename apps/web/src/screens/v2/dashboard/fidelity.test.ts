@@ -326,7 +326,7 @@ describe('the page', () => {
     // Before and after sweep 706: the Action Center banner (now a strip) is left out of the tone count, and the hero
     // grid became a tile set (sweep.test.ts checks the tile sets).
     const out = render(model({ board: board(2, 1) }));
-    // ADR 0060: table cells colour themselves too; only the cards' tones are counted here.
+    // ADR 0061: table cells colour themselves too; only the cards' tones are counted here.
     const cards = out
       .replace(/<section class="v2-card v2-banner"[\s\S]*?<\/section>/g, '')
       .replace(/class="v2-cell(?:bar|tint)" data-tone="\w+"/g, '');

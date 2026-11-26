@@ -182,7 +182,7 @@
   padding: 20px 28px 40px;
 }
 
-/* "On this page" (on-this-page.tsx, ADR 0060): a sticky rail at the right from 1280 px, a jump menu at the top of the
+/* "On this page" (on-this-page.tsx, ADR 0061): a sticky rail at the right from 1280 px, a jump menu at the top of the
    page below that (and while the drawer takes the right). A heading lands below the sticky header. */
 .v2-body {
   display: grid;

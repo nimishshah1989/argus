@@ -338,7 +338,7 @@ function Search({
   ) : null;
 }
 
-/** The page's own index (ADR 0060): its sections, the one being read, and the search's entries with the sections added. */
+/** The page's own index (ADR 0061): its sections, the one being read, and the search's entries with the sections added. */
 function usePageIndex(search: readonly PaletteEntry[] | undefined) {
   const { t } = useTranslation();
   const content = useRef<HTMLElement>(null);

@@ -190,7 +190,7 @@ const numberOf = <R,>(c: Column<R>, row: R): number => {
   return typeof v === 'number' && Number.isFinite(v) ? v : Number.NaN;
 };
 
-/** What a table needs to colour its cells (ADR 0060): each scaled column's largest value, the ranked column and its top rows, and bars or tints. */
+/** What a table needs to colour its cells (ADR 0061): each scaled column's largest value, the ranked column and its top rows, and bars or tints. */
 export type Looks<R> = {
   largest: Record<string, number>;
   ranked?: string;
@@ -280,7 +280,7 @@ export function MeasureCell<R>({
   row: R;
   largest: number;
   pill?: TakeawayData;
-  /** One of the ranked column's top rows (ADR 0060): its number and bar take the meaning's colour. */
+  /** One of the ranked column's top rows (ADR 0061): its number and bar take the meaning's colour. */
   top?: boolean;
 }) {
   const m = column.meaning;

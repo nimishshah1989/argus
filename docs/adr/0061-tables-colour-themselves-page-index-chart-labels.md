@@ -1,4 +1,4 @@
-# 0060 — Tables colour themselves, every page has an index, chart labels never collide
+# 0061 — Tables colour themselves, every page has an index, chart labels never collide
 
 Date: 26 Nov 2026 · Decided by: Nimish, looking at Problem Analysis on staging:
 

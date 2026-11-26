@@ -36,7 +36,7 @@ export type TableModel = {
     label: string;
     numeric: boolean;
     /** A column of buttons: not sorted. */ fixed?: boolean;
-    /** How the column colours itself (ADR 0060), read from the engine's header by `lookOfHeader`. */
+    /** How the column colours itself (ADR 0061), read from the engine's header by `lookOfHeader`. */
     look?: ColumnLook;
   }[];
   rows: Cell[][];

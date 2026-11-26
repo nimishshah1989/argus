@@ -2,7 +2,7 @@ import { isValidElement, Children, cloneElement, Fragment, type ReactNode } from
 import { exact } from './format.js';
 
 /**
- * How a table column colours itself (ADR 0060, Nimish 26 Nov: "no conditional formatting in any of them"):
+ * How a table column colours itself (ADR 0061, Nimish 26 Nov: "no conditional formatting in any of them"):
  * - a meaning (`loss`, `gain`, `risk`, `plan`, `neutral`): its numbers get an in-cell bar scaled to the column, and
  *   when the table is ranked by it, its top rows are marked in that colour (loss red, gain green);
  * - `category`: its words are pills from the fixed categorical palette (`--color-v2-cat-1..5`), the same word the

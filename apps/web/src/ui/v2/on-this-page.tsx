@@ -6,7 +6,7 @@ import { reducedMotion } from './motion.js';
 /** One titled part of a page: its heading's anchor (`#id`) and its title. */
 export type PageSection = { id: string; title: string };
 
-/** A page needs an index only from this many sections (ADR 0060): fewer, and nothing shows. */
+/** A page needs an index only from this many sections (ADR 0061): fewer, and nothing shows. */
 export const MIN_SECTIONS = 3;
 
 /** A heading's anchor: its words, lower case, joined by hyphens ("Repeat offenders" → "repeat-offenders"). */
@@ -102,7 +102,7 @@ export function useCurrent(sections: PageSection[]): string | undefined {
 }
 
 /**
- * "On this page" (ADR 0060, Nimish 26 Nov: "it will be so hard for someone to even remember where is what"): on a
+ * "On this page" (ADR 0061, Nimish 26 Nov: "it will be so hard for someone to even remember where is what"): on a
  * wide screen a sticky rail at the right listing the page's sections, the one being read marked; on a phone (or with
  * the drawer open) a compact jump menu at the top of the page. Each entry scrolls to its section and puts it in the
  * address. A page with fewer than `MIN_SECTIONS` sections shows neither.

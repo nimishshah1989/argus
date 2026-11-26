@@ -7,7 +7,7 @@ import { realReply } from './figures/real-reply.js';
 import { answerKey, realT } from './printed-page/test-support.js';
 
 /**
- * ADR 0060 (Nimish, 26 Nov: "no conditional formatting in any of them"): tables colour themselves from each column's
+ * ADR 0061 (Nimish, 26 Nov: "no conditional formatting in any of them"): tables colour themselves from each column's
  * declared look. Every v2 screen's table models are built from their fixtures here, and every number column must
  * declare a look (a meaning, or `plain` for an id, a date or a count). A column the kit cannot read lands below.
  *
@@ -84,7 +84,7 @@ async function modelOf(key: string): Promise<unknown> {
   return MODELS[key]?.() ?? provider({}, {});
 }
 
-describe('every table column declares its look (ADR 0060)', () => {
+describe('every table column declares its look (ADR 0061)', () => {
   const keys = Object.keys(PROVIDERS).sort();
   const built = keys.filter((k) => !SKIP.has(k));
   const seen = new Set<string>();

@@ -21,7 +21,7 @@ export type KpiData = {
   more: string;
   /** The recent trend, oldest first, when there is one. */
   trend?: number[];
-  /** The rows behind the figure: when given, the value is a button that opens them. Absent with `link`: the card looks itself up in the destinations map (ADR 0058). */
+  /** The rows behind the figure: when given, the value is a button that opens them. Absent with `link`: the card looks itself up in the destinations map (ADR 0060). */
   drill?: Drill;
   /** What kind of number this is, where its direction of good is known: a thin rule and a tinted icon in that meaning's colour. Absent: neutral. */
   tone?: 'loss' | 'gain' | 'risk' | 'plan';

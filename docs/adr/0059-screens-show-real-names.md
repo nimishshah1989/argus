@@ -18,4 +18,4 @@ The analytics engine reads every person as a pseudonym, `P-` and the first eight
 
 - A person chip now carries the name, so it opens that person's drawer.
 - Free text the redactor cleaned before the engine read it (`[P1]` placeholders) is not restored; that is a separate decision.
-- `apps/server/test/real-names.test.ts` pins names in replies, codes in `kpi_snapshot` and the erased person's code; `apps/web/src/screens/v2/no-person-codes.test.ts` keeps codes out of every v2 fixture and the gallery's stored replies.
+- `apps/server/test/real-names.test.ts` pins names in replies, codes in `kpi_snapshot` and the erased person's code; `tools/no-person-codes.test.ts` keeps codes out of every v2 fixture and the gallery's stored replies.

@@ -20,7 +20,7 @@ export type PrintedChip = { key: string; label: string; match?: { column: number
 /** An engine table ready to print: the engine's own header and cells, dates as DD-MMM-YYYY, codes and names as chips. */
 export type PrintedTable = {
   title: string;
-  /** `look`: how the column colours itself (ADR 0060), read from the engine's header by `lookOfHeader`. */
+  /** `look`: how the column colours itself (ADR 0061), read from the engine's header by `lookOfHeader`. */
   header: { label: string; numeric: boolean; look?: ColumnLook }[];
   rows: PrintedCell[][];
   chips: PrintedChip[];

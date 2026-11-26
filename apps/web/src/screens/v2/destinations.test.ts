@@ -40,7 +40,7 @@ const SCOPE: Record<string, string> = {
 
 /**
  * Cards that go nowhere, `<screen>/<card id>` with why. This list may only shrink: a new dead card fails here, and a
- * card that gains a destination must be crossed off (Nimish, 26 Nov 2026: every card is clickable; ADR 0058).
+ * card that gains a destination must be crossed off (Nimish, 26 Nov 2026: every card is clickable; ADR 0060).
  */
 const NO_DESTINATION: Record<string, string> = {};
 
@@ -96,7 +96,7 @@ async function everyCard(): Promise<Card[]> {
   return cards;
 }
 
-describe('every card goes somewhere (ADR 0058)', () => {
+describe('every card goes somewhere (ADR 0060)', () => {
   it('knows every screen that draws a KPI card, a figure tile or a chart card', () => {
     const root = new URL('.', import.meta.url);
     const drawing = readdirSync(root, { withFileTypes: true })
