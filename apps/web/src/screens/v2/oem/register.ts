@@ -17,7 +17,7 @@ export const screen: ScreenEntry<'oem'> = {
     ]);
     const reply = await liveReply(client);
     requireComputed(reply, 'oem-analytics');
-    // #815 wires the role; until then nobody may decide.
+    // Ticket 815 wires the role; until then nobody may decide.
     return oemModel(reply, catalogue, { mayDecide: false });
   },
 };

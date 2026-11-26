@@ -33,7 +33,7 @@ function tableOf(table: RegisterTable, c: CommonWords): TableModel {
   });
 }
 
-/** The OEM screen from the engine's `oem-analytics` figure; null while the engine has not computed it. The figure carries no rupee (ADR 0051); `mayDecide` is drawn by #815. */
+/** The OEM screen from the engine's `oem-analytics` figure; null while the engine has not computed it. The figure carries no rupee (ADR 0051); `mayDecide` is drawn by ticket 815. */
 export function oemModel(
   reply: FiguresReply,
   t: Translate,
