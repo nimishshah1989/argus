@@ -10,13 +10,14 @@ import {
   type Handback,
   type SignoffState,
 } from '../../../../components/signoff.js';
-import { Notice, type NoticeTone } from '../../../../ui/v2/notice.js';
+import type { BannerTone } from '../../../../ui/v2/banner.js';
+import { Notice } from '../../../../ui/v2/notice.js';
 
-const TONE: Record<SignoffState, NoticeTone> = {
-  asking: 'attention',
-  confirmed: 'info',
-  reopened: 'error',
-  timedOut: 'muted',
+const TONE: Record<SignoffState, BannerTone> = {
+  asking: 'risk',
+  confirmed: 'plan',
+  reopened: 'loss',
+  timedOut: 'neutral',
 };
 
 interface Copy {

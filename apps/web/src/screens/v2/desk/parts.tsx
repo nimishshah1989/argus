@@ -75,13 +75,13 @@ export function OfflineNotice() {
     <>
       {online && queued === 0 ? null : (
         <div data-testid="offline-banner">
-          <Notice tone={online ? 'info' : 'offline'} title={message} />
+          <Notice tone={online ? 'plan' : 'neutral'} title={message} />
         </div>
       )}
       {heldBy.map((who) => {
         const name = who || t('signin.heldEarlier');
         return (
-          <Notice key={who} tone="attention" title={t('signin.held', { name })}>
+          <Notice key={who} tone="risk" title={t('signin.held', { name })}>
             {t('signin.heldDetail', { name })}
           </Notice>
         );
@@ -115,7 +115,7 @@ function SignoffBody({
   if (state !== 'ready')
     return (
       <Notice
-        tone="error"
+        tone="loss"
         title={t('kit.pattern.error')}
         action={<Button onClick={onRetry}>{t('kit.pattern.retry')}</Button>}
       />

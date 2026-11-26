@@ -160,15 +160,15 @@ export function PmClose(props: PmCloseProps) {
       <CloseHead title={t('pm.close.title')} onBack={props.onExit} />
       <Heading detail={props.detail} config={props.config} />
       {plan ? null : (
-        <Notice tone="info" title={t('pm.close.noPlan')}>
+        <Notice tone="plan" title={t('pm.close.noPlan')}>
           {t('pm.close.noPlanHint')}
         </Notice>
       )}
-      {plan && empty ? <Notice tone="info" title={t('pm.close.noChecklist')} /> : null}
+      {plan && empty ? <Notice tone="plan" title={t('pm.close.noChecklist')} /> : null}
       <Checklist ticks={ticks} draft={draft} onChange={setDraft} />
       <Readings readings={readings} meter={meter} draft={draft} onChange={setDraft} />
       <Comments draft={draft} onChange={setDraft} />
-      {props.error ? <Notice tone="error" title={props.error} /> : null}
+      {props.error ? <Notice tone="loss" title={props.error} /> : null}
       <ScreenFooter hint={t('pm.close.hint')}>
         <button type="submit" className="v2-btn v2-btn-primary" disabled={!ready}>
           {props.pending ? t('common.saving') : t('pm.close.submit')}

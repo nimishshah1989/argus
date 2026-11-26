@@ -24,7 +24,7 @@ function Refusal({ gate, names }: { gate: Gate; names: Record<string, string> })
   if (!gate.refusal) return null;
   const missing = gate.missing.map((id) => names[id] ?? t('common.teamMember'));
   return (
-    <Notice tone="error" icon="close" title={t('lockout.refusedTitle')}>
+    <Notice tone="loss" icon="close" title={t('lockout.refusedTitle')}>
       {missing.length > 0
         ? t('lockout.missingPeople', { names: missing.join(', ') })
         : gate.refusal}
@@ -66,7 +66,7 @@ function Confirmed({ gate, names, timeZone }: Props & { gate: Gate }) {
   const time = formatTime(view.at, timeZone);
   return (
     <>
-      <Notice tone="ok" title={t('lockout.confirmedTitle')}>
+      <Notice tone="neutral" title={t('lockout.confirmedTitle')}>
         {t(key, { name, time, count: view.steps.length })}
       </Notice>
       <p className="v2-sub">{view.steps.map(label).join(' · ')}</p>
@@ -83,11 +83,11 @@ function Body({ gate, names, timeZone }: Props & { gate: Gate }) {
     ) : view?.kind === 'confirmed' ? (
       <Confirmed gate={gate} names={names} timeZone={timeZone} />
     ) : view?.kind === 'record' ? (
-      <Notice tone="attention" title={t('lockout.recordTitle')}>
+      <Notice tone="risk" title={t('lockout.recordTitle')}>
         {t('lockout.record')}
       </Notice>
     ) : (
-      <Notice tone="attention" title={t('lockout.noStepsTitle')}>
+      <Notice tone="risk" title={t('lockout.noStepsTitle')}>
         {t('lockout.noSteps')}
       </Notice>
     );

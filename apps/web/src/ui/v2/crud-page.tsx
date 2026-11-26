@@ -4,7 +4,6 @@ import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getConfig } from '../../api.js';
 import { ApiError, defineResource, useOnline } from '../../data/index.js';
-import { BulkBar, useBulk, useSave, useSwitch } from '../../patterns/crud-actions.js';
 import type {
   CrudBulkAction,
   CrudCtx,
@@ -13,8 +12,8 @@ import type {
   CrudSpec,
   Lookups,
 } from '../../patterns/crud-spec.js';
-import type { FormField } from '../../patterns/form-sheet.js';
-import { sheetFields, switchFields } from './crud-model.js';
+import { BulkBar, useBulk, useSave, useSwitch } from './crud-actions.js';
+import { sheetFields, switchFields, type FormField } from './crud-model.js';
 import { DataTable, type Column, type FilterChip } from './data-table.js';
 import { FormSheet } from './form-sheet.js';
 import { EmptyState, ErrorState, OfflineState, Skeleton } from './screen-states.js';

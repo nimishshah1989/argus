@@ -182,7 +182,7 @@ function ReportStep(
     >
       <CloseHead title={t('closes.reportTitle')} onBack={props.onBack} />
       {late ? (
-        <Notice tone="info" title={t('closes.late.title')}>
+        <Notice tone="plan" title={t('closes.late.title')}>
           {t('closes.late.note')}
         </Notice>
       ) : null}
@@ -192,7 +192,7 @@ function ReportStep(
       {late ? null : (
         <TaskLeaveCard config={props.config} draft={props.task} onChange={props.setTask} />
       )}
-      {props.error ? <Notice tone="error" title={props.error} /> : null}
+      {props.error ? <Notice tone="loss" title={props.error} /> : null}
       <ScreenFooter hint={late ? t('closes.form.hintLate') : t('closes.form.hintClose')}>
         <button type="submit" className="v2-btn v2-btn-primary" disabled={!canSend}>
           {props.pending ? t('common.saving') : submitLabel}

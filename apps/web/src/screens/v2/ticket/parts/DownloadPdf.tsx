@@ -31,7 +31,7 @@ export function DownloadPdfButton({ ticket }: { ticket: Pick<Ticket, 'id' | 'ref
       >
         {t('detail.pdf')}
       </Button>
-      {failed ? <Notice tone="error" title={t('detail.pdfFailed')} /> : null}
+      {failed ? <Notice tone="loss" title={t('detail.pdfFailed')} /> : null}
     </>
   );
 }

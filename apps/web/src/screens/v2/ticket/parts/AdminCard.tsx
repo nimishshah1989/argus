@@ -55,7 +55,7 @@ function FormButtons({
 }
 
 function Failure({ error }: { error: string | null }) {
-  return error ? <Notice tone="error" title={error} /> : null;
+  return error ? <Notice tone="loss" title={error} /> : null;
 }
 
 function RestoreForm({ ticket, onDone }: { ticket: Ticket; onDone: () => void }) {

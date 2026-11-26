@@ -98,3 +98,9 @@
     transition: none;
   }
 }
+/* A settings page's current logo: as tall as a tap target, its own width. */
+.v2-crud-logo {
+  align-self: flex-start;
+  width: auto;
+  height: var(--spacing-target);
+}

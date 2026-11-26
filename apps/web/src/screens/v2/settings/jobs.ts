@@ -1,24 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
 import type { MessageKey } from '@uptimo/shared/i18n';
 import type { FailedJobsReply } from '@uptimo/shared/replies';
-import { getMe } from '../../api.js';
-import { ApiError, http } from '../../data/index.js';
-import { Cog, TriangleAlert } from '../../ui/icon.js';
-import { canSeeJobs } from './jobs-access.js';
-import { TONE_FILL } from '../../ui/meaning.js';
+import { getMe } from '../../../api.js';
+import { ApiError, http } from '../../../data/index.js';
+import { canSeeJobs } from '../../settings/jobs-access.js';
 
 type FailedJob = FailedJobsReply['items'][number];
 type Me = Awaited<ReturnType<typeof getMe>>['user'];
 export { canSeeJobs };
-
-/** The nav entry; the v2 view (`screens/v2/settings/JobsView.tsx`) draws the page and reads its own access. */
-export const JOBS_PAGE = {
-  page: 'jobs',
-  icon: Cog,
-  key: 'jobs.menu',
-  needsJobsAccess: true,
-} as const;
 
 const LIST = '/api/v1/jobs/failed';
 const FAILED_KEY = ['jobs', 'failed'] as const;
@@ -61,20 +50,6 @@ export function kindWords(queue: string, translate: (key: MessageKey) => string)
     .filter(Boolean)
     .join(' ');
   return words.charAt(0).toUpperCase() + words.slice(1);
-}
-
-/** The count on the Settings entry: icon and word, so the red is never the only signal. */
-export function FailedCount({ count }: { count: number }) {
-  const { t } = useTranslation();
-  if (count === 0) return null;
-  return (
-    <span
-      className={`inline-flex min-h-chip shrink-0 items-center gap-2 rounded-full px-3 text-caption font-bold ${TONE_FILL.danger}`}
-    >
-      <TriangleAlert aria-hidden size={16} />
-      {t('jobs.count', { n: countLabel(count) })}
-    </span>
-  );
 }
 
 /** How many jobs failed, for the Settings entry; 0 for anyone who cannot see them. */

@@ -135,7 +135,7 @@ export function ActionBar(props: Props) {
           onDone={() => setOpen(null)}
         />
       )}
-      {error && <Notice tone="error" title={error} />}
+      {error && <Notice tone="loss" title={error} />}
     </section>
   );
 }

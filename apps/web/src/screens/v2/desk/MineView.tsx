@@ -59,7 +59,7 @@ export function MineView({
 }: MineViewProps): ReactNode {
   const { words } = model;
   if (model.state === 'loading') return <Skeleton />;
-  if (model.state === 'error') return <Notice tone="error" title={model.error ?? ''} />;
+  if (model.state === 'error') return <Notice tone="loss" title={model.error ?? ''} />;
   return (
     <>
       {model.empty && <p className="v2-lede">{model.empty}</p>}
@@ -98,7 +98,7 @@ export function MineView({
         >
           {words.dayReport}
         </a>
-        {dayReportFailed && <Notice tone="error" title={words.dayReportError} />}
+        {dayReportFailed && <Notice tone="loss" title={words.dayReportError} />}
       </section>
     </>
   );

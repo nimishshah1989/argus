@@ -110,7 +110,7 @@ export function DeskOpenPage({ ticketId }: { ticketId?: string }): ReactNode {
       badge={model?.badge ?? 0}
       drawer={drawer}
     >
-      {error ? <Notice tone="error" title={error} /> : null}
+      {error ? <Notice tone="loss" title={error} /> : null}
       {body}
     </DeskFrame>
   );
@@ -174,7 +174,7 @@ function MineBody({ now }: { now: string }): ReactNode {
   );
   return (
     <>
-      {error ? <Notice tone="error" title={error} /> : null}
+      {error ? <Notice tone="loss" title={error} /> : null}
       <MineView
         model={model}
         pending={pending}
@@ -203,7 +203,7 @@ function TeamBody({ state }: { state: UseQueryResult<State> }): ReactNode {
   const cancelled = useTicketWindow({ status: ['cancelled'] }, Date.now() - CANCELLED_WINDOW_MS);
   const closed = useTicketWindow({ status: ['closed'] }, Date.now() - CLOSED_WINDOW_MS);
   if (state.isLoading && !state.data) return <Skeleton blocks={2} />;
-  if (state.error || !state.data) return <Notice tone="error" title={errorMessage(state.error)} />;
+  if (state.error || !state.data) return <Notice tone="loss" title={errorMessage(state.error)} />;
   const model = teamModel(
     {
       state: state.data,

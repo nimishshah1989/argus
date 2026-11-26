@@ -28,7 +28,7 @@ function Rows({ rows, empty }: { rows: TicketRowItem[]; empty: string }) {
 /** A window's own loading, error, empty or rows. */
 function Window({ block, children }: { block: WindowBlock; children?: ReactNode }) {
   if (block.state === 'loading') return <Skeleton blocks={1} />;
-  if (block.state === 'error') return <Notice tone="error" title={block.error ?? ''} />;
+  if (block.state === 'error') return <Notice tone="loss" title={block.error ?? ''} />;
   return (
     <>
       <Rows rows={block.rows} empty={block.empty} />
