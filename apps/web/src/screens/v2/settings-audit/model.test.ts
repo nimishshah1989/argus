@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { NOW, change } from './fixture.js';
+import { NOW, change } from './fixture-rows.js';
 import { auditTakeaway, mayExport } from './model.js';
 
 describe('S26-5 audit model', () => {

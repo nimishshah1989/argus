@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { NOW, change } from '../settings-audit/fixture.js';
+import { NOW, change } from '../settings-audit/fixture-rows.js';
 import { auditTakeaway, mayExport } from '../settings-audit/model.js';
 
 describe('S26-5 audit: edges', () => {
