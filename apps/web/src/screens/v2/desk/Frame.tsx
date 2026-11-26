@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getBrand, getMe } from '../../../api.js';
+import { readsAnalytics } from '../../../roles.js';
 import { AccountButton, AccountSheet } from '../../../ui/v2/account-sheet.js';
 import { DraftsList } from '../../../ui/v2/drafts-list.js';
 import type { DrawerSpec } from '../../../ui/v2/drawer.js';
@@ -52,6 +53,11 @@ function DeskTabs({ current, badge, role }: { current: DeskView; badge: number; 
         <Link to="/floor" className="v2-btn v2-btn-primary">
           {t('deskLists.reportProblem')}
         </Link>
+        {role && readsAnalytics(role) ? (
+          <Link to="/analytics" className="v2-btn v2-btn-ghost">
+            {t('analytics.entry')}
+          </Link>
+        ) : null}
         {showsSettings(role) ? (
           <>
             <Link to="/settings/machines" className="v2-btn v2-btn-ghost">

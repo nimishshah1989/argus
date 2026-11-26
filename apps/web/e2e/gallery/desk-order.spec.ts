@@ -18,13 +18,17 @@ const RAIL = [
   'button: Menu',
 ];
 // The search shows Ctrl K off a Mac (CI runs Linux), as board-settings-order-data.ts writes it.
-const HEADER = ['button: SearchCtrl K', 'button: Alerts'];
+const HEADER = [
+  process.platform === 'darwin' ? 'button: Search⌘ K' : 'button: SearchCtrl K',
+  'button: Alerts',
+];
 const TABS = [
   'button: Open (3)',
   'button: Mine',
   'button: Team',
   'button: Live',
   'a: Report a pro',
+  'a: Analytics',
   'button: Account',
 ];
 const OPEN_BODY = [
