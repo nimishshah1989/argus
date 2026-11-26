@@ -4,7 +4,7 @@ import {
   assetRegisterReplySchema,
   type AssetRegisterReply,
 } from '@uptimo/shared/plant-settings';
-import type { CrudCtx } from '../../patterns/crud-spec.js';
+import type { CrudCtx } from '../../../patterns/crud-spec.js';
 import { registersSpec, watchOf } from './registers-spec.js';
 
 /**

@@ -4,12 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { rosterReplySchema, type RosterReply } from '@uptimo/shared/escalation-settings';
 import type { PersonAdmin } from '@uptimo/shared/people';
 import type { ShiftReply } from '@uptimo/shared/plant-settings';
-import { ApiError, copyRoster, getConfig } from '../../api.js';
-import { CrudPage } from '../../patterns/crud-page.js';
-import type { CrudChoice, CrudCtx, CrudSpec, LabelKey } from '../../patterns/crud-spec.js';
-import { Button } from '../../ui/button.js';
-import { Input, Label } from '../../ui/input.js';
-import { Inline, Stack } from '../../ui/layout.js';
+import { ApiError, copyRoster, getConfig } from '../../../api.js';
+import type { CrudChoice, CrudCtx, CrudSpec, LabelKey } from '../../../patterns/crud-spec.js';
+import { CrudPage } from '../../../ui/v2/crud-page.js';
 
 /** The duty roster (ticket 31): one line per person, day, shift and rung of the ladder. */
 
@@ -104,7 +101,7 @@ export const rosterSpec: CrudSpec<RosterReply> = {
 };
 
 /** The plant's own day, the one the server's roster floor and window use. */
-const todayIn = (timeZone: string): string =>
+export const todayIn = (timeZone: string): string =>
   new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date());
 
 /** One action below the list: repeat a day's roster over the next seven days, once. */
@@ -133,40 +130,45 @@ function CopyRoster() {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-card bg-surface p-4 shadow-card">
-      <Inline gap={3}>
-        <Stack gap={1}>
-          <Label htmlFor="roster-copy-date">{t('plant.roster.copyDate')}</Label>
-          <Input
+    <div className="v2-card v2-stack v2-gap-6">
+      <div className="v2-crud-actions">
+        <label className="v2-crud-field" htmlFor="roster-copy-date">
+          {t('plant.roster.copyDate')}
+          <input
             id="roster-copy-date"
             type="date"
             value={date}
             onChange={(event) => setPicked(event.target.value)}
           />
-        </Stack>
-        <Button onClick={() => void copy()} disabled={busy || !date}>
+        </label>
+        <button
+          type="button"
+          className="v2-btn v2-btn-primary"
+          onClick={() => void copy()}
+          disabled={busy || !date}
+        >
           {busy ? t('common.sending') : t('plant.roster.copy')}
-        </Button>
-      </Inline>
+        </button>
+      </div>
       {result ? (
-        <p role="status" className="text-footnote text-ok-ink">
+        <p role="status" className="v2-seg v2-seg-gain">
           {t('plant.roster.copied', { created: result.created, skipped: result.skipped })}
         </p>
       ) : null}
       {error ? (
-        <p role="alert" className="text-footnote text-danger">
+        <p role="alert" className="v2-seg v2-seg-loss">
           {error}
         </p>
       ) : null}
-      <p className="text-caption text-neutral-600">{t('plant.roster.copyHint')}</p>
+      <p className="v2-crud-hint">{t('plant.roster.copyHint')}</p>
     </div>
   );
 }
 
-/** The roster screen: the generated list first, then the copy-week action under it (design lock, slice 8). */
+/** The roster list, then the copy-week action under it (design lock, slice 8). */
 export function RosterScreen() {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="v2-stack v2-gap-6">
       <CrudPage spec={rosterSpec} />
       <CopyRoster />
     </div>
