@@ -3,7 +3,8 @@
  * screens before the 88b restyle; the Settings screens re-read for S26-1 (ADR 0046 d2, ADR 0047, wireframe
  * S26-settings): they now sit in the v2 kit shell (`SHELL` first, as on every v2 screen); the wide menu gains its
  * Desk and Plant group headings; the phone home is the page list with sub-lines, then "Back to desk" (no Plant
- * heading). Every page body keeps its old order.
+ * heading). Every page body keeps its old order. S26-8 (#795) puts /desk/settings in the shell too: each machine
+ * code becomes an EntityChip button, and the read-only Restore clock pauses card (link to Lists) follows SLA policies.
  */
 export const SHELL = [
   'a: Today',
@@ -58,12 +59,16 @@ export const PHONE: [string, string[]][] = [
   [
     '/desk/settings',
     [
-      'h1: Settings',
+      ...SHELL,
       'a: Back to desk',
       'h2: Machine crit',
+      'button: CNC-01',
       'select: Criticality ',
+      'button: CNC-02',
       'select: Criticality ',
+      'button: DRL-04',
       'select: Criticality ',
+      'button: GRD-07',
       'select: Criticality ',
       'h2: Severity mat',
       'select: A Machine st',
@@ -89,6 +94,8 @@ export const PHONE: [string, string[]][] = [
       'input: ',
       'input: ',
       'button: Save SLA pol',
+      'h2: Restore cloc',
+      'a: Edit wait re',
     ],
   ],
   [
@@ -251,12 +258,16 @@ export const WIDE: [string, string[]][] = [
   [
     '/desk/settings',
     [
-      'h1: Settings',
+      ...SHELL,
       'a: Back to desk',
       'h2: Machine crit',
+      'button: CNC-01',
       'select: Criticality ',
+      'button: CNC-02',
       'select: Criticality ',
+      'button: DRL-04',
       'select: Criticality ',
+      'button: GRD-07',
       'select: Criticality ',
       'h2: Severity mat',
       'select: A Machine st',
@@ -282,6 +293,8 @@ export const WIDE: [string, string[]][] = [
       'input: ',
       'input: ',
       'button: Save SLA pol',
+      'h2: Restore cloc',
+      'a: Edit wait re',
     ],
   ],
   [
