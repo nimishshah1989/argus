@@ -37,6 +37,7 @@ export const FIGURE_MEANING: Readonly<Record<string, FigureMeaning>> = {
   'cell-change-log': count,
   'a7-footprint': nothing,
   'a8-age': f('years', 'neither'),
+  'oem-analytics': nothing,
   'machine-page': nothing,
   'breakdown-log': count,
   'a1-bd-pm': {

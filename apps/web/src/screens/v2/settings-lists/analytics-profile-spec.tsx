@@ -1,6 +1,8 @@
+/* eslint-disable i18next/no-literal-string -- prop values only; every visible word goes through t() */
 import { PROFILE_KEYS, profileReplySchema, type ProfileKey } from '@uptimo/shared/analytics';
 import type { MessageKey } from '@uptimo/shared/i18n';
-import type { CrudSpec } from '../../patterns/crud-spec.js';
+import type { CrudSpec } from '../../../patterns/crud-spec.js';
+import { KeyPill } from '../../../ui/v2/key-pill.js';
 
 /**
  * The analytics profile screen (ticket 37b): one generated settings row over `/analytics-profile`. The
@@ -66,8 +68,18 @@ export const analyticsProfileSpec: CrudSpec<ProfileRow> = {
   addable: false,
   toggle: false,
   fields: PROFILE_KEYS.map((key) => ({ name: key, labelKey: PROFILE_LABELS[key] })),
-  look: (_row, c) => ({
-    title: c.t('analytics.profile.row'),
-    sub: c.t('analytics.profile.row.sub'),
-  }),
+  look: (row, c) => {
+    // Money keys are absent for a login without money rights: only the keys on the row count.
+    const notSet = PROFILE_KEYS.filter((key) => key in row && row[key] === null).length;
+    return {
+      title: c.t('analytics.profile.row'),
+      sub: c.t('analytics.profile.row.sub'),
+      tag:
+        notSet > 0 ? (
+          <KeyPill text={c.t('lists.profile.notSet')} tone="risk" icon="alert" />
+        ) : (
+          <KeyPill text={c.t('lists.profile.set')} tone="gain" icon="check" />
+        ),
+    };
+  },
 };

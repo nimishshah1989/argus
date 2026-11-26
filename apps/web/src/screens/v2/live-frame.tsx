@@ -152,6 +152,7 @@ export type ModelKey =
   | 'dashboard'
   | 'machines-register'
   | 'age'
+  | 'oem'
   | 'footprint'
   | 'fix-finder'
   | 'problem-analysis'

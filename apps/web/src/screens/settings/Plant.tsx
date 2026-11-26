@@ -19,9 +19,7 @@ import {
   type IconComponent,
 } from '../../ui/icon.js';
 import { CompanyScreen } from './Company.js';
-import { analyticsProfileSpec } from './analytics-profile-spec.js';
 import { TranslationsScreen } from './Translations.js';
-import { GlossaryScreen, ListsScreen } from './Lists.js';
 import { JOBS_PAGE } from './Jobs.js';
 
 export type PlantPage =
@@ -87,15 +85,10 @@ export const PLANT_PAGES: readonly PlantPageSpec[] = [
   { page: 'logins', icon: ShieldCheck, key: 'people.menu.logins' },
   { page: 'audit', icon: FileCheck, key: 'audit.menu' },
   JOBS_PAGE,
-  { page: 'lists', icon: List, key: 'lists.menu.lists', screen: ListsScreen },
-  { page: 'glossary', icon: BookOpen, key: 'lists.menu.glossary', screen: GlossaryScreen },
+  { page: 'lists', icon: List, key: 'lists.menu.lists' },
+  { page: 'glossary', icon: BookOpen, key: 'lists.menu.glossary' },
   { page: 'company', icon: Building2, key: 'company.menu.company', screen: CompanyScreen },
-  {
-    page: 'analytics-profile',
-    icon: FlaskConical,
-    key: 'analytics.profile.menu',
-    spec: analyticsProfileSpec as never,
-  },
+  { page: 'analytics-profile', icon: FlaskConical, key: 'analytics.profile.menu' },
   {
     page: 'translations',
     icon: Languages,

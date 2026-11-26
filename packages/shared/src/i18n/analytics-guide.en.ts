@@ -205,6 +205,8 @@ export const analyticsGuideEn = {
   'analytics.guide.pm-calendar.body1':
     'The PM calendar shows each machine’s next preventive maintenance on its due month, with the plant’s daily load: one PM a plant working day. A drag writes the job, never the plan — it raises the PM work order on the day you choose, or moves the open one — inside the plan’s tolerance, on a Monday to Saturday, and never onto a day that already holds a PM. A crowded day is marked and the page offers the nearest free working day. The same screen carries two rates: PM compliance (PM jobs closed inside their tolerance) and schedule compliance (planned jobs closed by the Sunday of their week).',
   'analytics.guide.oem.title': '32. OEM Analytics',
+  'analytics.guide.oem.body1':
+    'OEM analytics lists the machines under 300 days old, their breakdowns against older machines of the same model, and the cause a person decided for each; it shows no money.',
   'analytics.guide.learning.title': '33. Learning from your corrections',
   'analytics.guide.no-code.title': '34. Entries with no maintenance code',
   'analytics.guide.amc-legal.title':

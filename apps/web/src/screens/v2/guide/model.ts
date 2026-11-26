@@ -63,7 +63,7 @@ export const GROUP_OF: Readonly<Record<string, GuideGroup | null>> = {
   'team-focus': 'people-money',
   money: 'people-money',
   'pm-calendar': 'planning',
-  oem: null,
+  oem: 'machines',
   learning: null,
   'no-code': null,
   'amc-legal': null,
