@@ -75,6 +75,7 @@ function columnsOf(
     const all = board.columns[column];
     const rows = shownRows(all, tv).map((stop) => ({
       id: stop.machine.id,
+      ticketId: stop.ticket.id,
       code: stop.machine.code,
       segment: config.segments.find((s) => s.id === stop.machine.segment_id)?.code ?? '',
       age: formatMinutes(stop.ageMin),

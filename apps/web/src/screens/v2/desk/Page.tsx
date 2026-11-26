@@ -27,6 +27,7 @@ import {
   dayReportHref,
   todayDate,
 } from '../../desk/views.js';
+import { BoardPage } from '../board/Page.js';
 import { TicketPage } from '../ticket/Page.js';
 import { openModel } from './adapter.js';
 import { DeskFrame, NotAvailable } from './Frame.js';
@@ -47,6 +48,8 @@ const LIST_ROUTE: Record<DeskView, string> = {
   mine: '/desk/mine',
   team: '/desk/team',
 };
+/** The browser Live board: its stop rows open their ticket beside it too. */
+const BOARD_ROUTE = '/desk/board';
 
 /** The ticket beside a list (ADR 0056 point 4): the kit drawer holds the ticket page; closing it goes back to the list. */
 function useTicketDrawer(ticketId: string | undefined, from: string): DrawerSpec | null {
@@ -115,6 +118,11 @@ export function DeskOpenPage({ ticketId }: { ticketId?: string }): ReactNode {
       {body}
     </DeskFrame>
   );
+}
+
+/** The Live board with a stop's ticket in its side panel; Close goes back to the board. */
+function BoardBeside({ ticketId }: { ticketId: string }): ReactNode {
+  return <BoardPage drawer={useTicketDrawer(ticketId, BOARD_ROUTE)} />;
 }
 
 /** Mine and Team: the frame, the role check and the ticket beside the list. */
@@ -266,5 +274,6 @@ export function DeskRoute(): ReactNode {
 function besideList(from: string | undefined, id: string): ReactNode {
   if (from === LIST_ROUTE.mine) return <DeskMinePage ticketId={id} />;
   if (from === LIST_ROUTE.team) return <DeskTeamPage ticketId={id} />;
+  if (from === BOARD_ROUTE) return <BoardBeside ticketId={id} />;
   return <DeskOpenPage ticketId={id} />;
 }
