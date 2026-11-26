@@ -57,7 +57,7 @@ export interface BoardColumn {
   count: number;
   /** Oldest first; capped at TV_ROWS on the TV. */
   rows: StopRowModel[];
-  /** "and 2 more" on the TV when rows were left out, else null. */
+  /** "+2 more" on the TV when rows were left out, else null. */
   more: string | null;
 }
 

@@ -17,7 +17,7 @@ const TV = ['h1: Live board', 'h2: Nobody has s', 'h2: Being repair', 'h2: Pause
 /** The three stopped machines, oldest first, with their ages masked (they grow with the clock). The browser's tables
  * print the code, its sub-line, then the age (and "Longest" on the verdict's machine); the TV's rows code, age, sub-line. */
 const TILES = ['CNC-01 Cell 6 T Longest', 'DRL-04 Cell 2 T', 'GRD-07 Spare part · Cell 3 T'];
-const TV_TILES = ['CNC-01 T Cell 6', 'DRL-04 T Cell 2', 'GRD-07 T Spare part · Cell 3'];
+const TV_TILES = ['CNC-01 T Cell 6 Longest', 'DRL-04 T Cell 2', 'GRD-07 T Spare part · Cell 3'];
 
 const mask = (text: string) =>
   text.replace(/\d+ h \d+ min|\d+ h|\d+ min/g, 'T').replace(/\s+/g, ' ');
