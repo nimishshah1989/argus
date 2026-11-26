@@ -22,7 +22,13 @@ export default defineConfig({
     }),
   ],
   optimizeDeps: {
-    include: ['echarts/core', 'echarts/charts', 'echarts/components', 'echarts/renderers'],
+    include: [
+      'echarts/core',
+      'echarts/charts',
+      'echarts/components',
+      'echarts/renderers',
+      'echarts/features',
+    ],
   },
   server: {
     proxy: {

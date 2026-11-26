@@ -1,5 +1,5 @@
 /* eslint-disable i18next/no-literal-string -- icon names and typed unions only; every visible word comes in as a prop or t() */
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fill } from '../../i18n/fill.js';
 import type { Column } from './data-table.js';
@@ -42,6 +42,7 @@ export function TableHead({
               scope="col"
               aria-sort={aria}
               className={c.numeric ? 'v2-num-head' : undefined}
+              data-wrap={c.label.length > 14 || undefined}
             >
               {c.sortBy ? (
                 <button
@@ -225,6 +226,56 @@ export function looksOf<R>(columns: Column<R>[], rows: R[], sorted?: string): Lo
   return { largest, ranked: ranked?.key, top, tint: toned.length > BAR_COLUMNS };
 }
 
+/** Text longer than this shows only its highlight until asked for the rest (ADR 0065). */
+export const LONG_TEXT = 80;
+
+/** A long text's lead: the words before its first colon, when they are short enough to be a heading. */
+export const leadOf = (text: string): string | undefined => {
+  const at = text.indexOf(': ');
+  return at > 0 && at <= 60 ? text.slice(0, at) : undefined;
+};
+
+/**
+ * A long text cell: its lead (else one clamped line) and a "Details" button that opens the rest in place. The button
+ * never opens the row's drawer.
+ */
+function LongText({ text }: { text: string }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const lead = leadOf(text);
+  return (
+    <div className="v2-longtext">
+      <span className={open || lead ? undefined : 'v2-longtext-clamp'}>
+        {lead ? (
+          <>
+            <strong>{lead}</strong>
+            <span hidden={!open}>{text.slice(lead.length)}</span>
+          </>
+        ) : (
+          text
+        )}
+      </span>
+      <button
+        type="button"
+        className="v2-longtext-more"
+        aria-expanded={open}
+        onClick={(e) => (e.stopPropagation(), setOpen((o) => !o))}
+      >
+        {t(open ? 'insight.text.less' : 'insight.text.more')}
+      </button>
+    </div>
+  );
+}
+
+/** A cell of words drawn its own way: long text folded, a category word as a pill in its fixed colour. */
+function wordsCell(content: ReactNode, look: ColumnLook | undefined) {
+  if (typeof content !== 'string') return null;
+  if (content.length > LONG_TEXT) return <LongText text={content} />;
+  return look === 'category' && /\p{L}/u.test(content) ? (
+    <KeyPill text={content} tone="neutral" cat={catOf(content)} />
+  ) : null;
+}
+
 /**
  * Any cell but a measure's, coloured by its column's look: a category word as a pill in its fixed colour; a number
  * with a meaning on a bar (or a tint, in a wide table) scaled to its column, its colour strong on the ranked column's
@@ -241,8 +292,8 @@ export function LookCell<R>({
 }) {
   const look = lookOf(column);
   const content = tidyCell(column.cell(row), column.unit);
-  if (look === 'category' && typeof content === 'string' && /\p{L}/u.test(content))
-    return <KeyPill text={content} tone="neutral" cat={catOf(content)} />;
+  const words = wordsCell(content, look);
+  if (words) return words;
   const bare = typeof content === 'string' || typeof content === 'number';
   if (!column.numeric || !scaled(look) || !bare) return content;
   const top = looks.ranked === column.key && looks.top.has(row) ? '' : undefined;

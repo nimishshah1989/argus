@@ -58,7 +58,7 @@ export function ChartCard({
           <LinkButton href={to.link.href}>{to.link.label}</LinkButton>
         ) : null}
       </div>
-      <div className="v2-trend-scroll" data-chart-scroll>
+      <div className="v2-trend-box">
         <div ref={ref} className="v2-trend" role="img" aria-label={aria} data-chart-state={state} />
       </div>
       {numbers ? <ChartNumbers spec={spec} /> : null}

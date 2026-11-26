@@ -150,43 +150,22 @@ for (const theme of ['light', 'dark']) {
   }
 }
 
-/** The first chart box of the page that can scroll sideways, and whether it scrolls right now. */
-const scrollBox = (page: Page) => page.locator('.v2-trend-scroll').first();
-const scrolls = (box: Locator) => box.evaluate((el) => el.scrollWidth > el.clientWidth);
-
 for (const theme of ['light', 'dark']) {
-  test(`Chart kit: a chart box is a keyboard-scrollable group only while it scrolls, as a drawer narrows and widens its card (${theme})`, async ({
+  test(`Chart kit: no chart box scrolls sideways, as a drawer narrows its card (${theme}, ADR 0065)`, async ({
     page,
   }) => {
     await page.setViewportSize({ width: 900, height: 900 });
     await page.goto('about:blank');
     await page.goto(`/gallery?view=v2-footprint&theme=${theme}`);
-    const box = scrollBox(page);
+    const box = page.locator('.v2-trend-box').first();
+    const scrolls = () => box.evaluate((el) => el.scrollWidth > el.clientWidth);
     await expect(page.locator('[data-chart-state="ready"]').first()).toBeVisible();
-    // Wide enough for its 22 purchase years: no scrolling, so no tab stop and no name.
-    await expect.poll(() => scrolls(box)).toBe(false);
-    await expect(box).not.toHaveAttribute('tabindex', /.*/);
-    await expect(box).not.toHaveAttribute('role', /.*/);
-    // A drawer narrows the card: now it scrolls, so it can be reached and scrolled from the keyboard.
+    await expect.poll(scrolls).toBe(false);
     await page
       .getByRole('button', { name: /^[A-Z]{1,4}-\d+$/ })
       .first()
       .click();
     await expect(page.locator('aside.v2-drawer')).not.toHaveAttribute('inert', '');
-    await expect.poll(() => scrolls(box)).toBe(true);
-    await expect(box).toHaveAttribute('tabindex', '0');
-    await expect(box).toHaveAttribute('role', 'group');
-    const { violations } = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
-    expect(violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(' ')}`)).toEqual([]);
-    await box.focus();
-    await expect(box).toBeFocused();
-    await page.keyboard.press('ArrowRight');
-    await expect.poll(() => box.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
-    // The drawer closes and the card is wide again: no longer a tab stop.
-    await page.goBack();
-    await expect(page.locator('aside.v2-drawer')).toHaveAttribute('inert', '');
-    await expect.poll(() => scrolls(box)).toBe(false);
-    await expect(box).not.toHaveAttribute('tabindex', /.*/);
-    await expect(box).not.toHaveAttribute('role', /.*/);
+    await expect.poll(scrolls).toBe(false);
   });
 }

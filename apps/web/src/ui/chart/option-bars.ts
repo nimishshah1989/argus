@@ -60,6 +60,11 @@ function barSeries(spec: BarSpec, p: Palette) {
           ? color
           : seriesColor(p, 1)
         : toneColor(series.tones?.[at], p, color);
+    // A series coloured bar by bar wears, in the legend, the colour most of its bars wear.
+    // shortcut: bars of mixed bands share one swatch; a per-band legend if the owner asks for it.
+    const bars = series.tones ? series.values.map((_, at) => colourAt(at)) : [];
+    const times = (c: string | undefined) => bars.filter((bar) => bar === c).length;
+    const swatch = [...bars].sort((a, b) => times(b) - times(a))[0] ?? color;
     return {
       type: 'bar' as const,
       name: series.name,
@@ -70,7 +75,7 @@ function barSeries(spec: BarSpec, p: Palette) {
               value: item ?? null,
               itemStyle: { color: colourAt(at) },
             })),
-      color,
+      color: swatch,
       ...plannedStyle(series.meaning, p),
       ...(spec.stacked === true ? { stack: 'total' } : {}),
       label: {

@@ -10,6 +10,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 - `v2/table-polish` (PR open, not merged): duration columns read as time ("40 min", "2 h 26 min") on Breakdown log, Why-Why, Fix Finder; Breakdowns vs PM month grids coloured (BD % loss, PM % plan). Guard coverage for the 14 skipped screens postponed.
 - 2026 log loaded on staging (snapshot `uptimo-pre-history-20261126155839`, batch `9aa60229…`); 2022–2025 was already there. Do NOT run `history-load.yml -f legacy=true` until its source is checked.
 - **Live breakdowns in A1, report charts over every year (ADR 0064, #874):** A1 counts live tickets (key's November holds); monthly/annual report month charts read 2022–2026. Other figures still history-only.
+- `plan/fix-risk-map` (PR open, ADR 0065): risk map rows apart, charts fit the card (no sideways scroll), year over year only for one series, lone card spans its row, long table text behind "Details", "On this page" lists a title once.
 
 ## In flight (Nimish: "fix the not-done items too") — four agents started by c39914a2, no commits yet at handover
 

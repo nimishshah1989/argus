@@ -244,23 +244,23 @@ describe('a percent chart', () => {
   });
 });
 
-describe('every category label is drawn', () => {
-  it('never skips a label, on a vertical chart or a line', () => {
+describe('category labels', () => {
+  it('never skips a label while there is room, on a vertical chart or a line', () => {
     expect(view(bar()).xAxis?.axisLabel?.interval).toBe(0);
     const line = { ...bar(), kind: 'line' } as ChartSpec;
     expect(view(line).xAxis?.axisLabel?.interval).toBe(0);
   });
 
-  it('lays labels flat when they fit, tilts them when they do not, and scrolls when 45 degrees is still too tight', () => {
+  it('lays labels flat when they fit, tilts them when they do not, and thins them when 45 degrees is still too tight', () => {
     expect(labelPlan(['Jan', 'Feb', 'Mar'], 600)).toMatchObject({ rotate: 0, room: 0 });
     const cells = Array.from({ length: 9 }, (_, i) => `Cell ${i + 1}`);
     expect(labelPlan(cells, 1000).rotate).toBe(0);
     const tilted = labelPlan(NAMES, 700);
     expect(tilted.rotate).toBe(45);
     expect(tilted.room).toBeGreaterThan(150);
-    expect(tilted.scrollWidth).toBeUndefined();
+    expect(tilted.every).toBeUndefined();
     const many = Array.from({ length: 40 }, (_, i) => `Machine number ${i}`);
-    expect(labelPlan(many, 320).scrollWidth).toBeGreaterThan(320);
+    expect(labelPlan(many, 320).every).toBeGreaterThan(1);
   });
 
   it('tilts a vertical chart through the axis and makes the box taller for the tilted names', () => {

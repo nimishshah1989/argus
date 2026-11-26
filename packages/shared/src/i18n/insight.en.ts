@@ -16,6 +16,8 @@ export const insightEn = {
   'insight.fold.more': '+ {n} more',
   'insight.fold.within': '+ {n} more, all within target',
   'insight.expand': 'Show detail: {name}',
+  'insight.text.more': 'Details',
+  'insight.text.less': 'Hide details',
   // ADR 0035: a tile's yardstick in kit words, so screen tickets never edit a shared catalogue.
   'insight.yardstick.rank': '{rank} of {n}, highest first',
   'insight.yardstick.share': '{pct}% of {total}',

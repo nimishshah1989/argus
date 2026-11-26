@@ -65,10 +65,14 @@
   font-size: var(--text-v2-label);
   font-weight: 600;
   text-align: left;
-  white-space: nowrap;
+  vertical-align: bottom;
 }
 .v2-table th.v2-num-head {
   text-align: right;
+}
+/* A long heading wraps instead of widening the table, but never to a word a line. */
+.v2-table th[data-wrap] {
+  min-width: 7rem;
 }
 .v2-sort {
   display: inline-flex;
@@ -232,4 +236,43 @@ td.v2-row-action .v2-icon-btn:focus-visible {
   height: 8px;
   border-radius: 999px;
   background: var(--v2-cat);
+}
+
+/* A long text cell (ADR 0065): a readable column, its highlight, and the rest behind "Details". */
+.v2-longtext {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 12rem;
+  max-width: 36rem;
+  overflow-wrap: anywhere;
+  text-align: left;
+  white-space: normal;
+}
+.v2-longtext-clamp {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+.v2-longtext-more {
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-v2-ink-2);
+  font: inherit;
+  font-size: var(--text-v2-label);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.v2-longtext-more:focus-visible {
+  outline: 2px solid var(--color-v2-focus);
+  outline-offset: 2px;
+}
+@media (pointer: coarse) {
+  .v2-longtext-more {
+    min-height: 44px;
+  }
 }
