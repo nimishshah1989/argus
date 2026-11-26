@@ -22,11 +22,11 @@ export function Notice({
   children?: ReactNode;
 }) {
   return (
+    // No aria-label: an error that names a field ("current password") must not label a second control.
     <section
       className="v2-card v2-banner"
       data-tone={tone}
       role={tone === 'loss' ? 'alert' : 'status'}
-      aria-label={title}
     >
       <span className="v2-banner-icon">
         <Icon name={icon ?? (tone === 'loss' || tone === 'risk' ? 'alert' : 'bell')} size={16} />
