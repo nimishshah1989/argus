@@ -1,9 +1,11 @@
 /* eslint-disable i18next/no-literal-string -- icon names and typed unions only; every visible word comes in as a prop or t() */
 // lean-allow: the v2 kit table owns search, filters, sort, paging and the row drawer in one place; splitting it is its own change.
-import { useState, type ReactNode } from 'react';
+import { useContext, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fill } from '../../i18n/fill.js';
+import { EntityOpenContext } from './entity-chip.js';
 import { Icon } from './icons.js';
+import { entityOfRow } from './row-entity.js';
 import { MOTION } from './motion.js';
 import {
   ExpandButton,
@@ -69,7 +71,10 @@ type TableProps<R> = {
   headed?: boolean;
   /** Beside the title. */
   aside?: ReactNode;
-  /** What a row opens in the drawer; a table whose rows open nothing leaves it out and its rows are not buttons. */
+  /**
+   * What a row opens in the drawer. Left out, a row that names a machine, cell, person or decision (`entityOfRow`)
+   * opens that in the drawer (UX rule 18, ADR 0058); a table whose rows name nothing has rows that are not buttons.
+   */
   onOpen?: (row: R) => void;
   /** The line the table opens with, under its title (UX rule 60). */
   takeaway?: TakeawayData;
@@ -352,7 +357,23 @@ function TotalFoot<R>({ columns, cells }: { columns: Column<R>[]; cells: ReactNo
  * in tabular figures. A row opens the drawer (click it, or its action from the keyboard); the action shows on hover.
  * When a filter, a sort or a search changes the rows, they re-flow in.
  */
-export function DataTable<R>(props: TableProps<R>) {
+/** The table as drawn: when its screen wired no row action, a row opens the thing it names, in the drawer. */
+function useRowOpen<R>(given: TableProps<R>): TableProps<R> {
+  const open = useContext(EntityOpenContext);
+  const { t } = useTranslation();
+  if (given.onOpen || !given.rows.some((row) => entityOfRow(row))) return given;
+  return {
+    ...given,
+    words: { ...given.words, open: given.words.open ?? t('v2m.open') },
+    onOpen: (row) => {
+      const ref = entityOfRow(row);
+      if (ref) open(ref);
+    },
+  };
+}
+
+export function DataTable<R>(given: TableProps<R>) {
+  const props = useRowOpen(given);
   const { words, columns, filters } = props;
   const { view, changes, ask, fold, unfold, worst } = useTable(props);
   const small = isSmall(props.rows.length);

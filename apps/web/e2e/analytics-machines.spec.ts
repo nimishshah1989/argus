@@ -411,6 +411,24 @@ for (const [screen, heading, control] of [
   });
 }
 
+// ADR 0058: a card the page's model did not wire still opens something; on Age a band card opens the page's rows.
+test('Age: pressing a band card anywhere opens the rows behind the age figure', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const figure = keyFigure('a8-age', { type: 'machine', ids: [FULL.id, PARTIAL.id] });
+  await stubFigures(page, { ...FIGURES, figures: [figure] });
+  await signIn(page, 'head');
+  await page.goto('/analytics/machines?screen=a8-age');
+  const band = page.locator('section.v2-kpi[data-stretch="drill"]').first();
+  await expect(band.getByRole('button', { name: /show the rows behind/ })).toBeVisible();
+  await band.click();
+  await expect(page).toHaveURL(/[?&]drawer=figure:a8-age$/);
+  await expect(
+    page.locator('aside.v2-drawer').getByRole('button', { name: FULL.code, exact: true }),
+  ).toBeVisible();
+});
+
 test('an old v1 link keeps its rows: ?drill= opens them in the panel, an unknown screen opens the register', async ({
   page,
 }) => {

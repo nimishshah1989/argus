@@ -15,6 +15,7 @@ import { entityHref } from './href.js';
 import type { EntityModel } from './model.js';
 import { rowsWords } from '../rows-behind/words.js';
 import { useEntityParam, useFigureParam } from './url.js';
+import { ScopeContext, homeLink } from '../destinations.js';
 
 /** What a screen that holds an entity live gives the drawer instead of the port's version of it. */
 export type LocalEntity = Pick<DrawerSpec, 'label' | 'content'>;
@@ -99,7 +100,9 @@ function useRowsDrawer(
     figure ? { figure } : NO_FIGURE,
     figure ? given : NOT_ASKED_ROWS,
   );
+  const scope = useContext(ScopeContext);
   if (!figure) return null;
+  const home = homeLink(figure, scope, (key, values) => t(key as MessageKey, { ...values }));
   const current: Loaded<RowsBehindModel> =
     loaded.state === 'ready' && loaded.model?.figure !== figure
       ? { ...loaded, state: 'loading', model: undefined }
@@ -108,6 +111,8 @@ function useRowsDrawer(
     id: `figure:${figure}`,
     label: current.model?.label ?? t('common.loading'),
     onClose: close,
+    // The page that explains the figure, when it is not the page underneath (ADR 0058).
+    ...(home ? { fullPage: home } : {}),
     content: (
       <RowsBehind
         loaded={current}

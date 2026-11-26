@@ -1,5 +1,5 @@
 import type { MessageKey } from '@uptimo/shared/i18n';
-import { useEffect, type ReactElement, type ReactNode } from 'react';
+import { useCallback, useEffect, type ReactElement, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +11,8 @@ import { SCREEN_LABELS, groupFor, parseDrill, type GroupId } from '../analytics/
 import { sectionsFor, type SectionId } from '../analytics/shell/shell-data.js';
 import type { NavItem } from '../../ui/v2/shell.js';
 import { type ScreenModel } from './data.js';
+import { DestinationContext } from '../../ui/v2/drill.js';
+import { ScopeContext, destinationOf } from './destinations.js';
 import { ChromeContext, EntityShell, WhoContext } from './entity/EntityShell.js';
 import { liveReply } from './figures/live.js';
 import {
@@ -133,18 +135,35 @@ export function LiveFrame({
   const nav = useNav(entry.section, role);
   useLegacyDrill(entry.screen);
   return (
-    <WhoContext.Provider value={{ role, company: brand || t('analytics.title') }}>
-      <ChromeContext.Provider
-        value={
-          <>
-            {chromeFor(entry, role)}
-            {notice}
-          </>
-        }
-      >
-        {children(nav)}
-      </ChromeContext.Provider>
-    </WhoContext.Provider>
+    <DestinationScope screen={entry.screen}>
+      <WhoContext.Provider value={{ role, company: brand || t('analytics.title') }}>
+        <ChromeContext.Provider
+          value={
+            <>
+              {chromeFor(entry, role)}
+              {notice}
+            </>
+          }
+        >
+          {children(nav)}
+        </ChromeContext.Provider>
+      </WhoContext.Provider>
+    </DestinationScope>
+  );
+}
+
+/** Every card inside finds where it goes in the one destinations map, scoped to this screen (ADR 0058). */
+export function DestinationScope({ screen, children }: { screen: string; children: ReactNode }) {
+  const { t } = useTranslation();
+  const destination = useCallback(
+    (id: string, label: string) =>
+      destinationOf(screen, id, label, (key, values) => t(key as MessageKey, { ...values })),
+    [screen, t],
+  );
+  return (
+    <ScopeContext.Provider value={screen}>
+      <DestinationContext.Provider value={destination}>{children}</DestinationContext.Provider>
+    </ScopeContext.Provider>
   );
 }
 
