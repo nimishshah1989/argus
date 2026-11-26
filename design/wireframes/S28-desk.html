@@ -1,7 +1,6 @@
-<!-- Wireframe DRAFT for Nimish's approval (not a snapshot of a built v2 page). Hand-drawn in the v2 kit's classes; fixture data only.
-Inventory (v1 -> this wireframe). Source: apps/web/src/screens/Desk.tsx, desk/Shell.tsx, desk/Board.tsx (OpenLists), MinePanel, TeamPanel, ClosedSection, NeedsReport, TasksList, TwoPane, ui/ticket-card.tsx, components/TicketCard.tsx, actionSpecs.ts (quickSpec); copy in i18n desk, desk-lists, signoff, tasks, sla. Order = design lock v3.
-Open (counts, sign-off feed, team link, 3 lists, needs report), Mine, Team, quick actions, wide two-pane, settings links, loading, error, offline, empty, not available.
-Unsure: see "Questions for Nimish".
+<!-- Wireframe DRAFT for Nimish's approval (redraw per ADR 0055 point 2; assumptions in ADR 0056). Hand-drawn in the v2 kit's classes inside the v2 Shell (the Analytics frame: rail, header, kit cards and tables, insight first); fixture data only.
+Desk: Open, Mine, Team in the v2 Shell; Report = "Report a problem"; Live = S30 tab; ticket opens in the kit side panel.
+Keeps every item of the S28-S30 wireframes approved 25 Nov and every item of issue #803; see the Coverage table.
 -->
 <!doctype html>
 <html lang="en"><head>
@@ -14,7 +13,7 @@ Unsure: see "Questions for Nimish".
     <!-- Two apps from one site: the address you install from decides which one (floor or desk). -->
     <link rel="manifest" href="/manifest-floor.webmanifest">
     <!-- Set the phone's dark setting before first paint on the floor and desk, so a dark phone never flashes light. -->
-    <title>Desk (technician and supervisor) (wireframe draft)</title>
+    <title>Desk (Open, Mine, Team) (wireframe draft)</title>
   <style>.at { min-width: 0px; container: at / inline-size; }
 .at-grid { gap: var(--spacing-step-4); grid-template-columns: minmax(0px, 1fr); align-items: start; display: grid; }
 .at-grid > * { min-width: 0px; }
@@ -1361,8 +1360,230 @@ tr:hover td.v2-row-action .v2-icon-btn, td.v2-row-action .v2-icon-btn:focus-visi
 </style>
 </head>
   <body>
-<div id="root"><div class="v2-app wf-solo" data-drawer="false" data-menu="false"><div class="v2-main"><header class="v2-header"><h1 class="v2-title">Desk (technician and supervisor)</h1></header><main class="v2-content"><div class="v2-verdict"><p class="v2-lede">A technician sees what is waiting, <b class="v2-seg v2-seg-risk">acknowledges</b> in one tap, starts, and taps <b class="v2-seg v2-seg-strong">Machine running again</b>.</p><p class="v2-sub">Phone frames; wide screens show the list and the open ticket side by side.</p></div><section class="v2-card v2-pad" aria-label="Desk, technician and supervisor"><div class="v2-card-head"><div><h2 class="v2-h2">Desk, technician and supervisor</h2><p class="v2-sub">Lists, acknowledge, start, running again. v3 order kept.</p></div></div><div class="wf-shots"><figure class="wf-fig"><div class="wf-phone"><div class="wf-phone-top"><b>Tickets</b><span><span class="v2-pill v2-pill-neutral">Account</span></span></div><div class="wf-phone-body"><div class="v2-chips"><span class="v2-chip">Down 3</span><span class="v2-chip">Waiting 2</span><span class="v2-chip">Support 1</span><span class="v2-chip">Running OK 41</span></div><div class="wf-row"><span><b>Waiting for production's OK (1)</b><small>Asked at 10:12 · 32 min so far · times out after 4 h</small></span><span>›</span></div><div class="wf-row"><span>Team now: 2 on jobs<small></small></span><span>›</span></div><div class="v2-segmented"><button aria-pressed="true">Breakdowns (6)</button><button aria-pressed="false">Tasks (2)</button><button aria-pressed="false">Work (3)</button></div><span class="wf-hint">Waiting for someone to start. Longest wait first.</span><p class="wf-take">LT-08 has been down longest: 2 h 39 min, about 4 times the 40 min average. <span class="v2-pill v2-pill-loss">Longest</span></p><div class="wf-card"><h4><span>VC-17 <small class="wf-mini wf-inl">TKT-0413</small></span><span class="v2-pill v2-pill-risk">Open</span></h4><p class="wf-mini"><b>Machine stopped</b></p><p>Spindle noise</p><p class="wf-mini">Reported 10:42 by Operator A · <b>Down 2 min</b></p><p class="wf-mini">Respond: 4 min left · Restore: 1 h 20 min left</p><div class="wf-btn" data-k="primary">Acknowledge</div></div><div class="wf-card"><h4><span>LT-08 <small class="wf-mini wf-inl">TKT-0409</small></span><span class="v2-pill v2-pill-risk">Open</span></h4><p class="wf-mini"><b>Machine stopped</b></p><p>Chuck not gripping</p><p class="wf-mini">Reported 08:05 by Tech A · <b>Down 2 h 39 min</b></p><div class="wf-btn" data-k="primary">Start work</div></div><b class="wf-label">Waiting (1)</b><div class="wf-card"><h4><span>PR-02 <small class="wf-mini wf-inl">TKT-0405</small></span><span class="v2-pill v2-pill-plan">Waiting</span></h4><p class="wf-mini"><b>Machine stopped</b></p><p>Clutch slipping</p><p class="wf-mini">Reported yesterday 16:20 · <b>Waiting 1 h</b></p><div class="wf-btn" data-k="primary">Resume work</div></div></div><div class="wf-tabs"><span aria-current=page>Open</span><span>Mine</span><span>Team</span><span>Report</span><span>Live</span></div></div><figcaption><b>Open (technician / supervisor).</b> Top to bottom as v3: counts strip (Down, Waiting, Support, Running OK; each filters), sign-off feed, Team now link, three lists as a segmented bar, hint, ticket cards with one quick button, "Closed without a report". Quick button = Acknowledge, Start work, Pick up, Resume or Machine running again, whichever the role may do.</figcaption></figure><figure class="wf-fig"><div class="wf-phone"><div class="wf-phone-top"><b>Tickets</b><span><span class="v2-pill v2-pill-neutral">Account</span></span></div><div class="wf-phone-body"><div class="wf-card"><h4><span>VC-03 <small class="wf-mini wf-inl">TKT-0398</small></span><span class="v2-pill v2-pill-plan">In progress</span></h4><p class="wf-mini"><b>Machine running again · follow-up pending</b></p><p>Coolant pump</p><p class="wf-mini">Reported 09:00 by Tech B · <b>Running since 11:20 · down 38 min</b></p><div class="wf-btn" data-k="primary">Machine running again</div></div></div><div class="wf-tabs"><span aria-current=page>Open</span><span>Mine</span><span>Team</span><span>Report</span><span>Live</span></div></div><figcaption><b>Running again.</b> After the repair, a ticket whose machine runs but follow-up is pending shows the "Machine running again" quick button first, with the type line "Machine running again · follow-up pending" and "Running since 11:20 · down 38 min".</figcaption></figure><figure class="wf-fig"><div class="wf-phone"><div class="wf-phone-top"><b>Tickets</b><span><span class="v2-pill v2-pill-neutral">Account</span></span></div><div class="wf-phone-body"><div class="v2-chips"><span class="v2-chip">Down 3</span><span class="v2-chip">Waiting 2</span><span class="v2-chip">Support 1</span><span class="v2-chip">Running OK 41</span></div><p class="wf-mini"><b>Showing machines down. Tap to show all.</b></p><div class="v2-segmented"><button aria-pressed="true">Breakdowns (6)</button><button aria-pressed="false">Tasks (2)</button><button aria-pressed="false">Work (3)</button></div><div class="wf-card"><h4><span>VC-17 <small class="wf-mini wf-inl">TKT-0413</small></span><span class="v2-pill v2-pill-risk">Open</span></h4><p class="wf-mini"><b>Machine stopped</b></p><p>Spindle noise</p><p class="wf-mini">Reported 10:42 · <b>Down 2 min</b></p><div class="wf-btn" data-k="primary">Acknowledge</div></div></div><div class="wf-tabs"><span aria-current=page>Open</span><span>Mine</span><span>Team</span><span>Report</span><span>Live</span></div></div><figcaption><b>Filter active.</b> Tapping a chip filters the list and says so: "Showing machines down. Tap to show all."</figcaption></figure><figure class="wf-fig"><div class="wf-phone"><div class="wf-phone-top"><b>Tickets</b><span><span class="v2-pill v2-pill-neutral">Account</span></span></div><div class="wf-phone-body"><div class="v2-segmented"><button aria-pressed="false">Breakdowns (6)</button><button aria-pressed="true">Tasks (2)</button><button aria-pressed="false">Work (3)</button></div><span class="wf-hint">Work left after a breakdown was closed. Earliest expected date first.</span><p class="wf-take">VC-17 is oldest: expected 26 Nov, 2 days from now.</p><div class="wf-card"><h4><span>VC-17 <small class="wf-mini wf-inl">TKT-0388</small></span><span class="v2-pill v2-pill-risk">Pending</span></h4><p class="wf-mini"><b>Pending task · expected 26 Nov</b></p><p>Replace spindle belt</p><p class="wf-mini">Left by Tech A from TKT-0380 · <b>Expected 26 Nov</b></p><div class="wf-btn" data-k="primary">Start work</div></div><span class="wf-hint">Jobs not on a machine. Urgent first.</span><div class="wf-card"><h4><span>Fan bay 3 <small class="wf-mini wf-inl">TKT-0410</small></span><span class="v2-pill v2-pill-risk">Open</span></h4><p class="wf-mini"><b>Work request</b></p><p>Install a wall fan</p><p class="wf-mini">Reported 09:30 by Operator B · <b>Open 1 h 14 min</b></p><div class="wf-btn" data-k="primary">Start work</div></div></div><div class="wf-tabs"><span aria-current=page>Open</span><span>Mine</span><span>Team</span><span>Report</span><span>Live</span></div></div><figcaption><b>Tasks and Work segments.</b> Tasks: "Work left after a breakdown was closed. Earliest expected date first." with "Left by", "Pending task · expected 26 Nov". Work: "Jobs not on a machine. Urgent first."</figcaption></figure><figure class="wf-fig"><div class="wf-phone"><div class="wf-phone-top"><b>Tickets</b><span><span class="v2-pill v2-pill-neutral">Account</span></span></div><div class="wf-phone-body"><b class="wf-label">Closed without a report (2)</b><span class="wf-hint">Last 7 days. Write the report so it reaches the platform.</span><div class="wf-row"><span><b>VC-09</b><small>Closed 08:50 by Tech A</small></span><span><span class="v2-pill v2-pill-plan">Fill report</span></span></div><div class="wf-row"><span><b>LT-02</b><small>Closed yesterday by Tech B</small></span><span><span class="v2-pill v2-pill-plan">Fill report</span></span></div></div><div class="wf-tabs"><span aria-current=page>Open</span><span>Mine</span><span>Team</span><span>Report</span><span>Live</span></div></div><figcaption><b>Needs report</b> at the foot of Open: closed without a report in the last 7 days, with "Fill report".</figcaption></figure><figure class="wf-fig"><div class="wf-phone"><div class="wf-phone-top"><b>My tickets</b><span><span class="v2-pill v2-pill-neutral">Account</span></span></div><div class="wf-phone-body"><div class="wf-btn">Day report</div><div class="wf-card"><h4><span>LT-08 <small class="wf-mini wf-inl">TKT-0409</small></span><span class="v2-pill v2-pill-plan">In progress</span></h4><p class="wf-mini"><b>Machine stopped</b></p><p>Chuck not gripping</p><p class="wf-mini">Started 08:20 · <b>Work 2 h 24 min</b></p><div class="wf-btn">Post update</div></div><b class="wf-label">Closed, last 30 days</b><div class="wf-row"><span><b>VC-09</b><small>Closed 08:50</small></span><span><span class="v2-pill v2-pill-gain">Closed</span></span></div></div><div class="wf-tabs"><span>Open</span><span aria-current=page>Mine</span><span>Team</span><span>Report</span><span>Live</span></div></div><figcaption><b>Mine</b> (My tickets): tickets assigned to you, the Day report download, closed in the last 30 days. Empty: "Nothing assigned to you."</figcaption></figure><figure class="wf-fig"><div class="wf-phone"><div class="wf-phone-top"><b>Team now</b><span><span class="v2-pill v2-pill-neutral">Account</span></span></div><div class="wf-phone-body"><p class="wf-take">Tech A is on the longest job: 2 h 24 min on LT-08.</p><b class="wf-label">Working now</b><div class="wf-row"><span><b>Tech A</b><small>LT-08 · Lead</small></span><span><span class="v2-pill v2-pill-plan">In progress</span></span></div><div class="wf-row"><span><b>Tech B</b><small>VC-03 · Support</small></span><span><span class="v2-pill v2-pill-risk">Waiting</span></span></div><b class="wf-label">Not started</b><div class="wf-row"><span><b>VC-17</b><small>Reported 10:42</small></span><span><span class="v2-pill v2-pill-risk">Open</span></span></div><b class="wf-label">Cancelled, last 24 hours</b><p class="wf-mini">Nothing here.</p><b class="wf-label">Monthly totals per person</b><div class="wf-row"><span>Tech A<small>Nov</small></span><span>14 tickets</span></div></div><div class="wf-tabs"><span>Open</span><span>Mine</span><span aria-current=page>Team</span><span>Report</span><span>Live</span></div></div><figcaption><b>Team now</b> (supervisor / head): Working now, Not started, Cancelled last 24 hours, Closed last 30 days, Monthly totals per person. Empty: "Nobody is working right now." / "Nothing here."</figcaption></figure><figure class="wf-fig"><div class="wf-phone"><div class="wf-phone-top"><b>Tickets</b><span><span class="v2-pill v2-pill-neutral">Account</span></span></div><div class="wf-phone-body"><div class="wf-row"><span><b>Waiting for production's OK (1)</b><small>Asked at 10:12 · 32 min so far · times out after 4 h</small></span><span>›</span></div><div class="wf-row"><span><b>Confirmed fixed</b><small>Operator A at 14:32 · 22 min after the close</small></span><span></span></div><div class="wf-row"><span><b>Disputed, reopened</b><small>Tech A at 11:05: "Still vibrating"</small></span><span></span></div><div class="wf-row"><span><b>Not answered</b><small>No answer in 4 h, so it stays closed. The escalation rule decides who is told.</small></span><span></span></div></div><div class="wf-tabs"><span aria-current=page>Open</span><span>Mine</span><span>Team</span><span>Report</span><span>Live</span></div></div><figcaption><b>Sign-off feed</b> (Waiting for production's OK, Confirmed fixed, Disputed reopened, Not answered) with who and when.</figcaption></figure><figure class="wf-fig"><div class="wf-phone"><div class="wf-phone-top"><b>Tickets</b><span><span class="v2-pill v2-pill-neutral">Account</span></span></div><div class="wf-phone-body"><div class="wf-row"><span><b>Plant settings</b><small>Admin / head only</small></span><span>›</span></div><div class="wf-row"><span><b>Settings</b><small>Admin / head only</small></span><span>›</span></div><div class="wf-row"><span><b>Analytics</b><small>Wide screens, roles that read analytics</small></span><span>›</span></div></div><div class="wf-tabs"><span aria-current=page>Open</span><span>Mine</span><span>Team</span><span>Report</span><span>Live</span></div></div><figcaption><b>Live</b> tab opens the Live board (S30). <b>Report</b> tab opens the floor report flow (S27). Admin or head see two buttons top right of the page: "Plant settings" and "Settings"; roles with analytics also get an "Analytics" entry in the wide tab list.</figcaption></figure><figure class="wf-fig"><div class="wf-phone wf-wide"><div class="wf-phone-top"><b>Tickets</b><span><span class="v2-pill v2-pill-neutral">Account</span></span></div><div class="wf-two"><div class="wf-phone-body wf-flush"><div class="v2-chips"><span class="v2-chip">Down 3</span><span class="v2-chip">Waiting 2</span><span class="v2-chip">Support 1</span><span class="v2-chip">Running OK 41</span></div><div class="v2-segmented"><button aria-pressed="true">Breakdowns (6)</button><button aria-pressed="false">Tasks (2)</button><button aria-pressed="false">Work (3)</button></div><div class="wf-card"><h4><span>VC-17 <small class="wf-mini wf-inl">TKT-0413</small></span><span class="v2-pill v2-pill-risk">Open</span></h4><p class="wf-mini"><b>Machine stopped</b></p><p>Spindle noise</p><p class="wf-mini">Reported 10:42 · <b>Down 2 min</b></p><div class="wf-btn" data-k="primary">Acknowledge</div></div></div><div class="wf-card"><h4><span>VC-17 TKT-0413</span><span class="v2-pill v2-pill-risk">Open</span></h4><p>The selected ticket opens here: the same page as S29, beside the list.</p></div></div></div><figcaption><b>Wide screen:</b> the open list and the selected ticket side by side (two-pane); the ticket is the S29 page.</figcaption></figure></div></section><section class="v2-card v2-pad" aria-label="States"><div class="v2-card-head"><div><h2 class="v2-h2">States this screen also has</h2></div></div><div class="wf-shots"><figure class="wf-fig"><div class="wf-phone"><div class="wf-phone-top"><b>Tickets</b><span><span class="v2-pill v2-pill-neutral">Account</span></span></div><div class="wf-phone-body"><div class="wf-skel"></div><div class="wf-skel"></div><div class="wf-skel"></div><div class="wf-skel"></div></div><div class="wf-tabs"><span aria-current=page>Open</span><span>Mine</span><span>Team</span><span>Report</span><span>Live</span></div></div><figcaption><b>Loading</b></figcaption></figure><figure class="wf-fig"><div class="wf-phone"><div class="wf-phone-top"><b>Tickets</b><span><span class="v2-pill v2-pill-neutral">Account</span></span></div><div class="wf-phone-body"><div class="wf-notice"><b>Could not load. Try again.</b></div></div><div class="wf-tabs"><span aria-current=page>Open</span><span>Mine</span><span>Team</span><span>Report</span><span>Live</span></div></div><figcaption><b>Error</b></figcaption></figure><figure class="wf-fig"><div class="wf-phone"><div class="wf-phone-top"><b>Tickets</b><span><span class="v2-pill v2-pill-neutral">Account</span></span></div><div class="wf-phone-body"><div class="v2-card v2-banner" data-tone="plan"><div class="v2-banner-body"><p class="v2-banner-head"><b>Offline — closes will be queued</b></p><p class="v2-banner-text">2 queued, reconnecting…</p></div></div><div class="wf-card"><h4><span>VC-17 <small class="wf-mini wf-inl">TKT-0413</small></span><span class="v2-pill v2-pill-risk">Open</span></h4><p class="wf-mini"><b>Machine stopped</b></p><p>Spindle noise</p><p class="wf-mini">Reported 10:42 · <b>Down 2 min</b></p><div class="wf-btn" data-k="primary">Acknowledge</div></div></div><div class="wf-tabs"><span aria-current=page>Open</span><span>Mine</span><span>Team</span><span>Report</span><span>Live</span></div></div><figcaption><b>Offline</b></figcaption></figure><figure class="wf-fig"><div class="wf-phone"><div class="wf-phone-top"><b>Tickets</b><span><span class="v2-pill v2-pill-neutral">Account</span></span></div><div class="wf-phone-body"><div class="wf-notice"><b>Not available to you</b>Your login does not include this screen. If you need it, ask your admin.</div><div class="wf-btn" data-k="primary">Report a problem</div></div><div class="wf-tabs"><span aria-current=page>Open</span><span>Mine</span><span>Team</span><span>Report</span><span>Live</span></div></div><figcaption><b>Not available</b></figcaption></figure></div><div class="wf-states"><div class="wf-notice"><b>Loading</b>Counts and two cards as skeletons</div><div class="wf-notice"><b>Error</b>"Could not load. Try again." banner; a command error shows as a banner under the title</div><div class="wf-notice"><b>Offline</b>Offline banner: closes are queued ("N queued, reconnecting…"); drafts under "Needs attention"</div><div class="wf-notice"><b>Empty</b>"No breakdowns waiting." / "No pending tasks." / "No work requests waiting." / "Nothing assigned to you." / "Nobody is working right now."</div><div class="wf-notice"><b>Not available</b>"Not available to you. Your login does not include this screen. If you need it, ask your admin." with Report a problem</div><div class="wf-notice"><b>Pending</b>Quick button disabled while it sends</div></div></section>
-<section class="v2-card v2-pad" aria-label="Coverage"><div class="v2-card-head"><div><h2 class="v2-h2">Coverage: every v1 item and where it sits</h2><p class="v2-sub">A redesign never reduces scope. Nothing here is "not built".</p></div></div><table class="v2-table wf-cov"><thead><tr><th>v1 item (control, field, state or word)</th><th>Where it sits here</th></tr></thead><tbody><tr><td>Tabs Open / Mine / Team / Report / Live, count badge on Open</td><td>Tab bar of every frame</td></tr><tr><td>Title, "Updated {time}", Account button, sync status, offline banner, drafts, error banner</td><td>Top of each frame; Offline state</td></tr><tr><td>Settings entries for admin/head (Plant settings, Settings)</td><td>"Live" notes frame</td></tr><tr><td>Counts strip Down / Waiting / Support / Running OK, filter + "Showing … Tap to show all"</td><td>Open and Filter frames</td></tr><tr><td>Sign-off feed (waiting, confirmed, disputed, timed out)</td><td>Sign-off feed frame</td></tr><tr><td>Team now link with count wording</td><td>Open frame</td></tr><tr><td>Segments Breakdowns / Tasks / Work with counts and hints</td><td>Open and Tasks frames</td></tr><tr><td>Ticket card: machine, ref, status, kind line, problem, reported by, time line, SLA timers, quick button</td><td>Open frame</td></tr><tr><td>Quick action Acknowledge / Start work / Pick up / Resume / Machine running again</td><td>Open and Running-again frames</td></tr><tr><td>Waiting section (paused) with count</td><td>Open frame</td></tr><tr><td>Needs report list with Fill report</td><td>Needs report frame</td></tr><tr><td>Mine: My tickets, Day report, error text, closed 30 days, empty</td><td>Mine frame</td></tr><tr><td>Team: working now, not started, cancelled 24 h, closed 30 d, monthly per person, empties</td><td>Team frame</td></tr><tr><td>Two-pane wide layout</td><td>Wide frame</td></tr><tr><td>Not available screen</td><td>States</td></tr><tr><td>Loading, error, offline, empty</td><td>States</td></tr></tbody></table></section>
-<section class="v2-card v2-pad" aria-label="Questions for Nimish"><div class="v2-card-head"><div><h2 class="v2-h2">Questions for Nimish</h2><p class="v2-sub">Decide these when you approve; none blocks the draft</p></div></div><ol><li>The quick button on a card is one action only (Acknowledge first when the clock waits for it), as v1. Do you also want Pause or Transfer on the card?</li><li>"Closed without a report" sits at the foot of Open (v1). A supervisor may want it above the lists; changing that breaks LOCK rule 1, so it is kept unless you say.</li><li>Tab bar has 5 tabs on a phone (Open, Mine, Team, Report, Live), as v1. Is that too many for small phones?</li></ol></section>
-<p class="v2-source">Source: apps/web/src/screens/desk · fixture names only</p></main></div></div></div>
-</body></html>
+<div id="root">
+<div class="v2-app" data-drawer="false" data-menu="false">
+<div class="v2-rail-col"><nav class="v2-rail" aria-label="Analytics"><a href="/analytics/today"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="v2-icon"><path d="M3 11 12 4l9 7v9H5z"></path><path d="M10 20v-6h4v6"></path></svg><span class="v2-rail-label">Today</span></a><a href="/analytics/machines"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="v2-icon"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z"></path><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg><span class="v2-rail-label">Machines</span></a><a href="/analytics/breakdowns"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="v2-icon"><path d="M12 3 2 21h20L12 3z"></path><path d="M12 10v5M12 18h.01"></path></svg><span class="v2-rail-label">Problems</span></a><a href="/analytics/forecast-scorecard"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="v2-icon"><path d="M4 20V4M4 20h16"></path><path d="m7 15 4-4 3 3 5-6"></path></svg><span class="v2-rail-label">Reliability &amp; forecast</span></a><a href="/analytics/today?screen=team-focus"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="v2-icon"><path d="M9 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z"></path><path d="M2 20c0-3.5 3-6 7-6s7 2.5 7 6"></path><path d="M16 4.5a3.5 3.5 0 0 1 0 7M22 20c0-3-2-5.2-5-5.8"></path></svg><span class="v2-rail-label">People &amp; money</span></a><a href="/analytics/reports"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="v2-icon"><path d="M6 3h8l4 4v14H6z"></path><path d="M14 3v4h4M9 13h6M9 17h6"></path></svg><span class="v2-rail-label">Reports</span></a><a href="/analytics/guide"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="v2-icon"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"></path><path d="M4 19V5M8 7h7"></path></svg><span class="v2-rail-label">Guide</span></a><a href="/desk" data-end="true" aria-current="page"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="v2-icon"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg><span class="v2-rail-label">Desk</span></a></nav></div><div class="v2-main">
+<header class="v2-header"><button type="button" class="v2-icon-btn v2-menu" aria-expanded="false" aria-label="Menu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="v2-icon"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></button><h1 class="v2-title">Desk (Open, Mine, Team)</h1><button type="button" class="v2-search" aria-haspopup="dialog" aria-keyshortcuts="Control+K Meta+K"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="v2-icon"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z"></path><path d="m20 20-3.5-3.5"></path></svg><span class="v2-search-label">Search</span><kbd>⌘ K</kbd></button><button type="button" class="v2-icon-btn v2-alerts" aria-label="Alerts"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" class="v2-icon"><path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9z"></path><path d="M10 20a2 2 0 0 0 4 0"></path></svg></button></header>
+<main class="v2-content">
+<div class="v2-verdict">
+<p class="v2-lede"><b class="v2-seg v2-seg-loss">3 machines are down.</b> LT-08 has waited longest: <b class="v2-seg v2-seg-strong">2 h 39 min</b>, about 4 times the 40 min average, and nobody has started.</p>
+<p class="v2-sub">Updated 10:44 · <span class="v2-pill v2-pill-neutral">Syncing</span> · Open breakdowns, tasks and work for Plant A</p>
+</div>
+
+<div class="wf-btns wf-spread">
+<div class="v2-segmented" role="group" aria-label="Desk views">
+<button aria-pressed="true">Open (9)</button>
+<button aria-pressed="false">Mine (1)</button>
+<button aria-pressed="false">Team</button>
+<button aria-pressed="false">Live board</button>
+</div>
+<div class="wf-btns">
+<button class="v2-btn v2-btn-primary">Report a problem</button>
+<button class="v2-btn v2-btn-ghost">Plant settings</button>
+<button class="v2-btn v2-btn-ghost">Settings</button>
+</div>
+</div>
+<p class="v2-sub">Section tabs sit where every Analytics section has them. "Report a problem" opens the Floor report flow (S27, its own phone frame). Plant settings and Settings show only to admin and head. "Analytics" is the rail itself.</p>
+
+<div class="v2-grid v2-grid-4">
+<section class="v2-card v2-kpi" aria-label="Down"><div class="v2-kpi-label">Down</div><div class="v2-kpi-row"><div class="v2-kpi-value wf-bad">3</div></div><p class="v2-kpi-meaning">of 48 machines · tap to show only these</p><p class="v2-kpi-more">Longest LT-08, 2 h 39 min <span class="v2-pill v2-pill-loss">Longest</span></p></section>
+<section class="v2-card v2-kpi" aria-label="Waiting"><div class="v2-kpi-label">Waiting</div><div class="v2-kpi-row"><div class="v2-kpi-value">2</div></div><p class="v2-kpi-meaning">paused · 1 on a spare part</p><p class="v2-kpi-more">PR-02 waiting 1 h</p></section>
+<section class="v2-card v2-kpi" aria-label="Support"><div class="v2-kpi-label">Support</div><div class="v2-kpi-row"><div class="v2-kpi-value">1</div></div><p class="v2-kpi-meaning">work requests open</p><p class="v2-kpi-more">Fan bay 3, open 1 h 14 min</p></section>
+<section class="v2-card v2-kpi" aria-label="Running OK"><div class="v2-kpi-label">Running OK</div><div class="v2-kpi-row"><div class="v2-kpi-value">41</div></div><p class="v2-kpi-meaning">of 48 machines (85%)</p><p class="v2-kpi-more">Yesterday at this hour: 43</p></section>
+</div>
+<p class="wf-take">Filter on: <b>Showing machines down. Tap to show all.</b> (shown when a count tile is tapped)</p>
+
+<div class="v2-grid v2-grid-2">
+<section class="v2-card v2-pad" aria-label="Production sign-off">
+<div class="v2-card-head"><div><h2 class="v2-h2">Production sign-off</h2><p class="v2-sub">1 waiting for production's OK; 1 disputed today. Disputes count toward escalation.</p></div></div>
+<table class="v2-table">
+<thead><tr><th>Outcome</th><th>Machine</th><th>Who and when</th><th></th></tr></thead>
+<tbody>
+<tr><td><span class="v2-pill v2-pill-plan">Waiting for production's OK</span></td><td>VC-03</td><td>Asked at 10:12 · 32 min so far · times out after 4 h</td><td>›</td></tr>
+<tr><td><span class="v2-pill v2-pill-loss">Disputed, reopened</span></td><td>LT-02</td><td>Tech A at 11:05: "Still vibrating"</td><td>›</td></tr>
+<tr><td><span class="v2-pill v2-pill-gain">Confirmed fixed</span></td><td>VC-09</td><td>Operator A at 14:32 · 22 min after the close</td><td>›</td></tr>
+<tr><td><span class="v2-pill v2-pill-neutral">Not answered</span></td><td>PR-04</td><td>No answer in 4 h, so it stays closed. The escalation rule decides who is told.</td><td>›</td></tr>
+</tbody></table>
+<p class="v2-sub">Sign-off outcomes list (#803): the last 24 hours, newest first; each row opens its ticket.</p>
+</section>
+<section class="v2-card v2-pad" aria-label="Team now">
+<div class="v2-card-head"><div><h2 class="v2-h2">Team now: 2 on jobs</h2><p class="v2-sub">Tech A is on the longest job: 2 h 24 min on LT-08.</p></div><button class="v2-btn v2-btn-ghost v2-btn-small">Open Team ›</button></div>
+<table class="v2-table"><thead><tr><th>Person</th><th>Job</th><th>Role</th><th class="v2-num">Time</th></tr></thead>
+<tbody><tr><td>Tech A</td><td>LT-08</td><td>Lead</td><td class="v2-num">2 h 24 min</td></tr><tr><td>Tech B</td><td>VC-03</td><td>Support</td><td class="v2-num">38 min</td></tr></tbody></table>
+</section>
+</div>
+
+<section class="v2-card v2-table-card" aria-label="Open list">
+<div class="v2-table-bar">
+<h2 class="v2-h2">Waiting for someone to start</h2>
+<div class="v2-segmented"><button aria-pressed="true">Breakdowns (6)</button><button aria-pressed="false">Tasks (2)</button><button aria-pressed="false">Work (3)</button></div>
+</div>
+<p class="wf-take">LT-08 has been down longest: 2 h 39 min, about 4 times the 40 min average. <span class="v2-pill v2-pill-loss">Longest</span> · VC-17 has 4 min left to be acknowledged.</p>
+<span class="wf-hint">Waiting for someone to start. Longest wait first.</span>
+<div class="v2-table-scroll"><table class="v2-table">
+<thead><tr><th>Machine</th><th>Ticket</th><th>Status</th><th>Problem</th><th>Reported</th><th class="v2-num">Down</th><th>Clocks</th><th>Quick action</th></tr></thead>
+<tbody>
+<tr><td><b>LT-08</b><small class="wf-mini">Lathe · Cell 1</small></td><td><span class="v2-code">TKT-0409</span></td><td><span class="v2-pill v2-pill-risk">Open</span><small class="wf-mini">Machine stopped</small></td><td>Chuck not gripping</td><td>08:05 by Tech A</td><td class="v2-num wf-bad"><b>2 h 39 min</b> <span class="v2-pill v2-pill-loss">Longest</span></td><td><small class="wf-mini">Respond: done · Restore: <b class="wf-bad">39 min overdue</b></small></td><td><button class="v2-btn v2-btn-primary v2-btn-small">Start work</button></td></tr>
+<tr><td><b>VC-17</b><small class="wf-mini">VMC · Cell 2</small></td><td><span class="v2-code">TKT-0413</span></td><td><span class="v2-pill v2-pill-risk">Open</span><small class="wf-mini">Machine stopped</small></td><td>Spindle noise</td><td>10:42 by Operator A</td><td class="v2-num"><b>2 min</b></td><td><small class="wf-mini">Respond: 4 min left · Restore: 1 h 20 min left</small></td><td><button class="v2-btn v2-btn-primary v2-btn-small">Acknowledge</button></td></tr>
+<tr><td><b>VC-03</b><small class="wf-mini">VMC · Cell 2</small></td><td><span class="v2-code">TKT-0398</span></td><td><span class="v2-pill v2-pill-plan">In progress</span><small class="wf-mini">Machine running again · follow-up pending</small></td><td>Coolant pump</td><td>09:00 by Tech B</td><td class="v2-num">Running since 11:20 · down 38 min</td><td><small class="wf-mini">Restore: stopped</small></td><td><button class="v2-btn v2-btn-small">Machine running again</button></td></tr>
+</tbody></table></div>
+<b class="wf-label">Waiting (1)</b>
+<div class="v2-table-scroll"><table class="v2-table"><tbody>
+<tr><td><b>PR-02</b><small class="wf-mini">Press · Cell 4</small></td><td><span class="v2-code">TKT-0405</span></td><td><span class="v2-pill v2-pill-plan">Waiting</span><small class="wf-mini">Machine stopped</small></td><td>Clutch slipping</td><td>Yesterday 16:20</td><td class="v2-num"><b>Waiting 1 h</b></td><td><small class="wf-mini">Restore: paused</small></td><td><button class="v2-btn v2-btn-primary v2-btn-small">Resume work</button></td></tr>
+</tbody></table></div>
+<p class="v2-sub">One quick button per row, as v1: Acknowledge, Start work, Pick up, Resume work or Machine running again, whichever the role may do; disabled while it sends. A row opens the ticket (S29) in the side panel; the page stays behind it.</p>
+</section>
+
+<section class="v2-card v2-table-card" aria-label="Tasks and Work segments">
+<div class="v2-table-bar"><h2 class="v2-h2">Tasks and Work segments</h2><div class="v2-segmented"><button aria-pressed="false">Breakdowns (6)</button><button aria-pressed="true">Tasks (2)</button><button aria-pressed="false">Work (3)</button></div></div>
+<p class="wf-take">VC-17 is oldest: expected 26 Nov, 2 days from now.</p>
+<span class="wf-hint">Tasks: Work left after a breakdown was closed. Earliest expected date first.</span>
+<table class="v2-table"><thead><tr><th>Machine</th><th>Ticket</th><th>Status</th><th>Task</th><th>Left by</th><th>Expected</th><th>Quick action</th></tr></thead><tbody>
+<tr><td><b>VC-17</b></td><td><span class="v2-code">TKT-0388</span></td><td><span class="v2-pill v2-pill-risk">Pending</span><small class="wf-mini">Pending task · expected 26 Nov</small></td><td>Replace spindle belt</td><td>Tech A from TKT-0380</td><td><b>26 Nov</b></td><td><button class="v2-btn v2-btn-primary v2-btn-small">Start work</button></td></tr>
+</tbody></table>
+<span class="wf-hint">Work: Jobs not on a machine. Urgent first.</span>
+<table class="v2-table"><tbody>
+<tr><td><b>Fan bay 3</b></td><td><span class="v2-code">TKT-0410</span></td><td><span class="v2-pill v2-pill-risk">Open</span><small class="wf-mini">Work request</small></td><td>Install a wall fan</td><td>Operator B, 09:30</td><td><b>Open 1 h 14 min</b></td><td><button class="v2-btn v2-btn-primary v2-btn-small">Start work</button></td></tr>
+</tbody></table>
+</section>
+
+<section class="v2-card v2-table-card" aria-label="Closed without a report">
+<div class="v2-table-bar"><h2 class="v2-h2">Closed without a report (2)</h2></div>
+<p class="wf-take">2 breakdowns closed in the last 7 days have no report yet; VC-09 is oldest.</p>
+<span class="wf-hint">Last 7 days. Write the report so it reaches the platform.</span>
+<table class="v2-table"><thead><tr><th>Machine</th><th>Closed</th><th></th></tr></thead><tbody>
+<tr><td><b>VC-09</b></td><td>08:50 by Tech A</td><td><button class="v2-btn v2-btn-small">Fill report</button></td></tr>
+<tr><td><b>LT-02</b></td><td>Yesterday by Tech B</td><td><button class="v2-btn v2-btn-small">Fill report</button></td></tr>
+</tbody></table>
+</section>
+
+<section class="v2-card v2-pad" aria-label="Mine tab">
+<div class="v2-card-head"><div><h2 class="v2-h2">Mine tab (My tickets)</h2><p class="v2-sub">Same page, tab "Mine (1)" pressed. Tickets assigned to you.</p></div><button class="v2-btn">Day report</button></div>
+<p class="wf-take">You have 1 job open: LT-08, 2 h 24 min of work so far (your average job this month: 52 min).</p>
+<table class="v2-table"><thead><tr><th>Machine</th><th>Ticket</th><th>Status</th><th>Problem</th><th class="v2-num">Work</th><th>Quick actions</th></tr></thead><tbody>
+<tr><td><b>LT-08</b></td><td><span class="v2-code">TKT-0409</span></td><td><span class="v2-pill v2-pill-plan">In progress</span><small class="wf-mini">Machine stopped</small></td><td>Chuck not gripping</td><td class="v2-num">Started 08:20 · <b>2 h 24 min</b></td><td><div class="wf-btns"><button class="v2-btn v2-btn-small">Post update</button></div></td></tr>
+<tr><td><b>VC-17</b></td><td><span class="v2-code">TKT-0413</span></td><td><span class="v2-pill v2-pill-risk">Open</span><small class="wf-mini">Assigned to you</small></td><td>Spindle noise</td><td class="v2-num">Not started</td><td><div class="wf-btns"><button class="v2-btn v2-btn-primary v2-btn-small">Acknowledge</button></div></td></tr>
+</tbody></table>
+<b class="wf-label">Closed, last 30 days</b>
+<table class="v2-table"><tbody><tr><td><b>VC-09</b></td><td>Closed 08:50</td><td><span class="v2-pill v2-pill-gain">Closed</span></td></tr></tbody></table>
+<p class="v2-sub">"Acknowledge" and "Post update" quick buttons (#803) sit on the row. Day report downloads today's sheet. Empty: "Nothing assigned to you." Error loading the list: "Could not load your tickets. Try again."</p>
+</section>
+
+<section class="v2-card v2-pad" aria-label="Team tab">
+<div class="v2-card-head"><div><h2 class="v2-h2">Team tab (Team now)</h2><p class="v2-sub">Supervisor and head. Same page, tab "Team" pressed.</p></div></div>
+<p class="wf-take">Tech A is on the longest job: 2 h 24 min on LT-08. 1 job is paused for a spare part.</p>
+<b class="wf-label">Working now</b>
+<table class="v2-table"><thead><tr><th>Person</th><th>Machine</th><th>Ticket</th><th>Crew role</th><th>State</th><th class="v2-num">On the job</th></tr></thead><tbody>
+<tr><td><b>Tech A</b></td><td>LT-08</td><td><span class="v2-code">TKT-0409</span></td><td>Lead</td><td><span class="v2-pill v2-pill-plan">In progress</span></td><td class="v2-num"><b>2 h 24 min</b> <span class="v2-pill v2-pill-loss">Longest</span></td></tr>
+<tr><td><b>Tech B</b></td><td>VC-03</td><td><span class="v2-code">TKT-0398</span></td><td>Support</td><td><span class="v2-pill v2-pill-plan">In progress</span></td><td class="v2-num">38 min</td></tr>
+<tr><td><b>Tech C</b></td><td>PR-02</td><td><span class="v2-code">TKT-0405</span></td><td>Lead</td><td><span class="v2-pill v2-pill-risk">Paused · Spare part</span></td><td class="v2-num">1 h</td></tr>
+</tbody></table>
+<p class="v2-sub">Crew roles and paused jobs under "Working now" (#803); paused jobs sort after active ones.</p>
+<b class="wf-label">Not started</b>
+<table class="v2-table"><tbody><tr><td><b>VC-17</b></td><td>Reported 10:42</td><td><span class="v2-pill v2-pill-risk">Open</span></td></tr></tbody></table>
+<b class="wf-label">Cancelled, last 24 hours</b>
+<p class="wf-mini">Nothing here.</p>
+<b class="wf-label">Closed, last 30 days</b>
+<table class="v2-table"><tbody><tr><td><b>VC-09</b></td><td>Closed 08:50 by Tech A</td><td><span class="v2-pill v2-pill-gain">Closed</span></td></tr></tbody></table>
+<b class="wf-label">Monthly totals per person</b>
+<p class="wf-take">Tech A handled 14 of 31 tickets in November, the most on the team (team average 7.8).</p>
+<table class="v2-table"><thead><tr><th>Person</th><th class="v2-num">Tickets, Nov</th><th class="v2-num">Closed</th><th class="v2-num">vs team average</th></tr></thead><tbody>
+<tr><td>Tech A</td><td class="v2-num"><b>14</b></td><td class="v2-num">13</td><td class="v2-num">+6.2</td></tr>
+<tr><td>Tech B</td><td class="v2-num">9</td><td class="v2-num">9</td><td class="v2-num">+1.2</td></tr>
+<tr><td>Tech C</td><td class="v2-num">6</td><td class="v2-num">5</td><td class="v2-num">−1.8</td></tr>
+<tr><td>Tech D</td><td class="v2-num">2</td><td class="v2-num">2</td><td class="v2-num">−5.8</td></tr>
+</tbody></table>
+<p class="v2-sub">Monthly totals as ticket counts per person (#803), most first. Empties: "Nobody is working right now." / "Nothing here."</p>
+</section>
+
+<section class="v2-card v2-pad" aria-label="Wide screen and phone">
+<div class="v2-card-head"><div><h2 class="v2-h2">Wide screen and phone</h2><p class="v2-sub">The same Shell on both; no bottom tab bar any more.</p></div></div>
+<div class="wf-shots">
+<figure class="wf-fig">
+<div class="wf-phone wf-wide">
+<div class="wf-phone-top"><b>☰ rail · Desk</b><span>Search · Alerts</span></div>
+<div class="wf-two">
+<div class="wf-phone-body wf-flush">
+<div class="v2-segmented"><button aria-pressed="true">Open (9)</button><button aria-pressed="false">Mine</button><button aria-pressed="false">Team</button><button aria-pressed="false">Live board</button></div>
+<div class="wf-row"><span><b>LT-08</b><small>Chuck not gripping · Down 2 h 39 min</small></span><span class="v2-pill v2-pill-risk">Open</span></div>
+<div class="wf-row"><span><b>VC-17</b><small>Spindle noise · Down 2 min</small></span><span class="v2-pill v2-pill-risk">Open</span></div>
+</div>
+<div class="wf-card"><h4><span>VC-17 TKT-0413</span><span class="v2-pill v2-pill-risk">Open</span></h4><p>Side panel (kit drawer): the selected ticket, the same page as S29. Close returns to the list where you were.</p></div>
+</div>
+</div>
+<figcaption><b>Wide screen:</b> the list and the selected ticket side by side (replaces v1 two-pane). The drawer is the kit's; the list reflows beside it.</figcaption>
+</figure>
+<figure class="wf-fig">
+<div class="wf-phone">
+<div class="wf-phone-top"><b>☰ Desk</b><span>Search · Alerts</span></div>
+<div class="wf-phone-body">
+<div class="v2-segmented"><button aria-pressed="true">Open (9)</button><button aria-pressed="false">Mine</button><button aria-pressed="false">Team</button><button aria-pressed="false">Live</button></div>
+<div class="wf-btn" data-k="primary">Report a problem</div>
+<p class="wf-take">3 machines are down. LT-08 has waited longest: 2 h 39 min.</p>
+<div class="v2-chips"><span class="v2-chip">Down 3</span><span class="v2-chip">Waiting 2</span><span class="v2-chip">Support 1</span><span class="v2-chip">Running OK 41</span></div>
+<div class="wf-card"><h4><span>LT-08 <small class="wf-mini wf-inl">TKT-0409</small></span><span class="v2-pill v2-pill-risk">Open</span></h4><p>Chuck not gripping</p><p class="wf-mini">Reported 08:05 by Tech A · <b>Down 2 h 39 min</b></p><div class="wf-btn" data-k="primary">Start work</div></div>
+<div class="wf-card"><h4><span>VC-17 <small class="wf-mini wf-inl">TKT-0413</small></span><span class="v2-pill v2-pill-risk">Open</span></h4><p>Spindle noise</p><p class="wf-mini">Respond: 4 min left · Restore: 1 h 20 min left</p><div class="wf-btn" data-k="primary">Acknowledge</div></div>
+</div>
+</div>
+<figcaption><b>Phone:</b> the Shell's phone header (menu opens the rail as a drawer), the section tabs scroll sideways, table rows become kit cards with their quick button, "Report a problem" stays first. A ticket opens full page with "← Open tickets".</figcaption>
+</figure>
+</div>
+</section>
+
+<section class="v2-card v2-pad" aria-label="States">
+<div class="v2-card-head"><div><h2 class="v2-h2">States this screen also has</h2></div></div>
+<div class="v2-card v2-banner" data-tone="plan"><div class="v2-banner-body"><p class="v2-banner-head"><b>Offline — closes will be queued</b></p><p class="v2-banner-text">2 queued, reconnecting… · Drafts under "Needs attention"</p></div></div>
+<div class="wf-states">
+<div class="wf-notice"><b>Loading</b>Kit skeletons: four count tiles and three table rows</div>
+<div class="wf-notice"><b>Error</b>"Could not load. Try again." kit banner; a command error shows as a banner under the title</div>
+<div class="wf-notice"><b>Offline</b>Offline banner above (closes queued, "N queued, reconnecting…"); drafts under "Needs attention"</div>
+<div class="wf-notice"><b>Empty</b>"No breakdowns waiting." / "No pending tasks." / "No work requests waiting." / "Nothing assigned to you." / "Nobody is working right now."</div>
+<div class="wf-notice"><b>Not available</b>"Not available to you. Your login does not include this screen. If you need it, ask your admin." with Report a problem</div>
+<div class="wf-notice"><b>Pending</b>Quick button disabled while it sends</div>
+</div>
+</section>
+
+<section class="v2-card v2-pad" aria-label="Coverage">
+<div class="v2-card-head"><div><h2 class="v2-h2">Coverage: every item of the approved S28 and of #803, and where it sits</h2><p class="v2-sub">A redesign never reduces scope. Nothing here is "not built".</p></div></div>
+<table class="v2-table wf-cov">
+<thead><tr><th>Item (approved S28 of 25 Nov, or #803)</th><th>Where it sits here</th></tr></thead>
+<tbody>
+<tr><td>Tabs Open / Mine / Team / Report / Live, count badge on Open</td><td>Section tabs Open (9) / Mine / Team / Live board; Report = "Report a problem" button beside them</td></tr>
+<tr><td>Title, "Updated {time}", Account button, sync status, offline banner, drafts, error banner</td><td>Shell header (title, search, alerts; account in the rail menu); "Updated · Syncing" under the verdict; States</td></tr>
+<tr><td>Settings entries for admin/head (Plant settings, Settings); "Analytics" for roles that read it</td><td>Buttons beside the section tabs; Analytics is the rail</td></tr>
+<tr><td>Counts strip Down / Waiting / Support / Running OK, filter + "Showing … Tap to show all"</td><td>Four kit count tiles with yardsticks; filter line under them</td></tr>
+<tr><td>Sign-off feed (waiting, confirmed, disputed, timed out)</td><td>Production sign-off card</td></tr>
+<tr><td>#803 Sign-off outcomes list on the desk feed</td><td>Production sign-off card (all four outcomes as rows)</td></tr>
+<tr><td>Team now link with count wording</td><td>"Team now: 2 on jobs" card with Open Team</td></tr>
+<tr><td>Segments Breakdowns / Tasks / Work with counts and hints</td><td>Open list and Tasks and Work segments cards</td></tr>
+<tr><td>Ticket card: machine, ref, status, kind line, problem, reported by, time line, SLA timers, quick button</td><td>Open list table columns (cards on a phone)</td></tr>
+<tr><td>Quick action Acknowledge / Start work / Pick up / Resume / Machine running again</td><td>Quick action column</td></tr>
+<tr><td>#803 "Acknowledge" and "Post update" card quick buttons</td><td>Mine tab rows; Acknowledge also in Open</td></tr>
+<tr><td>Running again row ("Machine running again · follow-up pending", "Running since 11:20 · down 38 min")</td><td>Open list, VC-03 row</td></tr>
+<tr><td>Waiting section (paused) with count</td><td>"Waiting (1)" under the Open list</td></tr>
+<tr><td>Needs report list with Fill report</td><td>Closed without a report card</td></tr>
+<tr><td>Mine: My tickets, Day report, error text, closed 30 days, empty</td><td>Mine tab card</td></tr>
+<tr><td>Team: working now, not started, cancelled 24 h, closed 30 d, monthly per person, empties</td><td>Team tab card</td></tr>
+<tr><td>#803 Crew roles and paused jobs under "Working now"</td><td>Team tab, Working now table (Crew role, State)</td></tr>
+<tr><td>#803 Monthly totals as ticket counts per person</td><td>Team tab, Monthly totals table</td></tr>
+<tr><td>Two-pane wide layout</td><td>Wide screen frame (kit drawer)</td></tr>
+<tr><td>Live tab opens the Live board (S30); Report tab opens the floor report (S27)</td><td>"Live board" tab; "Report a problem" button</td></tr>
+<tr><td>Not available screen; loading, error, offline, empty, pending</td><td>States</td></tr>
+</tbody></table>
+</section>
+
+<section class="v2-card v2-pad" aria-label="Questions for Nimish">
+<div class="v2-card-head"><div><h2 class="v2-h2">Questions for Nimish</h2><p class="v2-sub">Decide these when you approve; none blocks the draft. Assumptions are in ADR 0056.</p></div></div>
+<ol>
+<li>On a phone the v1 bottom tab bar goes; the tabs move to the top of the page as in Analytics, and "Report a problem" is the first button. A technician reaches less with the thumb. Keep it like this, or keep a bottom bar on phones only?</li>
+<li>The quick button on a row is one action only (Acknowledge first when the clock waits for it), as v1. Do you also want Pause or Transfer on the row?</li>
+<li>"Closed without a report" sits under the lists (v1). A supervisor may want it higher; it is kept unless you say.</li>
+</ol>
+</section>
+<p class="v2-source">Source: apps/web/src/screens/v2/desk, ui/v2/shell.tsx · fixture names only</p>
+</main>
+</div>
+</div>
+</div>
+</body>
+</html>

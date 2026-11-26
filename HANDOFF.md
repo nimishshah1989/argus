@@ -2,7 +2,7 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-26 ~16:20 IST · **By:** planner (#840 review follow-ups) · **Goal (Nimish, ADR 0055):** all screens live on the newest kit, nothing old remains · **Branch:** plan/oem-review-followups
+**Updated:** 2026-11-26 ~17:30 IST · **By:** planner (ADR 0055 point 2: S28–S30 in the Shell) · **Goal (Nimish, ADR 0055):** all screens live on the newest kit, nothing old remains · **Branch:** plan/s28-s30-shell-wireframes
 
 ## State
 
@@ -15,7 +15,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 ## Next steps
 
-1. Build #815 from the new seed. 2. #794, then #819. Ask Nimish for his yes on S18 rupees. 3. ADR 0055 items (Floor segment tiles; S28–S30 wireframes in the Shell for Nimish) via `loop plan`.
+1. Build #815 from the new seed. 2. #794, then #819. Ask Nimish for his yes on S18 rupees. 3. Nimish: `loop approve S28-desk`, `S29-ticket`, `S30-board` (redrawn in the v2 Shell, ADR 0056; old approvals void; every approved and #803 item is in each Coverage table). Then `loop plan` the build tickets (Shell move + #803). Floor segment tiles (ADR 0055 point 1) still to plan.
 
 ## Don't repeat (details in LESSONS.md)
 
