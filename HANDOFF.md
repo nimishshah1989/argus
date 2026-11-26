@@ -11,8 +11,11 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 - Planner job also running at handoff: #840 follow-ups (#815 Done-when gets read-only Cause column + empty key "No machine is under 300 days old"; analytics-engine.test.ts:607 owner range ≤812 → named exception; COVERAGE.md S18 row). Check plan/t815 and open plan/ PRs.
 - `docs/loop/handoff/814.md` is stale (says tests red); ignore it. Old notes in docs/loop/handoff/ not folded this session.
 
+- Nimish saw `/desk` still old (16:05). Cause: ADR 0055 point 2 (Desk Open/Mine/Team, Ticket, browser Board into the v2 Shell) never got its S28–S30 redraw. Planner job started for that at handoff: check for its plan/ PR, then send Nimish the screen ids to approve. Desk route still renders `screens/desk/TicketRoute`.
+
 ## Next steps
 
+0. Get the S28–S30 Shell wireframes to Nimish for approval, then ticket them (this is part of the goal, not polish).
 1. `loop finish 842` → review → merge. 2. Build the S26-6 fixes ticket. 3. #815 (after its seed update), #794, then #819 last. 4. #803 (13 unbuilt wireframe items) and ADR 0055 items via `loop plan`.
 
 ## Blocked
