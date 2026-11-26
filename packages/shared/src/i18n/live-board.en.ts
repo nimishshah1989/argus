@@ -32,5 +32,5 @@ export const liveBoardEn = {
   'live.kpi.longest': 'Longest {{code}}, {{age}}',
   'live.refresh': 'refreshes every 30 s · same numbers as the wall TV',
   'live.tab.count': '{{label}} ({{count}})',
-  'live.openTicket': 'Open the ticket for {{code}}',
+  'live.openTicket': 'Open the ticket for {{code}}, {{age}}',
 };

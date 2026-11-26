@@ -134,10 +134,10 @@ function ColumnCard({ column }: { column: BoardColumn }) {
                     to={`/desk/${row.ticketId}`}
                     state={FROM}
                     className="board-open"
+                    aria-label={t('live.openTicket', { code: row.code, age: row.age })}
                     onClick={(e) => e.stopPropagation()}
                   >
                     {row.age}
-                    <span className="sr-only">{t('live.openTicket', { code: row.code })}</span>
                   </Link>
                   {row.longest ? (
                     <span className="block">
