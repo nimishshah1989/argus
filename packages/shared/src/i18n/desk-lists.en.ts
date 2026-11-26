@@ -53,6 +53,11 @@ export const deskListsEn = {
   'deskLists.takeaway.tasks': '{{machine}} task is expected {{date}}, {{days}} days from today.',
   'deskLists.takeaway.tasksLate': '{{machine}} task was expected {{date}}, {{days}} days ago.',
   'deskLists.takeaway.teamLongest': '{{name}} is on the longest job: {{minutes}} on {{machine}}.',
+  'deskLists.takeaway.paused_one': '{{count}} job is paused for {{reason}}',
+  'deskLists.takeaway.paused_other': '{{count}} jobs are paused for {{reason}}',
+  'deskLists.takeaway.pausedMore_one': '{{count}} for {{reason}}',
+  'deskLists.takeaway.pausedMore_other': '{{count}} for {{reason}}',
+  'deskLists.pausedFor': 'Paused · {{reason}}',
   'deskLists.notAvailable': 'Not available to you',
   'deskLists.notAvailable.body':
     'Your login does not include this screen. If you need it, ask your admin.',

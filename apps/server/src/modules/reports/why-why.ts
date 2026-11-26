@@ -24,7 +24,7 @@ export interface WhyWhyPdfInput {
   date: string;
   hours: number;
   record: WhyWhyPayload;
-  /** The author's name, or their code once erased (ADR 0058). */
+  /** The author's name, or their code once erased (ADR 0059). */
   author: string;
   generatedAt: Date;
 }

@@ -12,6 +12,14 @@ type Db = Pick<PoolClient, 'query'>;
 
 /** The `setting` key holding the plant's profile. */
 export const PROFILE_KEY = 'analytics.profile';
+/** ADR 0027: the plant date the default run reads from; older history is reached only by a named period. */
+export const DATA_FROM_KEY = 'analytics.data-from';
+
+/** The stored data-from date as the engine's setting; none when the plant never set one (every year is read). */
+export async function readDataFrom(tx: Db, tenantId: string): Promise<{ dataFrom?: string }> {
+  const stored = await setting(tx, tenantId, DATA_FROM_KEY);
+  return typeof stored === 'string' ? { dataFrom: stored } : {};
+}
 
 /**
  * The profile the plant runs with: what it set, and the legacy default for every number it never set (or

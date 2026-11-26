@@ -9,6 +9,7 @@ export {
   selectNudgeAck,
   selectNudgeAcks,
   setMachineCriticality,
+  upsertSetting,
   type StoredSetting,
 } from './repo/config.js';
 export {

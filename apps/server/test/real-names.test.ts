@@ -3,7 +3,7 @@ import { withTenant } from '@uptimo/db';
 import { erasePerson } from '../src/modules/identity/index.js';
 import { A, M_USED, startFixture, type Fixture } from './plant-settings-fixture.js';
 
-// ADR 0058 (Nimish, 26 Nov): screens show people by name. The engine and what it keeps stay name-free; the names go
+// ADR 0059 (Nimish, 26 Nov): screens show people by name. The engine and what it keeps stay name-free; the names go
 // in on the way out. An erased person keeps their code: neither their old name nor "Former staff" stands in for it.
 
 const AS_OF = '2026-11-11';
@@ -76,7 +76,7 @@ afterAll(async () => {
 /** Every person code a reply prints. */
 const codesIn = (body: string): string[] => [...new Set(body.match(CODE) ?? [])];
 
-describe('people by name (ADR 0058)', () => {
+describe('people by name (ADR 0059)', () => {
   it('the figures reply names the breakdown log’s Done by, and prints no code but an erased person’s', async () => {
     const res = await f.call('GET', `/api/v1/analytics/figures?asOf=${AS_OF}`, f.tokens.head!);
     expect(res.statusCode, res.body).toBe(200);

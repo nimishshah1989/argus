@@ -73,7 +73,7 @@ describe('Bottleneck from the engine reply', () => {
     expect(figure.drill.ids.length).toBeGreaterThan(0);
     expect(live.drill).toEqual({
       figure: FIGURE,
-      label: 'Show the rows behind A9 bottleneck and forecast',
+      label: 'Show the rows behind Bottleneck and forecast',
     });
   });
 

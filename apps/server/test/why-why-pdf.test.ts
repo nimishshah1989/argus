@@ -97,7 +97,7 @@ describe('the Why-Why PDF', () => {
       '10-11-2026',
       '13.00',
       ...WHYS.slice(1),
-      // The author's name, not their code (ADR 0058).
+      // The author's name, not their code (ADR 0059).
       'plant-a head',
       dmy(completedDate),
     ]) {

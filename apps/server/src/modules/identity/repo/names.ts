@@ -7,7 +7,7 @@ type Db = Pick<PoolClient, 'query'>;
 const CODE = /\bP-[0-9a-f]{8}\b/g;
 
 /**
- * The plant's person codes and the names they stand for (ADR 0058). An erased person is left out, so their code
+ * The plant's person codes and the names they stand for (ADR 0059). An erased person is left out, so their code
  * stays a code: the name an erasure leaves ("Former staff") is never shown in its place.
  */
 export async function personNames(tx: Db, tenantId: string): Promise<ReadonlyMap<string, string>> {
@@ -22,7 +22,7 @@ export async function personNames(tx: Db, tenantId: string): Promise<ReadonlyMap
 }
 
 /**
- * A reply with every person code in its strings swapped for the person's name (ADR 0058). The engine and what it
+ * A reply with every person code in its strings swapped for the person's name (ADR 0059). The engine and what it
  * stores stay name-free; this runs on the way out. Object keys are left alone (they are ids, and two people may
  * share a name), as is anything that is not plain JSON. A code with no name (erased, unknown) stays as it is.
  */

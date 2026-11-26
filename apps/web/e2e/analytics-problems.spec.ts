@@ -91,9 +91,10 @@ test('a head opens A10, sees its eight KPIs and both charts, sorts the groups an
   await page.goto('/analytics/breakdowns?screen=a10-problems');
 
   const tabs = page.getByRole('group', { name: 'Breakdowns screens', exact: true });
-  await expect(
-    tabs.getByRole('button', { name: 'A10 problem analysis', exact: true }),
-  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(tabs.getByRole('button', { name: 'Problem analysis', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
   await expect(page.getByRole('heading', { level: 1, name: 'Problem Analysis' })).toBeVisible();
 
   // The 4 page KPIs and the 4 what-if KPIs, every label and value from the key (the folded ones behind Show detail).
@@ -144,7 +145,7 @@ test('a head opens A10, sees its eight KPIs and both charts, sorts the groups an
   await expect(firstUnplaced.getByRole('cell').nth(5)).toHaveText(UNPLACED.rows[0]![5]!);
 
   // The figure's drill opens the real ticket rows in the drawer.
-  await page.getByRole('button', { name: /Show the rows behind A10 problem analysis/ }).click();
+  await page.getByRole('button', { name: /Show the rows behind Problem analysis/ }).click();
   await expect(page).toHaveURL(/[?&]drawer=figure:a10-problems$/);
   const drill = page.locator('aside.v2-drawer');
   await expect(drill.locator('tbody tr')).toHaveCount(2);

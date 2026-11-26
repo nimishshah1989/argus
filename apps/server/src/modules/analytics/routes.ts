@@ -91,7 +91,7 @@ async function figuresReply(input: {
       : await compute();
     return { run, names: await personNames(tx, tenantId) };
   });
-  // The kept run stays name-free; the names go in on the way out (ADR 0058).
+  // The kept run stays name-free; the names go in on the way out (ADR 0059).
   return nameCodes(
     {
       ...result.run,

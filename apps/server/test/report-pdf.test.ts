@@ -177,7 +177,7 @@ describe('the monthly report PDF', () => {
       "SELECT id FROM person WHERE tenant_id = $1 AND name = 'Person 11'",
       [tenantId],
     );
-    // People print by name, never by code (ADR 0058).
+    // People print by name, never by code (ADR 0059).
     const code = `P-${String(person.rows[0]?.id).slice(0, 8)}`;
     expect(text).toContain(flat('Person 11'));
     expect(text).not.toContain(flat(code));

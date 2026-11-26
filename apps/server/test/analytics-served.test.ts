@@ -49,7 +49,7 @@ const computes = async <T>(read: () => Promise<T>) => {
   const answer = await read();
   return { answer, ran: runCalls.n - before };
 };
-/** What the engine says right now, computed from the tables with no store in between, named as a reply is (ADR 0058). */
+/** What the engine says right now, computed from the tables with no store in between, named as a reply is (ADR 0059). */
 const fresh = async (asOf = ASOF) => {
   const result = await withTenant(f.db.app, A, async (tx) =>
     nameCodes(

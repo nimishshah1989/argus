@@ -54,7 +54,7 @@ async function buildExpected(): Promise<ExportSheet[]> {
     const tenant = await tenantInfo(tx, A);
     // The route's own PM read (50b): the expected sheets must be built the way the download builds them.
     const pmReports = await pmReportsForExport(tx, A);
-    // The download prints real names for the codes (ADR 0058), as the route does.
+    // The download prints real names for the codes (ADR 0059), as the route does.
     return nameCodes(
       workbookSheets(exportDataFor({ data, profile, tenant: tenant.name, asOf: AS_OF, pmReports })),
       await personNames(tx, A),
@@ -171,7 +171,7 @@ describe('the workbook download', () => {
       undone: ['p2'],
       readings: { meter: 1250 },
       comments: 'Chip conveyor cleaned',
-      // G1.2b (#553): the data column prints the person's name (ADR 0058), never a person or plan id.
+      // G1.2b (#553): the data column prints the person's name (ADR 0059), never a person or plan id.
       doneBy: 'plant-a technician',
     };
     expect(sheets['PM Reports']).toEqual([

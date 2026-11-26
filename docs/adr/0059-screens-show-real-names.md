@@ -1,4 +1,4 @@
-# 0058 — Screens show people by name; the engine stays name-free
+# 0059 — Screens show people by name; the engine stays name-free
 
 Date: 26 Nov 2026 · Decided by: Nimish (asked "Analytics shows people as codes (P-3f412b54) on purpose, so no real names appear. Should screens show real names instead?", chose "Show real names")
 

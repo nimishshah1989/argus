@@ -106,6 +106,27 @@ pending, kind production), so no ticket loses its name. **No screen or command m
 merging touches ticket history, which the database now protects, so it needs its own design (decision for Nimish at the gate).
 Until then they stay as short names on old tickets and do not block anything you try on the phone. Do not edit them in the database by hand.
 
+## 3. Load the breakdown history (ticket 69d, ADR 0058)
+
+The job `history-load` (Actions tab, or `gh workflow run history-load.yml`) runs on the instance over SSM: an RDS snapshot
+`uptimo-pre-history-<UTC time>` first (no snapshot, nothing loaded), then the `analytics.data-from` date `2026-01-01` and the
+2026 breakdown log (1,283 rows). Running it again adds nothing. Its log prints the history count per month and the A1 BD %
+month row, before and after, the import batch id and the snapshot name.
+
+**The 2022–2025 workbooks (once, from the `argus` folder on the Mac).** Put the workbook files (`.xlsx`, each with its year in
+the file name) in one folder, for example `~/Desktop/legacy`, then:
+
+```bash
+export AWS_PROFILE=argus AWS_REGION=ap-south-1
+aws s3 cp --recursive ~/Desktop/legacy "s3://$(gh variable get BACKUP_BUCKET | sed 's/-backups$/-files/')/legacy/"
+gh workflow run history-load.yml -f legacy=true
+```
+
+The files go to the private files bucket's `legacy/` folder (today `s3://uptimo-dc5da8a0-files/legacy/`), never to the repo.
+Sub-folders such as `legacy/2022/` are fine. The job copies them to a temporary folder on the instance, loads each year with
+`tools/load-legacy.ts` and deletes the folder whatever happens. To take a load back: `import:undo <batchId>` per batch (part 2), or
+restore the snapshot (`infra/RESTORE.md`).
+
 Terraform binary: `.tools/bin/terraform` on Nimish's Mac (the sandbox builder used `/tmp/tf/terraform`).
 
 ## Bring it up from nothing (Nimish's Mac, once; already done for staging, kept for a rebuild)
