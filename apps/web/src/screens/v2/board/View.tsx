@@ -76,11 +76,14 @@ function StopRow({ row, tv, column }: { row: StopRowModel; tv: boolean; column: 
             row.code // ui-allow: entity-code the wall board prints plain text; the TV has no link
           }
         </p>
-        <p className={`board-age whitespace-nowrap ${side} ${row.ageTone ? TONE_TEXT[row.ageTone] : ''}`}>
+        <p
+          className={`board-age whitespace-nowrap ${side} ${row.ageTone ? TONE_TEXT[row.ageTone] : ''}`}
+        >
           {row.age}
         </p>
         <p className={`board-sub col-start-2 ${tv ? 'col-span-2 mt-1' : 'truncate'}`}>{row.sub}</p>
       </div>
+      {/* eslint-disable-next-line i18next/no-literal-string -- a tone and an icon name, not copy */}
       {row.longest ? <KeyPill text={t('live.longest')} tone="loss" icon="alert" /> : null}
     </li>
   );
@@ -89,7 +92,10 @@ function StopRow({ row, tv, column }: { row: StopRowModel; tv: boolean; column: 
 function Column({ column, tv }: { column: BoardColumn; tv: boolean }) {
   const { tone, icon: Icon } = statusMeaning({ group: 'ticket', id: column.status });
   return (
-    <section aria-label={column.title} className="board-card flex min-h-0 flex-col gap-2 overflow-hidden">
+    <section
+      aria-label={column.title}
+      className="board-card flex min-h-0 flex-col gap-2 overflow-hidden"
+    >
       <div className="flex items-center justify-between">
         <span
           className={`board-chip inline-flex min-h-chip items-center gap-2 rounded-full px-3 ${TONE_FILL[tone]}`}
@@ -107,6 +113,21 @@ function Column({ column, tv }: { column: BoardColumn; tv: boolean }) {
       </ul>
       {column.more ? <p className="board-sub">{column.more}</p> : null}
     </section>
+  );
+}
+
+function Columns({ model }: { model: BoardModel }) {
+  const { tv } = model;
+  return (
+    <div
+      className={
+        tv ? 'grid min-h-0 flex-1 grid-cols-3 gap-6' : 'grid gap-4 lg:grid-cols-3 lg:items-start'
+      }
+    >
+      {model.columns.map((column) => (
+        <Column key={column.column} column={column} tv={tv} />
+      ))}
+    </div>
   );
 }
 
@@ -167,17 +188,7 @@ export function BoardView({ model, offline }: { model: BoardModel; offline?: boo
   const { t } = useTranslation();
   const { tv, takeaways } = model;
   const stops = takeaways['board.stops'];
-  const columns = (
-    <div
-      className={
-        tv ? 'grid min-h-0 flex-1 grid-cols-3 gap-6' : 'grid gap-4 lg:grid-cols-3 lg:items-start'
-      }
-    >
-      {model.columns.map((column) => (
-        <Column key={column.column} column={column} tv={tv} />
-      ))}
-    </div>
-  );
+  const columns = <Columns model={model} />;
   if (tv)
     return (
       <main className="board-tv v2-app flex h-dvh flex-col gap-6 overflow-hidden p-8">

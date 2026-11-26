@@ -20,7 +20,9 @@ export const screen: ScreenEntry<'board'> = {
       client.fetchQuery({ queryKey: ['state'], queryFn: getState, ...live }),
       client.fetchQuery({ queryKey: ['config'], queryFn: getConfig, ...live }),
       // A refused day score (403) leaves the tiles on a dash; the board stays up.
-      client.fetchQuery({ queryKey: ['board-today'], queryFn: getBoardToday, ...live }).catch(() => undefined),
+      client
+        .fetchQuery({ queryKey: ['board-today'], queryFn: getBoardToday, ...live })
+        .catch(() => undefined),
     ]);
     return boardModel({ state, config, today, tv }, i18n.t.bind(i18n));
   },

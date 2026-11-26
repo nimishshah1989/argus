@@ -54,9 +54,7 @@ function subline(stop: Stop, column: Column, config: Config): string {
 function dayTile(
   t: TFunction,
   id: DayTile['id'],
-  min: number | null | undefined,
-  count: number | undefined,
-  closed: number | undefined,
+  [min, count, closed]: [number | null | undefined, number | undefined, number | undefined],
 ): DayTile {
   const some = count !== undefined && count > 0;
   return {
@@ -67,13 +65,13 @@ function dayTile(
   };
 }
 
-/** The replies → the board's model, through `liveBoard()` of `screens/board/data.ts` (kept, not copied). */
-export function boardModel({ state, config, today, tv }: BoardInput, t: TFunction): BoardModel {
-  const board = liveBoard(config, state.open, state.now);
-  const timeZone = config.timeZone ?? undefined;
-  const stops = stopsTakeaway(board, t);
-  const time = formatTime(state.now, timeZone);
-  const columns: BoardColumn[] = COLUMNS.map((column) => {
+function columnsOf(
+  board: ReturnType<typeof liveBoard>,
+  config: Config,
+  [tv, longestId]: [boolean, string | undefined],
+  t: TFunction,
+): BoardColumn[] {
+  return COLUMNS.map((column) => {
     const all = board.columns[column];
     const rows = shownRows(all, tv).map((stop) => ({
       id: stop.machine.id,
@@ -82,7 +80,7 @@ export function boardModel({ state, config, today, tv }: BoardInput, t: TFunctio
       age: formatMinutes(stop.ageMin),
       ageTone: ageToneOf(column),
       sub: subline(stop, column, config),
-      longest: column === 'notStarted' && stop.machine.id === stops?.outlier,
+      longest: column === 'notStarted' && stop.machine.id === longestId,
     }));
     return {
       column,
@@ -94,6 +92,15 @@ export function boardModel({ state, config, today, tv }: BoardInput, t: TFunctio
       more: all.length > rows.length ? t('live.more', { count: all.length - rows.length }) : null,
     };
   });
+}
+
+/** The replies → the board's model, through `liveBoard()` of `screens/board/data.ts` (kept, not copied). */
+export function boardModel({ state, config, today, tv }: BoardInput, t: TFunction): BoardModel {
+  const board = liveBoard(config, state.open, state.now);
+  const timeZone = config.timeZone ?? undefined;
+  const stops = stopsTakeaway(board, t);
+  const time = formatTime(state.now, timeZone);
+  const columns = columnsOf(board, config, [tv, stops?.outlier ?? undefined], t);
   const buckets: AgeBucket[] = BUCKETS.map((key) => ({
     key,
     label: t(`live.ages.${key}`),
@@ -127,8 +134,8 @@ export function boardModel({ state, config, today, tv }: BoardInput, t: TFunctio
         .join(' · '),
     },
     today: [
-      dayTile(t, 'response', today?.responseMin, today?.responseCount, today?.responseClosed),
-      dayTile(t, 'repair', today?.repairMin, today?.repairCount, today?.repairClosed),
+      dayTile(t, 'response', [today?.responseMin, today?.responseCount, today?.responseClosed]),
+      dayTile(t, 'repair', [today?.repairMin, today?.repairCount, today?.repairClosed]),
     ],
     takeaways: { 'board.stops': stops, 'board.ages': agesTakeaway(board.ages, t) },
   };

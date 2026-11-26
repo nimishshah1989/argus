@@ -125,7 +125,11 @@ export function shownRows<T>(stops: T[], tv: boolean): T[] {
   return tv ? stops.slice(0, TV_ROWS) : stops;
 }
 
-const AGE_TONE: Record<Column, AgeTone> = { notStarted: 'danger', repairing: null, waiting: 'hold' };
+const AGE_TONE: Record<Column, AgeTone> = {
+  notStarted: 'danger',
+  repairing: null,
+  waiting: 'hold',
+};
 
 /** The age colour of a column: red where nobody has started, amber (hold) while waiting, plain while repaired. */
 export function ageToneOf(column: Column): AgeTone {

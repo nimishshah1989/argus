@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { UpdateBanner } from './components/UpdateBanner.js';
 import { Page } from './ui/layout.js';
-import { Board } from './screens/Board.js';
+import { BoardPage } from './screens/v2/board/Page.js';
 import { Desk } from './screens/Desk.js';
 import { ChangePassword } from './faces/signin/password.js';
 import { Who } from './faces/signin/who.js';
@@ -47,7 +47,7 @@ export function App() {
         <Route path="/floor/pm" element={<PmJobs />} />
         <Route path="/desk/mine" element={<Desk view="mine" />} />
         <Route path="/desk/team" element={<Desk view="team" />} />
-        <Route path="/desk/board" element={<Board />} />
+        <Route path="/desk/board" element={<BoardPage />} />
         <Route path="/desk/settings" element={<Settings />} />
         <Route path="/settings" element={<PlantSettings page="home" />} />
         {PLANT_PAGES.map(({ page }) => (
