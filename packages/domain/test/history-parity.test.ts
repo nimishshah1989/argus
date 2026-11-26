@@ -28,7 +28,7 @@ function headline(figure: FigureResult): FigureResult {
     ...page,
     charts: page.charts?.filter((chart) => !TRENDS.has(chart.id)),
   }));
-  return { ...figure, value: { ...value, pages: kept } as unknown as FigureResult["value"] };
+  return { ...figure, value: { ...value, pages: kept } as unknown as FigureResult['value'] };
 }
 
 const alone = run(ENGINE_DATA, AS_OF, DEFAULT_PROFILE);

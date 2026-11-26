@@ -1,6 +1,12 @@
 import type { AnalyticsProfile } from '@uptimo/shared';
 import { dataAsOf, dataFrom } from './as-of.js';
-import { gapMonths, historyOf, recordedMonths, recordedYears, type Period } from './availability.js';
+import {
+  gapMonths,
+  historyOf,
+  recordedMonths,
+  recordedYears,
+  type Period,
+} from './availability.js';
 import { canonicalOrder } from './canonical-order.js';
 import { COMPUTERS } from './computers.js';
 import { FIGURES, type FigureDef } from './registry.js';
@@ -164,7 +170,11 @@ export function runWith(
     const computed =
       def.reads === undefined
         ? compute({ data: views.cut, asOf: views.cutAsOf, profile, ...(history && { history }) })
-        : compute({ data: def.reads === 'history' && cutFrom ? asOfData : views.whole, asOf, profile });
+        : compute({
+            data: def.reads === 'history' && cutFrom ? asOfData : views.whole,
+            asOf,
+            profile,
+          });
     const ids = drillOf(def, computed, known[def.drill]);
     return { ...base, status: 'ready', value: computed.value, drill: { type: def.drill, ids } };
   });

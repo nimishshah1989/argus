@@ -22,7 +22,8 @@ export const notStored: FigureStore = { save: async () => undefined };
  */
 function spanOf(data: EngineData, asOf: string, years: YearsChoice | undefined) {
   if (years === undefined) return undefined;
-  const first = years === 'all' ? (recordedYears(data, asOf)[0] ?? Number(asOf.slice(0, 4))) : years.from;
+  const first =
+    years === 'all' ? (recordedYears(data, asOf)[0] ?? Number(asOf.slice(0, 4))) : years.from;
   const last = years === 'all' ? Number(asOf.slice(0, 4)) : years.to;
   return { from: `${first}-01-01`, to: `${last}-12-31` };
 }

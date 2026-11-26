@@ -330,7 +330,11 @@ describe('figures over a span of years (ADR 0063)', () => {
     expect(first.ran).toBe(1);
     const body = first.answer.json() as { period?: { from: string; to: string }; years?: number[] };
     // The engine starts the span at the plant's first recorded month and says what was asked.
-    expect(body.period).toMatchObject({ from: '2026-11-01', to: ASOF, requestedFrom: '2026-01-01' });
+    expect(body.period).toMatchObject({
+      from: '2026-11-01',
+      to: ASOF,
+      requestedFrom: '2026-01-01',
+    });
     expect(body.years).toEqual([2026]);
     const again = await computes(() => read('2026'));
     expect(again.ran).toBe(0);

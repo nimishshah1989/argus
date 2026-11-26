@@ -1,5 +1,7 @@
 import { QueryClientContext, type QueryClient } from '@tanstack/react-query';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
+import { yearsFrom } from '../../analytics-figures.js';
 import { ApiError } from '../../data/index.js';
 import type { LoadState, Loaded } from '../../ui/v2/screen-states.js';
 import { LiveOffline, NotComputed } from './figures/live-error.js';
@@ -110,6 +112,8 @@ export function useScreenModel<K extends ScreenKey>(
     state: 'loading',
   });
   const [attempt, setAttempt] = useState(0);
+  // A new year choice in the address (ADR 0063) loads again: the live reads take the years from it.
+  const years = yearsFrom(useLocation().search);
   const asked = JSON.stringify(params);
   const latest = useRef(provider);
   latest.current = provider;
@@ -122,6 +126,6 @@ export function useScreenModel<K extends ScreenKey>(
     return () => {
       live = false;
     };
-  }, [key, asked, attempt, client]);
+  }, [key, asked, attempt, client, years]);
   return { ...result, retry: () => setAttempt((a) => a + 1) };
 }

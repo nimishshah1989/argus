@@ -204,7 +204,10 @@ export const figuresReplySchema = z
       .object({
         from: calendarDay,
         to: calendarDay,
-        noRecords: z.array(z.string().regex(/^\d{4}-\d{2}$/)).readonly().optional(),
+        noRecords: z
+          .array(z.string().regex(/^\d{4}-\d{2}$/))
+          .readonly()
+          .optional(),
         requestedFrom: calendarDay.optional(),
       })
       .strict()

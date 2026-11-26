@@ -33,6 +33,14 @@ export const insightEn = {
   'insight.period.sofar': 'Days so far',
   'insight.period.full': 'Full year',
   'insight.period.label': 'Period',
+  // ADR 0063: the one year picker in the shell header, and what a page that the years do not move says.
+  'insight.years.label': 'Years of data',
+  'insight.years.default': 'This year (trends use every year)',
+  'insight.years.all': 'All years',
+  'insight.years.asOf':
+    'This page shows the plant as it stands on the day; the years picked do not change it.',
+  'insight.years.history':
+    'This page learns from every recorded year on purpose; the years picked do not change it.',
   'insight.detail.show': 'Show detail',
   'insight.detail.hide': 'Hide detail',
   'insight.severity.high': 'High priority',

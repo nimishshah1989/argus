@@ -16,6 +16,8 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 - Branch v2/desk-data (Refs #803): the four S28/S29 items the server lacked are built server + UI: sign-off outcomes of the last 24 h on `/board/signoff`, `GET /state/crew` (crew roles, paused jobs under Working now), `machineAverage` on the ticket detail (engine MTTR in minutes, "no earlier breakdown" when none), `GET /tickets/recent-codes` + searchable code pickers (`CodePicker` in ui/v2/close-kit.tsx). No migration.
 - Branch v2/desk-data-2 (follow-up to #862): Team takeaway counts paused jobs by reason; paused jobs read "Paused · reason" (en + gu); e2e `desk-data.spec.ts` clicks a sign-off outcome row and the close-form code picker (machines SO-D, SO-E).
 
+- **plan/multi-year-analytics (ADR 0063, Nimish 26 Nov "use all of that data to create trend lines"):** forecasts, history figures and the A1/A3 month trends read every year by default (2026 headlines and answer key unchanged); `GET /analytics/figures?years=` (year, range or `all`, kept per span); one `YearPicker` in the `LiveFrame` header (`?years=` in the URL); kit lines draw year over year.
+
 ## Not built (server lacks data, or protected file)
 
 - Day-score items out per ADR 0050.

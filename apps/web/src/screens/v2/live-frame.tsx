@@ -3,7 +3,10 @@ import { useCallback, useEffect, type ReactElement, type ReactNode } from 'react
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getBrand, getMe } from '../../api.js';
+import { FIGURES } from '@uptimo/domain';
+import { getBrand, getMe, useAnalyticsFigures } from '../../api.js';
+import { yearsFrom } from '../../analytics-figures.js';
+import { YearPicker } from '../../ui/v2/period-toggle.js';
 import { readsAnalytics } from '../../roles.js';
 import { Segmented } from '../../ui/v2/segmented.js';
 import { ScreenStates, type Loaded } from '../../ui/v2/screen-states.js';
@@ -118,6 +121,48 @@ function chromeFor(entry: LiveEntry, role: string | undefined): ReactNode {
   return <ScreenTabs group={entry.group} current={entry.screen} />;
 }
 
+/**
+ * What the years picked do to a screen's figures (ADR 0063): `span` when at least one of them reads the period, else
+ * what they all read instead (the plant on the day, or every year on purpose); null for a screen with no figure.
+ */
+export function yearsMeaning(screen: string): 'span' | 'asOf' | 'history' | null {
+  const reads = FIGURES.filter((figure) => figure.screen === screen).map((figure) => figure.reads);
+  if (reads.length === 0) return null;
+  if (reads.some((read) => read === undefined)) return 'span';
+  return reads.every((read) => read === 'history') ? 'history' : 'asOf';
+}
+
+/**
+ * The one year picker of every analytics screen, in the shell header: the choice lives in the address (`?years=`), so
+ * Back, a shared link and a reload keep it, and every figures read below takes it from there. A screen the years do
+ * not move says so under the picker.
+ */
+function YearsChoice({ screen }: { screen: string }) {
+  const { t } = useTranslation();
+  const { search } = useLocation();
+  const navigate = useNavigate();
+  const years = useAnalyticsFigures().data?.years ?? [];
+  const meaning = yearsMeaning(screen);
+  if (meaning === null) return null;
+  const value = yearsFrom(search) ?? '';
+  const choose = (next: string) => {
+    const params = new URLSearchParams(search);
+    if (next === '') params.delete('years');
+    else params.set('years', next);
+    navigate({ search: params.toString() });
+  };
+  return (
+    <>
+      <YearPicker years={years} value={value} onChange={choose} />
+      {value !== '' && meaning !== 'span' ? (
+        <p className="v2-sub">
+          {t(meaning === 'asOf' ? 'insight.years.asOf' : 'insight.years.history')}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
 /** A screen's frame: the rail by the login's role, the section's screens above, and the figures' states in place of the page. */
 export function LiveFrame({
   entry,
@@ -141,6 +186,9 @@ export function LiveFrame({
           value={
             <>
               {chromeFor(entry, role)}
+              {role !== undefined && readsAnalytics(role) ? (
+                <YearsChoice screen={entry.screen} />
+              ) : null}
               {notice}
             </>
           }
