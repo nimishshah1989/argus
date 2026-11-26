@@ -11,7 +11,7 @@ export function whoChoices(people: readonly WhoChoice[]): WhoChoice[] {
 
 /**
  * What the screen says when choosing fails: an `ApiError` on field `actingPersonId` is `signin.chooseName`; anything
- * else is null (the caller rethrows it). Moved unchanged from v1 `faces/signin/who.tsx`.
+ * else is null (the caller shows kit.wizard.error). Moved unchanged from v1 `faces/signin/who.tsx`.
  */
 export function whoError(error: unknown): MessageKey | null {
   return error instanceof ApiError && error.field === 'actingPersonId' ? 'signin.chooseName' : null;

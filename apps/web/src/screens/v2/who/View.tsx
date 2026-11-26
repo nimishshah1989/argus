@@ -8,6 +8,7 @@ import { useOnline } from '../../../data/index.js';
 import { actAs } from '../../../faces/signin/act-as.js';
 import { Notice } from '../../../faces/signin/parts.js';
 import { StateNotice } from '../../../patterns/frame.js';
+import { offlineNotice } from '../../../patterns/view-state.js';
 import { landingPath } from '../../../roles.js';
 import { Button } from '../../../ui/v2/button.js';
 import { SectionHead } from '../../../ui/v2/section-head.js';
@@ -45,6 +46,7 @@ export function WhoView(): ReactElement {
   const company = useQuery({ queryKey: ['brand'], queryFn: getBrand }).data?.company ?? '';
   const user = useQuery({ queryKey: ['me'], queryFn: getMe }).data?.user;
   const ready = Boolean(personId) && online && !busy;
+  const offline = offlineNotice(online, false);
 
   async function send(): Promise<void> {
     if (!ready) return;
@@ -54,9 +56,7 @@ export function WhoView(): ReactElement {
       const me = await actAs(queryClient, personId);
       navigate(landingPath(me.user.role));
     } catch (caught) {
-      const key = whoError(caught);
-      if (!key) throw caught;
-      setError(t(key));
+      setError(t(whoError(caught) ?? 'kit.wizard.error'));
     } finally {
       setBusy(false);
     }
@@ -76,6 +76,11 @@ export function WhoView(): ReactElement {
       <h2>{t('signin.whoTitle')}</h2>
       <p>{t('signin.whoLede')}</p>
       <Notice error={error} signedOut={false} />
+      {offline ? (
+        <p role="status" className="v2-sub">
+          {t(offline)}
+        </p>
+      ) : null}
       <NamePicker value={personId} set={setPersonId} />
       <Button primary disabled={!ready} onClick={() => void send()}>
         {t('signin.continue')}
