@@ -10,6 +10,10 @@ export const jobsGu = gujarati(jobsEn, {
     'સિસ્ટમ જાતે કરે છે તે કામ, જેમ કે એલર્ટ મોકલવા. નિષ્ફળ ગયેલી જોબ કારણ સાથે અહીં દેખાય છે. ફરી પ્રયાસ તેને ફરી એક વાર ચલાવે છે.',
   'jobs.empty': 'કોઈ જોબ નિષ્ફળ નથી. બધું ચાલ્યું.',
   'jobs.count': '{{n}} નિષ્ફળ',
+  'jobs.ago': '{{time}} પહેલાં',
+  'jobs.takeaway_one': '1 જોબ નિષ્ફળ ગઈ: {{kind}}, {{attempts}}, નિષ્ફળ {{when}}',
+  'jobs.takeaway_other':
+    '{{count}} જોબ નિષ્ફળ ગઈ. સૌથી જૂની: {{kind}}, {{attempts}}, નિષ્ફળ {{when}}',
   'jobs.tag.failed': 'નિષ્ફળ',
   'jobs.tag.running': 'ચાલી રહી છે',
   'jobs.tag.retryFailed': 'ફરી પ્રયાસ નિષ્ફળ',

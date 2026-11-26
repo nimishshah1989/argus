@@ -17,4 +17,18 @@ export const analyticsReportEn = {
   'analytics.content.report.dayAxis': 'Day',
   'analytics.content.report.monthAxis': 'Month',
   'analytics.content.report.machineAxis': 'Machine',
+  // S23 Monthly Report (v2): the verdict, the source line and one takeaway per section (ADR 0035).
+  'monthly-report.source':
+    'Source: the breakdown log of the production machines, the complete month against the one before it. Records to {date}.',
+  'monthly-report.headline': '{period}: {n} breakdowns lost {hours} hours of production.',
+  'monthly-report.against': '{month} lost {hours} hours, against {before} hours in {previous}.',
+  'monthly-report.daily': '{day} {month} lost the most: {hours} h in {n} breakdowns.',
+  'monthly-report.months': '{month} lost the most downtime of the year: {hours} h.',
+  'monthly-report.rank': '{name}: {hours} h, {change} on {previous}.',
+  'monthly-report.longest': '{machine} on {date}: {hours} h, {times}× the next longest.',
+  'monthly-report.longestOnly': '{machine} on {date}: {hours} h.',
+  'monthly-report.team': '{name} attended {share} of breakdowns.',
+  'monthly-report.added':
+    '{n} machines were added this period; {category} added the most ({most}).',
+  'monthly-report.more': 'and {n} more rows',
 };

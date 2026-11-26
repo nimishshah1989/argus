@@ -1,5 +1,6 @@
 import { expect, test, type Page, type Route, type TestInfo } from '@playwright/test';
 import { mockPlant } from './plant-mock.js';
+import { openShowDetail } from '../show-detail.js';
 
 /**
  * The Dashboard live at /analytics/today in the real app (router, shell, live reader, rows panel), its API answered in
@@ -112,6 +113,8 @@ async function open(page: Page, width: number): Promise<void> {
     page.getByRole('heading', { level: 1, name: 'Dashboard', exact: true }),
   ).toBeVisible();
   await expect(page.locator('.v2-bubble-dot')).toHaveCount(POINTS.length);
+  // Figures past the fourth fold sit under "Show detail" (ADR 0041).
+  await openShowDetail(page);
 }
 
 /** What a press at a page point would land on: the element, its ancestors up to the card, and the styles that decide it. */
