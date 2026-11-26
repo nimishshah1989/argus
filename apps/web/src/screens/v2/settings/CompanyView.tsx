@@ -1,10 +1,9 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getBrand } from '../../../api.js';
 import { defineResource, putLogo, useOnline } from '../../../data/index.js';
 import { Button } from '../../../ui/v2/button.js';
-import { Panel } from '../../../ui/v2/panel.js';
 import { ErrorState, OfflineState, Skeleton } from '../../../ui/v2/screen-states.js';
 import {
   COMPANY_FIELDS,
@@ -70,16 +69,28 @@ function CompanyFieldRow(p: {
       </div>
     );
   return (
-    <label className="v2-crud-field">
-      {t(field.labelKey)}
-      <input
-        value={p.value}
-        required={field.required}
-        disabled={p.disabled}
-        onChange={(e) => p.onChange(e.target.value)}
-      />
+    <div className="v2-crud-field">
+      <label className="v2-crud-field">
+        {t(field.labelKey)}
+        <input
+          value={p.value}
+          required={field.required}
+          disabled={p.disabled}
+          onChange={(e) => p.onChange(e.target.value)}
+        />
+      </label>
       <Help field={field} />
-    </label>
+    </div>
+  );
+}
+
+/** One group of the form: a card under a third-level heading, the order v1 had (h2 page, h3 groups). */
+function Group({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="v2-card v2-pad">
+      <h3 className="v2-h3">{title}</h3>
+      {children}
+    </section>
   );
 }
 
@@ -110,8 +121,9 @@ function LogoSection() {
   }
 
   return (
-    <Panel title={t('company.logo')} sub={t('company.logo.help')}>
+    <Group title={t('company.logo')}>
       <div className="v2-crud-form">
+        <p className="v2-crud-hint">{t('company.logo.help')}</p>
         {logo ? (
           <img src={logo} alt={t('company.logo.current')} className="v2-crud-logo" />
         ) : (
@@ -130,7 +142,7 @@ function LogoSection() {
         </div>
         <SaveNote note={note} saved={t('company.logo.saved')} failed={t('company.logo.failed')} />
       </div>
-    </Panel>
+    </Group>
   );
 }
 
@@ -142,7 +154,7 @@ function CompanySections(p: {
 }) {
   const { t } = useTranslation();
   return companySections(COMPANY_FIELDS).map((section) => (
-    <Panel key={section.titleKey} title={t(section.titleKey)}>
+    <Group key={section.titleKey} title={t(section.titleKey)}>
       <div className="v2-crud-form">
         {section.fields.map((field) => (
           <CompanyFieldRow
@@ -154,7 +166,7 @@ function CompanySections(p: {
           />
         ))}
       </div>
-    </Panel>
+    </Group>
   ));
 }
 
