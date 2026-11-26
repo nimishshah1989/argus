@@ -7,6 +7,7 @@ import {
   isHistory,
   isNoDowntime,
   isPm,
+  reportKey,
   sourcedReports,
   type SourcedReport,
 } from './rows.js';
@@ -22,7 +23,7 @@ import type { Computer, EngineData, FigureValue, ReportRow, TicketRow } from './
 
 const DASH = '—';
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const SHIFT_ALIASES: Record<string, string> = { '1ST': '1', '2ND': '2' };
+export { shiftKey } from './rows.js';
 
 /** One report that counts as a failure under the standard definition, with the lost time it really recorded. */
 export interface FailureEvent {
@@ -51,18 +52,6 @@ export interface KpiTotals {
   machinesWithoutFailure: number;
 }
 
-/**
- * A report's shift as the settings spell it: `1ST` and `2ND` are shift 1 and shift 2 (R8). The shift split groups by
- * this same key, so a row cannot count in one shift for one figure and another shift for the other.
- */
-export function shiftKey(report: ReportRow): string {
-  const raw = report.shift.trim().toUpperCase();
-  return SHIFT_ALIASES[raw] ?? raw;
-}
-
-/** DATA-MAP section 2's own pair: machine, date, shift and downtime together. */
-const reportKey = (report: ReportRow): string =>
-  `${report.machineId}|${report.date}|${shiftKey(report)}|${report.downtimeMin}`;
 
 /**
  * The failure set (R4): a non-PM report of a `stopped` ticket that is closed, on a production machine, history or
