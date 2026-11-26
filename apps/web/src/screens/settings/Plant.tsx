@@ -9,6 +9,7 @@ import {
   CalendarClock,
   Clock,
   Factory,
+  FileCheck,
   FlaskConical,
   Languages,
   LayoutGrid,
@@ -21,7 +22,6 @@ import { CompanyScreen } from './Company.js';
 import { analyticsProfileSpec } from './analytics-profile-spec.js';
 import { TranslationsScreen } from './Translations.js';
 import { GlossaryScreen, ListsScreen } from './Lists.js';
-import { AuditSettings, AUDIT_PAGE } from './Audit.js';
 import { JOBS_PAGE } from './Jobs.js';
 
 export type PlantPage =
@@ -85,7 +85,7 @@ export const PLANT_PAGES: readonly PlantPageSpec[] = [
   { page: 'ladder', icon: AlarmClock, key: 'plant.menu.ladder' },
   { page: 'people', icon: Users, key: 'people.menu.people' },
   { page: 'logins', icon: ShieldCheck, key: 'people.menu.logins' },
-  { ...AUDIT_PAGE, spec: null as never },
+  { page: 'audit', icon: FileCheck, key: 'audit.menu' },
   JOBS_PAGE,
   { page: 'lists', icon: List, key: 'lists.menu.lists', screen: ListsScreen },
   { page: 'glossary', icon: BookOpen, key: 'lists.menu.glossary', screen: GlossaryScreen },
@@ -106,7 +106,6 @@ export const PLANT_PAGES: readonly PlantPageSpec[] = [
 
 /** The body of a page that has no v2 view yet (`screens/v2/settings/registry.ts`); the shell and the gate are v2's. */
 export function Body({ page }: { page: PlantPage }) {
-  if (page === 'audit') return <AuditSettings />;
   const found = PLANT_PAGES.find((p) => p.page === page);
   if (!found || (!found.screen && !found.spec)) return null;
   if (found.screen) {
