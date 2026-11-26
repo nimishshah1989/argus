@@ -22,7 +22,7 @@ import { TicketCard as Card } from '../../../ui/ticket-card.js';
 import { KeyPill } from '../../../ui/v2/key-pill.js';
 import { Takeaway, type TakeawayData } from '../../../ui/v2/takeaway.js';
 import type { ChipFilter } from '../../desk/openLists.js';
-import { ListHeading, rowClass } from '../../desk/parts.js';
+import { ListHeading, rowClass } from './Frame.js';
 import type {
   CardBlock,
   CountTile,

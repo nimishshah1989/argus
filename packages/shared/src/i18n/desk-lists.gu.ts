@@ -56,6 +56,7 @@ export const deskListsGu = gujarati(deskListsEn, {
     '{{machine}} નું બાકી કામ {{date}} સુધીમાં અપેક્ષિત છે, આજથી {{days}} દિવસ.',
   'deskLists.takeaway.tasksLate':
     '{{machine}} નું બાકી કામ {{date}} સુધીમાં અપેક્ષિત હતું, {{days}} દિવસ પહેલાં.',
+  'deskLists.takeaway.teamLongest': '{{name}} સૌથી લાંબા કામ પર છે: {{machine}} પર {{minutes}}.',
   'deskLists.notAvailable': 'તમારા માટે ઉપલબ્ધ નથી',
   'deskLists.notAvailable.body': 'તમારા લૉગિનમાં આ સ્ક્રીન નથી. જરૂર હોય તો તમારા એડમિનને પૂછો.',
   'deskLists.reportProblem': 'સમસ્યાની જાણ કરો',

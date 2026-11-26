@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getBrand, getMe } from '../../../api.js';
-import { useSystemTheme } from '../../desk/Shell.js';
+import { useSystemTheme } from '../../../ui/system-theme.js';
 import { ShellPalette } from './ShellPalette.js';
 import { Header, useOverlays } from './shell-header.js';
 import { place, sectionsFor, type ShellSection } from './shell-data.js';
