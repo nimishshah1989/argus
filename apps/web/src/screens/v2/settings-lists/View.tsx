@@ -10,7 +10,13 @@ import { ErrorState, OfflineState } from '../../../ui/v2/screen-states.js';
 import { Takeaway, type TakeawayData } from '../../../ui/v2/takeaway.js';
 import { analyticsProfileSpec, type ProfileRow } from './analytics-profile-spec.js';
 import { LIST_PAGES, glossarySpec, listMenu, type ListsPage } from './lists-specs.js';
-import { glossaryTakeaway, listsHub, listsTakeaway, profileTakeaway } from './model.js';
+import {
+  glossaryTakeaway,
+  listsHub,
+  listsTakeaway,
+  profileTakeaway,
+  type HubState,
+} from './model.js';
 
 const pct = (n: number, total: number) => Math.round((n / total) * 100);
 
@@ -66,6 +72,27 @@ function AllEntries({
   );
 }
 
+/** One tile per list, with its count of active entries once the list has arrived (never a false 0). */
+function HubTiles({ counts }: { counts: HubState['counts'] }) {
+  const { t } = useTranslation();
+  return (
+    <ul className="v2-tile-set">
+      {listMenu(LIST_PAGES).map((row, index) => {
+        const { n } = counts[index]!;
+        return (
+          <li key={row.to}>
+            <Link to={row.to} className="v2-link">
+              <strong>{t(row.titleKey)}</strong>
+              <span className="v2-crud-sub">{t(row.subKey)}</span>
+              {n === null ? null : <span className="v2-sub">{n}</span>}
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 /** The hub: one tile per list, then every active entry across the six in one read-only table. */
 function ListsHub() {
   const { t } = useTranslation();
@@ -93,7 +120,6 @@ function ListsHub() {
     for (const list of lists) if (list.isError) void list.refetch();
   };
   const titleOf = (page: ListsPage) => t(LIST_PAGES.find((p) => p.page === page)!.titleKey);
-  const menu = listMenu(LIST_PAGES);
   return (
     <div className="v2-crud">
       <h2 className="v2-h2">{t('lists.title')}</h2>
@@ -114,19 +140,7 @@ function ListsHub() {
         }
       />
       <p className="v2-crud-hint">{t('lists.intro')}</p>
-      <ul className="v2-tile-set">
-        {menu.map((row, index) => (
-          <li key={row.to}>
-            <Link to={row.to} className="v2-link">
-              <strong>{t(row.titleKey)}</strong>
-              <span className="v2-crud-sub">{t(row.subKey)}</span>
-              {hub.counts[index]!.n === null ? null : (
-                <span className="v2-sub">{hub.counts[index]!.n}</span>
-              )}
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <HubTiles counts={hub.counts} />
       {hub.state === 'error' ? (
         online ? (
           <ErrorState onRetry={retry} />

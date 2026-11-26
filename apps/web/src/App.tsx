@@ -2,8 +2,6 @@
 import { lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { UpdateBanner } from './components/UpdateBanner.js';
-import { Page } from './ui/layout.js';
 import { BoardPage } from './screens/v2/board/Page.js';
 import { DeskMinePage, DeskTeamPage } from './screens/v2/desk/Page.js';
 import { PasswordView } from './screens/v2/password/View.js';
@@ -22,9 +20,10 @@ import {
   AnalyticsFace,
   DataChecklistPage,
   MachinePageRoute,
-} from './screens/analytics/Analytics.js';
-import { PLANT_PAGES } from './screens/settings/Plant.js';
+} from './screens/v2/analytics-routes.js';
+import { PLANT_PAGES } from './screens/v2/settings/pages.js';
 import { SettingsView } from './screens/v2/settings/View.js';
+import { UpdateBanner } from './ui/v2/update-banner.js';
 
 // Decided at build time: in a production build without VITE_GALLERY=on this is `false`, so the
 // bundler drops the gallery (D20).
@@ -70,7 +69,9 @@ export function App() {
                 <Gallery />
               </Suspense>
             ) : (
-              <Page title={t('kit.notFound')} />
+              <main className="v2-card v2-pad">
+                <h1 className="v2-title">{t('kit.notFound')}</h1>
+              </main>
             )
           }
         />

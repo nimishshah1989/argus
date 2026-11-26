@@ -5,8 +5,8 @@ import { Link, Navigate } from 'react-router-dom';
 import { getMe } from '../../../api.js';
 import { useWide } from '../../../patterns/wide.js';
 import { Icon } from '../../../ui/v2/icons.js';
-import { canSeeJobs, countLabel, useFailedCount } from '../../settings/Jobs.js';
-import { Body, PLANT_PAGES, type PlantPage, type PlantPageSpec } from '../../settings/Plant.js';
+import { canSeeJobs, countLabel, useFailedCount } from './jobs.js';
+import { PLANT_PAGES, type PlantPage, type PlantPageSpec } from './pages.js';
 import { EntityShell } from '../entity/EntityShell.js';
 import { useNav } from '../nav.js';
 import { settingsAccess } from './model.js';
@@ -86,10 +86,11 @@ function BackToDesk() {
   );
 }
 
-/** The page's v2 view when it has one, else v1's body. */
+/** The page's view; `home` (the phone menu) has none. */
 function PageBody({ page }: { page: PlantPage }) {
+  if (page === 'home') return null;
   const View = V2_VIEWS[page];
-  return View ? <View /> : <Body page={page} />;
+  return <View />;
 }
 
 /** What an admin or head sees: the menu (wide, or the phone home list) or a back link, then the page or "Back to desk". */

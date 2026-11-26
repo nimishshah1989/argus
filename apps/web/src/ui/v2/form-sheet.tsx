@@ -1,8 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useOnline } from '../../data/index.js';
-import type { FormField, FormSheetProps } from '../../patterns/form-sheet.js';
-import { missingRequired, submitHeld } from './crud-model.js';
+import { missingRequired, submitHeld, type FormField, type FormSheetProps } from './crud-model.js';
 import { DateField } from './date-field.js';
 import { Drawer } from './drawer.js';
 import { Segmented } from './segmented.js';

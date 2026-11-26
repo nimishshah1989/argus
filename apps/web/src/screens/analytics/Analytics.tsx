@@ -1,45 +1,8 @@
-import { Navigate, useParams, useSearchParams } from 'react-router-dom';
-import { ACTION_CENTER_PATH, groupFor } from './groups.js';
-import { ActionCenterPage } from '../v2/action-center/Page.js';
-import { MachinePage } from '../v2/machine/Page.js';
-import { LiveFrame } from '../v2/live-frame.js';
-import { liveScreen } from '../v2/live.js';
-
-/** The data checklist's own route, inside the Today group's shell. */
-export function DataChecklistPage() {
-  return liveScreen('today', 'data-checklist');
-}
-
-/** The Action Center's own route: the v2 screen, with its own frame. */
-export function ActionCenterRoute() {
-  return <ActionCenterPage />;
-}
-
-/** One machine's page (`/analytics/machines/:id`, an id or a code): the v2 screen, in the v2 shell. */
-export function MachinePageRoute() {
-  const { id = '' } = useParams();
-  return (
-    // eslint-disable-next-line i18next/no-literal-string -- a group, a section and a screen id, not copy
-    <LiveFrame entry={{ group: 'machines', section: 'machines', screen: 'machine-page' }}>
-      {(nav) => <MachinePage id={id} nav={nav} />}
-    </LiveFrame>
-  );
-}
-
-/** The Action Center has its own route; a link that names it as a screen of Today goes there. */
-function ownRoute(group: string | undefined, screen: string | null) {
-  return group === 'today' && screen === 'action-center' ? (
-    <Navigate to={ACTION_CENTER_PATH} replace />
-  ) : null;
-}
-
-/** The face itself: `/analytics` opens on Today; an unknown group falls back to it (no 404 screen). */
-export function AnalyticsFace() {
-  const { group } = useParams();
-  const [params] = useSearchParams();
-  const found = groupFor(group);
-  if (!found) return <Navigate to="/analytics/today" replace />;
-  const own = ownRoute(group, params.get('screen'));
-  if (own) return own;
-  return liveScreen(group, params.get('screen'));
-}
+// The analytics routes moved to the v2 kit (screens/v2/analytics-routes.tsx), which App.tsx imports. This name stays
+// for the tests that read or import it; the shipped app never reaches it.
+export {
+  ActionCenterRoute,
+  AnalyticsFace,
+  DataChecklistPage,
+  MachinePageRoute,
+} from '../v2/analytics-routes.js';

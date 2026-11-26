@@ -8,6 +8,7 @@ _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
 - "What's left" is now measured: `tools/old-ui-left.test.ts` pins the old-design components the shipped app still renders (62 on 26 Nov). Done = the list is empty. Run it before answering Nimish.
 - Who pulls them: Desk (`screens/v2/desk`), Ticket (`screens/v2/ticket`) and browser Board need the S28–S30 Shell redraw (PR #847, ADR 0056); Nimish must approve S28-desk, S29-ticket, S30-board. Floor internals (AccountSheet, Drafts, ui/button/input/sheet/tab-bar/text/floor-pieces, patterns/frame, wizard-page). Settings (screens/settings/{Plant,Jobs,Company,Translations}). Sign-in/who/password (`faces/signin/parts.tsx` Notice). Kit itself (`ui/v2/crud-page`, `form-sheet` use `patterns/form-sheet`, `crud-actions`). App.tsx (UpdateBanner, ui/layout, Analytics.tsx and TicketRoute shims).
+- Branch `v2/kit-settings-signin`: kit no longer imports patterns/*.tsx; Settings Company and Translations on the kit, v1 settings pages deleted (#794); sign-in/who/password use `ui/v2/notice.tsx`; App.tsx on `ui/v2/update-banner.tsx` and `screens/v2/analytics-routes.tsx`; #846 lists/profile fixes. 12 entries off OLD_LEFT. `components/AccountSheet.tsx` and `patterns/form-sheet.tsx` stay for Floor/Desk.
 - Open fix tickets: #842 (audit trail fixes; builder running), #846 (lists/profile "not set" bug). #819 is superseded by the guard.
 
 ## Next steps
