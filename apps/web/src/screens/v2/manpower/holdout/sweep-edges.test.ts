@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { sumText } from '../sweep.js';
 
-/** Sweep #706, batch D, hidden: Manpower's sums at the edges. */
+/** Sweep 706, batch D, hidden: Manpower's sums at the edges. */
 
 describe('sumText at the edges', () => {
   it('prints a dash for a sum that is not finite', () => {

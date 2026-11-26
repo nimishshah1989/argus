@@ -4,7 +4,7 @@ import { answerKey, realT } from '../printed-page/test-support.js';
 import { FIGURE, forecastLabModel } from './adapter.js';
 import { labSheets } from './sweep.js';
 
-/** Sweep #706 (#690), batch D: the Forecast Lab's tables as Excel sheets, as shown. */
+/** Sweep 706 (690), batch D: the Forecast Lab's tables as Excel sheets, as shown. */
 
 const model = forecastLabModel(answerKey('forecast-lab', FIGURE, 42), realT)!;
 const sheets = () => labSheets(model);

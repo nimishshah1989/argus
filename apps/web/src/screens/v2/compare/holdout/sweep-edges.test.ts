@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { moneyText } from '../sweep.js';
 
-/** Sweep #706, batch D, hidden: Compare's money at the edges. */
+/** Sweep 706, batch D, hidden: Compare's money at the edges. */
 
 describe('moneyText at the edges', () => {
   it('prints a dash for a value that is not finite', () => {

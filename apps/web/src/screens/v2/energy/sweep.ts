@@ -1,7 +1,7 @@
 import { readable } from '../../../ui/v2/format.js';
 
 /**
- * Sweep #706 (ADR 0041, batch D): Energy's KVA figures in the kit's readable form (ADR 0036 R11). Every
+ * Sweep 706 (ADR 0041, batch D): Energy's KVA figures in the kit's readable form (ADR 0036 R11). Every
  * `oneDecimal(` call in `energy/adapter.ts` and `energy/takeaways.ts` becomes `kvaText(`, and `oneDecimal` is deleted.
  * The chart's numbers (`rounded`, adapter ~36) stay numbers: a chart value is not text.
  */

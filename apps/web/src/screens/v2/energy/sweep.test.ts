@@ -6,7 +6,7 @@ import { realT } from '../printed-page/test-support.js';
 import { energyModel, FIGURE } from './adapter.js';
 import { kvaText } from './sweep.js';
 
-/** Sweep #706, batch D: Energy's KVA keeps its text under a lakh and reads as the kit's from a lakh up. */
+/** Sweep 706, batch D: Energy's KVA keeps its text under a lakh and reads as the kit's from a lakh up. */
 
 describe('kvaText', () => {
   it('keeps the page’s one-decimal text under a lakh', () => {

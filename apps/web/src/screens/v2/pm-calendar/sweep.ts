@@ -2,7 +2,7 @@ import type { Sheet } from '@uptimo/shared/xlsx';
 import type { PmCalendarModel, PmJob } from './model.js';
 
 /**
- * Sweep #706 (ADR 0041 #690): the PM calendar's two tables for "Download Excel" (DOC. NO. `DOC_REF.pm`), as shown.
+ * Sweep 706 (ADR 0041 690): the PM calendar's two tables for "Download Excel" (DOC. NO. `DOC_REF.pm`), as shown.
  *
  * 1. "Spread the load" — only when `model.spread` is not empty (the page hides the table otherwise).
  *    `name` = `words.spread.title`; header `[columns.machine, columns.planned, columns.free]`; one row per job in

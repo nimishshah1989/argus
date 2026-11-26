@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { sumText } from './sweep.js';
 
-/** Sweep #706, batch D: Manpower's own sums keep their text under a lakh and read as the kit's from a lakh up. */
+/** Sweep 706, batch D: Manpower's own sums keep their text under a lakh and read as the kit's from a lakh up. */
 
 describe('sumText', () => {
   it('keeps the page’s whole and one-decimal text under a lakh', () => {
