@@ -1,7 +1,25 @@
+import type { ReactElement } from 'react';
 import { describe, expect, it } from 'vitest';
-import { PROFILE_FIELDS, PROFILE_KEYS } from '@uptimo/shared/analytics';
+import {
+  DEFAULT_PROFILE,
+  PROFILE_FIELDS,
+  PROFILE_KEYS,
+  profileReplySchema,
+} from '@uptimo/shared/analytics';
 import { en, gu } from '@uptimo/shared/i18n';
-import { PROFILE_GROUPS, analyticsProfileSpec } from './analytics-profile-spec.js';
+import { PROFILE_GROUPS, analyticsProfileSpec, type ProfileRow } from './analytics-profile-spec.js';
+
+/** The tag the row shows for a real server reply (every number filled, never null). */
+const tagOf = (changes: Record<string, number>) => {
+  const row = profileReplySchema.parse({
+    id: '00000000-0000-4000-8000-000000000001',
+    ...DEFAULT_PROFILE,
+    ...changes,
+    active: true,
+  }) as ProfileRow;
+  const look = analyticsProfileSpec.look!(row, { t: (key: string) => key } as never);
+  return (look.tag as ReactElement<{ text: string; tone: string }>).props;
+};
 
 /**
  * D05: a settings screen is config against the shared reply schema, and a test fails when a schema key
@@ -51,5 +69,9 @@ describe('the analytics profile spec accounts for its reply keys (D05)', () => {
       expect(gujarati, field.labelKey).toContain(field.labelKey);
     }
     expect(english).toContain(analyticsProfileSpec.titleKey);
+  });
+
+  it('tags a fresh plant "Defaults in use", not "Set"', () => {
+    expect(tagOf({})).toMatchObject({ text: 'lists.profile.notSet', tone: 'risk' });
   });
 });
