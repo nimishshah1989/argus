@@ -7,6 +7,10 @@ import { realT } from './printed-page/test-support.js';
 import { shiftKpisModel } from './shift-kpis/adapter.js';
 import { boardModel } from './board/adapter.js';
 import { fixtureConfig, fixtureState, fixtureToday } from './board/fixture.js';
+import { openModel } from './desk/adapter.js';
+import { deskFixture } from './desk/fixture.js';
+import { answerKey } from './printed-page/test-support.js';
+import { monthlyReportModel } from './monthly-report/adapter.js';
 
 /**
  * ADR 0023, UX rules 60 and 67: every live v2 screen's model gives each of its sections a computed takeaway, in
@@ -48,6 +52,22 @@ const SECTIONS: Record<string, string[]> = {
   'shift-kpis': ['shift-kpis.shift-split', 'shift-kpis.backlog', 'shift-kpis.breakdown-map'],
   // Ticket 772 (S30): the top verdict over the columns and the line over the ages card.
   board: ['board.stops', 'board.ages'],
+  // ADR 0045 T3 (S28-A): the desk's Open screen, Breakdowns and Tasks lines (scope desk.md "More intelligent").
+  desk: ['desk.breakdowns', 'desk.tasks'],
+  // Ticket 767 (S27-A): the report wizard has no table, chart or figure tile, so no takeaway; T2 (#768) adds
+  // My complaints' line ("Waiting longest") here when its list joins the floor.
+  floor: [],
+  'monthly-report': [
+    'daily',
+    'months',
+    'machine',
+    'cell',
+    'category',
+    'code',
+    'longest',
+    'team',
+    'added',
+  ],
 };
 
 type Said = { text: string }[];
@@ -64,6 +84,9 @@ const MODELS: Record<string, () => Promise<WithTakeaways>> = {
       { state: fixtureState, config: fixtureConfig, today: fixtureToday, tv: false },
       realT,
     ),
+  desk: async () => openModel(deskFixture, realT),
+  'monthly-report': async () =>
+    monthlyReportModel(answerKey('monthly-report', 'monthly-report', 42), realT),
 };
 
 describe('insight coverage (M2b)', () => {

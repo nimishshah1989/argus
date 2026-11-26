@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { FIGURE_LABELS } from '../../analytics/groups.js';
 import { guideFigureLinks } from '../../analytics/guide-entries.js';
 import { KeyPill } from '../../../ui/v2/key-pill.js';
+import type { NavItem } from '../../../ui/v2/shell.js';
 import { Takeaway } from '../../../ui/v2/takeaway.js';
 import { EntityShell } from '../entity/EntityShell.js';
 import { LiveFrame } from '../live-frame.js';
@@ -38,7 +39,7 @@ function Entry({ item }: { item: GuideItem }) {
             <li key={link.figure}>
               <Link to={link.href} className="v2-link">
                 {t('analytics.guide.openFigure')} —{' '}
-                {t(FIGURE_LABELS[link.figure] ?? 'analytics.figure.unknown')}
+                <span>{t(FIGURE_LABELS[link.figure] ?? 'analytics.figure.unknown')}</span>
               </Link>
             </li>
           ))}
@@ -46,6 +47,13 @@ function Entry({ item }: { item: GuideItem }) {
       )}
     </section>
   );
+}
+
+/** The Guide always shows the way out to the desk, even for roles whose rail omits it (as v1 did). */
+function withDesk(nav: NavItem[], label: string): NavItem[] {
+  return nav.some((i) => i.id === 'desk')
+    ? nav
+    : [...nav, { id: 'desk', label, icon: 'list', href: '/desk', end: true }];
 }
 
 /** The Guide: the takeaway, the topic chips, the 36 contents links, then the entries the chip shows. */
@@ -57,7 +65,7 @@ export function GuidePage() {
   return (
     <LiveFrame entry={{ group: 'guide', section: 'guide', screen: 'guide' }}>
       {(nav) => (
-        <EntityShell nav={nav} title={t('analytics.guide.heading')}>
+        <EntityShell nav={withDesk(nav, t('nav.desk'))} title={t('analytics.guide.title')}>
           <p>{t('analytics.guide.intro')}</p>
           <Takeaway
             data={{

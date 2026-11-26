@@ -256,7 +256,7 @@
     "lines": 200
   },
   "holdout": ["tests/holdout/**", "**/holdout/**"],
-  "context_budget": 150000,
+  "context_budget": 350000,
   "release": {
     "staging_migrate": "",
     "staging_deploy": "",
