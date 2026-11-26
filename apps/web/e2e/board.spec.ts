@@ -106,7 +106,8 @@ test('sits in the Shell outside kiosk mode, and a wide screen opens the TV view'
   await signIn(page, 'asha');
   await openBoard(page, false);
   // ADR 0055/0056 (S30): the rail's Desk link, the Desk tabs with Live pressed, and Report a problem.
-  await expect(page.getByRole('link', { name: 'Desk', exact: true })).toBeAttached();
+  // The phone's closed menu keeps the rail out of the accessibility tree, so find it by address.
+  await expect(page.locator('.v2-rail a[href="/desk"]')).toBeAttached();
   await expect(page.getByRole('button', { name: 'Live', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
