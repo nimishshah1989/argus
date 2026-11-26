@@ -288,7 +288,7 @@ export function Shell({
   const { covered } = useDrawerFrame(drawer !== null);
   return (
     <div
-      className="v2-app"
+      className="v2-app v2-frame"
       data-drawer={drawer !== null}
       data-menu={menu}
       onTransitionEnd={remeasure}
