@@ -21,6 +21,8 @@ export type ReportLink = { href: string; label: string };
 export type MonthlyReportModel = PrintedPageModel & {
   /** "October 2026": the calendar month before the plant date (v1 `reportPeriodLine('monthly', …)`). */
   period: string;
+  /** "September": the month the report is compared against, for the "Against {month}" column heading. */
+  previous: string;
   /** The PDF, then the whole data set as Excel. */
   links: ReportLink[];
   takeaways: Takeaways;

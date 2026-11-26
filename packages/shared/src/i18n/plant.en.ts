@@ -181,4 +181,12 @@ export const plantEn = {
   'plant.ladder.repeatValue': 'Every {{minutes}} min, at most {{cap}} times',
   'plant.ladder.noRepeat': 'Once',
   'plant.ladder.nobody': 'Nobody',
+  'plant.ladder.takeaway': 'High with no answer reaches {{steps}}.',
+  'plant.ladder.takeaway.step': '{{level}} at {{minutes}} min',
+  'plant.roster.takeaway_one': '{{count}} gap, {{shift}} shift {{day}}',
+  'plant.roster.takeaway_other': '{{count}} gaps, first {{shift}} shift {{day}}',
+  'plant.roster.takeaway.full': 'Every shift has a first call for the next 7 days',
+  'plant.registers.takeaway.ends': '{{machine}} {{kind}} ends in {{days}} days',
+  'plant.registers.takeaway.ended': '{{machine}} {{kind}} ended {{days}} days ago',
+  'plant.registers.takeaway.then': 'then {{machine}} {{kind}} in {{days}} days',
 };

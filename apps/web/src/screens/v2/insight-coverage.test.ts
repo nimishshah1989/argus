@@ -3,6 +3,8 @@ import { annualReportModel } from './annual-report/adapter.js';
 import { FROZEN, PROVIDERS } from './data.js';
 import { hasYardstick, tilesIn } from './insight.js';
 import type { Takeaways } from '../../ui/v2/takeaway.js';
+import { ticketModel } from './ticket/adapter.js';
+import { fixtureInput } from './ticket/fixture.js';
 import { realReply } from './figures/real-reply.js';
 import { answerKey, realT } from './printed-page/test-support.js';
 import { shiftKpisModel } from './shift-kpis/adapter.js';
@@ -48,6 +50,8 @@ const NOT_YET = new Set([
 
 /** Each finished screen's sections, written out so a section added later without a takeaway fails here. */
 const SECTIONS: Record<string, string[]> = {
+  // Ticket 771 (S29): the lines over the Minutes card and Who worked on it.
+  ticket: ['ticket.minutes', 'ticket.people'],
   'annual-report': [
     'months',
     'quarters',
@@ -91,6 +95,7 @@ type WithTakeaways = {
 } | null;
 /** A finished screen's model, when its frozen provider needs params or it has none (a test-support file builds it). */
 const MODELS: Record<string, () => Promise<WithTakeaways>> = {
+  ticket: async () => ticketModel(fixtureInput(), realT),
   'annual-report': async () =>
     annualReportModel(answerKey('annual-report', 'annual-report', 42), realT),
   'shift-kpis': async () => shiftKpisModel(realReply(), realT),
