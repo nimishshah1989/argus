@@ -177,8 +177,11 @@ describe('the monthly report PDF', () => {
       "SELECT id FROM person WHERE tenant_id = $1 AND name = 'Person 11'",
       [tenantId],
     );
+    // People print by name, never by code (ADR 0059).
     const code = `P-${String(person.rows[0]?.id).slice(0, 8)}`;
-    expect(text).toContain(flat(code));
+    expect(text).toContain(flat('Person 11'));
+    expect(text).not.toContain(flat(code));
+    expect(text).not.toMatch(/P-[0-9a-f]{8}/);
     // `pdfShows` reads the drawn non-ASCII glyphs; the ASCII cells above are read through `pdfText`.
     expect(pdfShows(res.rawPayload, '—')).toBe(true);
   });
