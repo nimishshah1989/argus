@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test';
 import { expect, test } from './test.js';
 
 /**
- * Bug #832 (S19, after #816 / PR 830): /who must say when choosing fails or cannot be sent, as v1's WizardPage did.
+ * Bug: ticket 832 (S19, after ticket 816 / PR 830): /who must say when choosing fails or cannot be sent, as v1's WizardPage did.
  * A failure that is not "choose a name" shows kit.wizard.error as an alert; offline shows kit.form.needsConnection.
  */
 async function openWho(page: Page): Promise<void> {
