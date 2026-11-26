@@ -1,5 +1,5 @@
 import type { PoolClient } from 'pg';
-import { whyWhyPayloadSchema, type WhyWhyPayload } from '@uptimo/shared';
+import { whyWhyPayloadSchema, type OemCausePayload, type WhyWhyPayload } from '@uptimo/shared';
 import type { LoadedEvent } from '../mapper.js';
 
 type Db = Pick<PoolClient, 'query'>;
@@ -118,6 +118,65 @@ export async function whyWhyEventRows(
     await client.query(
       `SELECT DISTINCT ON (ticket_id) ticket_id, payload
          FROM ticket_event WHERE type = 'why_why'
+        ORDER BY ticket_id, seq DESC`,
+    )
+  ).rows.map((row) => ({ ticketId: row.ticket_id as string, payload: row.payload }));
+}
+
+export interface AppendOemCauseInput {
+  tenantId: string;
+  ticketId: string;
+  at: Date;
+  loginId: string;
+  actingPersonId: string;
+  payload: OemCausePayload;
+}
+
+/**
+ * Appends one oem_cause event as the ticket's next event (ADR 0051; nothing updates or deletes one), with the same
+ * closed-breakdown guard in the counter update as appendWhyWhyEvent: null when the ticket is not a closed breakdown.
+ */
+export async function appendOemCauseEvent(
+  client: Db,
+  input: AppendOemCauseInput,
+): Promise<WhyWhyEvent | null> {
+  const ticket = (
+    await client.query(
+      `UPDATE ticket SET last_event_seq = GREATEST(last_event_seq,
+         (SELECT COALESCE(MAX(seq), -1) FROM ticket_event WHERE tenant_id = $1 AND ticket_id = $2)) + 1
+       WHERE tenant_id = $1 AND id = $2 AND kind = 'stopped' AND status = 'closed'
+       RETURNING last_event_seq`,
+      [input.tenantId, input.ticketId],
+    )
+  ).rows[0];
+  if (!ticket) return null;
+  const row = (
+    await client.query(
+      `INSERT INTO ticket_event (tenant_id, ticket_id, seq, type, at, login_id, acting_person_id, payload)
+       VALUES ($1, $2, $3, 'oem_cause', $4, $5, $6, $7)
+       RETURNING id, seq, at`,
+      [
+        input.tenantId,
+        input.ticketId,
+        ticket.last_event_seq,
+        input.at,
+        input.loginId,
+        input.actingPersonId,
+        JSON.stringify(input.payload),
+      ],
+    )
+  ).rows[0];
+  return { id: row.id as string, seq: row.seq as number, at: row.at as Date };
+}
+
+/** The latest oem_cause event of every ticket that has one (DISTINCT ON), for the analytics loader. */
+export async function oemCauseEventRows(
+  client: Db,
+): Promise<{ ticketId: string; payload: unknown }[]> {
+  return (
+    await client.query(
+      `SELECT DISTINCT ON (ticket_id) ticket_id, payload
+         FROM ticket_event WHERE type = 'oem_cause'
         ORDER BY ticket_id, seq DESC`,
     )
   ).rows.map((row) => ({ ticketId: row.ticket_id as string, payload: row.payload }));

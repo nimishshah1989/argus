@@ -24,7 +24,7 @@ export {
   ticketDownFacts,
   type DownFacts,
 } from './repo/escalation.js';
-export { plantEventLines, whyWhyEventRows } from './repo/events.js';
+export { oemCauseEventRows, plantEventLines, whyWhyEventRows } from './repo/events.js';
 export { loadSeverityMatrix, refreshMachineSeverity } from './severity.js';
 export {
   loadWhyWhy,
