@@ -58,6 +58,7 @@ export const ticketsModule = defineModule({
 });
 export {
   closedAwaitingSignoff,
+  signoffOutcomeTickets,
   type AwaitingSignoffRow,
   type SignoffCursor,
 } from './repo/signoff.js';

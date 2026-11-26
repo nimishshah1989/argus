@@ -430,27 +430,45 @@ function historyOf(c: Ctx, events: TicketEvent[], canSetLadder: boolean): Histor
 }
 
 /** `ticket.minutes` carries the downtime figure (a loss while the machine has been down); `ticket.people` names who has the most time. */
-function takeawaysOf(
+function noteOf(c: Ctx, text: string, tone: TakeawayData['tone'], outlier?: string): TakeawayData {
+  return { text, tone, tag: tagOf(tone, say(c)), outlier };
+}
+
+/**
+ * `ticket.minutes`: the downtime against the machine's own average, over or under it, or that the machine has
+ * no history to compare with; a reply without the average (an older server) keeps the plain line.
+ */
+function minutesLineOf(
   c: Ctx,
   machine: string,
   minutes: TicketModel['minutes'],
-  rows: PersonLine[],
-): TicketModel['takeaways'] {
-  const note = (text: string, tone: TakeawayData['tone'], outlier?: string): TakeawayData => ({
-    text,
-    tone,
-    tag: tagOf(tone, say(c)),
-    outlier,
-  });
+  average: TicketDetail['machineAverage'],
+): TakeawayData | null {
   const down = minutes?.figures.find((figure) => figure.id === 'downtime');
   const work = minutes?.figures.find((figure) => figure.id === 'workTime');
-  let minutesLine: TakeawayData | null = null;
-  if (work && down) {
-    const text = c.t('detail.takeaway.minutes', { machine, down: down.value, work: work.value });
-    minutesLine = note(text, down.minutes > 0 ? 'loss' : 'neutral');
-  } else if (work) {
-    minutesLine = note(c.t('detail.takeaway.minutesNoDown', { work: work.value }), 'neutral');
-  }
+  if (!work) return null;
+  if (!down)
+    return noteOf(c, c.t('detail.takeaway.minutesNoDown', { work: work.value }), 'neutral');
+  const words = { machine, down: down.value, work: work.value };
+  const tone = down.minutes > 0 ? 'loss' : 'neutral';
+  if (average === undefined) return noteOf(c, c.t('detail.takeaway.minutes', words), tone);
+  if (average === null) return noteOf(c, c.t('detail.takeaway.minutesNoHistory', words), tone);
+  const gap = down.minutes - average.downtimeMin;
+  const text = c.t(gap > 0 ? 'detail.takeaway.minutesOver' : 'detail.takeaway.minutesUnder', {
+    ...words,
+    diff: formatMinutes(Math.abs(gap)),
+    avg: formatMinutes(average.downtimeMin),
+  });
+  return noteOf(c, text, down.minutes > 0 && gap >= 0 ? 'loss' : 'neutral');
+}
+
+function takeawaysOf(
+  c: Ctx,
+  minutesLine: TakeawayData | null,
+  rows: PersonLine[],
+): TicketModel['takeaways'] {
+  const note = (text: string, tone: TakeawayData['tone'], outlier?: string) =>
+    noteOf(c, text, tone, outlier);
   const top = rows.reduce<PersonLine | undefined>(
     (best, row) => (best && best.minutes >= row.minutes ? best : row),
     undefined,
@@ -510,6 +528,6 @@ export function ticketModel(input: TicketInput, t: TFunction): TicketModel {
       rows: historyOf(c, detail.events, maySetLadder(me?.role)),
       empty: t('timeline.empty'),
     },
-    takeaways: takeawaysOf(c, machine, minutes, rows),
+    takeaways: takeawaysOf(c, minutesLineOf(c, machine, minutes, detail.machineAverage), rows),
   };
 }

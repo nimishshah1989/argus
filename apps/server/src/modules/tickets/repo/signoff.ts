@@ -46,16 +46,52 @@ export async function closedAwaitingSignoff(
      ORDER BY t.closed_at ASC, t.id ASC LIMIT $2`,
     [tenantId, page.limit, page.offBoard, page.after?.closedAt ?? null, page.after?.id ?? null],
   );
-  return result.rows.map((row) => {
-    const snapshot = (row.machine_snapshot ?? {}) as { code?: string | null; cell?: string | null };
-    return {
-      id: row.id as string,
-      ref: row.ref as string,
-      machineId: (row.machine_id as string | null) ?? null,
-      machineCode: snapshot.code ?? null,
-      cell: snapshot.cell ?? null,
-      closedAt: row.closed_at as Date,
-      closedAtText: row.closed_at_text as string,
-    };
-  });
+  return result.rows.map((row) => ({
+    ...whereOf(row),
+    closedAt: row.closed_at as Date,
+    closedAtText: row.closed_at_text as string,
+  }));
+}
+
+/** A ticket's id, reference and the machine and cell it was reported on. */
+export type SignoffTicketRow = Pick<
+  AwaitingSignoffRow,
+  'id' | 'ref' | 'machineId' | 'machineCode' | 'cell'
+>;
+
+function whereOf(row: Record<string, unknown>): SignoffTicketRow {
+  const snapshot = (row.machine_snapshot ?? {}) as { code?: string | null; cell?: string | null };
+  return {
+    id: row.id as string,
+    ref: row.ref as string,
+    machineId: (row.machine_id as string | null) ?? null,
+    machineCode: snapshot.code ?? null,
+    cell: snapshot.cell ?? null,
+  };
+}
+
+/**
+ * Tickets whose sign-off may have an outcome since `since`: production confirmed or disputed it since then, or it is
+ * one of `alsoIds` (the clocks that ran out, which accountability knows). Machines in `offBoard` are left out; the
+ * sign-off itself decides the outcome.
+ */
+export async function signoffOutcomeTickets(
+  client: Pick<PoolClient, 'query'>,
+  tenantId: string,
+  query: { since: Date; offBoard: readonly string[]; alsoIds: readonly string[]; limit: number },
+): Promise<SignoffTicketRow[]> {
+  const result = await client.query(
+    `SELECT t.id, t.ref, t.machine_id, t.machine_snapshot
+     FROM ticket t
+     WHERE t.tenant_id = $1
+       AND (t.machine_id IS NULL OR t.machine_id <> ALL($3::uuid[]))
+       -- an answer is a command, and every command saves the ticket: nothing older can hold one
+       AND (t.id = ANY($4::uuid[]) OR t.updated_at >= $2 AND EXISTS (
+         SELECT 1 FROM ticket_event a
+         WHERE a.tenant_id = t.tenant_id AND a.ticket_id = t.id AND a.at >= $2
+           AND a.type IN ('handback_confirm', 'handback_dispute')))
+     ORDER BY t.updated_at DESC, t.id LIMIT $5`,
+    [tenantId, query.since, query.offBoard, query.alsoIds, query.limit],
+  );
+  return result.rows.map(whereOf);
 }

@@ -211,7 +211,10 @@ export async function mockDesk(page: Page, role: DeskRole = 'supervisor'): Promi
     if (path === '/state') return json({ open: OPEN, needReport: NEED_REPORT, now: ago(0) });
     if (path === '/config') return json(CONFIG);
     if (path === '/auth/me') return json(me(role));
-    if (path === '/board/signoff') return json({ items: [] });
+    if (path === '/board/signoff') return json({ items: [], outcomes: [] });
+    if (path === '/state/crew') return json({ items: [] });
+    if (path === '/tickets/recent-codes')
+      return json({ breakdownCategory: [], failureComponent: [] });
     if (path === '/tickets') {
       const param = (name: string) => url.searchParams.getAll(name).flatMap((v) => v.split(','));
       const [statuses, kinds, person] = [param('status'), param('kind'), param('personId')[0]];

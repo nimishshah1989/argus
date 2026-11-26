@@ -59,17 +59,31 @@ describe('Mine over the frozen plant', () => {
 });
 
 describe('Team over the frozen plant', () => {
-  it('Working now: one card per lead, most hands-on minutes first, with their jobs', () => {
+  it('Working now: everyone on a job with their crew role, the longest job first, then paused jobs, longest wait first', () => {
+    const { working, paused } = team();
     expect(
-      team().working.map(({ name, minutes, jobs }) => [
-        name,
-        minutes,
-        jobs.map((j) => `${j.ref} ${j.machine}`),
-      ]),
+      [...working, ...paused].map((r) => [r.ref, r.machine, r.name, r.role, r.state, r.minutes]),
     ).toEqual([
-      ['Tech B', '2 h 30 min', ['TKT-0414 CNC-02', 'TKT-0412 VC-03']],
-      ['Tech A', '2 h 24 min', ['TKT-0409 LT-08']],
+      ['TKT-0409', 'LT-08', 'Tech A', 'Lead', 'In progress', '2 h 24 min'],
+      ['TKT-0414', 'CNC-02', 'Tech B', 'Lead', 'In progress', '2 h 0 min'],
+      ['TKT-0414', 'CNC-02', 'Tech A', 'Support', 'In progress', '0 min'],
+      ['TKT-0412', 'VC-03', 'Tech B', 'Lead', 'In progress', '30 min'],
+      ['TKT-0395', 'VC-17', 'Tech B', 'Lead', 'Waiting · vendor_visit', '30 min'],
+      ['TKT-0390', 'GRD-07', 'Tech B', 'Lead', 'Waiting · Spare part', '30 min'],
     ]);
+    expect([...working, ...paused].map((r) => r.paused)).toEqual([
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+    ]);
+  });
+
+  it('Working now names the leads alone until the crew is read', () => {
+    const leads = teamModel({ ...teamFixture, crew: undefined }, realT).working;
+    expect(leads.filter((r) => r.ref === 'TKT-0414').map((r) => r.name)).toEqual(['Tech B']);
   });
 
   it('Waiting: paused jobs, longest wait first, with the wait reason’s list label and the minutes waited', () => {

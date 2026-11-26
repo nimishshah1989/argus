@@ -13,6 +13,7 @@ import * as report from './repo/report.js';
 import { lockoutsOf, lockoutOf } from './lockout.js';
 import { taskParts } from './tasks.js';
 import { pmPlanForJob } from './pm-close.js';
+import { machineDowntimeReports } from './repo/desk-reads.js';
 import {
   needReportRows,
   openTicketRows,
@@ -249,6 +250,21 @@ function intervalRows(segments: domain.WorkSegment[]): object[] {
   }));
 }
 
+/** A breakdown's machine's average downtime per breakdown over the year before it; null without a machine or history. */
+async function machineAverageOf(
+  client: PoolClient,
+  tenantId: string,
+  ticket: domain.Ticket,
+): Promise<{ downtimeMin: number; breakdowns: number } | null> {
+  if (ticket.kind !== 'stopped' || !ticket.machineId) return null;
+  const reports = await machineDowntimeReports(client, tenantId, {
+    machineId: ticket.machineId,
+    before: ticket.reportedAt,
+    ticketId: ticket.id,
+  });
+  return domain.machineAverageDowntime(reports);
+}
+
 export async function detail(
   pool: Pool,
   request: FastifyRequest,
@@ -300,6 +316,7 @@ export async function detail(
       intervals: intervalRows(segments),
       report: await report.loadReport(client, ticketId),
       pmPlan: await pmPlanForTicket(client, ctx.tenantId, row as Record<string, unknown>),
+      machineAverage: await machineAverageOf(client, ctx.tenantId, ticket),
     };
   });
   if (!payload) reply.code(404).send(apiError('not_found', 'Unknown ticket'));

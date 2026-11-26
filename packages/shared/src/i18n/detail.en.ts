@@ -25,6 +25,12 @@ export const detailEn = {
   'detail.hint.handsOn': 'hands on',
   'detail.joined': '{{role}} · joined {{time}}',
   'detail.takeaway.minutes': '{{machine}} down {{down}}; {{work}} of it hands on.',
+  'detail.takeaway.minutesOver':
+    '{{machine}} down {{down}}, {{diff}} over its {{avg}} average; {{work}} of it hands on.',
+  'detail.takeaway.minutesUnder':
+    '{{machine}} down {{down}}, {{diff}} under its {{avg}} average; {{work}} of it hands on.',
+  'detail.takeaway.minutesNoHistory':
+    '{{machine}} down {{down}}; {{work}} of it hands on. {{machine}} has no earlier breakdown to compare with.',
   'detail.takeaway.minutesNoDown': '{{work}} of hands-on work on this ticket.',
   'detail.takeaway.people': '{{name}} has the most time on it: {{minutes}}.',
   'detail.sinceReported': 'of {{total}} since reported',

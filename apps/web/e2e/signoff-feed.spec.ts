@@ -42,8 +42,9 @@ test('the desk feed puts the longest wait for production first, and a row opens 
   await page.goto('/desk');
   const feed = page.getByTestId('signoff-feed');
   await expect(feed).toBeVisible();
-  await expect(feed.getByRole('heading')).toContainText(t('signoff.deskWaiting'));
-  await expect(feed.getByRole('heading')).toContainText(/\(\d+\)/);
+  const heading = feed.getByRole('heading', { level: 2 });
+  await expect(heading).toContainText(t('signoff.deskWaiting'));
+  await expect(heading).toContainText(/\(\d+\)/);
 
   const links = feed.getByRole('link');
   const oldRow = links.filter({ hasText: older.ref }).first();

@@ -4,10 +4,15 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import type { TFunction } from 'i18next';
-import { getSignoffFeed, type CommandAction, type Ticket } from '../../../api.js';
+import { getConfig, getSignoffFeed, type CommandAction, type Ticket } from '../../../api.js';
 import type { ActionSpec } from '../../../components/actionSpecs.js';
-import { formatMinutes, formatTime } from '../../../components/format.js';
-import { feedRows, type FeedWords } from '../../../components/signoff-feed.js';
+import { formatMinutes, formatTime, peopleNames } from '../../../components/format.js';
+import {
+  feedRows,
+  outcomeRows,
+  type FeedWords,
+  type OutcomeRow,
+} from '../../../components/signoff-feed.js';
 import { useOnline } from '../../../data/index.js';
 import { queueByOwner } from '../../../offline/outbox.js';
 import { viewState } from '../../../patterns/view-state.js';
@@ -96,14 +101,15 @@ const SIGNOFF_REFETCH_MS = 30_000;
 function SignoffBody({
   state,
   rows,
+  outcomes,
   onRetry,
 }: {
   state: ReturnType<typeof viewState>;
   rows: ReturnType<typeof feedRows>['rows'];
+  outcomes: OutcomeRow[];
   onRetry: () => void;
 }): ReactNode {
   const { t } = useTranslation();
-  const from = useFrom();
   if (state === 'loading') return <p className="v2-sub">{t('common.loading')}</p>;
   if (state === 'empty') return <p className="v2-sub">{t('signoff.deskWaitingEmpty')}</p>;
   if (state === 'offline')
@@ -121,29 +127,76 @@ function SignoffBody({
       />
     );
   return (
-    <ul className="v2-desk-rows">
-      {rows.map((row) => (
-        <li key={row.ticketId}>
-          <Link to={`/desk/${row.ticketId}`} state={from} className="v2-desk-link">
-            <span className="v2-desk-main">
-              <span className="v2-h3">{row.ref}</span>
-              <span className="v2-sub">{[row.machine, row.cell].filter(Boolean).join(' · ')}</span>
-            </span>
-            <span className="v2-pill v2-pill-risk">{row.waited}</span>
-          </Link>
-        </li>
-      ))}
-    </ul>
+    <>
+      {rows.length === 0 ? (
+        <p className="v2-sub">{t('signoff.deskWaitingEmpty')}</p>
+      ) : (
+        <ul className="v2-desk-rows">
+          {rows.map((row) => (
+            <SignoffRow
+              key={row.ticketId}
+              id={row.ticketId}
+              title={row.ref}
+              line={[row.machine, row.cell].filter(Boolean).join(' · ')}
+              pill={row.waited}
+              tone="risk"
+            />
+          ))}
+        </ul>
+      )}
+      <Outcomes outcomes={outcomes} />
+    </>
+  );
+}
+
+/** One sign-off row: it opens its ticket, beside the list on a wide screen. */
+function SignoffRow(p: { id: string; title: string; line: string; pill: string; tone: string }) {
+  const from = useFrom();
+  return (
+    <li>
+      <Link to={`/desk/${p.id}`} state={from} className="v2-desk-link">
+        <span className="v2-desk-main">
+          <span className="v2-h3">{p.title}</span>
+          <span className="v2-sub">{p.line}</span>
+        </span>
+        <span className={`v2-pill v2-pill-${p.tone}`}>{p.pill}</span>
+      </Link>
+    </li>
+  );
+}
+
+/** The outcomes of the last day, newest first; nothing when there were none. */
+function Outcomes({ outcomes }: { outcomes: OutcomeRow[] }): ReactNode {
+  const { t } = useTranslation();
+  if (outcomes.length === 0) return null;
+  return (
+    <>
+      <h3 className="v2-h3">{t('signoff.deskOutcomes')}</h3>
+      <ul className="v2-desk-rows" data-testid="signoff-outcomes">
+        {outcomes.map((row) => (
+          <SignoffRow
+            key={row.ticketId}
+            id={row.ticketId}
+            title={[row.machine, row.ref].filter(Boolean).join(' · ')}
+            line={row.detail}
+            pill={row.title}
+            tone={row.tone}
+          />
+        ))}
+      </ul>
+    </>
   );
 }
 
 /**
- * Production sign-off on the desk (v1 `SignoffFeed`): the closed tickets production still has to answer, the longest
- * wait first; each row opens its ticket. The server decides who may read it.
+ * Production sign-off on the desk (v1 `SignoffFeed`, S28): the closed tickets production still has to
+ * answer, the longest wait first, then the outcomes of the last day, newest first; each row opens its ticket. The
+ * server decides who may read it.
  */
 export function SignoffCard({ now }: { now?: string }) {
   const { t } = useTranslation();
   const online = useOnline();
+  const config = useQuery({ queryKey: ['config'], queryFn: getConfig });
   const feed = useQuery({
     queryKey: ['signoff-feed'],
     queryFn: getSignoffFeed,
@@ -151,10 +204,15 @@ export function SignoffCard({ now }: { now?: string }) {
     refetchInterval: SIGNOFF_REFETCH_MS,
   });
   const items = feed.data?.items ?? [];
+  const outcomes = outcomeRows(feed.data?.outcomes ?? [], {
+    say: (key, values) => t(key, values ?? {}),
+    names: peopleNames(config.data?.people),
+    timeZone: config.data?.timeZone,
+  });
   const state = viewState({
     online,
     hasData: feed.data !== undefined,
-    isEmpty: items.length === 0,
+    isEmpty: items.length === 0 && outcomes.length === 0,
     error: feed.error,
   });
   const words: FeedWords = {
@@ -164,10 +222,21 @@ export function SignoffCard({ now }: { now?: string }) {
     waiting: t('signoff.waitingFor'),
   };
   const { heading, rows } = feedRows(items, now ?? new Date().toISOString(), words);
-  const body = <SignoffBody state={state} rows={rows} onRetry={() => void feed.refetch()} />;
+  const disputed = outcomes.filter((row) => row.status === 'disputed').length;
+  const body = (
+    <SignoffBody
+      state={state}
+      rows={rows}
+      outcomes={outcomes}
+      onRetry={() => void feed.refetch()}
+    />
+  );
   return (
     <section data-testid="signoff-feed" aria-label={heading} className="v2-card v2-pad v2-stack">
       <h2 className="v2-h2">{heading}</h2>
+      {disputed > 0 && (
+        <p className="v2-sub">{t('signoff.deskDisputedCount', { count: disputed })}</p>
+      )}
       {body}
     </section>
   );

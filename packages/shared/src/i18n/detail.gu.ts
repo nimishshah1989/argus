@@ -27,6 +27,12 @@ export const detailGu = gujarati(detailEn, {
   'detail.hint.handsOn': 'ખરું કામ',
   'detail.joined': '{{role}} · જોડાયા {{time}}',
   'detail.takeaway.minutes': '{{machine}} {{down}} બંધ; તેમાંથી {{work}} હાથ પર કામ.',
+  'detail.takeaway.minutesOver':
+    '{{machine}} {{down}} બંધ, તેની {{avg}} સરેરાશ કરતાં {{diff}} વધુ; તેમાંથી {{work}} હાથ પર કામ.',
+  'detail.takeaway.minutesUnder':
+    '{{machine}} {{down}} બંધ, તેની {{avg}} સરેરાશ કરતાં {{diff}} ઓછું; તેમાંથી {{work}} હાથ પર કામ.',
+  'detail.takeaway.minutesNoHistory':
+    '{{machine}} {{down}} બંધ; તેમાંથી {{work}} હાથ પર કામ. {{machine}} પર સરખામણી માટે પહેલાંનું કોઈ બ્રેકડાઉન નથી.',
   'detail.takeaway.minutesNoDown': 'આ ટિકિટ પર {{work}} હાથ પર કામ.',
   'detail.takeaway.people': '{{name}} નો આના પર સૌથી વધુ સમય: {{minutes}}.',
   'detail.sinceReported': 'જાણ થયા પછીના {{total}} માંથી',

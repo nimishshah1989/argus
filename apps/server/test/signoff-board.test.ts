@@ -588,3 +588,133 @@ describe('the board feed with many tickets', () => {
     }
   });
 });
+
+describe('the desk reads added for S28 and S29', () => {
+  const feed = () => asA('GET', '/api/v1/board/signoff', tokens.sana!);
+  // Machines of their own: a dispute above left a reopened ticket on the shared ones.
+  const machine = (n: number) => `35000000-0000-4000-8000-00000000010${n}`;
+  const [D1, D2, D3, D4] = [machine(6), machine(7), machine(8), machine(9)];
+  beforeAll(async () => {
+    await db.admin.query(
+      `INSERT INTO machine (id, tenant_id, code, criticality, cell) VALUES
+        ($1, $5, 'VC-D1', 'A', 'C1'), ($2, $5, 'VC-D2', 'A', 'C1'), ($3, $5, 'VC-D3', 'A', 'C1'),
+        ($4, $5, 'VC-D4', 'A', 'C1')`,
+      [D1, D2, D3, D4, A],
+    );
+  });
+  type Outcome = {
+    ticketId: string;
+    status: string;
+    at: string;
+    byPersonId: string | null;
+    reason: string | null;
+  };
+
+  it('lists the outcomes of the last day newest first: confirmed, sent back with who and why, not answered', async () => {
+    const confirmed = await closed(D1);
+    expect((await answer(confirmed.id, { response: 'confirmed' })).statusCode).toBe(200);
+    const sentBack = await closed(D2);
+    expect(
+      (await answer(sentBack.id, { response: 'disputed', reason: 'Still stops' })).statusCode,
+    ).toBe(200);
+    const timedOut = await closed(D3);
+    await db.admin.query(
+      `UPDATE sla_timer SET due_at = now() - interval '1 minute', fired_at = now() - interval '1 minute'
+       WHERE tenant_id = $1 AND ticket_id = $2 AND kind = 'handback'`,
+      [A, timedOut.id],
+    );
+    const waiting = await closed(D1);
+    const hidden = await closed(MACHINE_HIDDEN);
+    expect((await answer(hidden.id, { response: 'confirmed' })).statusCode).toBe(200);
+
+    const res = await feed();
+    expect(res.statusCode, res.body).toBe(200);
+    const outcomes = res.json().outcomes as Outcome[];
+    const of = (id: string) => outcomes.find((o) => o.ticketId === id);
+    expect(of(confirmed.id)).toMatchObject({
+      status: 'confirmed',
+      byPersonId: REPORTER,
+      reason: null,
+    });
+    expect(of(sentBack.id)).toMatchObject({
+      status: 'disputed',
+      byPersonId: REPORTER,
+      reason: 'Still stops',
+    });
+    expect(of(timedOut.id)).toMatchObject({ status: 'timed_out', byPersonId: null });
+    expect(of(waiting.id)).toBeUndefined();
+    expect(of(hidden.id)).toBeUndefined();
+    const ats = outcomes.map((o) => Date.parse(o.at));
+    expect(ats).toEqual([...ats].sort((a, b) => b - a));
+
+    // A day later the same answers are no longer recent.
+    vi.useFakeTimers({ toFake: ['Date'], now: Date.now() + 25 * 60 * 60_000 });
+    try {
+      const later = ((await feed()).json().outcomes as Outcome[]).map((o) => o.ticketId);
+      for (const id of [confirmed.id, sentBack.id, timedOut.id]) expect(later).not.toContain(id);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('says who is on each working ticket and in which crew role, until it closes', async () => {
+    const ticketId = await raisedBy(D4);
+    const started = await asA('POST', `${ticketUrl(ticketId)}/start`, tokens.lal!, {
+      personId: LEAD,
+    });
+    expect(started.statusCode, started.body).toBe(200);
+    const joined = await asA('POST', `${ticketUrl(ticketId)}/join`, tokens.sana!, {
+      personId: SUPER,
+      role: 'support',
+    });
+    expect(joined.statusCode, joined.body).toBe(200);
+    type Member = { ticketId: string; personId: string; role: string };
+    const crewOf = async () =>
+      ((await asA('GET', '/api/v1/state/crew', tokens.rina!)).json().items as Member[]).filter(
+        (c) => c.ticketId === ticketId,
+      );
+    // The lead is the ticket's own `leadPersonId`; the crew read lists who joined.
+    expect(await crewOf()).toEqual([expect.objectContaining({ personId: SUPER, role: 'support' })]);
+    const done = await asA('POST', `${ticketUrl(ticketId)}/close`, tokens.lal!, {
+      personId: LEAD,
+      kind: 'no_report',
+      note: 'done',
+    });
+    expect(done.statusCode, done.body).toBe(200);
+    expect(await crewOf()).toEqual([]);
+    const anonymous = await send({
+      host: HOST_A,
+      method: 'GET',
+      url: '/api/v1/state/crew',
+      token: '',
+    });
+    expect(anonymous.statusCode).toBe(401);
+    expect((await asB('GET', '/api/v1/state/crew', tokens.bea!)).json().items).toEqual([]);
+  });
+
+  it('offers the codes this login used last, and only its own', async () => {
+    await closed(D3);
+    const mine = (await asA('GET', '/api/v1/tickets/recent-codes', tokens.lal!)).json();
+    expect(mine.failureComponent[0]).toBe('E');
+    expect(mine.failureComponent.length).toBeLessThanOrEqual(5);
+    const theirs = (await asA('GET', '/api/v1/tickets/recent-codes', tokens.rina!)).json();
+    expect(theirs).toEqual({ breakdownCategory: [], failureComponent: [] });
+  });
+
+  it("gives a breakdown its machine's average downtime, and null for a machine with no history", async () => {
+    await closed(D4);
+    const onA2 = await raisedBy(D4);
+    const detail = (await asA('GET', ticketUrl(onA2), tokens.sana!)).json();
+    expect(detail.machineAverage.breakdowns).toBeGreaterThan(0);
+    expect(detail.machineAverage.downtimeMin).toBeGreaterThanOrEqual(0);
+    const fresh = '35000000-0000-4000-8000-000000000105';
+    await db.admin.query(
+      "INSERT INTO machine (id, tenant_id, code, criticality, cell) VALUES ($1, $2, 'VC-NEW', 'A', 'C1')",
+      [fresh, A],
+    );
+    const onFresh = await raisedBy(fresh);
+    expect((await asA('GET', ticketUrl(onFresh), tokens.sana!)).json().machineAverage).toBeNull();
+    for (const id of [onA2, onFresh])
+      await asA('POST', `${ticketUrl(id)}/cancel`, tokens.sana!, { personId: SUPER, reason: 'x' });
+  });
+});

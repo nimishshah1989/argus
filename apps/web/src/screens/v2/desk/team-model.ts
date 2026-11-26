@@ -1,4 +1,4 @@
-import type { Config, Me, State, Ticket, TicketListQuery } from '../../../api.js';
+import type { Config, Crew, Me, State, Ticket, TicketListQuery } from '../../../api.js';
 import type { ActionSpec } from '../../../components/actionSpecs.js';
 import type { Takeaways } from '../../../ui/v2/takeaway.js';
 
@@ -81,12 +81,21 @@ export type MineModel = {
   };
 };
 
-/** One lead in "Working now": their name, hands-on minutes on their working jobs, and those jobs. */
-export type WorkingCard = {
-  personId: string;
+/** One person on one job in "Working now" (S28): their crew role, the job's state, their minutes on it. */
+export type WorkingRow = {
+  /** `ticketId:personId`. */
+  key: string;
+  ticketId: string;
+  ref: string;
+  machine: string;
   name: string;
+  /** "Lead", "Primary" or "Support". */
+  role: string;
+  /** "In progress", or "Paused · Spare part". */
+  state: string;
+  paused: boolean;
+  /** Their hands-on minutes on this job. */
   minutes: string;
-  jobs: { id: string; ref: string; machine: string }[];
 };
 
 /** One month of "Monthly totals per person": each person's primary minutes, and support minutes when any. */
@@ -98,9 +107,13 @@ export type MonthBlock = {
   rows: { personId: string; name: string; primary: string; support: string | null }[];
 };
 
-/** What the Team adapter reads: `/state` (live sections), `/config`, and the two `/tickets` windows. */
+/**
+ * What the Team adapter reads: `/state` (live sections), `/config`, the two `/tickets` windows, and `/state/crew`
+ * (who joined each job; until it loads, or if it fails, Working now names the leads alone).
+ */
 export type TeamInput = {
   state: State;
+  crew?: Crew['items'];
   config: Config | undefined;
   cancelled: WindowRead;
   closed: WindowRead;
@@ -112,8 +125,10 @@ export type TeamSection = 'desk.team';
 
 /** Everything `/desk/team` draws under its title, ready to print. */
 export type TeamModel = {
-  /** Leads on a working job, most hands-on minutes first. */
-  working: WorkingCard[];
+  /** Everyone on a working job, the longest job first. */
+  working: WorkingRow[];
+  /** Under them in Working now: the paused jobs and who holds them, longest wait first. */
+  paused: WorkingRow[];
   /** Paused jobs, longest wait first; detail = the wait reason's list label, time = minutes waited. */
   waiting: TicketRowItem[];
   /** Open jobs nobody started; detail = the problem, time = since reported. */
