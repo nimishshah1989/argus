@@ -4,11 +4,9 @@ import type { EnergyContent, EnergyTile } from '../../analytics/figure-content.j
 import type { Takeaways } from '../../../ui/v2/takeaway.js';
 import type { Translate } from '../figures/read.js';
 import { takeawayFor, type Item } from '../insight.js';
+import { kvaText } from './sweep.js';
 
 /** The Energy screen's takeaways and yardsticks, split out of adapter.ts to keep it under the size limit. */
-export const oneDecimal = (n: number) =>
-  n.toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-
 export const heaviest = (
   tiles: EnergyTile[],
   by: (tile: EnergyTile) => number,
@@ -38,7 +36,7 @@ export function itemsOf(
 ): Item[] {
   return tiles
     .filter((tile) => tile.machines > 0)
-    .map((tile) => ({ name: name(tile), value: value(tile), shown: oneDecimal(value(tile)) }));
+    .map((tile) => ({ name: name(tile), value: value(tile), shown: kvaText(value(tile)) }));
 }
 
 /** One computed line per map (ADR 0035, ticket 660): concentration where the load adds up, else the outlier. */
@@ -66,7 +64,7 @@ export function takeawaysOf(content: EnergyContent, names: Names3, t: Translate)
 /** The kit's share yardstick, "20% of 2,812.0 KVA"; none when nothing is connected, so there is no division by zero. */
 export function shareYardstick(part: number, total: Totals, t: TFunction): string | undefined {
   if (total.connected === 0) return undefined;
-  const whole = `${oneDecimal(total.connected)} ${t('analytics.energy.unit')}`;
+  const whole = `${kvaText(total.connected)} ${t('analytics.energy.unit')}`;
   return fill(t('insight.yardstick.share'), {
     pct: Math.round((part / total.connected) * 100),
     total: whole,
@@ -76,6 +74,6 @@ export function shareYardstick(part: number, total: Totals, t: TFunction): strin
 /** The kit's average yardstick, "Average 22.3 KVA": the plant's connected load over its machines; none with no machine. */
 export function averageYardstick(total: Totals, t: TFunction): string | undefined {
   if (total.machines === 0) return undefined;
-  const value = `${oneDecimal(total.connected / total.machines)} ${t('analytics.energy.unit')}`;
+  const value = `${kvaText(total.connected / total.machines)} ${t('analytics.energy.unit')}`;
   return fill(t('insight.yardstick.average'), { value });
 }

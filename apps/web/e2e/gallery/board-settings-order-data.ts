@@ -1,7 +1,29 @@
-/** What each screen listed before the 88b restyle: every control and heading, top to bottom (see board-settings-order.spec.ts). */
-export const SIDE = [
+/**
+ * What each screen lists: every control and heading, top to bottom (see board-settings-order.spec.ts). Read off the
+ * screens before the 88b restyle; the Settings screens re-read for S26-1 (ADR 0046 d2, ADR 0047, wireframe
+ * S26-settings): they now sit in the v2 kit shell (`SHELL` first, as on every v2 screen); the wide menu gains its
+ * Desk and Plant group headings; the phone home is the page list with sub-lines, then "Back to desk" (no Plant
+ * heading). Every page body keeps its old order.
+ */
+export const SHELL = [
+  'a: Today',
+  'a: Machines',
+  'a: Problems',
+  'a: Reliability ',
+  'a: People & mon',
+  'a: Reports',
+  'a: Guide',
+  'a: Desk',
+  'button: Menu',
+  'h1: Settings',
+  'button: SearchCtrl K',
+  'button: Alerts',
+];
+export const MENU = [
+  'h3: Desk',
   'a: Open',
   'a: Live',
+  'h3: Plant',
   'a: Machines',
   'a: Segments and',
   'a: Shifts',
@@ -72,30 +94,30 @@ export const PHONE: [string, string[]][] = [
   [
     '/settings',
     [
-      'a: Back to desk',
-      'h1: Settings',
-      'h2: Plant',
-      'a: MachinesCode',
+      ...SHELL,
+      'a: Machines Cod',
       'a: Segments and',
-      'a: ShiftsBusine',
-      'a: PM plansInte',
+      'a: Shifts Busin',
+      'a: PM plans Int',
       'a: Asset regist',
-      'a: Duty rosterW',
+      'a: Duty roster ',
       'a: Escalation l',
-      'a: PeopleNames,',
-      'a: LoginsRoles ',
-      'a: Audit trailE',
+      'a: People Names',
+      'a: Logins Roles',
+      'a: Audit trail ',
       'a: Background j',
-      'a: ListsWait re',
-      'a: GlossaryThei',
-      'a: CompanyName,',
+      'a: Lists Wait r',
+      'a: Glossary The',
+      'a: Company Name',
       'a: Analytics pr',
       'a: Translations',
+      'a: Back to desk',
     ],
   ],
   [
     '/settings/machines',
     [
+      ...SHELL,
       'a: Settings',
       'h2: Machines',
       'button: Add machine',
@@ -114,6 +136,7 @@ export const PHONE: [string, string[]][] = [
   [
     '/settings/shifts',
     [
+      ...SHELL,
       'a: Settings',
       'h2: Shifts',
       'button: Add shift',
@@ -123,10 +146,11 @@ export const PHONE: [string, string[]][] = [
       'button: Switch off E',
     ],
   ],
-  ['/settings/groups', ['a: Settings', 'h2: Segments and', 'button: Add group']],
+  ['/settings/groups', [...SHELL, 'a: Settings', 'h2: Segments and', 'button: Add group']],
   [
     '/settings/lists',
     [
+      ...SHELL,
       'a: Settings',
       'h2: Lists',
       'a: Wait reasons',
@@ -140,6 +164,7 @@ export const PHONE: [string, string[]][] = [
   [
     '/settings/company',
     [
+      ...SHELL,
       'a: Settings',
       'h2: Company',
       'h3: Details',
@@ -156,10 +181,11 @@ export const PHONE: [string, string[]][] = [
       'button: Save changes',
     ],
   ],
-  ['/settings/jobs', ['a: Settings', 'h2: Background j', 'button: Retry Report']],
+  ['/settings/jobs', [...SHELL, 'a: Settings', 'h2: Background j', 'button: Retry Report']],
   [
     '/settings/audit',
     [
+      ...SHELL,
       'a: Settings',
       'h2: Audit trail',
       'select: All areasPeo',
@@ -171,20 +197,41 @@ export const PHONE: [string, string[]][] = [
   ],
   [
     '/settings/people',
-    ['a: Settings', 'button: People', 'button: Logins', 'h2: People', 'button: Add person'],
+    [
+      ...SHELL,
+      'a: Settings',
+      'button: People',
+      'button: Logins',
+      'h2: People',
+      'button: Add person',
+    ],
   ],
   [
     '/settings/logins',
-    ['a: Settings', 'button: People', 'button: Logins', 'h2: Logins', 'button: Add login'],
+    [
+      ...SHELL,
+      'a: Settings',
+      'button: People',
+      'button: Logins',
+      'h2: Logins',
+      'button: Add login',
+    ],
   ],
   [
     '/settings/roster',
-    ['a: Settings', 'h2: Duty roster', 'button: Add a duty l', 'input: ', 'button: Copy to the '],
+    [
+      ...SHELL,
+      'a: Settings',
+      'h2: Duty roster',
+      'button: Add a duty l',
+      'input: ',
+      'button: Copy to the ',
+    ],
   ],
-  ['/settings/glossary', ['a: Settings', 'h2: Glossary', 'button: Add term']],
-  ['/settings/registers', ['a: Settings', 'h2: Asset regist', 'button: Add register']],
-  ['/settings/ladder', ['a: Settings', 'h2: Escalation l', 'button: Add a rule']],
-  ['/settings/pm-plans', ['a: Settings', 'h2: PM plans', 'button: Add PM plan']],
+  ['/settings/glossary', [...SHELL, 'a: Settings', 'h2: Glossary', 'button: Add term']],
+  ['/settings/registers', [...SHELL, 'a: Settings', 'h2: Asset regist', 'button: Add register']],
+  ['/settings/ladder', [...SHELL, 'a: Settings', 'h2: Escalation l', 'button: Add a rule']],
+  ['/settings/pm-plans', [...SHELL, 'a: Settings', 'h2: PM plans', 'button: Add PM plan']],
 ];
 
 export const WIDE: [string, string[]][] = [
@@ -240,8 +287,8 @@ export const WIDE: [string, string[]][] = [
   [
     '/settings/machines',
     [
-      ...SIDE,
-      'h1: Settings',
+      ...SHELL,
+      ...MENU,
       'h2: Machines',
       'button: Add machine',
       'input: Search code ',
@@ -263,8 +310,8 @@ export const WIDE: [string, string[]][] = [
   [
     '/settings/shifts',
     [
-      ...SIDE,
-      'h1: Settings',
+      ...SHELL,
+      ...MENU,
       'h2: Shifts',
       'button: Add shift',
       'button: Shifts',
@@ -274,12 +321,12 @@ export const WIDE: [string, string[]][] = [
       'button: Switch off E',
     ],
   ],
-  ['/settings/groups', [...SIDE, 'h1: Settings', 'h2: Segments and', 'button: Add group']],
+  ['/settings/groups', [...SHELL, ...MENU, 'h2: Segments and', 'button: Add group']],
   [
     '/settings/lists',
     [
-      ...SIDE,
-      'h1: Settings',
+      ...SHELL,
+      ...MENU,
       'h2: Lists',
       'a: Wait reasons',
       'a: Work typesWh',
@@ -292,8 +339,8 @@ export const WIDE: [string, string[]][] = [
   [
     '/settings/company',
     [
-      ...SIDE,
-      'h1: Settings',
+      ...SHELL,
+      ...MENU,
       'h2: Company',
       'h3: Details',
       'input: ',
@@ -309,12 +356,12 @@ export const WIDE: [string, string[]][] = [
       'button: Save changes',
     ],
   ],
-  ['/settings/jobs', [...SIDE, 'h1: Settings', 'h2: Background j', 'button: Retry Report']],
+  ['/settings/jobs', [...SHELL, ...MENU, 'h2: Background j', 'button: Retry Report']],
   [
     '/settings/audit',
     [
-      ...SIDE,
-      'h1: Settings',
+      ...SHELL,
+      ...MENU,
       'h2: Audit trail',
       'select: All areasPeo',
       'select: Anyone',
@@ -323,21 +370,21 @@ export const WIDE: [string, string[]][] = [
       'button: Export CSV',
     ],
   ],
-  ['/settings/people', [...SIDE, 'h1: Settings', 'h2: People', 'button: Add person']],
-  ['/settings/logins', [...SIDE, 'h1: Settings', 'h2: Logins', 'button: Add login']],
+  ['/settings/people', [...SHELL, ...MENU, 'h2: People', 'button: Add person']],
+  ['/settings/logins', [...SHELL, ...MENU, 'h2: Logins', 'button: Add login']],
   [
     '/settings/roster',
     [
-      ...SIDE,
-      'h1: Settings',
+      ...SHELL,
+      ...MENU,
       'h2: Duty roster',
       'button: Add a duty l',
       'input: ',
       'button: Copy to the ',
     ],
   ],
-  ['/settings/glossary', [...SIDE, 'h1: Settings', 'h2: Glossary', 'button: Add term']],
-  ['/settings/registers', [...SIDE, 'h1: Settings', 'h2: Asset regist', 'button: Add register']],
-  ['/settings/ladder', [...SIDE, 'h1: Settings', 'h2: Escalation l', 'button: Add a rule']],
-  ['/settings/pm-plans', [...SIDE, 'h1: Settings', 'h2: PM plans', 'button: Add PM plan']],
+  ['/settings/glossary', [...SHELL, ...MENU, 'h2: Glossary', 'button: Add term']],
+  ['/settings/registers', [...SHELL, ...MENU, 'h2: Asset regist', 'button: Add register']],
+  ['/settings/ladder', [...SHELL, ...MENU, 'h2: Escalation l', 'button: Add a rule']],
+  ['/settings/pm-plans', [...SHELL, ...MENU, 'h2: PM plans', 'button: Add PM plan']],
 ];

@@ -4,12 +4,11 @@ import { Button } from '../../../ui/v2/button.js';
 import { CorrectDate } from '../../../ui/v2/domain/correct-date.js';
 import { SourceLine } from '../../../ui/v2/domain/detail-parts.js';
 import { EngineTable } from '../../../ui/v2/domain/engine-table.js';
-import { KpiCard } from '../../../ui/v2/kpi-card.js';
 import { Panel } from '../../../ui/v2/panel.js';
-import { Row } from '../../../ui/v2/row.js';
 import { SavedCopyNotice } from '../../../ui/v2/screen-states.js';
 import type { NavItem } from '../../../ui/v2/shell.js';
 import { Takeaway } from '../../../ui/v2/takeaway.js';
+import { TileSet } from '../../../ui/v2/tile-set.js';
 import { Verdict } from '../../../ui/v2/verdict.js';
 import { fill } from '../../../i18n/fill.js';
 import { EntityShell } from '../entity/EntityShell.js';
@@ -123,11 +122,7 @@ export function CellLogView({
       {stale ? (
         <SavedCopyNotice text={stale === 'saved' ? words.savedCopy : words.savedAfterCorrection} />
       ) : null}
-      <Row cols={2}>
-        {model.kpis.map((kpi) => (
-          <KpiCard key={kpi.id} kpi={kpi} />
-        ))}
-      </Row>
+      <TileSet items={model.kpis.map((kpi) => ({ kpi, n: Number(kpi.value) }))} />
       {model.moves.length > 0 ? <ExportPanel model={model} onNote={setNote} /> : null}
       <Notes words={words} note={note} />
       {correcting && onCorrect ? (

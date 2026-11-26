@@ -5,6 +5,7 @@ import type { FiguresReply } from '@uptimo/shared/analytics';
 import { expect, test } from './test.js';
 import { getJson, commandViaApi } from './fixtures-actions.js';
 import { apiLogin, raiseTicketViaApi, signIn } from './fixtures.js';
+import { openShowDetail } from './show-detail.js';
 
 /**
  * 40e-1: the Breakdown Log, and the A1, A2 and A3 screens (A1 to A3 are v2, live at their v1 address). A head filters
@@ -282,23 +283,35 @@ async function filterLog(page: Page): Promise<void> {
   await expect(page.getByText(/The log holds 1,343 entries/)).toBeVisible();
 }
 
-/** The client-export pattern: the whole narrowed log, one CSV line per row, no new dependency. */
+/** The Excel download (sweep 706, replaces the CSV): the whole narrowed log, one sheet row per log row, DOC. NO. first. */
 async function exportLog(page: Page): Promise<void> {
   const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export to CSV', exact: true }).click();
+  await page.getByRole('button', { name: 'Download Excel', exact: true }).click();
   const file = await download;
-  expect(file.suggestedFilename()).toMatch(/^breakdown-log-\d{4}-\d{2}-\d{2}\.csv$/);
+  expect(file.suggestedFilename()).toMatch(/^breakdown-log-\d{4}-\d{2}-\d{2}\.xlsx$/);
   const path = await file.path();
   expect(path).toBeTruthy();
-  const csv = await readFile(path as string, 'utf8');
-  const lines = csv.trimEnd().split('\n');
+  // The workbook is a stored (uncompressed) zip, so the sheet's XML reads as text.
+  const xml = await readFile(path as string, 'utf8');
+  const cells = [...xml.matchAll(/<t xml:space="preserve">([^<]*)<\/t>/g)].map((m) => m[1]);
+  expect(cells[0]).toBe('DOC. NO. CE-MTN-F-04');
   // The engine's nine columns, then Supported By (so a row listed for the Team member filter shows why).
-  expect(lines[0]).toBe(
-    'Sr No,Ticket No.,Date,Shift,Machine,Problem,Done By,Downtime (Hrs),Code,Supported by',
-  );
-  expect(lines).toHaveLength(2);
-  expect(lines[1]).toContain('VC-15');
-  expect(lines[1]).toContain('ATC trouble Machine Stop');
+  expect(cells.slice(1, 11)).toEqual([
+    'Sr No',
+    'Ticket No.',
+    'Date',
+    'Shift',
+    'Machine',
+    'Problem',
+    'Done By',
+    'Downtime (Hrs)',
+    'Code',
+    'Supported by',
+  ]);
+  expect(xml.match(/<row /g)).toHaveLength(3);
+  const row = cells.slice(11).join(',');
+  expect(row).toContain('VC-15');
+  expect(row).toContain('ATC trouble Machine Stop');
 }
 
 const tabs = (page: Page) => page.getByRole('group', { name: 'Breakdowns screens', exact: true });
@@ -337,6 +350,8 @@ async function openA1(page: Page): Promise<void> {
   ).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('heading', { level: 1, name: 'BD % and PM split' })).toBeVisible();
   expect(A1.kpis).toHaveLength(6);
+  // Figures past the fourth fold under "Show detail" (sweep 706); a no-op before the fold lands.
+  await openShowDetail(page, region(page, A1.kpis[0]!.label).first());
   for (const kpi of A1.kpis) {
     const tile = region(page, kpi.label).first();
     await expect(tile).toBeVisible();
@@ -542,7 +557,7 @@ test('an operator is refused the breakdowns face', async ({ page }) => {
   await page.goto('/analytics/breakdowns');
   await expect(page.getByRole('alert')).toBeVisible();
   await expect(page.getByRole('table')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Export to CSV', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Download Excel', exact: true })).toHaveCount(0);
   await expect(page.getByRole('group', { name: 'Breakdowns screens', exact: true })).toHaveCount(0);
   for (const screen of [SCREEN_A1, SCREEN_A2, SCREEN_A3]) {
     await page.goto(`/analytics/breakdowns?screen=${screen}`);
