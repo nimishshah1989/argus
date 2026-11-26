@@ -210,6 +210,7 @@ function CrudList<Row extends CrudRow>(p: PageProps<Row>) {
       rows={c.items}
       rowKey={(r) => r.id}
       columns={columnsOf(p)}
+      headed
       filters={chipsOf(spec, c.items, ctx)}
       text={(r) => spec.search?.text(r, ctx) ?? textOf(r, spec.fields[0]!.name)}
       words={{
@@ -323,6 +324,8 @@ export function CrudPage<Row extends CrudRow>({ spec }: { spec: CrudSpec<Row> })
   const outcome = c.bulk.outcome;
   return (
     <div className="v2-crud">
+      {/* The page heads itself, so an empty list keeps its heading; the table under it does not repeat it. */}
+      <h2 className="v2-h2">{t(spec.titleKey)}</h2>
       {spec.introKey ? <p className="v2-crud-hint">{t(spec.introKey)}</p> : null}
       {spec.addable !== false ? (
         <button type="button" className="v2-btn v2-btn-primary" onClick={() => c.saving.open(null)}>

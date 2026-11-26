@@ -22,6 +22,7 @@ import { EntityShell } from '../entity/EntityShell.js';
 import { useEntityParam } from '../entity/url.js';
 import type { PageChart } from '../printed-page/page-model.js';
 import { sectionOf } from './adapter.js';
+import { defaultTable } from './columns.js';
 import type { MonthlyReportModel } from './model.js';
 
 /** Five columns and five rows are the default; the rest opens in place (wireframe S23). */
@@ -91,18 +92,20 @@ function Section({
   selected: string | undefined;
 }) {
   const { t } = useTranslation();
-  const takeaway = model.takeaways[sectionOf(table.title, table.header[0]?.label)];
+  const id = sectionOf(table.title, table.header[0]?.label);
+  const takeaway = model.takeaways[id];
   const more = table.rows.length - DEFAULT;
-  const compact: PrintedTable = {
-    ...table,
-    header: table.header.slice(0, DEFAULT),
-    rows: table.rows.slice(0, DEFAULT).map((row) => row.slice(0, DEFAULT)),
-  };
+  const opened = defaultTable(
+    id,
+    table,
+    fill(t('monthly-report.againstColumn'), { month: model.previous }),
+  );
+  const compact: PrintedTable = { ...opened, rows: opened.rows.slice(0, DEFAULT) };
   return (
     <>
       {takeaway ? <Takeaway data={takeaway} /> : null}
       <PrintedDataTable table={compact} words={model.words.table} selected={selected} />
-      {more > 0 || table.header.length > DEFAULT ? (
+      {more > 0 || table.header.length > opened.header.length ? (
         <ShowDetail label={more > 0 ? fill(t('monthly-report.more'), { n: more }) : undefined}>
           <PrintedDataTable
             table={{ ...table, title: '' }}

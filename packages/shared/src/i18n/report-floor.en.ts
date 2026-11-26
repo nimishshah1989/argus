@@ -57,4 +57,9 @@ export const reportFloorEn = {
   'reportFloor.kindStopped': 'Machine stopped',
   'reportFloor.kindSupport': 'Needs support',
   'reportFloor.tabs': 'Floor',
+  'floor.lists.tagLongest': 'Waiting longest',
+  'floor.lists.mineLongest': '{{place}} is the oldest open complaint: {{wait}}, not yet taken.',
+  'floor.lists.mineOf': 'Out of {{n}} not yet taken',
+  'floor.lists.pmOldest': '{{place}} is the oldest open PM job: open for {{wait}}.',
+  'floor.lists.pmOf': 'Out of {{n}} open PM jobs',
 };
