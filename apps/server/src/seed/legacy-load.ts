@@ -45,7 +45,7 @@ const key = (name: string): string =>
  * R8: a person code in a file is a person the importer must find, so each one the plant does not hold yet becomes a
  * pending placeholder person named by its code, to merge later. A `P-` code names an existing person and is never made.
  */
-async function ensurePeople(pool: Pool, tenantId: string, json: string): Promise<number> {
+export async function ensurePeople(pool: Pool, tenantId: string, json: string): Promise<number> {
   const wanted = Object.values(
     (JSON.parse(json) as { aliases?: { people?: Record<string, string> } }).aliases?.people ?? {},
   ).filter((name) => !/^p-[0-9a-f]{8}$/i.test(name));

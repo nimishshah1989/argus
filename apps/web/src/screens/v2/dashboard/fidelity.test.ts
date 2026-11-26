@@ -335,7 +335,7 @@ describe('the page', () => {
     expect(cards.match(/data-tone="loss"/g)).toHaveLength(3);
     expect(out.match(/data-stretch="link"/g)).toHaveLength(5);
     expect(out.match(/data-stretch="drill"/g)).toHaveLength(11);
-    expect(out.match(/Open register/g)).toHaveLength(5);
+    expect(out.match(/>Open register</g)).toHaveLength(5);
     expect(out).toMatch(/High priority|data-severity="high"/);
     expect(out).toContain('View Problem Analysis');
   });

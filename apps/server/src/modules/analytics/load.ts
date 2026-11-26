@@ -45,6 +45,7 @@ import {
   whyWhyEventRows,
 } from '../tickets/index.js';
 import { readNudgeAcks } from './nudges.js';
+import { readDataFrom } from './profile.js';
 
 type Db = Pick<PoolClient, 'query'>;
 type Row = Record<string, unknown>;
@@ -316,7 +317,6 @@ export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineDa
   const savedWhyWhy = await whyWhyEventRows(tx);
   const savedOemCauses = await oemCauseEventRows(tx);
   const plantLines = await plantEventLines(tx);
-  const nudgeAcks = await readNudgeAcks(tx);
   const registers = await assetRegistersForEngine(tx, tenantId);
   const pmPlans = await pmPlansForEngine(tx);
   const plantLists = listsOf(lists);
@@ -362,9 +362,10 @@ export async function loadEngineData(tx: Db, tenantId: string): Promise<EngineDa
       // change the downtime tiles that read it directly, an open product question (ticket 77a).
       excludedMachineIds: [],
       problemFixes: {},
-      nudgeAcks,
+      nudgeAcks: await readNudgeAcks(tx),
       // The report's cell table folds an unlisted cell into "No cell"; the plant's own cell list is the list.
       cells: (plantLists.cell ?? []).map((item) => item.code),
+      ...(await readDataFrom(tx, tenantId)),
     },
   };
 }

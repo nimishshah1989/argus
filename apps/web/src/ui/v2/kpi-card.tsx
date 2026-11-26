@@ -1,6 +1,6 @@
 /* eslint-disable i18next/no-literal-string -- icon names and typed unions only; every visible word comes in as a prop or t() */
 import { useContext } from 'react';
-import { DrillOpenContext, type Drill } from './drill.js';
+import { DrillOpenContext, stretchOf, useDestination, type Drill } from './drill.js';
 import { Icon, type IconName } from './icons.js';
 import { useTick } from './motion.js';
 import { Sparkline } from './sparkline.js';
@@ -21,7 +21,7 @@ export type KpiData = {
   more: string;
   /** The recent trend, oldest first, when there is one. */
   trend?: number[];
-  /** The rows behind the figure: when given, the value is a button that opens them. */
+  /** The rows behind the figure: when given, the value is a button that opens them. Absent with `link`: the card looks itself up in the destinations map (ADR 0058). */
   drill?: Drill;
   /** What kind of number this is, where its direction of good is known: a thin rule and a tinted icon in that meaning's colour. Absent: neutral. */
   tone?: 'loss' | 'gain' | 'risk' | 'plan';
@@ -46,10 +46,9 @@ export type KpiData = {
 type Tone = 'gain' | 'loss' | 'neutral';
 
 /** The value in the number face; a button that opens the rows behind it when the figure has them. */
-function Value({ kpi }: { kpi: KpiData }) {
+function Value({ kpi, drill }: { kpi: KpiData; drill?: Drill }) {
   const value = useTick(kpi.value);
   const open = useContext(DrillOpenContext);
-  const { drill } = kpi;
   const unit = kpi.unit ? <span className="v2-kpi-unit">{kpi.unit}</span> : null;
   if (!drill)
     return (
@@ -87,13 +86,11 @@ function Delta({ kpi, tone }: { kpi: KpiData; tone: Tone }) {
   );
 }
 
-/** What the whole card is when pressed: a link to a page, the rows behind its figure, or nothing. */
-const stretchOf = (kpi: KpiData) => (kpi.link ? 'link' : kpi.drill ? 'drill' : undefined);
-
 /** A key figure: value, its change against a stated period, what it means, its trend, and one line more on hover. */
 export function KpiCard({ kpi }: { kpi: KpiData }) {
   const tone: Tone = kpi.delta.flat ? 'neutral' : kpi.delta.good ? 'gain' : 'loss';
-  const stretch = stretchOf(kpi);
+  const to = useDestination(kpi.id, kpi.label, { drill: kpi.drill, link: kpi.link });
+  const stretch = stretchOf(to);
   return (
     <section
       className={kpi.hero ? 'v2-card v2-kpi v2-kpi-hero' : 'v2-card v2-kpi'}
@@ -101,7 +98,8 @@ export function KpiCard({ kpi }: { kpi: KpiData }) {
       data-status={kpi.status}
       data-open={stretch ? '' : undefined}
       data-stretch={stretch}
-      tabIndex={0}
+      // A card that goes somewhere is reached through its one control; only a card that goes nowhere takes focus itself.
+      tabIndex={stretch ? undefined : 0}
       aria-label={kpi.label}
     >
       <div className="v2-kpi-label">
@@ -112,7 +110,7 @@ export function KpiCard({ kpi }: { kpi: KpiData }) {
       </div>
       <div className="v2-kpi-row">
         <div>
-          <Value kpi={kpi} />
+          <Value kpi={kpi} drill={to.drill} />
           <Delta kpi={kpi} tone={tone} />
         </div>
         {kpi.trend ? <Sparkline values={kpi.trend} tone={tone} draw /> : null}
@@ -125,9 +123,13 @@ export function KpiCard({ kpi }: { kpi: KpiData }) {
       )}
       <p className="v2-kpi-meaning">{kpi.meaning}</p>
       <p className="v2-kpi-more">{kpi.more}</p>
-      {kpi.link ? (
-        <a className="v2-ref v2-kpi-link" href={kpi.link.href}>
-          {kpi.link.label}
+      {to.link ? (
+        <a
+          className="v2-ref v2-kpi-link"
+          href={to.link.href}
+          aria-label={`${kpi.label}: ${to.link.label}`}
+        >
+          {to.link.label}
           <Icon name="chevronRight" size={12} />
         </a>
       ) : null}

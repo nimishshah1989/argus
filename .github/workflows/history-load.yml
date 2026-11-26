@@ -1,0 +1,72 @@
+name: history-load
+
+# Ticket 69d (ADR 0027 item 4, ADR 0058): loads breakdown history into STAGING, by hand only. On the instance over SSM,
+# like backup.yml: an RDS snapshot first (no snapshot, no load), then the analytics.data-from date and the 2026
+# breakdown log in the running release's image. `legacy: true` also loads the 2022-2025 workbooks Nimish uploaded to
+# s3://<files bucket>/legacy/ (infra/STAGING.md); they go bucket -> instance and never through this runner.
+# Re-running is safe: the importer skips rows it already holds.
+on:
+  workflow_dispatch:
+    inputs:
+      legacy:
+        description: 'Also load the 2022-2025 workbooks from the files bucket legacy/ folder'
+        type: boolean
+        default: false
+
+permissions:
+  id-token: write
+  contents: read
+
+# Its own group: sharing deploy.yml's would let a waiting load replace a waiting deploy. Start it when no deploy runs.
+concurrency:
+  group: history-load
+  cancel-in-progress: false
+
+jobs:
+  load:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+      BACKUP_BUCKET: ${{ vars.BACKUP_BUCKET }}
+      LEGACY: ${{ inputs.legacy && '--legacy' || '' }}
+      APP: uptimo
+    steps:
+      - name: Gate
+        run: |
+          if [ -z "$AWS_ROLE_ARN" ] || [ -z "$BACKUP_BUCKET" ]; then
+            echo "staging not set up (AWS_ROLE_ARN or BACKUP_BUCKET missing)"; exit 1
+          fi
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ap-south-1
+      - name: Load on the instance
+        run: |
+          # Terraform names both buckets from one suffix: uptimo-<suffix>-backups and uptimo-<suffix>-files.
+          FILES_BUCKET="${BACKUP_BUCKET%-backups}-files"
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=$APP-server" "Name=instance-state-name,Values=running" \
+            --query 'Reservations[0].Instances[0].InstanceId' --output text)
+          if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" = "None" ]; then
+            echo "no running $APP-server instance"; exit 1
+          fi
+          PAYLOAD=$(tar czf - -C infra docker-compose.yml instance | base64 -w0)
+          jq -n --arg cmd "mkdir -p /opt/uptimo && echo $PAYLOAD | base64 -d | tar xz -C /opt/uptimo && chmod +x /opt/uptimo/instance/*.sh && FILES_BUCKET=$FILES_BUCKET /opt/uptimo/instance/history-load.sh $LEGACY" \
+            '{commands: [$cmd], executionTimeout: ["3300"]}' > params.json
+          COMMAND_ID=$(aws ssm send-command --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript --comment "history load $LEGACY" \
+            --parameters file://params.json --query 'Command.CommandId' --output text)
+          # Up to 20 minutes for the snapshot, then the loads.
+          for _ in $(seq 1 660); do
+            STATUS=$(aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" \
+              --query Status --output text 2>/dev/null || echo Pending)
+            case "$STATUS" in Pending|InProgress|Delayed) sleep 5 ;; *) break ;; esac
+          done
+          aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" \
+            --query StandardOutputContent --output text
+          aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$INSTANCE_ID" \
+            --query StandardErrorContent --output text
+          [ "$STATUS" = Success ]
