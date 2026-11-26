@@ -7,8 +7,10 @@ import type { Takeaways } from '../../../ui/v2/takeaway.js';
  * longest first (the server sends newest first).
  */
 export function waitingFirst(tickets: Ticket[]): Ticket[] {
-  void tickets;
-  throw new Error('not implemented');
+  const time = (iso: string | null | undefined): number => (iso ? Date.parse(iso) : Number.NaN);
+  return tickets
+    .filter((ticket) => ticket.status === 'waiting')
+    .sort((a, b) => time(a.waitSince) - time(b.waitSince));
 }
 
 /**
@@ -16,8 +18,10 @@ export function waitingFirst(tickets: Ticket[]): Ticket[] {
  * (kiosk) login drops `personId` and lists everyone's.
  */
 export function mineQuery(me: Me | undefined): TicketListQuery {
-  void me;
-  throw new Error('not implemented');
+  const status: TicketListQuery['status'] = ['working', 'waiting', 'closed'];
+  return me && !me.shared && me.actingPersonId
+    ? { personId: me.actingPersonId, status }
+    : { status };
 }
 
 /** One `useTicketWindow` read as the adapters see it (`error` already turned into words). */

@@ -52,6 +52,7 @@ export const deskListsEn = {
     '{{machine}} has been down {{time}}, the only stopped machine nobody started.',
   'deskLists.takeaway.tasks': '{{machine}} task is expected {{date}}, {{days}} days from today.',
   'deskLists.takeaway.tasksLate': '{{machine}} task was expected {{date}}, {{days}} days ago.',
+  'deskLists.takeaway.teamLongest': '{{name}} is on the longest job: {{minutes}} on {{machine}}.',
   'deskLists.notAvailable': 'Not available to you',
   'deskLists.notAvailable.body':
     'Your login does not include this screen. If you need it, ask your admin.',
