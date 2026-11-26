@@ -30,3 +30,12 @@ from the v1 screen, its e2e spec and its section of `docs/spec/SPEC.md`, before 
   `Large PR:`, `Tests removed:`, `No parity: <10+ characters>` (gallery-only PRs), what changed for a user, how to try it.
 - Light checks (CLAUDE.md, Git): `pnpm format:check`, `lint`, `typecheck`, `ui:check`, `pii:scan`, `changelog:check`, the
   tests you touched; Prettier on every file edited by script.
+
+## Screens live with items not built
+
+Rows here are shipped screens that still lack an item of the source page. Full rows: `docs/design/v2/scope/<screen>.md`.
+
+| Screen | Item                                                                     | Source                       | v2                                                                                                                                                                     | Where in v2                                                    |
+| ------ | ------------------------------------------------------------------------ | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| S18    | Rupees of lost output (Downtime card) and the amount to claim (OEM card) | answer key KPIs 3 and 4      | DROPPED (ADR 0051 §1, A5): the claim waits for Bhavin (N12); the lost-output line is **Assumed**. Nimish's written yes still needed for both                           | none: the engine prints no rupees for `oem-analytics`          |
+| S18    | Cause picker: a person decides each young-machine breakdown's cause      | answer key table 4, ADR 0051 | not built yet: ticket #815 (OEM-4). Live since #840 with the Cause column hidden, though the Guide (`analytics.guide.oem.body1`) promises "the cause a person decided" | #815 draws the column for everyone and the picker for A3 roles |
