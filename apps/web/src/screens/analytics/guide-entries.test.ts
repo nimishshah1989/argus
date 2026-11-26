@@ -28,7 +28,7 @@ function keyOf(heading: string): keyof typeof en {
   return key;
 }
 
-/** The three headings this build does not have yet, in the key's order (OEM Analytics is built, #814). */
+/** The three headings this build does not have yet, in the key's order (OEM Analytics is built, ticket 814). */
 const UNBUILT = [
   '33. Learning from your corrections',
   '34. Entries with no maintenance code',
