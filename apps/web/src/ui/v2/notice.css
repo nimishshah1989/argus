@@ -1,0 +1,47 @@
+/* The notice (notice.tsx): a message about the screen or a step, on a soft tint of its meaning. Tokens only. */
+.v2-notice {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--color-v2-track);
+  color: var(--color-v2-ink);
+}
+.v2-notice[data-tone='error'] {
+  background: var(--color-v2-loss-tint);
+}
+.v2-notice[data-tone='attention'] {
+  background: var(--color-v2-risk-tint);
+}
+.v2-notice[data-tone='info'] {
+  background: var(--color-v2-plan-tint);
+}
+.v2-notice[data-tone='ok'] {
+  background: var(--color-v2-gain-tint);
+}
+.v2-notice-icon {
+  flex-shrink: 0;
+  padding-top: 2px;
+  color: var(--color-v2-ink-2);
+}
+.v2-notice[data-tone='error'] .v2-notice-icon {
+  color: var(--color-v2-loss);
+}
+.v2-notice[data-tone='attention'] .v2-notice-icon {
+  color: var(--color-v2-risk);
+}
+.v2-notice[data-tone='info'] .v2-notice-icon {
+  color: var(--color-v2-plan);
+}
+.v2-notice[data-tone='ok'] .v2-notice-icon {
+  color: var(--color-v2-gain);
+}
+.v2-notice-body {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+.v2-notice-action {
+  margin-top: 6px;
+}

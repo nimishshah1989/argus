@@ -5,7 +5,7 @@ import { CircleX, Lock } from '../ui/icon.js';
 import { Stack } from '../ui/layout.js';
 import { TickRow } from '../ui/tick-row.js';
 import { formatTime } from './format.js';
-import { useLockoutGate, type Gate } from './LockoutGate.js';
+import { useLockoutGate, type Gate } from '../screens/v2/ticket/LockoutGate.js';
 import { LockoutChip } from './LockoutChip.js';
 import { localisedLabel } from './lockout.js';
 

@@ -10,7 +10,7 @@ import { Grid, Stack } from '../ui/layout.js';
 import { actionSpecs, type ActionSpec } from './actionSpecs.js';
 import { ActionForm } from './ActionForm.js';
 import { DoneSheet, NoReportSheet } from './closeSheets.js';
-import { useLockoutGate } from './LockoutGate.js';
+import { useLockoutGate } from '../screens/v2/ticket/LockoutGate.js';
 import { isGated } from './lockout.js';
 
 const FORM_ACTIONS = new Set<CommandAction>([

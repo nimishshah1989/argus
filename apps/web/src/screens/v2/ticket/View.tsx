@@ -6,7 +6,7 @@ import { AdminPanel } from '../../../components/AdminPanel.js';
 import { peopleNames } from '../../../components/format.js';
 import { LockoutCard } from '../../../components/LockoutCard.js';
 import { LockoutChip } from '../../../components/LockoutChip.js';
-import { LockoutGate } from '../../../components/LockoutGate.js';
+import { LockoutGate } from './LockoutGate.js';
 import { PmReportCard } from '../../../components/PmReport.js';
 import { ReportControls } from '../../../components/ReportControls.js';
 import { SignoffPanel } from '../../../components/SignoffPanel.js';
