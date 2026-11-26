@@ -2,25 +2,27 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-26 ~14:55 IST · **By:** build session `d2fcfc9d…` (context full) · **Goal (Nimish, ADR 0055):** all screens live on the newest kit, nothing old remains · **Branch:** plan/handoff-s27
+**Updated:** 2026-11-26 ~16:15 IST · **By:** coordinator session `c39914a2…` · **Goal (Nimish, ADR 0055):** all screens live on the newest kit, nothing old remains · **Branch:** plan/handoff-s28
 
 ## State
 
-- Merged this session (main ≥ 089ff752): #829 (#828 Board fix), #826 (#789 Settings machines), #830 (#816 /who), #831 (#812 OEM figure), #833 (#818 v1 analytics pages gone), #834 (#791 Settings people/logins), #835 (#813 OEM cause save), #836 + #837 (#817 /password, with error fix), #838 (#832 /who error fix), #839 (#792 Settings audit). Confirm staging `/api/v1/health` serves main.
-- Nimish merges green PRs himself, often before review (#826 #830 #833 #834 #836 #837 #839). #839 got no review yet: run a post-merge critical review.
-- **#840 (#814 OEM screen) open, head cdb83574, 3 red:** old e2e tests still expect v1 OEM: `e2e/gallery/v2-machines.spec.ts:100` expects "₹ 59,994 to claim"; `e2e/analytics-guide.spec.ts:10` expects `#guide-oem` "not in this build yet". Next: `loop plan` to update both on `plan/t814` (no rupees, ADR 0051; OEM now built), then merge the seed into the PR branch in a throwaway worktree, set PR body `Plan-base:` to the new seed head BEFORE pushing, review, merge.
-- Not started: #815 (after #814), #793 then #794 (share Plant.tsx/registry.ts; after #839, now merged), then #819 last.
-- Follow-ups for the planner: #826 coverage rows say "same" but per-segment machine count (Groups) and segment on each machine row were dropped; OEM figure returns null when young machines have no breakdowns; 29 Feb warranty date prints wrong.
+- Merged (by Nimish, before review finished): #840 (#814 OEM screen, after seed fix 81604632 on plan/t814) and #843 (#793 Settings lists/glossary/profile). Staging served e6732af at session start; confirm it now serves main.
+- Post-merge reviews: #839 FAIL → follow-up ticket **#842** (seed plan/t842), builder was running at handoff. #840 PASS with follow-ups. #843 FAIL (profile "not set" only checks null, but the server never sends null → every plant shows "0 of 33 not set"; tiles show 0 while loading/on error; "All entries" lost its heading) → planner was writing a follow-up ticket at handoff (check `gh issue list` for "S26-6 lists and profile fixes").
+- Planner job also running at handoff: #840 follow-ups (#815 Done-when gets read-only Cause column + empty key "No machine is under 300 days old"; analytics-engine.test.ts:607 owner range ≤812 → named exception; COVERAGE.md S18 row). Check plan/t815 and open plan/ PRs.
+- `docs/loop/handoff/814.md` is stale (says tests red); ignore it. Old notes in docs/loop/handoff/ not folded this session.
 
 ## Next steps
 
-1. Fix #840 seed as above → merge. 2. #815 and #793 in parallel (no shared files), then #794, then #819. 3. ADR 0055 items (Floor segment tiles; S28–S30 wireframes in the Shell for Nimish) via `loop plan`.
+1. `loop finish 842` → review → merge. 2. Build the S26-6 fixes ticket. 3. #815 (after its seed update), #794, then #819 last. 4. #803 (13 unbuilt wireframe items) and ADR 0055 items via `loop plan`.
+
+## Blocked
+
+None.
 
 ## Don't repeat (details in LESSONS.md)
 
-- Builders: plain literal commands only (no `{a,b}`, loops, heredocs, `python3 -`, `cd &&`, `VAR=` prefix); `git rm`; one-line commits; `## Blocked` = exactly `None.`; prettier the handoff. Every ticket's Don't now says so; add it to new tickets.
-- Never `#NNN` in comments of apps/web files (guard reads hex). New API route → `REPLY_SCHEMAS` + route count in `reply-contract.test.ts`.
-- Seed fix on an open PR: planner pushes `plan/t<N>`; coordinator merges it into the PR branch in a scratch worktree, edits PR body `Plan-base:` first, then pushes (guard reads the body from the push event).
-- Conflict in a test-data file: never `git checkout --theirs` blindly; check the other side equals main first.
-- `loop finish` prints GREEN with checks pending: confirm with `gh pr checks`. Run local checks one ticket at a time.
-- Rebuild after a seed fix: `git branch -f backup-t<N> <build branch>`, `loop prep <N> --fresh`, ticket Don't lists literal paths to `git checkout backup-t<N> -- …`.
+- Nimish merges green PRs before review; both #839 and #843 then failed review. Run the reviewer the moment CI goes green.
+- plan/handoff is checked out by another session's worktree and conflicts on metrics.jsonl; this session used plan/handoff-s28.
+- Builders: plain literal commands only; `git rm`; one-line commits; `## Blocked` = exactly `None.`; prettier the handoff. Never `#NNN` in apps/web comments (hex guard).
+- Seed fix on an open PR: planner pushes `plan/t<N>`; coordinator edits PR body `Plan-base:` first, then merges the seed into the PR branch in a scratch worktree and pushes.
+- Tests for server-backed models must use a real server-shaped reply, not hand-made nulls (#843 lesson).
