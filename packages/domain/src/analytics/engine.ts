@@ -1,6 +1,12 @@
 import type { AnalyticsProfile } from '@uptimo/shared';
 import { dataAsOf, dataFrom } from './as-of.js';
-import { gapMonths, recordedMonths, type Period } from './availability.js';
+import {
+  gapMonths,
+  historyOf,
+  recordedMonths,
+  recordedYears,
+  type Period,
+} from './availability.js';
 import { canonicalOrder } from './canonical-order.js';
 import { COMPUTERS } from './computers.js';
 import { FIGURES, type FigureDef } from './registry.js';
@@ -149,9 +155,12 @@ export function runWith(
     throw new RangeError(`dataFrom must be a plant date like 2026-01-01, got ${from}`);
   const asOfData = dataAsOf(withListedExclusions(canonicalOrder(input.data)), asOf);
   // A run that names a span reads that span; only the default read starts at the data-from date (ticket 621).
-  const data = from !== undefined && !input.span ? dataFrom(asOfData, from) : asOfData;
-  const known = knownIds(data);
+  const cutFrom = from !== undefined && !input.span;
+  const data = cutFrom ? dataFrom(asOfData, from) : asOfData;
+  // ADR 0063: what the cut left out still feeds the figures that learn from history, and every trend series.
+  const known = knownIds(asOfData);
   const views = viewsOf(data, asOf, input.span);
+  const history = cutFrom ? viewsOf(asOfData, asOf, historyOf(asOfData, asOf)).cut : undefined;
   const figures = FIGURES.map((def): FigureResult => {
     const base = { key: def.key, screen: def.screen, owner: def.owner };
     const compute = computers[def.key];
@@ -160,8 +169,12 @@ export function runWith(
     }
     const computed =
       def.reads === undefined
-        ? compute({ data: views.cut, asOf: views.cutAsOf, profile })
-        : compute({ data: views.whole, asOf, profile });
+        ? compute({ data: views.cut, asOf: views.cutAsOf, profile, ...(history && { history }) })
+        : compute({
+            data: def.reads === 'history' && cutFrom ? asOfData : views.whole,
+            asOf,
+            profile,
+          });
     const ids = drillOf(def, computed, known[def.drill]);
     return { ...base, status: 'ready', value: computed.value, drill: { type: def.drill, ids } };
   });
@@ -181,6 +194,7 @@ export function runWith(
     excludedMachines,
     figures,
     ...(views.period ? { period: views.period } : {}),
+    years: recordedYears(asOfData, asOf),
   };
 }
 

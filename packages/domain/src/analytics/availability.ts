@@ -124,6 +124,13 @@ export function recordedMonths(data: EngineData, asOf: string): Set<string> {
   return seen;
 }
 
+/** The calendar years with at least one report or ticket up to `asOf`, oldest first: the years a reader can pick (ADR 0063). */
+export function recordedYears(data: EngineData, asOf: string): number[] {
+  return [...new Set([...recordedMonths(data, asOf)].map((key) => Number(key.slice(0, 4))))].sort(
+    (a, b) => a - b,
+  );
+}
+
 /** 1 January of the first record's year to `asOf`: the window a figure that learns from all history reads. */
 export function historyOf(data: EngineData, asOf: string): Period {
   const first = [...recordedMonths(data, asOf)].sort()[0];

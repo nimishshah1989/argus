@@ -67,6 +67,7 @@ display | ReviewMarker | review-marker.tsx | Link saying how many rows are held 
 inputs | Button | button.tsx | The kit button; primary for the one action that matters, plus LinkButton
 inputs | Segmented | segmented.tsx | A row of two to four mutually exclusive choices
 inputs | PeriodToggle | period-toggle.tsx | So far this year or full year, read from the URL (not placed yet)
+inputs | YearPicker | period-toggle.tsx | The years of data an analytics page reads, in the shell header, kept in the URL (ADR 0063)
 inputs | SelectField | select-field.tsx | Labelled dropdown with All first, for many options
 inputs | DateField | date-field.tsx | Labelled day field using the browser's own date picker
 inputs | FormSheet | form-sheet.tsx | A form in the right drawer with fields, submit and the server's refusal

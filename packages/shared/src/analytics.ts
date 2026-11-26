@@ -199,9 +199,38 @@ export const figuresReplySchema = z
     /** How many machines the plant leaves out of production data (tickets 77a and 77b); the server always sends it. */
     excludedMachines: z.number().int().min(0),
     figures: z.array(figureReplySchema),
+    /** The span a `?years=` read was computed for, with its no-record months; absent on the default read (ADR 0063). */
+    period: z
+      .object({
+        from: calendarDay,
+        to: calendarDay,
+        noRecords: z
+          .array(z.string().regex(/^\d{4}-\d{2}$/))
+          .readonly()
+          .optional(),
+        requestedFrom: calendarDay.optional(),
+      })
+      .strict()
+      .optional(),
+    /** The calendar years the plant has records in, oldest first: the year picker's choices (ADR 0063). */
+    years: z.array(z.number().int()).optional(),
   })
   .strict();
 export type FiguresReply = z.infer<typeof figuresReplySchema>;
+
+/**
+ * `?years=` on the figures read (ADR 0063): one year (`2024`), a range (`2022-2026`) or `all`. Anything else is not a
+ * choice, so the read refuses it rather than guessing. Returns the first and last year, `all`, or null.
+ */
+export type YearsChoice = { from: number; to: number } | 'all';
+export function yearsChoice(raw: unknown): YearsChoice | null {
+  if (raw === 'all') return 'all';
+  const match = typeof raw === 'string' ? /^(\d{4})(?:-(\d{4}))?$/.exec(raw) : null;
+  if (!match) return null;
+  const from = Number(match[1]);
+  const to = Number(match[2] ?? match[1]);
+  return from >= 1900 && from <= to ? { from, to } : null;
+}
 
 /** How many ids one drill-down may ask for: a screen's worth of rows, still one read of the plant. */
 export const MAX_DRILL_IDS = 200;

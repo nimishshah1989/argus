@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { QueryObserver, useQueryClient, type QueryClient } from '@tanstack/react-query';
-import { analyticsFiguresQuery } from '../../analytics-figures.js';
+import { useLocation } from 'react-router-dom';
+import { analyticsFiguresQuery, yearsFrom } from '../../analytics-figures.js';
 import type { LoadState } from '../../ui/v2/screen-states.js';
 
 /**
@@ -9,8 +10,9 @@ import type { LoadState } from '../../ui/v2/screen-states.js';
  * again whenever this says the reply changed. Returns the way to stop watching.
  */
 export function watchFigures(client: QueryClient, onNewFigures: () => void): () => void {
-  const observer = new QueryObserver(client, analyticsFiguresQuery);
-  let seen = client.getQueryState(analyticsFiguresQuery.queryKey)?.dataUpdatedAt ?? 0;
+  const { queryKey, queryFn } = analyticsFiguresQuery;
+  const observer = new QueryObserver(client, { queryKey, queryFn });
+  let seen = client.getQueryState(queryKey)?.dataUpdatedAt ?? 0;
   return observer.subscribe(({ dataUpdatedAt }) => {
     if (dataUpdatedAt === seen) return;
     const first = seen === 0;
@@ -19,12 +21,16 @@ export function watchFigures(client: QueryClient, onNewFigures: () => void): () 
   });
 }
 
-/** A screen built from the engine's figures stays as current as v1 was: it is asked to load again when they refresh. */
+/**
+ * A screen built from the engine's figures stays as current as v1 was: it is asked to load again when they refresh.
+ * It watches the figures for the years the address asks for, so a new choice watches its own copy (ADR 0063).
+ */
 export function useRefreshOnFigures(reload: () => void): void {
   const client = useQueryClient();
   const latest = useRef(reload);
   latest.current = reload;
-  useEffect(() => watchFigures(client, () => latest.current()), [client]);
+  const years = yearsFrom(useLocation().search);
+  useEffect(() => watchFigures(client, () => latest.current()), [client, years]);
 }
 
 /**

@@ -94,7 +94,7 @@ _Every later milestone is a vertical slice Nimish can click through. Goals are y
 - v2 redesign: 20 analytics screens live on staging with their v1 pages deleted (§4) · Done · gallery and browser CI; each screen PR had an independent review.
 - Staging deploy on every merge with snapshot, health and PDF checks · Done · health URL showed `24e7bb47` on 2026-11-23.
 - CI on 2026-11-23 (PR #546, Linux): fast suite 307 of 307 test files pass; typecheck and lint pass (7 lint warnings).
-- Unverified: whether every renamed v2 figure keeps v1's formula (only the Action Center filters were spot-checked); v2 figures with history loaded (staging has 2026 only).
+- Unverified: whether every renamed v2 figure keeps v1's formula (only the Action Center filters were spot-checked); v2 figures with history loaded (staging holds 2022–2026 since 26 Nov; the year picker and year-over-year trends of ADR 0063 are not yet clicked through there).
 
 ### Current gaps (honest)
 

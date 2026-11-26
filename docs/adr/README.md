@@ -17,3 +17,4 @@ One page per irreversible or expensive-to-reverse decision. Each records the con
 - `0041-gujarati-switch-per-phone.md` — Gujarati's `GUJARATI_ON` switch is `localStorage["uptimo.gujarati"] === "on"`, read once at load (e2e option `gujaratiOn`)
 - `0041-sweep-706-batch-map.md` — sweep #706 in four batch tickets: which kit piece goes on which page
 - `0043-sweep-706-addendum.md` — machine out of batch A, ranked bars mapped, the dashboard quadrant swap gated on Nimish's yes
+- `0063-every-year-feeds-trends-and-a-year-picker.md` — the data-from date keeps the headlines; forecasts, history figures and month trends read every year; `?years=` on the figures read; one `YearPicker` in the shell; kit lines draw year over year

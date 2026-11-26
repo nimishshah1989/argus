@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
 import type { EngineResult } from '@uptimo/domain';
+import { yearsChoice } from '@uptimo/shared';
 import { withTenant } from '../../kernel/index.js';
 import { tenantInfo } from '../identity/index.js';
 import { runForTenant } from './service.js';
@@ -67,20 +68,24 @@ function buildOf(): string {
 }
 
 const READ_SQL = `SELECT value FROM kpi_snapshot
-  WHERE tenant_id = $1 AND profile = '${SERVED_PROFILE}' AND key = '${SERVED_KEY}'
+  WHERE tenant_id = $1 AND profile = '${SERVED_PROFILE}' AND key = $3
     AND subject_kind = 'plant' AND as_of = $2::date`;
+
+/** The kept run's key: the default read's own, or one per `?years=` choice, so each span is kept apart (ADR 0063). */
+export const servedKey = (years?: string): string =>
+  years === undefined ? SERVED_KEY : `${SERVED_KEY}:${years}`;
 
 type Kept = { value: { stamp: string; result: EngineResult } };
 
-/** The kept row for this date. */
-async function readKept(tx: Db, tenantId: string, asOf: string): Promise<Kept | null> {
-  const row = (await tx.query(READ_SQL, [tenantId, asOf])).rows[0];
+/** The kept row for this date and span. */
+async function readKept(tx: Db, key: Key): Promise<Kept | null> {
+  const row = (await tx.query(READ_SQL, [key.tenantId, key.asOf, servedKey(key.years)])).rows[0];
   return row ? { value: row.value } : null;
 }
 
 const SAVE_SQL = `INSERT INTO kpi_snapshot
        (tenant_id, profile, key, subject_kind, subject_key, period_start, period_end, as_of, run_id, value, computed_at)
-VALUES ($1, '${SERVED_PROFILE}', '${SERVED_KEY}', 'plant', '', $2::date, $2::date, $2::date, $3::uuid, $4::jsonb, clock_timestamp())
+VALUES ($1, '${SERVED_PROFILE}', $5, 'plant', '', $2::date, $2::date, $2::date, $3::uuid, $4::jsonb, clock_timestamp())
 ON CONFLICT (tenant_id, profile, key, subject_kind, subject_key, period_start, period_end, as_of)
 DO UPDATE SET value = EXCLUDED.value, computed_at = clock_timestamp(), updated_at = now(), run_id = EXCLUDED.run_id`;
 
@@ -102,16 +107,18 @@ async function prune(tx: Db, tenantId: string): Promise<void> {
   }
 }
 
-async function keep(
-  tx: Db,
-  key: { tenantId: string; asOf: string },
-  stamp: string,
-  result: EngineResult,
-): Promise<void> {
+/** Which kept run: a plant, a date and the `?years=` choice (none for the default read). */
+type Key = { tenantId: string; asOf: string; years?: string };
+
+async function keep(tx: Db, key: Key, stamp: string, result: EngineResult): Promise<void> {
   const { tenantId, asOf } = key;
-  await tx.query(SAVE_SQL, [tenantId, asOf, randomUUID(), JSON.stringify({ stamp, result })]);
+  const value = JSON.stringify({ stamp, result });
+  await tx.query(SAVE_SQL, [tenantId, asOf, randomUUID(), value, servedKey(key.years)]);
   await prune(tx, tenantId);
 }
+
+const lockOf = ({ tenantId, asOf, years }: Key): string =>
+  `figures.served:${tenantId}:${asOf}${years === undefined ? '' : `:${years}`}`;
 
 /**
  * The run for a plant date. A kept run is served as it is; when the data stamp has moved past it, `onStale` is told
@@ -123,29 +130,26 @@ async function keep(
  */
 export async function servedRun(
   tx: Db,
-  input: {
-    tenantId: string;
-    asOf: string;
+  input: Key & {
     compute: () => Promise<EngineResult>;
-    onStale?: (tenantId: string, asOf: string) => void | Promise<void>;
+    onStale?: (tenantId: string, asOf: string, years?: string) => void | Promise<void>;
   },
 ): Promise<EngineResult> {
-  const { tenantId, asOf, compute, onStale } = input;
-  const first = await readKept(tx, tenantId, asOf);
+  const { tenantId, asOf, years, compute, onStale } = input;
+  const first = await readKept(tx, input);
   if (first) {
-    if (first.value.stamp !== (await dataStamp(tx, tenantId))) await onStale?.(tenantId, asOf);
+    if (first.value.stamp !== (await dataStamp(tx, tenantId)))
+      await onStale?.(tenantId, asOf, years);
     return first.value.result;
   }
-  await tx.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
-    `figures.served:${tenantId}:${asOf}`,
-  ]);
+  await tx.query('SELECT pg_advisory_xact_lock(hashtext($1))', [lockOf(input)]);
   // A run saved while this reader waited is served as it is: otherwise each waiter would compute in turn.
-  const kept = await readKept(tx, tenantId, asOf);
+  const kept = await readKept(tx, input);
   if (kept) return kept.value.result;
   const stamp = await dataStamp(tx, tenantId);
   enginesInRead += 1;
   const result = await compute();
-  await keep(tx, { tenantId, asOf }, stamp, result);
+  await keep(tx, input, stamp, result);
   return result;
 }
 
@@ -169,17 +173,13 @@ export function resetEngineRunsInRead(): void {
  * lock, same save, same prune), but skip when the kept stamp already equals the current data stamp. Does not count
  * as a run in a read. Ticket 606.
  */
-export async function warmServedRun(
-  pool: Pool,
-  input: { tenantId: string; asOf: string },
-): Promise<void> {
+export async function warmServedRun(pool: Pool, input: Key): Promise<void> {
   const { tenantId, asOf } = input;
+  const years = input.years === undefined ? undefined : (yearsChoice(input.years) ?? undefined);
   await withTenant(pool, tenantId, async (tx) => {
-    await tx.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
-      `figures.served:${tenantId}:${asOf}`,
-    ]);
+    await tx.query('SELECT pg_advisory_xact_lock(hashtext($1))', [lockOf(input)]);
     const stamp = await dataStamp(tx, tenantId);
-    if ((await readKept(tx, tenantId, asOf))?.value.stamp === stamp) return;
-    await keep(tx, { tenantId, asOf }, stamp, await runForTenant(tx, { tenantId, asOf }));
+    if ((await readKept(tx, input))?.value.stamp === stamp) return;
+    await keep(tx, input, stamp, await runForTenant(tx, { tenantId, asOf, years }));
   });
 }

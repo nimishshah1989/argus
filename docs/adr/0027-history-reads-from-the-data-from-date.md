@@ -2,6 +2,8 @@
 
 Date: 2026-11-24 · Decided by: Plan (ADR 0012 unattended rule)
 
+> Points 2 and 3 are superseded in part by ADR 0063 (26 Nov 2026): the data-from date still sets the headline figures, but the figures that learn from history and the month trend series read every year, and a reader can pick a span of years.
+
 ## Context
 
 - Draft PR #300 (`docs/plan/history-registers-plan.md`, 17 Nov) is superseded by the 19 Nov re-plan `docs/slices/69-legacy-history.md`, already built as 69a–69c (#449, #451, #454, #461), 79 (`validate:full`, #465) and 91. Locally the 19 workbooks load: four batches done, 1,855 of 2,084 summary machine-months equal or rule-explained, 229 unexplained (`docs/plan/evidence/69c-real-load.md`).

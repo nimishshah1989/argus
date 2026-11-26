@@ -199,8 +199,9 @@ function byCellTable(ctx: A1Context) {
   };
 }
 
-function charts(ctx: A1Context): Array<Record<string, unknown>> {
-  const named = ctx.data.period !== undefined;
+/** The two charts; the trend runs over `trend`, every recorded year when the data-from date cut `ctx` (ADR 0063). */
+function charts(ctx: A1Context, trend: A1Context = ctx): Array<Record<string, unknown>> {
+  const named = trend.data.period !== undefined;
   const plot = (part: (stat: CellStats) => number) =>
     ctx.stats.map((stat) => Math.round(safeFraction(part(stat), stat.available) * 10000) / 100);
   return [
@@ -220,15 +221,15 @@ function charts(ctx: A1Context): Array<Record<string, unknown>> {
       type: 'line',
       axes: { x: '', y: '' },
       tickLabels: { x: [], y: [] },
-      labels: monthLabels(ctx),
+      labels: monthLabels(trend),
       datasets: [
         {
           label: 'BD Hrs',
-          data: withGaps(monthlySeries(ctx.bdRows, ctx.months), ctx.months, named),
+          data: withGaps(monthlySeries(trend.bdRows, trend.months), trend.months, named),
         },
         {
           label: 'PM Hrs',
-          data: withGaps(monthlySeries(ctx.pmRows, ctx.months), ctx.months, named),
+          data: withGaps(monthlySeries(trend.pmRows, trend.months), trend.months, named),
         },
       ],
     },
@@ -240,7 +241,7 @@ function charts(ctx: A1Context): Array<Record<string, unknown>> {
  * numerator rows has no page to print, so the figure is null rather than a fabricated zero. The drill names the BD
  * and PM tickets the numerator read, production-filtered, in the order the rows were read.
  */
-export const a1BdPmFigure: Computer = ({ data, asOf, profile }) => {
+export const a1BdPmFigure: Computer = ({ data, asOf, profile, history }) => {
   const annual = profile.prodHrsPerDay * profile.workDaysPerYear;
   const ctx = buildContext(data, asOf, annual);
   if (ctx.machines.length === 0 || ctx.entries.length === 0) {
@@ -255,7 +256,7 @@ export const a1BdPmFigure: Computer = ({ data, asOf, profile }) => {
         title: 'BD % & PM Split',
         kpis: a1Kpis(ctx),
         tables: [byCellTable(ctx), percentTable(ctx), bdHoursTable(ctx), pmHoursTable(ctx)],
-        charts: charts(ctx),
+        charts: charts(ctx, history ? buildContext(history, asOf, annual) : ctx),
       },
     ],
   };

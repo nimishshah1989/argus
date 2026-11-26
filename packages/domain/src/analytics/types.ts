@@ -347,6 +347,11 @@ export interface ComputeInput {
   data: EngineData;
   asOf: string;
   profile: AnalyticsProfile;
+  /**
+   * Every recorded year, as a span over all of them reads it (ADR 0063): set only when the data-from date cut `data`, so
+   * a figure's trend series can still run over the older years while its headline reads from the data-from date.
+   */
+  history?: EngineData;
 }
 
 export type Computer = (input: ComputeInput) => Computed;
@@ -370,4 +375,6 @@ export interface EngineResult {
   figures: FigureResult[];
   /** The span the figures were computed for, with its gap months; absent when the run named no span. */
   period?: Period;
+  /** The calendar years the plant has records in up to the run date, oldest first, before any data-from cut (ADR 0063); a run kept before it has none. */
+  years?: number[];
 }

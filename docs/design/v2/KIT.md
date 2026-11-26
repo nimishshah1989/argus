@@ -170,6 +170,7 @@ How to read an entry: **For** is what the part does. **Pick it when** says when 
 - **For:** a line chart over time with a hover crosshair, drawn through the chart door from the engine's numbers.
 - **Pick it when:** a trend over time needs its own card. For any other chart the engine sends as a spec, use `ChartCard`.
 - **Key props:** `data` (`TrendData`): `title`, `sub`, `aria`, `categoryLabel`, `valueLabel`, `categories`, `series` (`name`, `values`, `tone`).
+- **Year over year (ADR 0063):** every line chart (this one and a `ChartCard` line) whose categories are the engine's `Mon YY` months, with a month that comes round again, is drawn by the kit as one line per series and year on a shared Jan–Dec axis with a legend, the latest year thicker (`ui/chart/year-over-year.ts`, called from `lineOption`). Nothing to pass: a span over several years turns it on.
 - **Used by:** compare, footprint; gallery.
 
 ### `ChartCard` — `chart-card.tsx`
@@ -337,6 +338,13 @@ How to read an entry: **For** is what the part does. **Pick it when** says when 
 - **Pick it when:** a page lets the reader switch the year basis.
 - **Key props:** `value` (`sofar` or `full`), `onChange`.
 - **Used by:** none yet (built, not placed on a screen).
+
+### `YearPicker` — `period-toggle.tsx`
+
+- **For:** the years of data an analytics page reads (ADR 0063), as a `SelectField`: the default (this year, trends over every year), each year with records newest first, then "All years". The page keeps it in the URL (`?years=2024`, `2022-2026` or `all`; `yearsFrom(search)` in `analytics-figures.ts` reads it).
+- **Pick it when:** never on a screen: `LiveFrame` places it once in the shell header of every analytics screen, and every figures read takes the choice from the URL.
+- **Key props:** `years` (the reply's `years`), `value` (`''` for the default), `onChange`.
+- **Used by:** the shared `live-frame.tsx`.
 
 ### `SelectField` — `select-field.tsx`
 

@@ -179,7 +179,8 @@ function plantTrend(group: MomGroup, ctx: A3Context) {
   };
 }
 
-function charts(ctx: A3Context, plant: MomGroup) {
+/** The seven charts; the plant trend runs over `trend`, every recorded year when the data-from date cut `ctx` (ADR 0063). */
+function charts(ctx: A3Context, plant: MomGroup, trend: A3Context = ctx) {
   const categories = ctx.categoryGroups.map((group) => group.label);
   const cells = ctx.cellGroups.map((group) => cellName(group.label));
   const bands = ctx.ageGroups.map((group) => group.label);
@@ -192,7 +193,7 @@ function charts(ctx: A3Context, plant: MomGroup) {
     barChart('ch-a3-cellmtbf', cells, between(ctx.cellGroups), 'MTBF'),
     barChart('ch-a3-agemttr', bands, series(ctx.ageGroups), 'MTTR'),
     barChart('ch-a3-agemtbf', bands, between(ctx.ageGroups), 'MTBF'),
-    plantTrend(plant, ctx),
+    plantTrend(trend === ctx ? plant : plantMomGroup(trend), trend),
   ];
 }
 
@@ -224,7 +225,7 @@ function a3Tables(ctx: A3Context, plant: MomGroup) {
  * rows has no page to print, so the figure is null rather than a fabricated zero. The drill names every
  * production breakdown ticket the figure read, in the order the rows were read.
  */
-export const a3MttrMtbfFigure: Computer = ({ data, asOf, profile }) => {
+export const a3MttrMtbfFigure: Computer = ({ data, asOf, profile, history }) => {
   const annual = profile.prodHrsPerDay * profile.workDaysPerYear;
   const ctx = buildContext(data, asOf, annual);
   if (ctx.machines.length === 0 || ctx.entries.length === 0) return { value: null, drillIds: [] };
@@ -238,7 +239,7 @@ export const a3MttrMtbfFigure: Computer = ({ data, asOf, profile }) => {
         title: 'MTTR & MTBF',
         kpis: [],
         tables: a3Tables(ctx, plant),
-        charts: charts(ctx, plant),
+        charts: charts(ctx, plant, history ? buildContext(history, asOf, annual) : ctx),
       },
     ],
   };

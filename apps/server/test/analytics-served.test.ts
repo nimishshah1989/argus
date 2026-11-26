@@ -325,3 +325,38 @@ describe('the stamp and the lock under concurrent writers (75a)', () => {
     expect(kept.rows[0].n).toBe(8);
   });
 });
+
+describe('figures over a span of years (ADR 0063)', () => {
+  const read = (years: string) =>
+    f.call('GET', `/api/v1/analytics/figures?asOf=${ASOF}&years=${years}`, f.tokens.head!);
+
+  it('keeps a run per span apart from the default one, and serves it without computing again', async () => {
+    const first = await computes(() => read('2026'));
+    expect(first.answer.statusCode).toBe(200);
+    expect(first.ran).toBe(1);
+    const body = first.answer.json() as { period?: { from: string; to: string }; years?: number[] };
+    // The engine starts the span at the plant's first recorded month and says what was asked.
+    expect(body.period).toMatchObject({
+      from: '2026-11-01',
+      to: ASOF,
+      requestedFrom: '2026-01-01',
+    });
+    expect(body.years).toEqual([2026]);
+    const again = await computes(() => read('2026'));
+    expect(again.ran).toBe(0);
+    expect(again.answer.json()).toEqual(body);
+    expect((await figures()) as { period?: unknown }).not.toHaveProperty('period');
+  });
+
+  it('reads all years from the first recorded one', async () => {
+    const res = await read('all');
+    expect(res.statusCode).toBe(200);
+    expect((res.json() as { period: { from: string } }).period.from).toBe('2026-11-01');
+  });
+
+  it('refuses a years value that is not a year, a range or all, and a year after the run date', async () => {
+    for (const bad of ['abc', '2026-2024', '20', '2027'])
+      expect((await read(bad)).statusCode, bad).toBe(422);
+    expect((await read('2027')).json()).toMatchObject({ error: { field: 'years' } });
+  });
+});

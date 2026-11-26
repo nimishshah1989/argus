@@ -14,6 +14,7 @@ import {
   type DrillReplyRow,
   type DrillType,
   type FiguresReply,
+  yearsChoice,
 } from '@uptimo/shared';
 import {
   actionCenterBoard,
@@ -54,14 +55,14 @@ function shownProfile(profile: AnalyticsProfile, money: boolean): FiguresReply['
 
 /** Ticket 606: a stale read queues one warm job per plant and date (`short` policy: one queued at a time). A failed enqueue never fails the read. */
 function warmLater(boss: PgBoss | undefined, log: FastifyBaseLogger) {
-  return async (tenantId: string, asOf: string): Promise<void> => {
+  return async (tenantId: string, asOf: string, years?: string): Promise<void> => {
     if (!boss) return;
     try {
       await ensureWarmQueue(boss);
       await boss.send(
         FIGURES_WARM_QUEUE,
-        { v: 1, tenantId, asOf },
-        { singletonKey: `${tenantId}:${asOf}` },
+        { v: 1, tenantId, asOf, ...(years && { years }) },
+        { singletonKey: `${tenantId}:${asOf}${years ? `:${years}` : ''}` },
       );
     } catch (error) {
       // the kept run is still served; the daily warm catches up
@@ -81,16 +82,23 @@ async function figuresReply(input: {
   store: FigureStore;
   /** True for a read: the kept run is served, and a warm job queued when the data moved. A POST always computes. */
   serve: boolean;
-}): Promise<FiguresReply> {
+  /** The `?years=` text as asked, already checked by `yearsChoice` (ADR 0063); absent for the default read. */
+  years?: string;
+}): Promise<FiguresReply | null> {
   const { pool, boss, log, tenantId, money, asked, store, serve } = input;
+  const choice = input.years === undefined ? undefined : (yearsChoice(input.years) ?? undefined);
   const result = await withTenant(pool, tenantId, async (tx) => {
     const asOf = asked ?? (await plantToday(tx, tenantId));
-    const compute = () => runForTenant(tx, { tenantId, asOf, store });
+    // No year after the run date's has a day to read.
+    if (choice && choice !== 'all' && choice.from > Number(asOf.slice(0, 4))) return null;
+    const compute = () => runForTenant(tx, { tenantId, asOf, store, years: choice });
+    const key = { tenantId, asOf, ...(input.years && { years: input.years }) };
     const run = serve
-      ? await servedRun(tx, { tenantId, asOf, compute, onStale: warmLater(boss, log) })
+      ? await servedRun(tx, { ...key, compute, onStale: warmLater(boss, log) })
       : await compute();
     return { run, names: await personNames(tx, tenantId) };
   });
+  if (result === null) return null;
   // The kept run stays name-free; the names go in on the way out (ADR 0059).
   return nameCodes(
     {
@@ -108,6 +116,13 @@ function dateProblem(asOf: unknown) {
   if (typeof asOf === 'string' && calendarDay.safeParse(asOf).success) return null;
   return apiError('validation', 'Use a date like 2026-11-14', 'asOf');
 }
+
+/** 422 on a `?years=` that is not a year, a range of years or `all`, or starts after the run date's year. */
+const YEARS_PROBLEM = apiError(
+  'validation',
+  'Use a year like 2024, a range like 2022-2026, or all, up to this year',
+  'years',
+);
 
 /** A run stores money figures, so it is heads and admin only; the refusal says which permission is missing. */
 function runRefused(reply: FastifyReply, actor: ActorContext): void {
@@ -206,21 +221,24 @@ export function registerAnalyticsRoutes(app: FastifyInstance, pool: Pool, boss?:
     if (!ctx) return;
     const actor = actorOf(ctx);
     if (!canAnalytics(actor)) return forbidden(reply);
-    const asked = (request.query as { asOf?: string }).asOf;
+    const { asOf: asked, years } = request.query as { asOf?: string; years?: string };
     const problem = dateProblem(asked);
     if (problem) return reply.code(422).send(problem);
-    reply.send(
-      await figuresReply({
-        pool,
-        boss,
-        log: request.log,
-        tenantId: ctx.tenantId,
-        money: canMoney(actor),
-        asked,
-        store: notStored,
-        serve: true,
-      }),
-    );
+    if (years !== undefined && yearsChoice(years) === null)
+      return reply.code(422).send(YEARS_PROBLEM);
+    const figures = await figuresReply({
+      pool,
+      boss,
+      log: request.log,
+      tenantId: ctx.tenantId,
+      money: canMoney(actor),
+      asked,
+      store: notStored,
+      serve: true,
+      ...(years !== undefined && { years }),
+    });
+    if (figures === null) return reply.code(422).send(YEARS_PROBLEM);
+    reply.send(figures);
   });
   app.post('/api/v1/analytics/run', async (request, reply) => {
     const ctx = await requireAuth(pool, request, reply);
