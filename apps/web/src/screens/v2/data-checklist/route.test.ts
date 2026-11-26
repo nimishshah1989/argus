@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FiguresReply } from '@uptimo/shared/analytics';
 import '../../../i18n/index.js';
-import { DataChecklistPage } from '../../analytics/Analytics.js';
+import { DataChecklistPage } from '../analytics-routes.js';
 import { stateOfError, type Provider } from '../data.js';
 import { realReply } from '../figures/real-reply.js';
 import { liveScreen } from '../live.js';

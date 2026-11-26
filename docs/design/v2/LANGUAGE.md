@@ -1,7 +1,8 @@
 # The v2 language and the screen recipe
 
 How a v2 screen looks and how to build one. **`UX-RULES.md` is the source of truth** for how information behaves;
-this page applies it to the kit in `apps/web/src/ui/v2/`.
+this page applies it to the kit in `apps/web/src/ui/v2/`. [`KIT.md`](KIT.md) is the catalogue of every kit part: what
+it is for, when to pick it, its key props and the screens that use it.
 
 **Mockups.** Mockup figures and interactions are illustrative and sometimes inconsistent. Screens compute every figure
 from their fixture, and fixture tests enforce the totals. The mockups in `mockups/` and `dashboard-approved.dc.html`
