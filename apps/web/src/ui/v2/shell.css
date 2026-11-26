@@ -182,7 +182,7 @@
   padding: 20px 28px 40px;
 }
 
-/* "On this page" (on-this-page.tsx, ADR 0058): a sticky rail at the right from 1280 px, a jump menu at the top of the
+/* "On this page" (on-this-page.tsx, ADR 0060): a sticky rail at the right from 1280 px, a jump menu at the top of the
    page below that (and while the drawer takes the right). A heading lands below the sticky header. */
 .v2-body {
   display: grid;
@@ -242,6 +242,17 @@
 }
 .v2-onpage-jump {
   display: none;
+  min-width: 0;
+}
+/* The label sits above the menu, and the menu never runs wider than the page, however long a title is. */
+.v2-onpage-jump .v2-select-field {
+  flex-direction: column;
+  align-items: stretch;
+}
+.v2-onpage-jump select {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
 }
 @media (max-width: 1279px) {
   .v2-onpage-rail {

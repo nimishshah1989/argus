@@ -35,7 +35,8 @@ describe('Quadrant labels never overlap (Nimish, 26 Nov: "bubble legends aren\'t
     const placed = placeLabels(asks, dots, { x0: 0, x1: 400, y0: 0, y1: 320 });
     expect(placed.length).toBeGreaterThanOrEqual(4);
     for (const [i, a] of placed.entries()) {
-      for (const b of placed.slice(i + 1)) expect(hits(a.box, b.box, 0), `${a.key}/${b.key}`).toBe(false);
+      for (const b of placed.slice(i + 1))
+        expect(hits(a.box, b.box, 0), `${a.key}/${b.key}`).toBe(false);
       for (const d of dots)
         expect(hits(a.box, { x0: d.x - 5, x1: d.x + 5, y0: d.y - 5, y1: d.y + 5 }, 0)).toBe(false);
     }

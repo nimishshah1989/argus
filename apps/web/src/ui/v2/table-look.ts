@@ -2,7 +2,7 @@ import { isValidElement, Children, cloneElement, Fragment, type ReactNode } from
 import { exact } from './format.js';
 
 /**
- * How a table column colours itself (ADR 0058, Nimish 26 Nov: "no conditional formatting in any of them"):
+ * How a table column colours itself (ADR 0060, Nimish 26 Nov: "no conditional formatting in any of them"):
  * - a meaning (`loss`, `gain`, `risk`, `plan`, `neutral`): its numbers get an in-cell bar scaled to the column, and
  *   when the table is ranked by it, its top rows are marked in that colour (loss red, gain green);
  * - `category`: its words are pills from the fixed categorical palette (`--color-v2-cat-1..5`), the same word the
@@ -15,7 +15,7 @@ export type ColumnLook = ColumnTone | 'category' | 'plain';
 /** How many of the ranked column's top rows wear its colour. */
 export const TOP_MARKS = 3;
 /** A table with more coloured number columns than this tints its cells instead of drawing a bar in each. */
-export const BAR_COLUMNS = 4;
+export const BAR_COLUMNS = 8;
 
 const PLAIN =
   /^(#|sr\.?( no\.?)?|no\.?|order|year|machines|in entries|available hrs|start of \d{4}|end|added.*|fleet at (start|end)|action|owner|due date)$/i;

@@ -63,7 +63,6 @@ const H = 300;
 const PAD = { l: 40, r: 12, t: 16, b: 36 };
 const CHAR_PX = 7; // rough text width per character; only used to keep names clear of dots and labels
 
-
 /** A quadrant name goes in the first corner of its quadrant (outer corner first) that no dot or label touches. */
 function Name({
   q,
@@ -102,6 +101,37 @@ function Name({
   );
 }
 
+type Scale = (v: number) => number;
+
+/** The points that can be drawn: x and y finite, a negative drawn at 0. */
+const drawable = (points: readonly QPoint[]): QPoint[] =>
+  points
+    .filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y))
+    .map((p) => ({ ...p, x: Math.max(0, p.x), y: Math.max(0, p.y) }));
+
+/** Where the labels go (`placeLabels`), and every box a quadrant name must keep clear of: the dots and the labels. */
+function layout(
+  drawn: QPoint[],
+  split: Split,
+  { sx, sy, top, bottom }: { sx: Scale; sy: Scale; top: number; bottom: number },
+): { placed: Map<string, Placed>; taken: LabelBox[] } {
+  const dots = drawn.map((p) => ({ x: sx(p.x), y: sy(p.y), r: 5 }));
+  const asks = labelled(drawn, split).map((p) => ({
+    key: p.key,
+    cx: sx(p.x),
+    cy: sy(p.y),
+    width: CHAR_PX * shortName(p.label).length,
+  }));
+  const placed = new Map(
+    placeLabels(asks, dots, { x0: 0, x1: W, y0: top, y1: bottom }).map((l) => [l.key, l]),
+  );
+  const taken = [
+    ...dots.map((d) => ({ x0: d.x - 5, x1: d.x + 5, y0: d.y - 5, y1: d.y + 5 })),
+    ...[...placed.values()].map((l) => l.box),
+  ];
+  return { placed, taken };
+}
+
 /**
  * A four-quadrant chart (ADR 0036 R21, R19), replacing bubble charts. One inline `<svg role="img" aria-label={aria}>`:
  * - Points whose x or y is not finite are not drawn at all; a negative x or y is drawn at 0.
@@ -134,28 +164,13 @@ export function Quadrant({
   axis: { x: string; y: string };
   aria: string;
 }): ReactElement {
-  const drawn = points
-    .filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y))
-    .map((p) => ({ ...p, x: Math.max(0, p.x), y: Math.max(0, p.y) }));
+  const drawn = drawable(points);
   const view = fullView([...drawn, split]);
   const [left, right, top, bottom] = [PAD.l, W - PAD.r, PAD.t, H - PAD.b];
   const sx = (v: number) => left + (v / view.x1) * (right - left);
   const sy = (v: number) => bottom - (v / view.y1) * (bottom - top);
   const worst = new Set(offenders(points, split).map((p) => p.key));
-  const dots = drawn.map((p) => ({ x: sx(p.x), y: sy(p.y), r: 5 }));
-  const asks = labelled(drawn, split).map((p) => ({
-    key: p.key,
-    cx: sx(p.x),
-    cy: sy(p.y),
-    width: CHAR_PX * shortName(p.label).length,
-  }));
-  const placed = new Map(
-    placeLabels(asks, dots, { x0: 0, x1: W, y0: top, y1: bottom }).map((l) => [l.key, l]),
-  );
-  const taken = [
-    ...dots.map((d) => ({ x0: d.x - 5, x1: d.x + 5, y0: d.y - 5, y1: d.y + 5 })),
-    ...[...placed.values()].map((l) => l.box),
-  ];
+  const { placed, taken } = layout(drawn, split, { sx, sy, top, bottom });
   return (
     <svg className="v2-quad" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={aria}>
       <path className="v2-quad-axis" d={`M${left} ${top}V${bottom}H${right}`} fill="none" />
@@ -179,18 +194,7 @@ export function Quadrant({
           taken={taken}
         />
       ))}
-      {[...placed.values()].map((l) =>
-        l.leader ? (
-          <line
-            key={`${l.key}-leader`}
-            className="v2-quad-leader"
-            x1={l.leader.x1}
-            y1={l.leader.y1}
-            x2={l.leader.x2}
-            y2={l.leader.y2}
-          />
-        ) : null,
-      )}
+      <Leaders placed={placed} />
       {drawn.map((p) => (
         <Dot
           key={p.key}
@@ -202,6 +206,15 @@ export function Quadrant({
         />
       ))}
     </svg>
+  );
+}
+
+/** The leader lines from a moved label back to its dot, drawn under the dots. */
+function Leaders({ placed }: { placed: Map<string, Placed> }) {
+  return [...placed.values()].map(({ key, leader: l }) =>
+    l ? (
+      <line key={key} className="v2-quad-leader" x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} />
+    ) : null,
   );
 }
 

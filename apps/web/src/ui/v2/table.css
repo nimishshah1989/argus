@@ -180,7 +180,7 @@ td.v2-row-action .v2-icon-btn:focus-visible {
   }
 }
 
-/* Tables colour themselves (ADR 0058): a column's meaning sets its tone; bars and tints scale to the column; the
+/* Tables colour themselves (ADR 0060): a column's meaning sets its tone; bars and tints scale to the column; the
    ranked column's top rows wear the tone strongly (colour and weight, never colour alone). Tokens only. */
 :is(.v2-cellbar, .v2-celltint)[data-tone] {
   --v2-tone: var(--color-v2-ink-2);
@@ -219,11 +219,7 @@ td.v2-row-action .v2-icon-btn:focus-visible {
   padding: 2px 6px;
   border: 1px solid transparent;
   border-radius: 6px;
-  background: color-mix(
-    in srgb,
-    var(--v2-tone-fill) calc(var(--v2-share, 0) * 40%),
-    transparent
-  );
+  background: color-mix(in srgb, var(--v2-tone-fill) calc(var(--v2-share, 0) * 30%), transparent);
 }
 .v2-celltint[data-top] {
   border-color: var(--v2-tone-fill);

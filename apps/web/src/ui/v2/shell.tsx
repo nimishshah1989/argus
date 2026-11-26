@@ -289,11 +289,7 @@ export function Shell({
   const ui = useOverlays(search !== undefined, at);
   const { menu, setMenu } = ui;
   const { covered } = useDrawerFrame(drawer !== null);
-  const { t } = useTranslation();
-  const content = useRef<HTMLElement>(null);
-  const sections = useSections(content);
-  const current = useCurrent(sections);
-  const entries = search && withSections(search, sections, t('ashell.onPage.title'));
+  const index = usePageIndex(search);
   return (
     <div
       className="v2-app v2-frame"
@@ -321,18 +317,53 @@ export function Shell({
           onSearch={search ? () => ui.setSearch(true) : undefined}
           onAlerts={onAlerts}
         />
-        <div className="v2-body">
-          <main className="v2-content" ref={content}>
-            <OnThisPage sections={sections} current={current} place="jump" />
-            {children}
-          </main>
-          <OnThisPage sections={sections} current={current} place="rail" />
-        </div>
+        <Body index={index}>{children}</Body>
       </div>
       <Drawer drawer={drawer} />
-      {ui.search && entries ? (
-        <Palette entries={entries} onClose={() => ui.setSearch(false)} onPick={ui.pick} />
-      ) : null}
+      <Search ui={ui} entries={index.entries} />
+    </div>
+  );
+}
+
+/** The search palette while it is open: the app's pages and this page's sections. */
+function Search({
+  ui,
+  entries,
+}: {
+  ui: ReturnType<typeof useOverlays>;
+  entries?: readonly PaletteEntry[];
+}) {
+  return ui.search && entries ? (
+    <Palette entries={entries} onClose={() => ui.setSearch(false)} onPick={ui.pick} />
+  ) : null;
+}
+
+/** The page's own index (ADR 0060): its sections, the one being read, and the search's entries with the sections added. */
+function usePageIndex(search: readonly PaletteEntry[] | undefined) {
+  const { t } = useTranslation();
+  const content = useRef<HTMLElement>(null);
+  const sections = useSections(content);
+  const current = useCurrent(sections);
+  const entries = search && withSections(search, sections, t('ashell.onPage.title'));
+  return { content, sections, current, entries };
+}
+
+/** The page, with "On this page": its jump menu at the top, its rail at the right (CSS shows one or the other). */
+function Body({
+  index,
+  children,
+}: {
+  index: ReturnType<typeof usePageIndex>;
+  children: ReactNode;
+}) {
+  const { content, sections, current } = index;
+  return (
+    <div className="v2-body">
+      <main className="v2-content" ref={content}>
+        <OnThisPage sections={sections} current={current} place="jump" />
+        {children}
+      </main>
+      <OnThisPage sections={sections} current={current} place="rail" />
     </div>
   );
 }

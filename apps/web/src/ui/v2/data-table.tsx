@@ -40,7 +40,7 @@ export type Column<R> = {
    */
   meaning?: Meaning & { value: (row: R) => number };
   /**
-   * How the column colours itself (ADR 0058): a meaning bars its numbers and marks its top rows, `category` makes its
+   * How the column colours itself (ADR 0060): a meaning bars its numbers and marks its top rows, `category` makes its
    * words pills, `plain` leaves an id, a date or a count alone. Absent: plain, or the measure's own meaning.
    */
   look?: ColumnLook;

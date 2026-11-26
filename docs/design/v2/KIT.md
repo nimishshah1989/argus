@@ -50,7 +50,7 @@ How to read an entry: **For** is what the part does. **Pick it when** says when 
 
 ### Table looks — `table-look.ts`
 
-- **For:** how a table column colours itself (ADR 0058). `ColumnLook` is a meaning (`loss`, `gain`, `risk`, `plan`, `neutral`), `category` or `plain`. `lookOfHeader(label, numeric, title)` reads it from an engine header (the builders in `printed-page/table.ts` and `figures/table.ts` call it); `catOf(word)` gives a word its fixed category colour (1 to 5); `tidyCell(node)` makes sure no raw float ("0.6666666666666666") reaches a cell, printing it through `exact`.
+- **For:** how a table column colours itself (ADR 0060). `ColumnLook` is a meaning (`loss`, `gain`, `risk`, `plan`, `neutral`), `category` or `plain`. `lookOfHeader(label, numeric, title)` reads it from an engine header (the builders in `printed-page/table.ts` and `figures/table.ts` call it); `catOf(word)` gives a word its fixed category colour (1 to 5); `tidyCell(node)` makes sure no raw float ("0.6666666666666666") reaches a cell, printing it through `exact`.
 - **Pick it when:** a screen builds `Column`s or a `TableModel` header with translated labels: give each number column a `look` (the kit cannot read a translated header). `table-look.test.ts` fails on a number column without one.
 - **Used by:** kit: `table-parts.tsx`, `data-table.tsx`, `paged-table.tsx`, `domain/engine-table.tsx`, `domain/printed-table.tsx`; dashboard, breakdown-log.
 
@@ -71,7 +71,7 @@ How to read an entry: **For** is what the part does. **Pick it when** says when 
 - **Pick it when:** never directly in a screen; screens use `EntityShell` (below), which wraps `Shell` and wires the drawer to the URL. `Shell` is the plain frame for a preview or test.
 - **Key props:** `nav` (rail items: `id`, `label`, `icon`, `href`, `current`, `end` for the foot of the rail), `title`, `plant`, `search` (pages for the search; none means no search box), `at` (current address, closes menus on change), `alerts` and `onAlerts`, `drawer` (a `DrawerSpec` or null).
 - **Used by:** entity (through `EntityShell`). Also exports `NavigateContext`, which routes rail and search links without a page reload.
-- **On this page (ADR 0058):** the Shell reads every titled part of the page (each `h2` inside it: a `SectionHead`, a `Panel`, a table's or a chart card's title) into `OnThisPage`, and adds them to the ⌘ K search ("Repeat offenders" jumps there). Nothing to pass.
+- **On this page (ADR 0060):** the Shell reads every titled part of the page (each `h2` inside it: a `SectionHead`, a `Panel`, a table's or a chart card's title) into `OnThisPage`, and adds them to the ⌘ K search ("Repeat offenders" jumps there). Nothing to pass.
 
 ### `OnThisPage` — `on-this-page.tsx`
 
@@ -231,7 +231,7 @@ How to read an entry: **For** is what the part does. **Pick it when** says when 
 ### `DataTable` — `data-table.tsx`
 
 - **For:** the kit's table when all rows are in the browser: search, filter chips, optional dropdown filters, sort, ten rows a page, sticky header, numbers right-aligned. A row opens the drawer; rows re-flow when filters change. Under 10 rows it drops search and pager. It can open with a takeaway line, expand a row in place, and carry a total footer.
-- **Colours itself (ADR 0058):** each `Column`'s `look` decides its cells. A number column with a meaning gets a bar scaled to the column (a tint in a table with more than four of them); the column the table is ranked by (the chosen sort, else the measure, else the first coloured column) marks its top three rows in the meaning's colour and weight (loss red, gain green). A `category` column's words are pills in their fixed colour. `plain` (and no look) stays as it is. No raw float prints.
+- **Colours itself (ADR 0060):** each `Column`'s `look` decides its cells. A number column with a meaning gets a bar scaled to the column (a tint in a table with more than eight of them, a month grid); the column the table is ranked by (the chosen sort, else the measure, else the coloured column the rows already run down) marks its top three rows in the meaning's colour and weight (loss red, gain green). A `category` column's words are pills in their fixed colour. `plain` (and no look) stays as it is. No raw float prints.
 - **Pick it when:** any list of rows the page already holds. If the server pages the rows, use `PagedTable`; if the engine printed the table, use `domain/EngineTable` or `domain/PrintedDataTable`, which wrap this one.
 - **Key props:** `rows`, `rowKey`, `rowLabel`, `columns` (`Column`), `filters` (`FilterChip`), `text` (what search matches), `words`, `initialSort`, `selected`, `headed`, `aside`, `onOpen`, `takeaway`, `expand`, `total`, `selects`, `more`.
 - **Used by:** action-center, data-checklist, fix-finder, pm-calendar, settings-audit, settings-lists, team-focus, why-why; kit: `crud-page.tsx`, `domain/engine-table.tsx`, `domain/machine-table.tsx`, `domain/printed-table.tsx`, `domain/rows-behind.tsx`.

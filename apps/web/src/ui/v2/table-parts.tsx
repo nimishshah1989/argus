@@ -190,7 +190,7 @@ const numberOf = <R,>(c: Column<R>, row: R): number => {
   return typeof v === 'number' && Number.isFinite(v) ? v : Number.NaN;
 };
 
-/** What a table needs to colour its cells (ADR 0058): each scaled column's largest value, the ranked column and its top rows, and bars or tints. */
+/** What a table needs to colour its cells (ADR 0060): each scaled column's largest value, the ranked column and its top rows, and bars or tints. */
 export type Looks<R> = {
   largest: Record<string, number>;
   ranked?: string;
@@ -200,8 +200,8 @@ export type Looks<R> = {
 
 /**
  * The looks of a table over `rows` (all of them for `DataTable`, the page for `PagedTable`). The ranked column is the
- * chosen sort's, else the measure's, else the first column with a coloured meaning; its top rows are marked only
- * when that column has one.
+ * chosen sort's, else the measure's, else the first coloured column the rows already run down, else the first coloured
+ * one; its top rows are marked only when that column has a coloured meaning.
  */
 export function looksOf<R>(columns: Column<R>[], rows: R[], sorted?: string): Looks<R> {
   const toned = columns.filter((c) => c.numeric && scaled(lookOf(c)));
@@ -211,8 +211,12 @@ export function looksOf<R>(columns: Column<R>[], rows: R[], sorted?: string): Lo
       Math.max(0, ...rows.map((r) => numberOf(c, r)).filter(Number.isFinite)),
     ]),
   );
+  const coloured = toned.filter((c) => marks(lookOf(c)));
+  // Untouched, a table is ranked by the coloured column its rows already run down (the engine's order).
+  const downward = (c: Column<R>) =>
+    rows.every((r, i) => i === 0 || !(numberOf(c, r) > numberOf(c, rows[i - 1] as R)));
   const key =
-    sorted ?? columns.find((c) => c.meaning)?.key ?? toned.find((c) => marks(lookOf(c)))?.key;
+    sorted ?? columns.find((c) => c.meaning)?.key ?? (coloured.find(downward) ?? coloured[0])?.key;
   const by = columns.find((c) => c.key === key);
   const ranked = by && by.numeric && marks(lookOf(by)) ? by : undefined;
   const top = ranked
@@ -226,7 +230,15 @@ export function looksOf<R>(columns: Column<R>[], rows: R[], sorted?: string): Lo
  * with a meaning on a bar (or a tint, in a wide table) scaled to its column, its colour strong on the ranked column's
  * top rows. A cell that holds an element (a chip, a button) is left as it is. No raw float prints (`tidyCell`).
  */
-export function LookCell<R>({ column, row, looks }: { column: Column<R>; row: R; looks: Looks<R> }) {
+export function LookCell<R>({
+  column,
+  row,
+  looks,
+}: {
+  column: Column<R>;
+  row: R;
+  looks: Looks<R>;
+}) {
   const look = lookOf(column);
   const content = tidyCell(column.cell(row));
   if (look === 'category' && typeof content === 'string' && /\p{L}/u.test(content))
@@ -268,7 +280,7 @@ export function MeasureCell<R>({
   row: R;
   largest: number;
   pill?: TakeawayData;
-  /** One of the ranked column's top rows (ADR 0058): its number and bar take the meaning's colour. */
+  /** One of the ranked column's top rows (ADR 0060): its number and bar take the meaning's colour. */
   top?: boolean;
 }) {
   const m = column.meaning;

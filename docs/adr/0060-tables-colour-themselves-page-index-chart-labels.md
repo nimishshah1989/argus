@@ -1,4 +1,4 @@
-# 0058 — Tables colour themselves, every page has an index, chart labels never collide
+# 0060 — Tables colour themselves, every page has an index, chart labels never collide
 
 Date: 26 Nov 2026 · Decided by: Nimish, looking at Problem Analysis on staging:
 
@@ -31,9 +31,9 @@ He asked for each to be solved once, in the kit, so every page gets it.
    point keeps its own `<title>` and its row in "Show the numbers", which is the keyboard's way to every point.
 2. **Tables colour themselves.** Each column has a `look` (`table-look.ts`): a meaning (`loss`, `gain`, `risk`,
    `plan`, `neutral`), `category` or `plain`.
-   - A number column with a meaning draws a bar scaled to its column; a table with more than four such columns tints
+   - A number column with a meaning draws a bar scaled to its column; a table with more than eight such columns (a month grid) tints
      the cells instead.
-   - The column the table is ranked by (the reader's sort, else the measure, else the first coloured column) marks
+   - The column the table is ranked by (the reader's sort, else the measure, else the coloured column the rows already run down) marks
      its top three rows in the meaning's colour and weight: loss red, gain green. Colour is never alone: the weight
      changes too, and the number is the word.
    - A `category` column's words are neutral pills with a dot of the fixed category colour (`--color-v2-cat-1..5`),

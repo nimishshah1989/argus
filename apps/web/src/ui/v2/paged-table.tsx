@@ -106,12 +106,7 @@ function PageRows<R>({ t }: { t: Props<R> }) {
                   data-status={c.status?.(row)}
                 >
                   {c.meaning ? (
-                    <MeasureCell
-                      column={c}
-                      row={row}
-                      largest={largest}
-                      top={looks.ranked === c.key && looks.top.has(row)}
-                    />
+                    <MeasureCell column={c} row={row} largest={largest} />
                   ) : (
                     <LookCell column={c} row={row} looks={looks} />
                   )}
