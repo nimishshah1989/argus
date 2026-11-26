@@ -5,7 +5,7 @@ import { isProduction } from '../src/analytics/machine-facts.js';
 import { ENGINE_DATA } from './answer-key/fixture.js';
 
 /**
- * Ticket 77a's audit of the 52 figures: which of them read the production machines (a machine the plant leaves out
+ * Ticket 77a's audit of the 52 figures (53 with #814's OEM analytics): which of them read the production machines (a machine the plant leaves out
  * of production data changes them) and which read every machine (it does not). The three busiest production machines
  * of the 11 November plant are named in the settings list only, so the list alone must be enough to leave them out.
  * A figure that moves between the two lists is a decision, so it changes this test on purpose.
@@ -39,6 +39,7 @@ const READ_THE_PRODUCTION_MACHINES = [
   'machine-page',
   'monthly-report',
   'money-matters',
+  'oem-analytics',
   'registers',
   'reliability',
   'shift-kpis.breakdown-map',
@@ -72,7 +73,7 @@ const READ_EVERY_MACHINE = [
 /** Registered, and not computed by any engine yet: they read nothing, so the flag cannot move them. */
 const NOT_COMPUTED = ['action-center.spares-spend', 'compare.spares-cost', 'team-focus.cost'];
 
-describe('the 52 figures and the machines left out of production data', () => {
+describe('the 53 figures and the machines left out of production data', () => {
   const busiest = ENGINE_DATA.machines
     .filter(isProduction)
     .map((machine) => ({
@@ -130,8 +131,8 @@ describe('the 52 figures and the machines left out of production data', () => {
     expect(after.excludedMachines).toBe(before.excludedMachines + 3);
   });
 
-  it('moves the 31 figures that read the production machines, and no other', () => {
-    expect(READ_THE_PRODUCTION_MACHINES).toHaveLength(31);
+  it('moves the 32 figures that read the production machines, and no other', () => {
+    expect(READ_THE_PRODUCTION_MACHINES).toHaveLength(32);
     expect(moved(before.figures.map((figure) => figure.key)).sort()).toEqual(
       [...READ_THE_PRODUCTION_MACHINES].sort(),
     );

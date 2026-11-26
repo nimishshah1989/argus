@@ -25,8 +25,8 @@ const platform: FiguresReply = {
 };
 
 describe('OEM analytics', () => {
-  it('is not in the engine’s reply yet, and the screen says so instead of drawing numbers', () => {
-    expect(oemModel(realReply(), t, { mayDecide: false })).toBeNull();
+  it('draws from the engine’s own reply now the engine computes it (#814)', () => {
+    expect(oemModel(realReply(), t, { mayDecide: false })).not.toBeNull();
   });
 
   it('prints every figure of the platform’s own OEM page, each machine as a chip', () => {
