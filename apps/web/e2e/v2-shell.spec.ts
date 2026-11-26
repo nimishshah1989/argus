@@ -99,6 +99,7 @@ test('a rail click goes to the page without loading a new document', async ({ pa
   });
   await rail(page).getByRole('link', { name: 'Reports', exact: true }).click();
   await expect(page).toHaveURL(/\/analytics\/reports$/);
-  await expect(page.getByRole('heading', { name: 'Reports', exact: true })).toBeVisible();
+  // Reports opens on the monthly report, a v2 page since ticket 763.
+  await expect(page.getByRole('heading', { level: 1, name: 'Monthly report' })).toBeVisible();
   expect(await page.evaluate(() => (window as unknown as { stayed?: boolean }).stayed)).toBe(true);
 });

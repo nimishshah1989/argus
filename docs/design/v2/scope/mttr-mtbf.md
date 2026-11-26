@@ -49,10 +49,10 @@ Bhavin's A3 is `renderA3` in the 11 Nov file (B11).
 
 One row per kit rule, as ADR 0041 / 0043 map them. Nothing here becomes "not built". 2026-11-25. Rows from the builder's `docs/loop/handoff/752.md` and ticket #752.
 
-| Rule                                           | Status         | Where, or why not                               |
-| ---------------------------------------------- | -------------- | ----------------------------------------------- |
-| R1 / R10 TileSet + ShowDetail                  | done           | 4 shown, the rest under Show detail             |
-| R20 RankedBars                                 | not applicable | the Pareto is drawn by `PageBody` (ADR 0043 §2) |
-| R21 Quadrant                                   | not applicable | ADR 0041                                        |
-| R6 Download Excel                              | not applicable | ADR 0041                                        |
-| R11 readable / rupees / exact, R2, R4, R5, R17 | not applicable | ADR 0041                                        |
+| Rule                                           | Status         | Where, or why not                                                                                              |
+| ---------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------- |
+| R1 / R10 TileSet + ShowDetail                  | done           | 4 shown, the rest under Show detail right below them (PageBody `fold`, ADR 0049); the engine prints none today |
+| R20 RankedBars                                 | not applicable | the Pareto is drawn by `PageBody` (ADR 0043 §2)                                                                |
+| R21 Quadrant                                   | not applicable | ADR 0041                                                                                                       |
+| R6 Download Excel                              | not applicable | ADR 0041                                                                                                       |
+| R11 readable / rupees / exact, R2, R4, R5, R17 | not applicable | ADR 0041                                                                                                       |
