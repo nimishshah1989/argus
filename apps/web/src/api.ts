@@ -24,7 +24,6 @@ import {
 } from '@uptimo/shared';
 import type { BoardToday } from '@uptimo/shared/board';
 import { drillReplySchema, type DrillReply, type DrillType } from '@uptimo/shared/analytics';
-import type { User } from '@uptimo/shared/auth';
 import type {
   Criticality,
   Group,
@@ -37,7 +36,6 @@ import type {
   Shift,
 } from '@uptimo/shared/config';
 import type {
-  CommandReply,
   Config,
   Crew,
   RecentCodes,
@@ -55,17 +53,25 @@ import type {
   RaiseTicketBody,
 } from '@uptimo/shared/ticket';
 import type { WhyWhyPayload, WhyWhyWrite } from '@uptimo/shared/why-why';
-import type { TaskInput } from '@uptimo/shared/tasks';
 import type {
   BreakdownReport,
   CloseKind,
   Figures,
   TicketEvent,
   TicketInterval,
-  TicketKind,
   TicketPerson,
   TicketStatus,
 } from '@uptimo/shared/ticket-reply';
+import { type Me, type TicketListQuery } from './api-types.js';
+export {
+  type RaiseKind,
+  type Me,
+  type BreakdownCategory,
+  type CommandResult,
+  type CorrectChanges,
+  type TicketListQuery,
+  type CommandBody,
+} from './api-types.js';
 
 const config = defineResource<Config>({ key: 'config', path: '/api/v1/config' });
 const state = defineResource<State>({ key: 'state', path: '/api/v1/state' });
@@ -319,51 +325,6 @@ export type {
   TicketPerson,
   TicketStatus,
 };
-export type RaiseKind = TicketKind;
-export type Me = User;
-export type BreakdownCategory = NonNullable<BreakdownReportBody['breakdownCategory']>;
-export type CommandResult = CommandReply | { queued: true; id: string };
-
-export type CorrectChanges = Partial<
-  Pick<Ticket, 'reportedAt' | 'startedAt' | 'closedAt' | 'problem' | 'leadPersonId'>
-> & { machineId?: string | null; kind?: RaiseKind; closedByPersonId?: string | null };
-
-export type TicketListQuery = {
-  status?: TicketStatus[];
-  kind?: RaiseKind[];
-  machineId?: string;
-  personId?: string;
-  raisedBy?: string;
-  from?: string;
-  to?: string;
-  /** The channel a ticket was raised through; `['pm']` is the technician's PM job list (49c). */
-  channel?: string[];
-  cursor?: string;
-  limit?: number;
-};
-
-/** The action bodies the desk sends; each command from DOMAIN.md §4. */
-export type CommandBody =
-  | { personId?: string }
-  | { personId?: string; reasonCode: string; note?: string }
-  | { personId?: string; text: string }
-  | { personId?: string; note: string; toPersonId?: string }
-  | {
-      personId?: string;
-      kind: CloseKind;
-      at?: string;
-      note?: string;
-      report?: BreakdownReportBody;
-      /** What a close leaves behind (ticket 19): the follow-up task. */
-      task?: TaskInput;
-      /** Asked only when a follow-up task is marked done: 0 to 1440. */
-      taskDownMin?: number;
-    }
-  | { personId?: string; report: BreakdownReportBody }
-  | { personId?: string; reason: string }
-  | { personId?: string; role: 'primary' | 'support' }
-  | { personId?: string; response: 'confirmed' | 'disputed'; reason?: string }
-  | { reason: string; changes: CorrectChanges };
 
 export const putSeverityMatrix = (value: SeverityMatrix): Promise<{ ok: boolean }> =>
   settings.update<{ ok: boolean }>('severity_matrix', { value });
