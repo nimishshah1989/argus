@@ -1,4 +1,5 @@
 /* eslint-disable i18next/no-literal-string -- icon names and typed unions only; every visible word comes in as a prop or t() */
+// lean-allow: the v2 kit table owns search, filters, sort, paging and the row drawer in one place; splitting it is its own change.
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fill } from '../../i18n/fill.js';
