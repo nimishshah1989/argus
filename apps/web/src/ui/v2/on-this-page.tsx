@@ -1,6 +1,7 @@
+/* eslint-disable i18next/no-literal-string -- icon names and typed unions only; every visible word comes in as a prop or t() */
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { SelectField } from './select-field.js';
+import { Icon } from './icons.js';
 import { reducedMotion } from './motion.js';
 
 /** One titled part of a page: its heading's anchor (`#id`) and its title. */
@@ -18,14 +19,14 @@ export const slug = (title: string): string =>
 
 /**
  * The page's sections, in order: every `h2` inside `root` (a `SectionHead`, a `Panel`, a table's or a chart card's
- * title), except one inside a live message. Each heading is marked `data-section` with its anchor, made unique.
+ * title), except one inside a form or a live message. Each heading is marked `data-section` with its anchor, made unique.
  * No per-screen work: whatever the kit titles is in the index.
  */
 export function sectionsIn(root: ParentNode): PageSection[] {
   const used = new Map<string, number>();
   return [...root.querySelectorAll<HTMLElement>('h2')].flatMap((h) => {
     const title = h.textContent?.trim() ?? '';
-    if (!title || h.closest('[role="alert"], [role="status"], [role="dialog"]')) return [];
+    if (!title || h.closest('form, [role="alert"], [role="status"], [role="dialog"]')) return [];
     const base = slug(title);
     const n = (used.get(base) ?? 0) + 1;
     used.set(base, n);
@@ -123,38 +124,67 @@ export function OnThisPage({
   place: 'rail' | 'jump';
 }) {
   const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
   if (sections.length < MIN_SECTIONS) return null;
+  const name = t('ashell.onPage.title');
   if (place === 'jump')
     return (
       <div className="v2-onpage-jump">
-        <SelectField
-          label={t('ashell.onPage.jump')}
-          all={t('ashell.onPage.top')}
-          value={current ?? ''}
-          options={sections.map((s) => ({ key: s.id, label: s.title }))}
-          onChange={(id) => (id ? jumpTo(id) : window.scrollTo({ top: 0 }))}
-        />
+        <button
+          type="button"
+          className="v2-btn v2-btn-ghost"
+          aria-expanded={open}
+          onClick={() => setOpen((o) => !o)}
+          onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
+        >
+          {name}
+          <Icon name="chevronDown" size={14} />
+        </button>
+        {open ? (
+          <nav className="v2-onpage-list" aria-label={name}>
+            <Links sections={sections} current={current} onGo={() => setOpen(false)} />
+          </nav>
+        ) : null}
       </div>
     );
   return (
-    <nav className="v2-onpage-rail" aria-label={t('ashell.onPage.title')}>
-      <p className="v2-onpage-title">{t('ashell.onPage.title')}</p>
-      <ol>
-        {sections.map((s) => (
-          <li key={s.id}>
-            <a
-              href={`#${s.id}`}
-              aria-current={s.id === current ? 'location' : undefined}
-              onClick={(e) => {
-                e.preventDefault();
-                jumpTo(s.id);
-              }}
-            >
-              {s.title}
-            </a>
-          </li>
-        ))}
-      </ol>
+    <nav className="v2-onpage-rail" aria-label={name}>
+      <p className="v2-onpage-title">{name}</p>
+      <Links sections={sections} current={current} />
     </nav>
+  );
+}
+
+/**
+ * The index's links. Each title is drawn from `data-title` by CSS and named by `aria-label`, so the page holds each
+ * title once as text: a search of the page for a title finds the part itself, not its entry in the index.
+ */
+function Links({
+  sections,
+  current,
+  onGo,
+}: {
+  sections: PageSection[];
+  current?: string;
+  onGo?: () => void;
+}) {
+  return (
+    <ol>
+      {sections.map((s) => (
+        <li key={s.id}>
+          <a
+            href={`#${s.id}`}
+            aria-label={s.title}
+            data-title={s.title}
+            aria-current={s.id === current ? 'location' : undefined}
+            onClick={(e) => {
+              e.preventDefault();
+              jumpTo(s.id);
+              onGo?.();
+            }}
+          />
+        </li>
+      ))}
+    </ol>
   );
 }

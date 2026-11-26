@@ -25,8 +25,6 @@ export const analyticsShellEn = {
   'ashell.search.section': 'Section',
   'ashell.search.screen': 'Screen in {{section}}',
   'ashell.onPage.title': 'On this page',
-  'ashell.onPage.jump': 'Jump to a part of this page',
-  'ashell.onPage.top': 'Top of the page',
   'ashell.entity.fullPage': 'Open full page',
   'ashell.entity.notFound': 'We could not find this one. It may have been removed.',
   'ashell.v2.compare': 'Compare machines',

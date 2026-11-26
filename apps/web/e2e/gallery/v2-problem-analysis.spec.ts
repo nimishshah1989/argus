@@ -70,15 +70,21 @@ test('Problem Analysis: "On this page" lists the parts, jumps to one, marks it a
   await expect(page.getByRole('option', { name: /Repeat offenders/ })).toBeVisible();
 });
 
-test('Problem Analysis: on a phone the parts are a jump menu under the header', async ({
+test('Problem Analysis: on a phone the parts are a menu at the top of the page', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/gallery?view=v2-problem-analysis');
   await expect(page.getByRole('navigation', { name: 'On this page' })).toBeHidden();
-  const jump = page.getByRole('combobox', { name: 'Jump to a part of this page' });
-  await jump.selectOption({ label: 'Repeat offenders' });
+  const jump = page.getByRole('button', { name: 'On this page' });
+  await expect(jump).toHaveAttribute('aria-expanded', 'false');
+  await jump.click();
+  const list = page.getByRole('navigation', { name: 'On this page' });
+  await list.getByRole('link', { name: 'Repeat offenders', exact: true }).click();
   await expect(page).toHaveURL(/#repeat-offenders$/);
+  // The menu closes once it has taken the reader there.
+  await expect(jump).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByRole('heading', { level: 2, name: 'Repeat offenders' })).toBeFocused();
 });
 
 for (const theme of ['light', 'dark']) {

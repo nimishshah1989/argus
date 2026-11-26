@@ -349,7 +349,10 @@ function Search({
 function usePageIndex(search: readonly PaletteEntry[] | undefined) {
   const { t } = useTranslation();
   const content = useRef<HTMLElement>(null);
-  const sections = useSections(content, fixedZone(window.location.pathname));
+  const sections = useSections(
+    content,
+    typeof window !== 'undefined' && fixedZone(window.location.pathname),
+  );
   const current = useCurrent(sections);
   const entries = search && withSections(search, sections, t('ashell.onPage.title'));
   return { content, sections, current, entries };

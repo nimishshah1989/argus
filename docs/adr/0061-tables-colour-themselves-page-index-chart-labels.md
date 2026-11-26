@@ -48,10 +48,10 @@ He asked for each to be solved once, in the kit, so every page gets it.
      (at most 2 decimals, Indian grouping).
    - `PagedTable` bars by the page it holds and marks no top rows, since a page is not the whole list.
 3. **On this page.** The `Shell` reads every `h2` inside the page (a `SectionHead`, a `Panel`, a table's or chart
-   card's title; not one in a live message) into `OnThisPage`: a sticky rail at the right from 1280 px, a jump menu at
+   card's title; not one in a form or a live message) into `OnThisPage`: a sticky rail at the right from 1280 px, a jump menu at
    the top of the page below that or while the drawer is open. Scroll-spy marks the part being read; a click scrolls,
    focuses the heading and writes `#part` into the address, and a pasted `#part` scrolls there on load. Pages with
-   fewer than three parts show nothing. The floor, the desk and settings (`/floor`, `/desk`, `/settings`) get no index: the two-zone rule keeps their order and positions fixed (`fixedZone`). The same titles join the ⌘ K search. No screen changes.
+   fewer than three parts show nothing. The index draws each title from `data-title` by CSS and names its link by `aria-label`, so the page still holds each title once as text and a search of the page for a title finds the part, not its entry; the phone menu renders its list only while open. The floor, the desk and settings (`/floor`, `/desk`, `/settings`) get no index: the two-zone rule keeps their order and positions fixed (`fixedZone`). The same titles join the ⌘ K search. No screen changes.
 
 No new dependency: each piece is a few dozen lines on what the kit already had; a label-placement or scroll-spy
 library would bring more than it saves.
