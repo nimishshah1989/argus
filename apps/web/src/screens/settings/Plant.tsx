@@ -21,7 +21,6 @@ import { analyticsProfileSpec } from './analytics-profile-spec.js';
 import { TranslationsScreen } from './Translations.js';
 import { GlossaryScreen, ListsScreen } from './Lists.js';
 import { ladderSpec } from './ladder-spec.js';
-import { groupsSpec, machinesSpec, shiftsSpec } from './plant-specs.js';
 import { pmPlansSpec } from './pm-plans-spec.js';
 import { registersSpec } from './registers-spec.js';
 import { RosterScreen } from './roster-spec.js';
@@ -81,9 +80,9 @@ export interface PlantPageSpec {
  * place. `App.tsx` maps it to `/settings/<page>`, and the left menu and phone list read the same entries.
  */
 export const PLANT_PAGES: readonly PlantPageSpec[] = [
-  { page: 'machines', icon: Factory, key: 'plant.menu.machines', spec: machinesSpec as never },
-  { page: 'groups', icon: LayoutGrid, key: 'plant.menu.groups', spec: groupsSpec as never },
-  { page: 'shifts', icon: Clock, key: 'plant.menu.shifts', spec: shiftsSpec as never },
+  { page: 'machines', icon: Factory, key: 'plant.menu.machines' },
+  { page: 'groups', icon: LayoutGrid, key: 'plant.menu.groups' },
+  { page: 'shifts', icon: Clock, key: 'plant.menu.shifts' },
   { page: 'pm-plans', icon: CalendarCheck, key: 'pm.menu.plans', spec: pmPlansSpec as never },
   {
     page: 'registers',
