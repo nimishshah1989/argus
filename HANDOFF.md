@@ -2,30 +2,26 @@
 
 _Overwritten at the end of every session. Keep under 30 lines. Facts only._
 
-**Updated:** 2026-11-26 ~18:00 IST · **By:** session `c39914a2…` · **Goal (Nimish, ADR 0055):** all screens live on the newest kit, nothing old remains · **Mode (ADR 0057):** one organic session, parallel agents, no loop rounds · **Branch:** plan/handoff-s29
+**Updated:** 2026-11-26 ~20:30 IST · **By:** session `c39914a2…` · **Goal (Nimish, ADR 0055):** all screens live on the newest kit, nothing old remains · **Mode (ADR 0057):** organic session, parallel agents · **Branch:** plan/handoff-s30
 
 ## State
 
-- "What's left" is measured by `tools/old-ui-left.test.ts` (#849 merged): old-design components the shipped app still renders, 62 on 26 Nov. Done = empty.
-- Nimish approved S28-desk, S29-ticket, S30-board (#850 merged).
-- Floor is on the v2 kit (`v2/floor-on-kit`): new `ui/v2/{floor-kit,wizard,bottom-sheet,account-sheet,alerts-card,drafts-list,status-pill}.tsx` + `floor.css`; Desk can swap to `ui/v2/account-sheet` / `drafts-list` / `status-pill` to drop the old ones. OLD_LEFT minus wizard-page, floor-pieces, ui/text.
-- Four agents building in worktrees, one PR each: A `v2/kit-settings-signin` (kit leftovers, Settings Company/Translations = #794, sign-in Notice, App wiring, #846 lists fixes); B `v2/floor-on-kit`; C `v2/desk-ticket-shell` (Desk + Ticket into the v2 Shell); D `v2/board-shell`.
-- C `v2/desk-ticket-shell`: Desk (Open, Mine, Team) and /desk/:id in the v2 Shell (EntityShell); a ticket picked on a wide list opens in the kit drawer (history state `from`), by link or on a phone a full Shell page; actions, close flow, lockout, sign-off, tasks, PM, admin, PDF rebuilt under `screens/v2/ticket/{actions,close,parts}`; with #855 merged OLD_LEFT is empty (nothing old reachable); components/AccountSheet and AlertsCard deleted. Not built (need API data): sign-off outcomes list (#803), crew roles in Working now, per-machine downtime average in the ticket lede, searchable code tap-lists.
-- A `v2/kit-settings-signin` (PR 855): kit off patterns/*.tsx; Settings Company/Translations on the kit, v1 settings pages deleted; sign-in/who/password on `ui/v2/notice.tsx`; App.tsx on `ui/v2/update-banner.tsx` + `screens/v2/analytics-routes.tsx`; #846 fixes.
-- D: #853 merged (/desk/board in the v2 Shell, TV keeps its frame). `v2/board-shell-2` finishes S30: Desk tab counts Open (n) / Mine (n), browser pulse as KPI cards, columns as tables, ages as bars (no TV icon: icons.tsx is plan-only); day-score items out (ADR 0050).
-- #842 (audit trail fixes) builder was running via `loop build 842`; finish with `loop finish 842`. #819 is superseded by the guard.
+- **ADR 0055 met by measurement:** `tools/old-ui-left.test.ts` on main f980d307 has `OLD_LEFT = []`. The shipped app renders no old-design component (62 on 26 Nov afternoon → 0).
+- Merged this push: #849 guard, #850 S28–S30 approvals, #852 audit fixes (#842), #853 + #856 Board in Shell, #854 Floor on kit, #855 Settings Company/Translations (#794), sign-in, App wiring, lists/profile fix (#846), #857 Desk + Ticket in Shell.
+- Nimish approved merging PRs whose only red check is loop-guard "existing test modified on a build branch" (26 Nov). Protected files stay plan-only.
+
+## Not built (server lacks data, or protected file)
+
+- #803 sign-off outcomes list, crew roles and paused jobs under Working, ticket downtime-vs-average line, searchable code lists with last 5 used.
+- TV icon on "Open TV view" (needs a plan/ change to ui/v2/icons.tsx). Board rows open the machine panel, not the ticket. Day-score items out per ADR 0050.
+- Dead old files only the dev gallery imports (ui/close-kit, counts-strip, detail-kit, tick-row, ticket-card, top-bar, side-nav, patterns/crud-list, crud-page, queue-table, ui/filter-chip, shims screens/analytics/Analytics.tsx, patterns/crud-actions.ts, form-sheet.tsx) can be deleted with their gallery pages in a plan/ PR.
 
 ## Next steps
 
-1. Merge each agent PR when green; resolve OLD_LEFT conflicts in the guard test. 2. Delete old files no longer reached, plus their gallery pages; the list hits zero.
+1. Nimish clicks through Desk, Ticket, Board, Floor and Settings on staging. 2. Plan the "not built" items above. 3. Floor segment tiles (ADR 0055 point 1).
 
-## Blocked
-
-None.
-
-## Don't repeat (details in LESSONS.md)
+## Don't repeat
 
 - Never answer "how much is left" from tickets or memory: run the guard.
-- The loop hook blocks frontend only when no wireframe is approved at all, not when one is stale.
-- Never put the approve command text inside a Bash command; the guard blocks it.
-- Never `#NNN` in apps/web comments (hex guard). New API route → `REPLY_SCHEMAS` + route count in `reply-contract.test.ts`.
+- Never tell agents a protected file is editable; CI loop-guard rejects it off plan/ branches.
+- Never put the approve command text in a Bash command.
