@@ -10,13 +10,7 @@ import { viewState } from '../../../patterns/view-state.js';
 import { KeyPill } from '../../../ui/v2/key-pill.js';
 import { ScreenStates } from '../../../ui/v2/screen-states.js';
 import { Takeaway } from '../../../ui/v2/takeaway.js';
-import {
-  canSeeJobs,
-  countLabel,
-  kindWords,
-  useFailedJobs,
-  useRetryJob,
-} from '../../settings/Jobs.js';
+import { canSeeJobs, countLabel, kindWords, useFailedJobs, useRetryJob } from './jobs.js';
 import { jobsTakeaway, when } from './model.js';
 
 type FailedJob = FailedJobsReply['items'][number];

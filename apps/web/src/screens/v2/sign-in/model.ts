@@ -2,6 +2,9 @@ import type { MessageKey } from '@uptimo/shared/i18n';
 import { ApiError } from '../../../api.js';
 import { landingPath } from '../../../roles.js';
 
+/** `/login?signedOut=1` is where the data layer sends a refused session. */
+export const SIGNED_OUT_PARAM = 'signedOut';
+
 /** Who signed in, as far as where they go next is concerned. */
 export type SignedIn = { role: string; shared: boolean; actingPersonId?: string | null };
 

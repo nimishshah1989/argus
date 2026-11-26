@@ -3,12 +3,13 @@ import { PROFILE_KEYS, profileReplySchema, type ProfileKey } from '@uptimo/share
 import type { MessageKey } from '@uptimo/shared/i18n';
 import type { CrudSpec } from '../../../patterns/crud-spec.js';
 import { KeyPill } from '../../../ui/v2/key-pill.js';
+import { profileTakeaway } from './model.js';
 
 /**
  * The analytics profile screen (ticket 37b): one generated settings row over `/analytics-profile`. The
  * fields are the shared table in its own order, so the four groups stay together — plant, forecast, money,
- * action centre — and a number added to `PROFILE_FIELDS` appears here with no screen code. The server hides
- * the money numbers from everyone who may not read them; this screen adds no permission rule of its own.
+ * action centre — and a number added to `PROFILE_FIELDS` appears here with no screen code. The route is head
+ * and admin only and sends every number; this screen adds no permission rule of its own.
  */
 
 export interface ProfileRow {
@@ -69,8 +70,7 @@ export const analyticsProfileSpec: CrudSpec<ProfileRow> = {
   toggle: false,
   fields: PROFILE_KEYS.map((key) => ({ name: key, labelKey: PROFILE_LABELS[key] })),
   look: (row, c) => {
-    // Money keys are absent for a login without money rights: only the keys on the row count.
-    const notSet = PROFILE_KEYS.filter((key) => key in row && row[key] === null).length;
+    const notSet = profileTakeaway(row).onDefault.length;
     return {
       title: c.t('analytics.profile.row'),
       sub: c.t('analytics.profile.row.sub'),

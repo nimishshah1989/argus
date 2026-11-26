@@ -1,6 +1,6 @@
 # Coverage: Settings shell + Background jobs (v2, `screens/v2/settings/`)
 
-Built from v1 `screens/settings/Plant.tsx` (`PlantSettings`, `Home`, `NoAccess`) and `Jobs.tsx` (`JobsScreen`), e2e `settings-plant.spec.ts` and `settings-jobs.spec.ts`, wireframe `design/wireframes/S26-settings.html` (approved). Ticket S26-1 (issue 788). Decisions: ADR 0044 d4, ADR 0046 d2–4, ADR 0047 item 1.
+Built from v1 `screens/settings/Plant.tsx` (`PlantSettings`, `Home`, `NoAccess`) and `Jobs.tsx` (`JobsScreen`), e2e `settings-plant.spec.ts` and `settings-jobs.spec.ts`, wireframe `design/wireframes/S26-settings.html` (approved). Ticket S26-1 (issue 788); Company and Translations moved to the kit for issue 794. Decisions: ADR 0044 d4, ADR 0046 d2–4, ADR 0047 item 1.
 
 | Item                                                                  | Source                               | v2      | Where in v2                                                              |
 | --------------------------------------------------------------------- | ------------------------------------ | ------- | ------------------------------------------------------------------------ |
@@ -14,6 +14,14 @@ Built from v1 `screens/settings/Plant.tsx` (`PlantSettings`, `Home`, `NoAccess`)
 | Failed job rows: reason, attempts, failed at, Retry and its states    | `JobsScreen`                         | same    | kit rows (list items)                                                    |
 | Jobs takeaway "1 job has failed: kind, n attempts, failed ago (when)" | wireframe                            | new     | `jobsTakeaway` above the rows                                            |
 | People / Logins admin gate inside the page                            | `People.tsx`                         | same    | v1 body until S26-4                                                      |
+| Page list (menu, routes, jobs-only entry)                             | `Plant.tsx` `PLANT_PAGES`            | same    | `pages.ts` (icons dropped: the v2 menu never drew them)                  |
+| Company: name, language, time zone with help lines                    | `Company.tsx`                        | same    | `CompanyView` Details card                                               |
+| Company: feature switches (work requests, pause, live board)          | `Company.tsx`                        | same    | `CompanyView` Features card (checkboxes)                                 |
+| Company: logo (current or none, choose file, upload, saved/failed)    | `Company.tsx` `LogoSection`          | same    | `CompanyView` Logo card                                                  |
+| Company: Save changes, one PUT per changed key, saved/failed line     | `Company.tsx`, `company-spec.ts`     | same    | `CompanyView`; load failure is the kit error/offline state               |
+| Translations: search, missing keys with English, Gujarati box per key | `Translations.tsx`                   | same    | `TranslationsView` table (first 50, then "n more keys")                  |
+| Translations: Save translations, applied at once, saved/failed line   | `Translations.tsx`                   | same    | `TranslationsView`                                                       |
+| Translations takeaway "n of total keys have no Gujarati" and a bar    | wireframe                            | new     | `TranslationsView` lead                                                  |
 
 Notes (wireframe questions, block nothing; ADR 0044: built as drawn):
 

@@ -3,14 +3,14 @@ import { useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { getActingChoices, getBrand, getMe } from '../../../api.js';
-import { SignOutSheet } from '../../../components/AccountSheet.js';
 import { useOnline } from '../../../data/index.js';
 import { actAs } from '../../../faces/signin/act-as.js';
-import { Notice } from '../../../faces/signin/parts.js';
-import { StateNotice } from '../../../patterns/frame.js';
 import { offlineNotice } from '../../../patterns/view-state.js';
 import { landingPath } from '../../../roles.js';
+import { leaveThisPhone, SignOutPrompt } from '../../../ui/v2/account-sheet.js';
 import { Button } from '../../../ui/v2/button.js';
+import { ErrorNotice } from '../../../ui/v2/notice.js';
+import { ErrorState } from '../../../ui/v2/screen-states.js';
 import { SectionHead } from '../../../ui/v2/section-head.js';
 import { SelectField } from '../../../ui/v2/select-field.js';
 import { whoChoices, whoError } from './model.js';
@@ -20,8 +20,7 @@ function NamePicker({ value, set }: { value: string; set: (id: string) => void }
   const { t } = useTranslation();
   const choices = useQuery({ queryKey: ['acting-choices'], queryFn: getActingChoices });
   if (choices.isError && !choices.data)
-    // eslint-disable-next-line i18next/no-literal-string -- state name, not copy
-    return <StateNotice state="error" empty="" onRetry={() => void choices.refetch()} />;
+    return <ErrorState onRetry={() => void choices.refetch()} />;
   return (
     <SelectField
       label={t('signin.yourName')}
@@ -30,6 +29,22 @@ function NamePicker({ value, set }: { value: string; set: (id: string) => void }
       options={whoChoices(choices.data?.people ?? []).map((p) => ({ key: p.id, label: p.name }))}
       onChange={set}
     />
+  );
+}
+
+/** The who step's way back asks first: signing out ends this phone's session and its alerts. */
+function SignOutAsk({ onCancel }: { onCancel: () => void }): ReactElement {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  async function signOutNow(): Promise<void> {
+    await leaveThisPhone();
+    navigate('/login');
+  }
+  return (
+    <section aria-label={t('account.signOutTitle')} className="v2-crud-form">
+      <h2 className="v2-h3">{t('account.signOutTitle')}</h2>
+      <SignOutPrompt onCancel={onCancel} onConfirm={() => void signOutNow()} />
+    </section>
   );
 }
 
@@ -75,7 +90,7 @@ export function WhoView(): ReactElement {
       {user?.shared ? <p>{t('signin.sharedPhone')}</p> : null}
       <h2>{t('signin.whoTitle')}</h2>
       <p>{t('signin.whoLede')}</p>
-      <Notice error={error} signedOut={false} />
+      <ErrorNotice error={error} />
       {offline ? (
         <p role="status" className="v2-sub">
           {t(offline)}
@@ -86,7 +101,7 @@ export function WhoView(): ReactElement {
         {t('signin.continue')}
       </Button>
       <Button onClick={() => setConfirming(true)}>{t('login.signIn')}</Button>
-      <SignOutSheet open={confirming} onOpenChange={setConfirming} />
+      {confirming ? <SignOutAsk onCancel={() => setConfirming(false)} /> : null}
     </main>
   );
 }

@@ -5,10 +5,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ApiError, getBrand, getConfig, setToken, signIn } from '../../../api.js';
 import { describeFailure, rememberWho, useOnline } from '../../../data/index.js';
 import { lastUsername, rememberUsername } from '../../../faces/signin/last-username.js';
-import { Notice, SIGNED_OUT_PARAM } from '../../../faces/signin/parts.js';
 import { Button } from '../../../ui/v2/button.js';
+import { ErrorNotice, Notice } from '../../../ui/v2/notice.js';
 import { SectionHead } from '../../../ui/v2/section-head.js';
-import { nextPath, readyToSignIn, signInError } from './model.js';
+import { nextPath, readyToSignIn, SIGNED_OUT_PARAM, signInError } from './model.js';
 
 async function mustChangePasswordFirst(): Promise<boolean> {
   try {
@@ -100,7 +100,12 @@ export function SignInView(): ReactElement {
     <main className="v2-card v2-pad">
       <SectionHead title={t('login.signIn')} sub={company} />
       <p>{t('signin.desk')}</p>
-      <Notice error={error} signedOut={params.has(SIGNED_OUT_PARAM) && !error} />
+      <ErrorNotice error={error} />
+      {!error && params.has(SIGNED_OUT_PARAM) ? (
+        <Notice tone="risk" title={t('signin.signedOut')}>
+          {t('signin.signedOutDetail')}
+        </Notice>
+      ) : null}
       <form
         onKeyDown={(e) => {
           // Enter in a field submits; on the button it already presses it.

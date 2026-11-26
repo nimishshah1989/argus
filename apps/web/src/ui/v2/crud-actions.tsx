@@ -1,11 +1,9 @@
-/* eslint-disable i18next/no-literal-string -- prop values only; every visible string goes through t() */
 import { useState } from 'react';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
-import { idempotencyKey } from '../data/index.js';
-import { Button } from '../ui/button.js';
-import { Inline } from '../ui/layout.js';
-import type { CrudBulkAction, CrudRow, CrudSpec } from './crud-spec.js';
+import { idempotencyKey } from '../../data/index.js';
+import type { CrudBulkAction, CrudRow, CrudSpec } from '../../patterns/crud-spec.js';
+import { Button } from './button.js';
 
 /** What a switch sends: never the reason, which a strict reply schema would refuse. */
 export function switchBody<Row extends CrudRow>(
@@ -183,20 +181,15 @@ export function BulkBar<Row extends CrudRow>({
   const { t } = useTranslation();
   if (!spec.bulk || count === 0) return null;
   return (
-    <section
-      aria-label={t('kit.crud.bulk')}
-      className="flex flex-col gap-2 rounded-2xl bg-surface p-3 shadow-card"
-    >
-      <p className="text-footnote font-semibold text-neutral-600">
-        {t('kit.crud.selected', { count })}
-      </p>
-      <Inline gap={2}>
+    <section aria-label={t('kit.crud.bulk')} className="v2-crud">
+      <p className="v2-crud-hint">{t('kit.crud.selected', { count })}</p>
+      <div className="v2-crud-actions">
         {spec.bulk.actions.map((action) => (
-          <Button key={action.id} variant="secondary" onClick={() => onPick(action)}>
+          <Button key={action.id} onClick={() => onPick(action)}>
             {t(action.labelKey)}
           </Button>
         ))}
-      </Inline>
+      </div>
     </section>
   );
 }

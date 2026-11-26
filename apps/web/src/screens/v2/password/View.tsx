@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { changePassword, getMe, getToken } from '../../../api.js';
 import { describeFailure, useOnline } from '../../../data/index.js';
-import { Notice } from '../../../faces/signin/parts.js';
 import { landingPath } from '../../../roles.js';
 import { Button } from '../../../ui/v2/button.js';
+import { ErrorNotice } from '../../../ui/v2/notice.js';
 import { SectionHead } from '../../../ui/v2/section-head.js';
 import { signInError } from '../sign-in/model.js';
 import { passwordReady, passwordRefusal } from './model.js';
@@ -126,7 +126,7 @@ export function PasswordView(): ReactElement {
   return (
     <main className="v2-card v2-pad">
       <SectionHead title={t('signin.passwordTitle')} />
-      <Notice error={error} signedOut={false} />
+      <ErrorNotice error={error} />
       <form
         onKeyDown={(e) => {
           // Enter in a field submits; on the button it already presses it.

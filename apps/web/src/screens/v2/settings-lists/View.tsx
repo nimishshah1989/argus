@@ -3,13 +3,20 @@ import { useQueries, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { GlossaryReply, ListItemReply } from '@uptimo/shared/plant-settings';
-import { defineResource } from '../../../data/index.js';
+import { defineResource, useOnline } from '../../../data/index.js';
 import { CrudPage } from '../../../ui/v2/crud-page.js';
 import { DataTable, type Column } from '../../../ui/v2/data-table.js';
+import { ErrorState, OfflineState } from '../../../ui/v2/screen-states.js';
 import { Takeaway, type TakeawayData } from '../../../ui/v2/takeaway.js';
 import { analyticsProfileSpec, type ProfileRow } from './analytics-profile-spec.js';
 import { LIST_PAGES, glossarySpec, listMenu, type ListsPage } from './lists-specs.js';
-import { glossaryTakeaway, listsTakeaway, profileTakeaway } from './model.js';
+import {
+  glossaryTakeaway,
+  listsHub,
+  listsTakeaway,
+  profileTakeaway,
+  type HubState,
+} from './model.js';
 
 const pct = (n: number, total: number) => Math.round((n / total) * 100);
 
@@ -52,7 +59,6 @@ function AllEntries({
       rows={entries}
       rowKey={(row) => `${row.page}-${row.id}`}
       columns={columns}
-      headed
       filters={[]}
       text={(row) => `${row.label} ${row.code} ${titleOf(row.page)}`}
       words={{
@@ -66,6 +72,27 @@ function AllEntries({
   );
 }
 
+/** One tile per list, with its count of active entries once the list has arrived (never a false 0). */
+function HubTiles({ counts }: { counts: HubState['counts'] }) {
+  const { t } = useTranslation();
+  return (
+    <ul className="v2-tile-set">
+      {listMenu(LIST_PAGES).map((row, index) => {
+        const { n } = counts[index]!;
+        return (
+          <li key={row.to}>
+            <Link to={row.to} className="v2-link">
+              <strong>{t(row.titleKey)}</strong>
+              <span className="v2-crud-sub">{t(row.subKey)}</span>
+              {n === null ? null : <span className="v2-sub">{n}</span>}
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 /** The hub: one tile per list, then every active entry across the six in one read-only table. */
 function ListsHub() {
   const { t } = useTranslation();
@@ -76,14 +103,23 @@ function ListsHub() {
       select: (items: ListItemReply[]) => items.map((item): Entry => ({ ...item, page })),
     })),
   });
+  const online = useOnline();
+  const hub = listsHub(
+    LIST_PAGES.map(({ page }, i) => ({
+      page,
+      items: lists[i]!.data,
+      failed: lists[i]!.isError && lists[i]!.data === undefined,
+    })),
+  );
   const entries = lists.flatMap((list) => (list.data ?? []).filter((item) => item.active));
-  const counts = LIST_PAGES.map(({ page }) => ({
-    page,
-    n: entries.filter((entry) => entry.page === page).length,
-  }));
-  const top = lists.some((list) => list.data === undefined) ? null : listsTakeaway(counts);
+  const top =
+    hub.state === 'ready'
+      ? listsTakeaway(hub.counts.map(({ page, n }) => ({ page, n: n ?? 0 })))
+      : null;
+  const retry = () => {
+    for (const list of lists) if (list.isError) void list.refetch();
+  };
   const titleOf = (page: ListsPage) => t(LIST_PAGES.find((p) => p.page === page)!.titleKey);
-  const menu = listMenu(LIST_PAGES);
   return (
     <div className="v2-crud">
       <h2 className="v2-h2">{t('lists.title')}</h2>
@@ -104,18 +140,17 @@ function ListsHub() {
         }
       />
       <p className="v2-crud-hint">{t('lists.intro')}</p>
-      <ul className="v2-tile-set">
-        {menu.map((row, index) => (
-          <li key={row.to}>
-            <Link to={row.to} className="v2-link">
-              <strong>{t(row.titleKey)}</strong>
-              <span className="v2-crud-sub">{t(row.subKey)}</span>
-              <span className="v2-sub">{counts[index]!.n}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-      {entries.length > 0 ? <AllEntries entries={entries} titleOf={titleOf} /> : null}
+      <HubTiles counts={hub.counts} />
+      {hub.state === 'error' ? (
+        online ? (
+          <ErrorState onRetry={retry} />
+        ) : (
+          <OfflineState onRetry={retry} />
+        )
+      ) : null}
+      {hub.state === 'ready' && entries.length > 0 ? (
+        <AllEntries entries={entries} titleOf={titleOf} />
+      ) : null}
     </div>
   );
 }
@@ -174,7 +209,7 @@ export function ProfileView() {
   });
   const row = rows.data?.[0];
   const top = row ? profileTakeaway(row) : null;
-  const set = top ? top.total - top.notSet.length : 0;
+  const set = top ? top.total - top.onDefault.length : 0;
   return (
     <CrudPage
       spec={analyticsProfileSpec}
@@ -183,8 +218,8 @@ export function ProfileView() {
           <>
             <Lead
               data={{
-                text: t('lists.profile.takeaway', { n: top.notSet.length, total: top.total }),
-                tone: top.notSet.length > 0 ? 'risk' : 'gain',
+                text: t('lists.profile.takeaway', { n: top.onDefault.length, total: top.total }),
+                tone: top.onDefault.length > 0 ? 'risk' : 'gain',
                 tag: t('lists.tag'),
               }}
             />

@@ -1,11 +1,10 @@
-/* eslint-disable i18next/no-literal-string -- prop values only; every visible string goes through t() */
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { applyUpdate, inChangeover, useWaitingUpdate } from '../app-update.js';
-import { getConfig } from '../api.js';
-import { Banner } from '../ui/banner.js';
-import { Button } from '../ui/button.js';
+import { applyUpdate, inChangeover, useWaitingUpdate } from '../../app-update.js';
+import { getConfig } from '../../api.js';
+import { Button } from './button.js';
+import { Notice } from './notice.js';
 
 const MINUTE_MS = 60_000;
 
@@ -29,16 +28,12 @@ export function UpdateBanner({ auto = false }: { auto?: boolean }) {
   }, [auto, waiting, config.data, quiet]);
   if (auto || !waiting || quiet) return null;
   return (
-    <Banner
-      tone="info"
+    <Notice
+      tone="plan"
       title={t('update.title')}
-      action={
-        <Button variant="tonal" onClick={() => applyUpdate(waiting)}>
-          {t('update.action')}
-        </Button>
-      }
+      action={<Button onClick={() => applyUpdate(waiting)}>{t('update.action')}</Button>}
     >
       {t('update.body')}
-    </Banner>
+    </Notice>
   );
 }

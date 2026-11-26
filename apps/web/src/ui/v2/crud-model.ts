@@ -1,6 +1,44 @@
 import type { TFunction } from 'i18next';
 import type { CrudCtx, CrudRow, CrudSpec } from '../../patterns/crud-spec.js';
-import type { FormField } from '../../patterns/form-sheet.js';
+
+export interface FormField {
+  name: string;
+  label: string;
+  required?: boolean;
+  /** A taller text box for a sentence or two. */
+  multiline?: boolean;
+  /** Longest text the server accepts; the box stops there so a queued command is never refused. */
+  maxLength?: number;
+  /** `choice` picks one of `choices` (a bar for up to four, a menu for more); `time` is HH:MM; `date` is a day. */
+  kind?: 'text' | 'time' | 'date' | 'choice';
+  choices?: { value: string; label: string }[];
+}
+export interface FormSheetProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  submitLabel: string;
+  fields: FormField[];
+  offlineAllowed: boolean;
+  pending: boolean;
+  error: string | null;
+  /** True closes the sheet and clears the fields. */
+  onSubmit: (values: Record<string, string>) => Promise<boolean>;
+  /** First values of the fields; default {}. */
+  initial?: Record<string, string>;
+  /** A line under the title. */
+  description?: string;
+  /** "Acting as <name>", above the button. */
+  actingAs?: string;
+  /** With it, a "Go back" button sits left of the submit button. */
+  backLabel?: string;
+  /** A line shown under the fields, from what they hold now (a cell change says what it will move). */
+  note?: (values: Record<string, string>) => string | null;
+  /** True holds the submit button: a combination the server would refuse, explained by `note`. */
+  blocked?: (values: Record<string, string>) => boolean;
+  /** A small line under the button. */
+  footnote?: string;
+}
 
 /** What holds a sheet's submit: a write in flight, no connection, a required field left empty, or the caller's own refusal. */
 export type HoldState = { pending: boolean; online: boolean; missing: boolean; blocked?: boolean };
