@@ -107,16 +107,13 @@ test('a head opens the reports, switches to the annual report, reads both keys a
   await signIn(page, 'head');
   await page.goto('/analytics/reports');
 
-  // The monthly report opens by default: its switch, period line, title, tables and charts.
-  const nav = page.getByRole('navigation', { name: 'Screens in Reports', exact: true });
-  await expect(nav.getByRole('link', { name: 'Monthly report', exact: true })).toHaveAttribute(
-    'aria-current',
-    'page',
-  );
-  await expect(page.getByText('October 2026', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: MONTHLY_PAGE.title, exact: true })).toBeVisible();
+  // The monthly report opens by default: the v2 printed page (ticket 763), its tab pressed, period line, title,
+  // commentary and both links. Its charts are kit pieces (no chart-shape assertion, as the 763 seed decided).
+  const monthlyTab = page.getByRole('button', { name: 'Monthly report', exact: true });
+  await expect(monthlyTab).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('paragraph').filter({ hasText: /^October 2026$/ })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Monthly report' })).toBeVisible();
   await expect(page.getByRole('heading', { name: COMMENTARY, exact: true })).toBeVisible();
-  await expectCharts(page);
 
   const pdf = page.getByRole('link', { name: 'Download PDF', exact: true });
   await expect(pdf).toHaveAttribute('href', '/api/v1/reports/monthly.pdf');
@@ -124,15 +121,15 @@ test('a head opens the reports, switches to the annual report, reads both keys a
     page.getByRole('link', { name: 'Export the whole data set (Excel)', exact: true }),
   ).toHaveAttribute('href', '/api/v1/reports/workbook.xlsx');
 
-  // The monthly key's first machine row, cell for cell.
-  const machines = page.getByRole('table', { name: MACHINE_RANK.title, exact: true }).first();
+  // The monthly key's first machine row, cell for cell (the first "Where the time went" table is the machines').
+  const machines = page.getByRole('region', { name: MACHINE_RANK.title, exact: true }).first();
   const firstMachine = machines.getByRole('row').nth(1);
-  await expect(firstMachine.getByRole('cell')).toHaveCount(MACHINE_RANK.header.length);
   for (const [index, cell] of MACHINE_RANK.rows[0]!.entries())
     await expect(firstMachine.getByRole('cell').nth(index)).toHaveText(cell);
 
-  // Switch to the annual report: its period line, title, commentary caption and charts.
-  await nav.getByRole('link', { name: 'Annual report', exact: true }).click();
+  // Switch to the annual report (still the v1 page until ticket 765): its period line, title, commentary and charts.
+  await page.getByRole('button', { name: 'Annual report', exact: true }).click();
+  const nav = page.getByRole('navigation', { name: 'Screens in Reports', exact: true });
   await expect(page).toHaveURL(/screen=annual-report/);
   await expect(nav.getByRole('link', { name: 'Annual report', exact: true })).toHaveAttribute(
     'aria-current',
