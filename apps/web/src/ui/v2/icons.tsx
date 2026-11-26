@@ -43,6 +43,7 @@ const PATHS = {
   cell: ['M4 4h7v7H4z', 'M13 4h7v7h-7z', 'M4 13h7v7H4z', 'M13 13h7v7h-7z'],
   person: ['M12 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z', 'M5 20c0-3.5 3-6 7-6s7 2.5 7 6'],
   decision: ['M5 21V4', 'M5 4h12l-2.5 4L17 12H5'],
+  tv: ['M3 5h18v12H3z', 'M8 21h8M12 17v4'],
 } as const;
 
 export type IconName = keyof typeof PATHS;
